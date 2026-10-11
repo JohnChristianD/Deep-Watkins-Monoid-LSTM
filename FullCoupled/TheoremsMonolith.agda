@@ -2,15 +2,16 @@
 {-# OPTIONS
   --no-fast-reduce
   --lossy-unification
+  --backtracking-instance-search
   --experimental-lazy-instances
   --confluence-check
   --guarded
-  --exact-split
+  --flat-split
   --no-infer-absurd-clauses
   --no-projection-like
   --erased-matches
   --erase-record-parameters
-  --without-K
+  --allow-exec
   --level-universe
   --rewriting
   --no-termination-check
@@ -19,16 +20,30 @@
 #-}
 -- END MIRTH-SYNC GLOBAL OPTIONS
 
-
-{-# OPTIONS
-#-}
-
 ------------------------------------------------------------------------
--- Canonical theorem semantics and emergence layer.
--- Baseline reconstruction: current imports/options over the last green body.
+-- Canonical learner semantics.
+--
+-- This module is the executable/type-level source of the coupled learner:
+-- recurrent monoid-LSTM state, Watkins state, custom q-projected sign-IDBD w/ coupled L2 optimizer state,
+-- LCB counts, sparse policy readout, q-log state, the persistent learner channels, and the
+-- endogenous feedback signal. The definitions below determine what the
+-- learner actually does; theorem modules consume these definitions.
+--
+-- The main emergent facts are structural: LCB totalCount advances exactly
+-- by one per canonical step, the optimizer state is explicit, the policy is
+-- invariant under optimizer replacement, and the recurrent
+-- components are exposed as composable monoid-LSTM state transitions. The integer
+-- token layer and Haar-featured linear transformer are exact formal substrates, not
+-- empirical language-model or physical-realism claims.
+--
+-- This file intentionally contains definitions and local definitional laws,
+-- not economic existence conclusions. Convergence, fixed points, market
+-- clearing, supporting prices, and Walrasian existence require independent
+-- hypotheses and belong to the theorem/economic boundary documented outside
+-- this module.
 ------------------------------------------------------------------------
 
-module FullCoupled.TheoremsMonolith where
+module FullCoupled.CanonicalLearnerMonolith where
 
 -- BEGIN MIRTH-SYNC COMMON IMPORTS
 -- Merged external import surface; internal FullCoupled imports remain module-local.
@@ -61,10 +76,7 @@ open import Rationals.Order
 open import Rationals.Type
 -- END MIRTH-SYNC COMMON IMPORTS
 
--- Stable Agda 2.8.0.2 reflection compatibility surface.
--- Reuses TypeTopology's existing BOOL/NATURAL/LIST/SIGMA bindings instead
--- of importing Agda.Builtin.Reflection, whose dependency closure attempts
--- to install competing builtin owners.
+
 postulate String : Set
 {-# BUILTIN STRING String #-}
 

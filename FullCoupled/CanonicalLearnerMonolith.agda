@@ -2,15 +2,16 @@
 {-# OPTIONS
   --no-fast-reduce
   --lossy-unification
+  --backtracking-instance-search
   --experimental-lazy-instances
   --confluence-check
   --guarded
-  --exact-split
+  --flat-split
   --no-infer-absurd-clauses
   --no-projection-like
   --erased-matches
   --erase-record-parameters
-  --without-K
+  --allow-exec
   --level-universe
   --rewriting
   --no-termination-check
@@ -81,8 +82,6 @@ cong₂ f refl refl = refl
 
 trans : ∀ {A : Set} {x y z : A} → x ＝ y → y ＝ z → x ＝ z
 trans refl q = q
-
-open import InfinitePigeon.FinitePigeon
 
 -- BEGIN MIRTH-SYNC CANONICAL COMMAND
 -- "$AGDA_COMMAND" -i .
