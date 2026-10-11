@@ -10354,10 +10354,10 @@ monolithFactorTransition-to-relationWitness :
 monolithFactorTransition-to-relationWitness W =
   relationFactorTransitionWitness
     (factorTransitionWitness
-      (factorStep W)
-      (factorStepCommutes W))
-    (observeRespects W)
-    (relationStepPreserved W)
+      (MonolithFactorTransitionClosure.factorStep W)
+      (MonolithFactorTransitionClosure.factorStepCommutes W))
+    (MonolithFactorTransitionClosure.observeRespects W)
+    (MonolithFactorTransitionClosure.relationStepPreserved W)
 
 record MonolithCommutingSquareTransport
   (A B : Set)
