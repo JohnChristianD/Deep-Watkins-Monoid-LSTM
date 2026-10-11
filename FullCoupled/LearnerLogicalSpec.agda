@@ -95,7 +95,7 @@ f4ThetaOneStepDescentObligation :
   (K : C.F4IntUKernel)
   (s : C.F4IntUState)
   (signal : C.Int8) →
-  optimizerQuadratic (C.f4ThetaStep K s signal) <ℕ optimizerQuadratic s
+  Set
 f4ThetaOneStepDescentObligation K s signal =
   optimizerQuadratic (C.f4ThetaStep K s signal) <ℕ optimizerQuadratic s
 
@@ -104,8 +104,7 @@ canonicalOptimizerDescentObligation :
   ∀ {A : Set}
     (K : C.FullLearnerKernel A)
     (s : C.FullLearnerState A) →
-  optimizerQuadratic (C.canonicalOptimizerStep K s) <ℕ
-  optimizerQuadratic (C.optimizer s)
+  Set
 canonicalOptimizerDescentObligation K s =
   optimizerQuadratic (C.canonicalOptimizerStep K s) <ℕ
   optimizerQuadratic (C.optimizer s)
