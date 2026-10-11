@@ -12,7 +12,6 @@
   --erase-record-parameters
   --without-K
   --level-universe
-
   --rewriting
   --no-termination-check
   --type-in-type
