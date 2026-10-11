@@ -9289,6 +9289,10 @@ megaParetoOptimal :
   (feasible : Allocation → Set) →
   Allocation → Set₁
 megaParetoOptimal
+  {Agent}
+  {Allocation}
+  {weakPreference}
+  {strictPreference}
   feasible
   a =
   feasible a ×
