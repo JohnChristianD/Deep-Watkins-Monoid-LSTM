@@ -13,7 +13,7 @@ let theoremModule : Text =
 let theoremPath : Text =
       "FullCoupled/TheoremsMonolith.agda"
 let expectedImport : Text =
-      "open import " ++ learnerModule ++ " as C"
+      "open import " ++ learnerModule ++ " as C hiding (Int; _+Int_; _*Int_) "
 in ''
 #!/usr/bin/env bash
 set -euo pipefail
@@ -56,7 +56,7 @@ learner_spec_import_count=$(grep -Fxc "$expected_spec_import" "$theorem")
 }
 
 canonical_imports=$(grep -E "^(open )?import FullCoupled\\." "$theorem" || true)
-unexpected_imports=$(printf '%s\\n' "$canonical_imports" | grep -Ev "^(open )?import FullCoupled\\.FormalMethods\\.|^open import FullCoupled\\.CanonicalLearnerMonolith as C$|^import FullCoupled\\.LearnerLogicalSpec as LearnerLogicalSpec$" || true)
+unexpected_imports=$(printf '%s\\n' "$canonical_imports" | grep -Ev "^(open )?import FullCoupled\\.FormalMethods\\.|^open import FullCoupled\\.CanonicalLearnerMonolith as C hiding \\(Int; _\\+Int_; _\\*Int_\\)$|^import FullCoupled\\.LearnerLogicalSpec as LearnerLogicalSpec$" || true)
 [ -z "$unexpected_imports" ] || {
   echo "theorem monolith imports an unexpected FullCoupled semantic module:"
   printf '%s\\n' "$unexpected_imports"
