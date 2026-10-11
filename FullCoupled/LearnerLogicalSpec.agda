@@ -8,16 +8,54 @@
 
 module FullCoupled.LearnerLogicalSpec where
 
+-- BEGIN MIRTH-SYNC COMMON IMPORTS
+-- Merged external import surface; internal FullCoupled imports remain module-local.
 open import MLTT.Spartan hiding (J; _+_)
+open import MLTT.Athenian
 open import Integers.Type
+open import Integers.Order
+open import Integers.Addition renaming (_+_ to _ℤ+_)
+open import Integers.Multiplication renaming (_*_ to _ℤ*_)
+
+Int : Set
+Int = ℤ
+
+infixl 31 _+Int_
+_+Int_ : Int → Int → Int
+_+Int_ = _ℤ+_
+
+infixl 31 _*Int_
+_*Int_ : Int → Int → Int
+_*Int_ = _ℤ*_
 open import Naturals.Addition
+open import Naturals.Exponentiation
+open import Naturals.Division
+open import Naturals.Properties
 open import Naturals.Order
-import Naturals.Multiplication as NatMult
+open import Naturals.Multiplication using (distributivity-mult-over-addition'; mult-commutativity; mult-right-id)
+open import Notation.Order
+open import Rationals.Addition renaming (_+_ to _ℚ+_)
+open import Rationals.Multiplication
+open import Rationals.Negation
+open import Rationals.Order
+open import Rationals.Type
+open import UF.Base
+open import UF.FunExt
+open import UF.PropTrunc
+open import UF.Size
+open import UF.Subsingletons
+open import UF.Subsingletons-FunExt
+open import UF.UA-FunExt
+open import UF.Equiv using (is-equiv; section-retraction-equiv)
+open import UF.SubtypeClassifier using (_holds)
+-- END MIRTH-SYNC COMMON IMPORTS
+
 import FullCoupled.CanonicalLearnerMonolith as C
 
 infixl 32 _ℕ*_
 _ℕ*_ : ℕ → ℕ → ℕ
-_ℕ*_ = NatMult._*_
+_ℕ*_ zero n = zero
+_ℕ*_ (succ m) n = n + (m ℕ* n)
 
 integerMagnitude : C.Int → ℕ
 integerMagnitude (pos n) = n
