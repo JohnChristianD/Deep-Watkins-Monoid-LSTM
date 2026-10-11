@@ -8737,13 +8737,13 @@ MaxwellShell D p = maxwellEquation D p
 
 lawIFromNLabNoether :
   ∀ {LearnerState PhysicalState Current : Set}
-  {PhysicalStep : PhysicalState → PhysicalState}
+  {physicalStepFunction : PhysicalState → PhysicalState}
   {MaxwellShell : PhysicalState → Set}
   (S :
     NLabNoetherConservationTheorem
       PhysicalState
       Current
-      PhysicalStep
+      physicalStepFunction
       MaxwellShell)
   (shell : ∀ p → MaxwellShell p)
   (encodeD : LearnerState → PhysicalState)
@@ -8764,7 +8764,7 @@ lawIFromNLabNoether
     encodeD
     decodeD
     decodeEncodeD
-    (λ p → PhysicalStep p)
+    (λ p → physicalStepFunction p)
     (current S)
     (λ p → conservedOnShell S p (shell p))
 
