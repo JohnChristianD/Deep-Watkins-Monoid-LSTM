@@ -833,6 +833,49 @@ graphCycleIsMaximalRegressionChecked :
   graphCycleIsMaximalRegression ≡ True
 graphCycleIsMaximalRegressionChecked = refl
 
+-- A focused obligation graph separate from the inverse/exact-search graph.
+-- Each path is an explicit dependency chain, not itself a proof term.
+learnerObligationGraph : List GraphLaw
+learnerObligationGraph =
+  graphLawsFromEdges
+    (("canonicalLearnerTraceGuarded" , "canonicalLearnerTrace") ∷
+     ("canonicalLearnerTrace" , "canonicalFullStep") ∷
+     ("canonicalFullStep" , "canonicalOptimizerStep") ∷
+     ("canonicalOptimizerStep" , "f4ThetaStep") ∷
+     ("f4ThetaStep" , "optimizerQuadratic") ∷
+     ("canonicalOptimizerDescentObligation" , "f4ThetaOneStepDescentObligation") ∷
+     ("f4ThetaOneStepDescentObligation" , "optimizerQuadratic") ∷
+     [])
+
+learnerTracePlan : Maybe (List String)
+learnerTracePlan =
+  graphAStarFirst
+    learnerObligationGraph
+    (graphNode ("canonicalLearnerTraceGuarded" ∷ []))
+
+learnerDescentPlan : Maybe (List String)
+learnerDescentPlan =
+  graphAStarFirst
+    learnerObligationGraph
+    (graphNode ("canonicalOptimizerDescentObligation" ∷ []))
+
+learnerLogicalGraphRegression : Bool
+learnerLogicalGraphRegression =
+  case learnerTracePlan of λ where
+    Nothing → False
+    Just tracePlan →
+      case learnerDescentPlan of λ where
+        Nothing → False
+        Just descentPlan →
+          graphValidPlan tracePlan learnerObligationGraph
+            && graphValidPlan descentPlan learnerObligationGraph
+            && graphMaximalDependencyChain tracePlan learnerObligationGraph
+            && graphMaximalDependencyChain descentPlan learnerObligationGraph
+
+learnerLogicalGraphRegressionChecked :
+  learnerLogicalGraphRegression ≡ True
+learnerLogicalGraphRegressionChecked = refl
+
 requiredTheoremNames : List String
 requiredTheoremNames =
   "CanonicalAQLoopTheorem" ∷
@@ -904,6 +947,14 @@ requiredSubcompositionNames =
 requiredNames : List String
 requiredNames =
   requiredTheoremNames ++ requiredSubcompositionNames
+
+-- Additional targets for the learner-specific graph.  The existing inverse,
+-- exact-search, and required-theorem target lists remain unchanged.
+learnerLogicalRequiredNames : List String
+learnerLogicalRequiredNames =
+  "canonicalOptimizerDescentObligation" ∷
+  "canonicalLearnerTraceGuarded" ∷
+  []
 
 semanticLawCanSeed : Extractor.SemanticLaw -> Bool
 semanticLawCanSeed law =
@@ -1005,6 +1056,14 @@ requiredPlanReport names semanticLaws =
     ++ show (length names)
     ++ " required-plan-regression="
     ++ show (requiredPlanComplete names semanticLaws)
+
+learnerLogicalPlanReport :
+  List Extractor.SemanticLaw ->
+  String
+learnerLogicalPlanReport semanticLaws =
+  requiredPlanReport learnerLogicalRequiredNames semanticLaws
+    ++ " learner-static-graph-regression="
+    ++ show learnerLogicalGraphRegression
 
 semanticLawExtractionReport :
   List Extractor.SemanticLaw ->
@@ -1378,7 +1437,12 @@ agdaSemanticPortReport laws =
     ++ show (requiredPlanEGraphCount requiredNames laws)
     ++ "/"
     ++ show (length requiredNames)
-    ++ " required plans e-graph-closed"
+    ++ " required plans e-graph-closed; learner-obligations="
+    ++ show (requiredPlanCount learnerLogicalRequiredNames laws)
+    ++ "/"
+    ++ show (length learnerLogicalRequiredNames)
+    ++ "; learner-static-graph="
+    ++ show learnerLogicalGraphRegression
 
 main : IO ⊤
 main = do
@@ -1392,6 +1456,7 @@ main = do
   putStrLn ("canonical-plan=" ++ show canonicalPlan)
   putStrLn (semanticLawExtractionReport semanticLaws)
   putStrLn (requiredPlanReport requiredNames semanticLaws)
+  putStrLn (learnerLogicalPlanReport semanticLaws)
   putStrLn (semanticSearchExecutableReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
   putStrLn (agdaSemanticPortReport semanticLaws)
@@ -1435,6 +1500,11 @@ main = do
 {-# COMPILE AGDA2HS requiredPlanReport #-}
 {-# COMPILE AGDA2HS semanticLawExtractionReport #-}
 {-# COMPILE AGDA2HS semanticSearchExecutableReport #-}
+{-# COMPILE AGDA2HS learnerLogicalRequiredNames #-}
+{-# COMPILE AGDA2HS learnerTracePlan #-}
+{-# COMPILE AGDA2HS learnerDescentPlan #-}
+{-# COMPILE AGDA2HS learnerLogicalGraphRegression #-}
+{-# COMPILE AGDA2HS learnerLogicalPlanReport #-}
 {-# COMPILE AGDA2HS DominanceEdge #-}
 {-# COMPILE AGDA2HS graphDominanceEdges #-}
 {-# COMPILE AGDA2HS graphDominatedPublicTheorems #-}

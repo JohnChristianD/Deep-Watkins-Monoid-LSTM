@@ -340,7 +340,18 @@ syntax try-fun t f = try t or-else f
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_)
+import FullCoupled.LearnerLogicalSpec as LearnerLogicalSpec
 -- END THEOREM-SPECIFIC IMPORTS
+
+-- Bridge the theorem monolith to the independently stated learner trace
+-- contract.  This creates a real dependency-graph edge to LearnerLogicalSpec.
+learnerSpecGuardedTrace :
+  ∀ {A : Set}
+    (K : C.FullLearnerKernel A)
+    (initial : C.FullLearnerState A) →
+  LearnerLogicalSpec.GuardedLearnerTrace K initial
+learnerSpecGuardedTrace =
+  LearnerLogicalSpec.canonicalLearnerTraceGuarded
 
 -- TypeTopology's falsity is 𝟘. Keep familiar theorem notation local;
 -- do not import the Agda standard library or alter builtin ownership.
@@ -7146,7 +7157,7 @@ open CanonicalEndogenousEGraphAStarTransportClosureTheorem public
 record CanonicalFiniteCycleExclusionIsomorphismTheorem : Set₁ where
   constructor canonicalFiniteCycleExclusionIsomorphismTheorem
   field
-    iterateConjugacy :
+    finiteCycleIterateConjugacy :
       ∀ {A B : Set}
         (iso : StateIsomorphism A B)
         (f : A → A)
