@@ -7959,7 +7959,7 @@ nat-plus-one n =
 integer-nat-plus-one :
   ∀ n → (pos n) +Int (pos 1) ＝ pos (succ n)
 integer-nat-plus-one n =
-  ap +_ (nat-plus-one n)
+  ap pos (nat-plus-one n)
 
 f4-zero-L2-unit-step-code :
   ∀ s →
