@@ -5,17 +5,21 @@
 {-# OPTIONS
   --no-fast-reduce
   --lossy-unification
+  --backtracking-instance-search
   --experimental-lazy-instances
   --confluence-check
   --guarded
-  --exact-split
+  --flat-split
   --no-infer-absurd-clauses
   --no-projection-like
   --erased-matches
   --erase-record-parameters
-  --without-K
+  --allow-exec
   --level-universe
   --rewriting
+  --no-termination-check
+  --type-in-type
+  --no-positivity-check
 #-}
 -- END MIRTH-SYNC GLOBAL OPTIONS
 
