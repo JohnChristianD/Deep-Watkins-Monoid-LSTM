@@ -9169,7 +9169,7 @@ nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem-from-closed :
       Admissible
       Stationary) →
   NLabMaxwellFourLawGRUAlgebraicConsistencyTheorem B
-nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem-from-closed B =
+nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem-from-closed {W = W} B =
   nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem
     canonical-gru-statistical-injectivity-theorem
     canonicalGRUStatisticalEncodeInjective
