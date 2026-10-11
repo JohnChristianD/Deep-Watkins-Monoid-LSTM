@@ -7255,6 +7255,21 @@ nashEveryFiniteGameViaBrouwer mixedNash N
 ... | p , fixed =
   p , fixedImpliesNash N p fixed
 
+record StationaryLimitTheorem
+  (Distribution : Set)
+  (P : Distribution → Distribution)
+  (μ : ℕ → Distribution)
+  (μ∞ : Distribution)
+  (Converges : (ℕ → Distribution) → Distribution → Set) : Set₁ where
+  constructor stationaryLimitTheorem
+  field
+    transitionLaw :
+      ∀ n → μ (succ n) ＝ P (μ n)
+    converges :
+      Converges μ μ∞
+    limitPreserved :
+      Converges μ μ∞ → P μ∞ ＝ μ∞
+
 record FiniteMixedNashBrouwerGRUEGraphAStarDistributionTheorem
   (Expression Profile State Distribution : Set)
   (mixedNash : Profile → Set)
@@ -8049,21 +8064,6 @@ record CanonicalPureNonOrangeBypassCompletionTheorem : Set₁ where
       CanonicalIntegerHaarScaledOrthogonalityTheorem
 
 open CanonicalPureNonOrangeBypassCompletionTheorem public
-
-record StationaryLimitTheorem
-  (Distribution : Set)
-  (P : Distribution → Distribution)
-  (μ : ℕ → Distribution)
-  (μ∞ : Distribution)
-  (Converges : (ℕ → Distribution) → Distribution → Set) : Set₁ where
-  constructor stationaryLimitTheorem
-  field
-    transitionLaw :
-      ∀ n → μ (succ n) ＝ P (μ n)
-    converges :
-      Converges μ μ∞
-    limitPreserved :
-      Converges μ μ∞ → P μ∞ ＝ μ∞
 
 canonical-persistent-excitation-requirement-theorem :
   CanonicalPersistentExcitationRequirementTheorem
