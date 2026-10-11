@@ -10250,7 +10250,7 @@ canonicalTotalCountStrictProgress K =
     (λ s → C.totalCount (C.lcbCounts s))
     (λ s → canonicalTotalCountStepProgress K s)
     <-trans
-    <-irrefl
+    (λ n → megaNatNoStrictBack {n = n})
 
 canonicalNoPositiveCycleFromTotalCount :
   ∀ {A : Set}
