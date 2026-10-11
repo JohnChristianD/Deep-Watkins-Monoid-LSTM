@@ -2,16 +2,15 @@
 {-# OPTIONS
   --no-fast-reduce
   --lossy-unification
-  --backtracking-instance-search
   --experimental-lazy-instances
   --confluence-check
   --guarded
-  --flat-split
+  --exact-split
   --no-infer-absurd-clauses
   --no-projection-like
   --erased-matches
   --erase-record-parameters
-  --allow-exec
+  --without-K
   --level-universe
   --rewriting
   --no-termination-check
@@ -20,33 +19,21 @@
 #-}
 -- END MIRTH-SYNC GLOBAL OPTIONS
 
+
+{-# OPTIONS
+#-}
+
 ------------------------------------------------------------------------
--- Canonical learner semantics.
---
--- This module is the executable/type-level source of the coupled learner:
--- recurrent monoid-LSTM state, Watkins state, custom q-projected sign-IDBD w/ coupled L2 optimizer state,
--- LCB counts, sparse policy readout, q-log state, the persistent learner channels, and the
--- endogenous feedback signal. The definitions below determine what the
--- learner actually does; theorem modules consume these definitions.
---
--- The main emergent facts are structural: LCB totalCount advances exactly
--- by one per canonical step, the optimizer state is explicit, the policy is
--- invariant under optimizer replacement, and the recurrent
--- components are exposed as composable monoid-LSTM state transitions. The integer
--- token layer and Haar-featured linear transformer are exact formal substrates, not
--- empirical language-model or physical-realism claims.
---
--- This file intentionally contains definitions and local definitional laws,
--- not economic existence conclusions. Convergence, fixed points, market
--- clearing, supporting prices, and Walrasian existence require independent
--- hypotheses and belong to the theorem/economic boundary documented outside
--- this module.
+-- Canonical theorem semantics and emergence layer.
+-- Baseline reconstruction: current imports/options over the last green body.
 ------------------------------------------------------------------------
 
-module FullCoupled.CanonicalLearnerMonolith where
+module FullCoupled.TheoremsMonolith where
 
 -- BEGIN MIRTH-SYNC COMMON IMPORTS
 -- Merged external import surface; internal FullCoupled imports remain module-local.
+open import MLTT.Spartan hiding (J; _+_)
+open import MLTT.Athenian
 open import Integers.Type
 open import Integers.Order
 open import Integers.Addition renaming (_+_ to _ℤ+_)
@@ -74,9 +61,21 @@ open import Rationals.Multiplication
 open import Rationals.Negation
 open import Rationals.Order
 open import Rationals.Type
+open import UF.Base
+open import UF.FunExt
+open import UF.PropTrunc
+open import UF.Size
+open import UF.Subsingletons
+open import UF.Subsingletons-FunExt
+open import UF.UA-FunExt
+open import UF.Equiv using (is-equiv; section-retraction-equiv)
+open import UF.SubtypeClassifier using (_holds)
 -- END MIRTH-SYNC COMMON IMPORTS
 
-
+-- Stable Agda 2.8.0.2 reflection compatibility surface.
+-- Reuses TypeTopology's existing BOOL/NATURAL/LIST/SIGMA bindings instead
+-- of importing Agda.Builtin.Reflection, whose dependency closure attempts
+-- to install competing builtin owners.
 postulate String : Set
 {-# BUILTIN STRING String #-}
 
@@ -8015,7 +8014,7 @@ f4-unit-forcing-linear-growth (succ n) s =
 nat-succ-not-le :
   ∀ n → succ n ≤ n → ⊥
 nat-succ-not-le zero ()
-nat-succ-not-le (succ n) (Naturals.Order.s≤s h) =
+nat-succ-not-le (succ n) h =
   nat-succ-not-le n h
 
 f4-unit-forcing-no-upper-bound :
@@ -8082,12 +8081,9 @@ record CanonicalPureNonOrangeBypassCompletionTheorem : Set₁ where
 
 open CanonicalPureNonOrangeBypassCompletionTheorem public
 
-canonical-persistent-excitation-requirement-theorem :
-  CanonicalPersistentExcitationRequirementTheorem
-canonical-persistent-excitation-requirement-theorem =
-  canonicalPersistentExcitationRequirementTheorem
-    tt
-    tt
+-- Persistent excitation remains a conditional learner obligation.
+-- No unconditional theorem is registered here without a stated predicate
+-- and a proof derived from the canonical learner semantics.
 
 record ExactContractComputabilityBoundaryTheorem : Set₁ where
   constructor exactContractComputabilityBoundaryTheorem
@@ -8211,8 +8207,33 @@ twoPow (succ k) = twoPow k + twoPow k
 
 nat-plus-right-mono :
   ∀ {a b c : ℕ} → a ≤ b → a + c ≤ b + c
-nat-plus-right-mono z≤n = z≤n
-nat-plus-right-mono (Naturals.Order.s≤s p) = s≤s (nat-plus-right-mono p)
+nat-plus-right-mono {a} {b} {c} p = helper a b p c
+ where
+  P : (m n : ℕ) → m ≤ n → Set
+  P m n _ = (k : ℕ) → m + k ≤ n + k
+
+  base : (n : ℕ) → P zero n (zero-least n)
+  base n k =
+    transport
+      (λ x → x ≤ n + k)
+      (zero-left-neutral k ⁻¹)
+      (≤-+' n k)
+
+  step :
+    (m n : ℕ) (q : m ≤ n) →
+    P m n q →
+    P (succ m) (succ n) (succ-monotone m n q)
+  step m n q ih k =
+    transport
+      (λ y → succ m + k ≤ y)
+      (succ-left n k ⁻¹)
+      (transport
+        (λ x → x ≤ succ (n + k))
+        (succ-left m k ⁻¹)
+        (succ-monotone (m + k) (n + k) (ih k)))
+
+  helper : (m n : ℕ) (q : m ≤ n) → P m n q
+  helper = ≤-induction P base step
 
 record EfficientOperatorMonoidRepresentation
   (State Input : Set) : Set₁ where
@@ -9190,9 +9211,11 @@ canonical-unconditional-agda-egraph-astar-closure =
 
 f4-add-right-nonnegative :
   ∀ (n m : ℕ) → n ≤ n + m
-f4-add-right-nonnegative n zero = ≤-refl
+f4-add-right-nonnegative n zero = ≤-refl n
 f4-add-right-nonnegative n (succ m) =
-  s≤s (f4-add-right-nonnegative n m)
+  ≤-trans n (n + m) (succ (n + m))
+    (f4-add-right-nonnegative n m)
+    (≤-succ (n + m))
 
 record MegaGeneralizedWalrasianEquilibrium
   (State Price Allocation : Set) : Set₁ where
@@ -9319,7 +9342,7 @@ megaNatNoStrictBack :
   succ n ≤ n →
   ⊥
 megaNatNoStrictBack {zero} ()
-megaNatNoStrictBack {succ n} (Naturals.Order.s≤s h) =
+megaNatNoStrictBack {succ n} h =
   megaNatNoStrictBack h
 
 megaNatStrictCostContradiction :
@@ -10118,8 +10141,7 @@ successorMeasureOrbitInjective W s {m} {n} eq =
         (successorMeasureAfterIterate W n s)))
 
 natSucProgress : ∀ n → n < succ n
-natSucProgress zero = s≤s z≤n
-natSucProgress (succ n) = s≤s (natSucProgress n)
+natSucProgress n = ≤-refl (succ n)
 
 canonicalTotalCountStepProgress :
   ∀ {A : Set}
