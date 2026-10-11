@@ -763,13 +763,23 @@ graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) =
         (graphExpandNode node laws)
         frontier)
 
+-- A plan never repeats a law ID.  For n laws, the search tree
+-- therefore has at most sum_{k=0..n} n!/(n-k)! < 3*n! path nodes.
+-- This bound lets the best-first search exhaust a finite graph even when
+-- no valid maximal chain exists; it avoids a too-small n! cutoff.
+graphAStarFuelBound : List GraphLaw -> Nat
+graphAStarFuelBound laws =
+  factorial (length laws)
+    + factorial (length laws)
+    + factorial (length laws)
+
 graphAStarFirst :
   List GraphLaw ->
   GraphNode ->
   Maybe (List String)
 graphAStarFirst laws seed =
   graphAStarFirstWithFuel
-    (suc (factorial (length laws)))
+    (graphAStarFuelBound laws)
     laws
     (seed ∷ [])
 
