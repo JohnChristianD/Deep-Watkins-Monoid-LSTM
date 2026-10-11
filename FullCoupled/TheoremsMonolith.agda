@@ -340,7 +340,18 @@ syntax try-fun t f = try t or-else f
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_)
+import FullCoupled.LearnerLogicalSpec as LearnerLogicalSpec
 -- END THEOREM-SPECIFIC IMPORTS
+
+-- Bridge the theorem monolith to the independently stated learner trace
+-- contract.  This creates a real dependency-graph edge to LearnerLogicalSpec.
+learnerSpecGuardedTrace :
+  ∀ {A : Set}
+    (K : C.FullLearnerKernel A)
+    (initial : C.FullLearnerState A) →
+  LearnerLogicalSpec.GuardedLearnerTrace K initial
+learnerSpecGuardedTrace =
+  LearnerLogicalSpec.canonicalLearnerTraceGuarded
 
 -- TypeTopology's falsity is 𝟘. Keep familiar theorem notation local;
 -- do not import the Agda standard library or alter builtin ownership.
@@ -6143,7 +6154,7 @@ canonicalLearnerBairdSevenStar :
           (C.canonicalFullStep K)
           fixed)) →
   CanonicalLearnerBairdSevenStarWitness K s
-canonicalLearnerBairdSevenStar divergence =
+canonicalLearnerBairdSevenStar {K} {s} divergence =
   canonicalLearnerBairdSevenStarWitness
     refl
     refl
@@ -6155,7 +6166,7 @@ canonicalLearnerBairdSevenStar divergence =
     (λ w₈ wᵢ → refl)
     (λ w₇ w₈ → w₇ + 2 * w₈)
     (λ w₇ w₈ → refl)
-    (λ n → C.canonicalPersistentGRU-afterFullStep-iterate K n s)
+    (λ n → canonicalPersistentGRU-afterFullStep-iterate K n s)
     divergence
 
 record OffPolicyFunctionApproximationStabilityBoundary : Set₁ where
@@ -6243,7 +6254,7 @@ globalConjugacyEquivalence-iterate :
   ＝
   iterateState featureStep n (observe s)
 globalConjugacyEquivalence-iterate G zero s = refl
-globalConjugacyEquivalence-iterate G (succ n) s =
+globalConjugacyEquivalence-iterate {step = step} {featureStep = featureStep} G (succ n) s =
   trans
     (GlobalConjugacyEquivalence.forward G (iterateState step n s))
     (ap
@@ -6360,6 +6371,41 @@ record ExactFunctionIsomorphismTransportTheorem
       StateIsomorphism.to isoB (f x) ＝
       translatedFunction (StateIsomorphism.to isoA x)
 
+exactFunctionIsomorphismTransport :
+  ∀ {S T A B : Set}
+    {isoA : StateIsomorphism S A}
+    {isoB : StateIsomorphism T B}
+    (f : S → T) →
+  ExactFunctionIsomorphismTransportTheorem S T A B isoA isoB f
+exactFunctionIsomorphismTransport {isoA = isoA} {isoB = isoB} f =
+  exactFunctionIsomorphismTransportTheorem
+    (λ a →
+      StateIsomorphism.to isoB
+        (f (StateIsomorphism.from isoA a)))
+    (λ x →
+      sym
+        (ap
+          (λ y → StateIsomorphism.to isoB (f y))
+          (StateIsomorphism.from-to isoA x)))
+
+record ExactRecurrentFunctionTranslationTheorem
+  (S A : Set)
+  (isoA : StateIsomorphism S A)
+  (step : S → S)
+  (stepA : A → A) : Set₁ where
+  constructor exactRecurrentFunctionTranslationTheorem
+  field
+    recurrentConjugacy :
+      ∀ x →
+      StateIsomorphism.to isoA (step x) ＝
+      stepA (StateIsomorphism.to isoA x)
+    exactFunctionTransport :
+      ∀ {T B : Set}
+        {isoB : StateIsomorphism T B}
+        (f : S → T) →
+      ExactFunctionIsomorphismTransportTheorem
+        S T A B isoA isoB f
+
 exactRecurrentFunctionTranslation :
   ∀ {S A : Set}
     {isoA : StateIsomorphism S A}
@@ -6375,6 +6421,50 @@ exactRecurrentFunctionTranslation step stepA conjugacy =
     conjugacy
     (λ {T} {B} {isoB} f →
       exactFunctionIsomorphismTransport f)
+
+-- Function representations compose without loss: transporting f and then g
+-- agrees exactly with transporting their composition.  The witness below is
+-- derived solely from the two commuting equalities; no extra representation
+-- or convergence assumption is hidden in this interface.
+record GeneralizedRepresentationTransportCompositionTheorem : Set₁ where
+  constructor generalizedRepresentationTransportCompositionTheorem
+  field
+    exactFunctionTransport :
+      ∀ {S T A B : Set}
+        {isoA : StateIsomorphism S A}
+        {isoB : StateIsomorphism T B}
+        (f : S → T) →
+      ExactFunctionIsomorphismTransportTheorem S T A B isoA isoB f
+    functionCompositionTransport :
+      ∀ {S T U A B D : Set}
+        (isoS : StateIsomorphism S A)
+        (isoT : StateIsomorphism T B)
+        (isoU : StateIsomorphism U D)
+        (f : S → T)
+        (g : T → U)
+        (fA : A → B)
+        (gB : B → D)
+        (fCommutes :
+          ∀ x →
+          StateIsomorphism.to isoT (f x) ＝
+          fA (StateIsomorphism.to isoS x))
+        (gCommutes :
+          ∀ y →
+          StateIsomorphism.to isoU (g y) ＝
+          gB (StateIsomorphism.to isoT y)) →
+        ∀ x →
+        StateIsomorphism.to isoU (g (f x)) ＝
+        gB (fA (StateIsomorphism.to isoS x))
+
+generalizedRepresentationTransportComposition :
+  GeneralizedRepresentationTransportCompositionTheorem
+generalizedRepresentationTransportComposition =
+  generalizedRepresentationTransportCompositionTheorem
+    exactFunctionIsomorphismTransport
+    (λ isoS isoT isoU f g fA gB fCommutes gCommutes x →
+      trans
+        (gCommutes (f x))
+        (ap gB (fCommutes x)))
 
 record CanonicalExactRNNLMTheorem : Set₁ where
   constructor canonicalExactRNNLMTheorem
@@ -6507,23 +6597,6 @@ canonicalHaarAttentionRecurrent accumulator xs s =
     C.canonicalGRURecurrentNetwork
     (C.canonicalHaarFeaturedLinearScan accumulator xs)
     s
-
-recurrentListState-append :
-  ∀ {State Input : Set}
-  (R : C.RecurrentNetwork State Input)
-  (xs ys : List Input)
-  (s : State) →
-  C.recurrentListState R (xs ++ ys) s
-  ＝
-  C.recurrentListState R ys
-    (C.recurrentListState R xs s)
-recurrentListState-append R [] ys s = refl
-recurrentListState-append R (x ∷ xs) ys s =
-  recurrentListState-append
-    R
-    xs
-    ys
-    (C.runNetwork R s x)
 
 haarAccumulatorScan :
   C.HaarFeaturedLinearTransformer →
@@ -6869,7 +6942,7 @@ record KLAFullBeliefState : Set where
 
 klaAffineProjection :
   KLAFullBeliefState → C.MonoidAffine
-klaAffineProjection s = meanTransform s
+klaAffineProjection s = KLAFullBeliefState.meanTransform s
 
 klaAffineProjection-not-injective :
   ¬
@@ -6884,7 +6957,7 @@ klaAffineProjection-not-injective derive =
     t = klaFullBeliefState a C.one8
   in
   false-not-true
-    (ap precision
+    (ap KLAFullBeliefState.precision
       (derive {s = s} {t = t} refl))
 
 record KLAPrecisionBridgeWitness : Set₁ where
@@ -7079,12 +7152,12 @@ CanonicalEndogenousAStarTransportClosureTheorem :
 CanonicalEndogenousAStarTransportClosureTheorem =
   CanonicalEndogenousEGraphAStarTransportClosureTheorem
 
-open CanonicalEndogenousAStarTransportClosureTheorem public
+open CanonicalEndogenousEGraphAStarTransportClosureTheorem public
 
 record CanonicalFiniteCycleExclusionIsomorphismTheorem : Set₁ where
   constructor canonicalFiniteCycleExclusionIsomorphismTheorem
   field
-    iterateConjugacy :
+    finiteCycleIterateConjugacy :
       ∀ {A B : Set}
         (iso : StateIsomorphism A B)
         (f : A → A)
@@ -7181,6 +7254,21 @@ nashEveryFiniteGameViaBrouwer mixedNash N
   with fixedPoint N
 ... | p , fixed =
   p , fixedImpliesNash N p fixed
+
+record StationaryLimitTheorem
+  (Distribution : Set)
+  (P : Distribution → Distribution)
+  (μ : ℕ → Distribution)
+  (μ∞ : Distribution)
+  (Converges : (ℕ → Distribution) → Distribution → Set) : Set₁ where
+  constructor stationaryLimitTheorem
+  field
+    transitionLaw :
+      ∀ n → μ (succ n) ＝ P (μ n)
+    converges :
+      Converges μ μ∞
+    limitPreserved :
+      Converges μ μ∞ → P μ∞ ＝ μ∞
 
 record FiniteMixedNashBrouwerGRUEGraphAStarDistributionTheorem
   (Expression Profile State Distribution : Set)
@@ -7976,21 +8064,6 @@ record CanonicalPureNonOrangeBypassCompletionTheorem : Set₁ where
       CanonicalIntegerHaarScaledOrthogonalityTheorem
 
 open CanonicalPureNonOrangeBypassCompletionTheorem public
-
-record StationaryLimitTheorem
-  (Distribution : Set)
-  (P : Distribution → Distribution)
-  (μ : ℕ → Distribution)
-  (μ∞ : Distribution)
-  (Converges : (ℕ → Distribution) → Distribution → Set) : Set₁ where
-  constructor stationaryLimitTheorem
-  field
-    transitionLaw :
-      ∀ n → μ (succ n) ＝ P (μ n)
-    converges :
-      Converges μ μ∞
-    limitPreserved :
-      Converges μ μ∞ → P μ∞ ＝ μ∞
 
 canonical-persistent-excitation-requirement-theorem :
   CanonicalPersistentExcitationRequirementTheorem

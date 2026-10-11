@@ -394,7 +394,7 @@ graphExpandDependencies :
   List String ->
   List GraphNode ->
   List GraphNode
-graphExpandDependencies [] _ acc = acc
+graphExpandDependencies [] _ acc = reverse acc
 graphExpandDependencies (dependency ∷ dependencies) plan acc =
   if graphContains dependency plan then
     graphExpandDependencies dependencies plan acc
@@ -457,6 +457,14 @@ graphFirst :
 graphFirst [] = Nothing
 graphFirst (name ∷ _) = Just name
 
+graphDependenciesCovered : List String -> List String -> Bool
+graphDependenciesCovered [] _ = True
+graphDependenciesCovered (dependency ∷ dependencies) plan =
+  if graphContains dependency plan then
+    graphDependenciesCovered dependencies plan
+  else
+    False
+
 graphMaximalDependencyChain :
   List String ->
   List GraphLaw ->
@@ -468,7 +476,10 @@ graphMaximalDependencyChain plan laws =
       Just terminal ->
         case graphLawForName terminal laws of λ where
           Nothing -> False
-          Just law -> graphLawDependencies law == []
+          Just law ->
+            graphDependenciesCovered
+              (graphLawDependencies law)
+              plan
   else
     False
 
@@ -712,7 +723,7 @@ graphAStarInsert :
 graphAStarInsert laws node [] =
   node ∷ []
 graphAStarInsert laws node (head ∷ tail) =
-  if graphAStarScore laws node < graphAStarScore laws head then
+  if graphAStarScore laws node <= graphAStarScore laws head then
     node ∷ head ∷ tail
   else
     head ∷ graphAStarInsert laws node tail
@@ -752,15 +763,118 @@ graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) =
         (graphExpandNode node laws)
         frontier)
 
+-- A plan never repeats a law ID.  For n laws, the search tree
+-- therefore has at most sum_{k=0..n} n!/(n-k)! < 3*n! path nodes.
+-- This bound lets the best-first search exhaust a finite graph even when
+-- no valid maximal chain exists; it avoids a too-small n! cutoff.
+graphAStarFuelBound : List GraphLaw -> Nat
+graphAStarFuelBound laws =
+  factorial (length laws)
+    + factorial (length laws)
+    + factorial (length laws)
+
 graphAStarFirst :
   List GraphLaw ->
   GraphNode ->
   Maybe (List String)
 graphAStarFirst laws seed =
   graphAStarFirstWithFuel
-    (suc (factorial (length laws)))
+    (graphAStarFuelBound laws)
     laws
     (seed ∷ [])
+
+graphAStarTieBreakRegression : Bool
+graphAStarTieBreakRegression =
+  let
+    laws =
+      graphLaw "A" [] ∷
+      graphLaw "B" [] ∷
+      []
+    existing = graphNode ("A" ∷ [])
+    incoming = graphNode ("B" ∷ [])
+  in
+  case graphAStarInsert laws incoming (existing ∷ []) of λ where
+    (graphNode ("B" ∷ []) ∷ graphNode ("A" ∷ []) ∷ []) → True
+    _ → False
+
+graphAStarTieBreakRegressionChecked :
+  graphAStarTieBreakRegression ≡ True
+graphAStarTieBreakRegressionChecked = refl
+
+graphDependencyOrderRegression : Bool
+graphDependencyOrderRegression =
+  let
+    laws =
+      graphLaw "A" ("B" ∷ "C" ∷ []) ∷
+      graphLaw "B" [] ∷
+      graphLaw "C" [] ∷
+      []
+  in
+  case graphExpandNode (graphNode ("A" ∷ [])) laws of λ where
+    (graphNode ("B" ∷ "A" ∷ []) ∷
+     graphNode ("C" ∷ "A" ∷ []) ∷ []) → True
+    _ → False
+
+graphDependencyOrderRegressionChecked :
+  graphDependencyOrderRegression ≡ True
+graphDependencyOrderRegressionChecked = refl
+
+graphCycleIsMaximalRegression : Bool
+graphCycleIsMaximalRegression =
+  let
+    laws =
+      graphLaw "A" ("B" ∷ []) ∷
+      graphLaw "B" ("A" ∷ []) ∷
+      []
+  in
+  graphMaximalDependencyChain ("B" ∷ "A" ∷ []) laws
+
+graphCycleIsMaximalRegressionChecked :
+  graphCycleIsMaximalRegression ≡ True
+graphCycleIsMaximalRegressionChecked = refl
+
+-- A focused obligation graph separate from the inverse/exact-search graph.
+-- Each path is an explicit dependency chain, not itself a proof term.
+learnerObligationGraph : List GraphLaw
+learnerObligationGraph =
+  graphLawsFromEdges
+    (("canonicalLearnerTraceGuarded" , "canonicalLearnerTrace") ∷
+     ("canonicalLearnerTrace" , "canonicalFullStep") ∷
+     ("canonicalFullStep" , "canonicalOptimizerStep") ∷
+     ("canonicalOptimizerStep" , "f4ThetaStep") ∷
+     ("f4ThetaStep" , "optimizerQuadratic") ∷
+     ("canonicalOptimizerDescentObligation" , "f4ThetaOneStepDescentObligation") ∷
+     ("f4ThetaOneStepDescentObligation" , "optimizerQuadratic") ∷
+     [])
+
+learnerTracePlan : Maybe (List String)
+learnerTracePlan =
+  graphAStarFirst
+    learnerObligationGraph
+    (graphNode ("canonicalLearnerTraceGuarded" ∷ []))
+
+learnerDescentPlan : Maybe (List String)
+learnerDescentPlan =
+  graphAStarFirst
+    learnerObligationGraph
+    (graphNode ("canonicalOptimizerDescentObligation" ∷ []))
+
+learnerLogicalGraphRegression : Bool
+learnerLogicalGraphRegression =
+  case learnerTracePlan of λ where
+    Nothing → False
+    Just tracePlan →
+      case learnerDescentPlan of λ where
+        Nothing → False
+        Just descentPlan →
+          graphValidPlan tracePlan learnerObligationGraph
+            && graphValidPlan descentPlan learnerObligationGraph
+            && graphMaximalDependencyChain tracePlan learnerObligationGraph
+            && graphMaximalDependencyChain descentPlan learnerObligationGraph
+
+learnerLogicalGraphRegressionChecked :
+  learnerLogicalGraphRegression ≡ True
+learnerLogicalGraphRegressionChecked = refl
 
 requiredTheoremNames : List String
 requiredTheoremNames =
@@ -834,6 +948,50 @@ requiredNames : List String
 requiredNames =
   requiredTheoremNames ++ requiredSubcompositionNames
 
+-- Additional targets for the learner-specific graph.  The existing inverse,
+-- exact-search, and required-theorem target lists remain unchanged.
+learnerLogicalRequiredNames : List String
+learnerLogicalRequiredNames =
+  "canonicalOptimizerDescentObligation" ∷
+  "canonicalLearnerTraceGuarded" ∷
+  []
+
+semanticLawCanSeed : Extractor.SemanticLaw -> Bool
+semanticLawCanSeed law =
+  if Extractor.lawReflexive law then
+    False
+  else
+    case Extractor.semanticLawKind law of λ where
+      Extractor.semantic-record-field → False
+      Extractor.semantic-top-level → True
+
+semanticLawSeedFilterRegression : Bool
+semanticLawSeedFilterRegression =
+  let
+    topLevel =
+      Extractor.semanticLaw
+        "Regression.agda" "top-level-law"
+        False False "Set" []
+        Extractor.semantic-top-level ""
+    reflexive =
+      Extractor.semanticLaw
+        "Regression.agda" "reflexive-law"
+        True False "Set" []
+        Extractor.semantic-top-level ""
+    recordField =
+      Extractor.semanticLaw
+        "Regression.agda" "record-field-law"
+        False False "Set" []
+        Extractor.semantic-record-field "RegressionRecord"
+  in
+  semanticLawCanSeed topLevel
+    && not (semanticLawCanSeed reflexive)
+    && not (semanticLawCanSeed recordField)
+
+semanticLawSeedFilterRegressionChecked :
+  semanticLawSeedFilterRegression ≡ True
+semanticLawSeedFilterRegressionChecked = refl
+
 requiredPlanForName :
   String ->
   List Extractor.SemanticLaw ->
@@ -842,11 +1000,14 @@ requiredPlanForName requested semanticLaws =
   case semanticLawForName requested semanticLaws of λ where
     Nothing -> Nothing
     Just law ->
-      let graphLaws = semanticGraphLaws semanticLaws
-      in
-      graphAStarFirst
-        graphLaws
-        (graphNode (Extractor.semanticLawId law ∷ []))
+      if semanticLawCanSeed law then
+        let graphLaws = semanticGraphLaws semanticLaws
+        in
+        graphAStarFirst
+          graphLaws
+          (graphNode (Extractor.semanticLawId law ∷ []))
+      else
+        Nothing
 
 requiredPlanIsValid :
   List Extractor.SemanticLaw ->
@@ -895,6 +1056,14 @@ requiredPlanReport names semanticLaws =
     ++ show (length names)
     ++ " required-plan-regression="
     ++ show (requiredPlanComplete names semanticLaws)
+
+learnerLogicalPlanReport :
+  List Extractor.SemanticLaw ->
+  String
+learnerLogicalPlanReport semanticLaws =
+  requiredPlanReport learnerLogicalRequiredNames semanticLaws
+    ++ " learner-static-graph-regression="
+    ++ show learnerLogicalGraphRegression
 
 semanticLawExtractionReport :
   List Extractor.SemanticLaw ->
@@ -1268,7 +1437,12 @@ agdaSemanticPortReport laws =
     ++ show (requiredPlanEGraphCount requiredNames laws)
     ++ "/"
     ++ show (length requiredNames)
-    ++ " required plans e-graph-closed"
+    ++ " required plans e-graph-closed; learner-obligations="
+    ++ show (requiredPlanCount learnerLogicalRequiredNames laws)
+    ++ "/"
+    ++ show (length learnerLogicalRequiredNames)
+    ++ "; learner-static-graph="
+    ++ show learnerLogicalGraphRegression
 
 main : IO ⊤
 main = do
@@ -1282,6 +1456,7 @@ main = do
   putStrLn ("canonical-plan=" ++ show canonicalPlan)
   putStrLn (semanticLawExtractionReport semanticLaws)
   putStrLn (requiredPlanReport requiredNames semanticLaws)
+  putStrLn (learnerLogicalPlanReport semanticLaws)
   putStrLn (semanticSearchExecutableReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
   putStrLn (agdaSemanticPortReport semanticLaws)
@@ -1325,6 +1500,11 @@ main = do
 {-# COMPILE AGDA2HS requiredPlanReport #-}
 {-# COMPILE AGDA2HS semanticLawExtractionReport #-}
 {-# COMPILE AGDA2HS semanticSearchExecutableReport #-}
+{-# COMPILE AGDA2HS learnerLogicalRequiredNames #-}
+{-# COMPILE AGDA2HS learnerTracePlan #-}
+{-# COMPILE AGDA2HS learnerDescentPlan #-}
+{-# COMPILE AGDA2HS learnerLogicalGraphRegression #-}
+{-# COMPILE AGDA2HS learnerLogicalPlanReport #-}
 {-# COMPILE AGDA2HS DominanceEdge #-}
 {-# COMPILE AGDA2HS graphDominanceEdges #-}
 {-# COMPILE AGDA2HS graphDominatedPublicTheorems #-}
