@@ -10086,7 +10086,7 @@ record StrictProgressWitness
       a < b →
       b < c →
       a < c
-    irreflexive :
+    strictProgressIrreflexive :
       ∀ a → ¬ (a < a)
 
 record StrictProgressRelation
@@ -10111,7 +10111,7 @@ strictProgressRelation-from-witness :
 strictProgressRelation-from-witness W =
   strictProgressRelation
     (StrictProgressWitness.strictProgressTransitive W)
-    (StrictProgressWitness.irreflexive W)
+    (StrictProgressWitness.strictProgressIrreflexive W)
 
 strictProgressWitness-from-relation :
   ∀ {State Measure : Set}
@@ -10157,7 +10157,7 @@ noPositiveFiniteCycleFromStrictProgress :
   iterateStep step (succ n) s ＝ s →
   ⊥
 noPositiveFiniteCycleFromStrictProgress W n s eq =
-  irreflexive W
+  StrictProgressWitness.strictProgressIrreflexive W
     (measure W s)
     (transport (λ t → measure W s < measure W t)
       eq
