@@ -12,6 +12,11 @@
   --erase-record-parameters
   --without-K
   --level-universe
+
+  --rewriting
+  --no-termination-check
+  --type-in-type
+  --no-positivity-check
 #-}
 -- END MIRTH-SYNC GLOBAL OPTIONS
 
