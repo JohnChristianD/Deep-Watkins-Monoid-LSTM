@@ -10025,6 +10025,28 @@ noUnconditionalMegaGeneralizedWalrasianExistence
   megaNoEquilibriumWitness
     (theorem megaNoEquilibriumGeneralizedWalrasian)
 
+-- A global Walrasian square carries two aggregate interpretations and
+-- explicit round-trip maps through price and allocation representations.
+-- The three fields are obligations: aggregate agreement and both retractions.
+record MegaWalrasianGlobalSquareConjugacy
+  (State Price Allocation : Set)
+  (sourceAggregate targetAggregate :
+    (State → Allocation) → Allocation)
+  (priceOf : State → Price)
+  (stateOfPrice : Price → State)
+  (allocationOf : State → Allocation)
+  (stateOfAllocation : Allocation → State) : Set₁ where
+  constructor megaWalrasianGlobalSquareConjugacy
+  field
+    aggregateConjugacy :
+      ∀ f → sourceAggregate f ＝ targetAggregate f
+    priceRoundTrip :
+      ∀ s → stateOfPrice (priceOf s) ＝ s
+    allocationRoundTrip :
+      ∀ s → stateOfAllocation (allocationOf s) ＝ s
+
+open MegaWalrasianGlobalSquareConjugacy public
+
 megaNoEquilibriumWalrasianSquare :
   MegaWalrasianGlobalSquareConjugacy
     ⊤
