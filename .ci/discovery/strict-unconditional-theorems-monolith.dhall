@@ -258,10 +258,6 @@
       name = "canonical-pure-non-orange-bypass-completion-theorem"
     },
     {
-      line = 4301,
-      name = "canonical-persistent-excitation-requirement-theorem"
-    },
-    {
       line = 4322,
       name = "exact-contract-computability-boundary-theorem"
     },
