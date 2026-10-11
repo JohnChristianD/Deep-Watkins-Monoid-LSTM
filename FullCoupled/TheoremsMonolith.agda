@@ -7141,7 +7141,7 @@ CanonicalEndogenousAStarTransportClosureTheorem :
 CanonicalEndogenousAStarTransportClosureTheorem =
   CanonicalEndogenousEGraphAStarTransportClosureTheorem
 
-open CanonicalEndogenousAStarTransportClosureTheorem public
+open CanonicalEndogenousEGraphAStarTransportClosureTheorem public
 
 record CanonicalFiniteCycleExclusionIsomorphismTheorem : Set₁ where
   constructor canonicalFiniteCycleExclusionIsomorphismTheorem
