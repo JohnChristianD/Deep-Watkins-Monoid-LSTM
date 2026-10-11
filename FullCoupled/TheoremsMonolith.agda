@@ -9932,7 +9932,14 @@ recursiveRadner-generalized :
       {Agent = Agent}
       {Allocation = Allocation}
       {Portfolio = Portfolio})
-recursiveRadner-generalized =
+recursiveRadner-generalized
+  {State}
+  {Agent}
+  {Commodity}
+  {Asset}
+  {Price}
+  {Allocation}
+  {Portfolio} =
   megaGeneralizedWalrasianEquilibrium
     (λ x → x)
     (λ pricePair allocationPair →
