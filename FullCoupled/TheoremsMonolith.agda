@@ -8014,7 +8014,7 @@ f4-unit-forcing-linear-growth (succ n) s =
 nat-succ-not-le :
   ∀ n → succ n ≤ n → ⊥
 nat-succ-not-le zero ()
-nat-succ-not-le (succ n) (s≤s h) =
+nat-succ-not-le (succ n) (Naturals.Order.s≤s h) =
   nat-succ-not-le n h
 
 f4-unit-forcing-no-upper-bound :
@@ -8211,7 +8211,7 @@ twoPow (succ k) = twoPow k + twoPow k
 nat-plus-right-mono :
   ∀ {a b c : ℕ} → a ≤ b → a + c ≤ b + c
 nat-plus-right-mono z≤n = z≤n
-nat-plus-right-mono (s≤s p) = s≤s (nat-plus-right-mono p)
+nat-plus-right-mono (Naturals.Order.s≤s p) = s≤s (nat-plus-right-mono p)
 
 record EfficientOperatorMonoidRepresentation
   (State Input : Set) : Set₁ where
@@ -9318,7 +9318,7 @@ megaNatNoStrictBack :
   succ n ≤ n →
   ⊥
 megaNatNoStrictBack {zero} ()
-megaNatNoStrictBack {succ n} (s≤s h) =
+megaNatNoStrictBack {succ n} (Naturals.Order.s≤s h) =
   megaNatNoStrictBack h
 
 megaNatStrictCostContradiction :
