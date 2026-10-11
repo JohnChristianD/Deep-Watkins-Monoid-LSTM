@@ -10615,7 +10615,7 @@ record ExpandedGeneralizedAggregateExcessDemandKernel
       GeneralizedAggregateDemandSupplyWitness.aggregateSupplyAt
         aggregateDemandSupplyWitness
         p
-    aggregateFeasibilityWitness :
+    generalizedAggregateFeasibilityAt :
       ∀ p →
       aggregateFeasible p (aggregateDemandAt p)
     excessWitness :
@@ -10708,7 +10708,7 @@ expandedGeneralizedAggregateExcessDemand-closure :
   supports p (aggregateDemandAt p) ×
   equilibrium p (aggregateDemandAt p)
 expandedGeneralizedAggregateExcessDemand-closure W p root =
-  ( aggregateFeasibilityWitness W p
+  ( ExpandedGeneralizedAggregateExcessDemandKernel.generalizedAggregateFeasibilityAt W p
   , clearingFromZero
       (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedMarketClearingWitness W) p root
   , supportingFromZero
