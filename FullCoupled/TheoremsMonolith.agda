@@ -10446,9 +10446,9 @@ record MonolithProductionSideAssumptionBundle
       consumptionFeasible i (consumer i)
     aggregateFeasibility :
       aggregateFeasible allocation
-    marketClearingWitness :
+    bundleMarketClearingWitness :
       marketClearing price allocation
-    supportingPriceWitness :
+    bundleSupportingPriceWitness :
       supportingPrice price allocation
 
 open MonolithProductionSideAssumptionBundle public
@@ -10635,14 +10635,14 @@ record ExpandedGeneralizedAggregateExcessDemandKernel
         continuous
         homogeneousZero
         walrasLaw
-    marketClearingWitness :
+    generalizedMarketClearingWitness :
       GeneralizedAggregateMarketClearingWitness
         Price
         ExcessDemand
         excessDemand
         zeroExcess
         marketClearing
-    supportingPriceWitness :
+    generalizedSupportingPriceWitness :
       GeneralizedAggregateSupportingPriceWitness
         Price
         Allocation
@@ -10709,8 +10709,10 @@ expandedGeneralizedAggregateExcessDemand-closure :
   equilibrium p (aggregateDemandAt p)
 expandedGeneralizedAggregateExcessDemand-closure W p root =
   ( aggregateFeasibilityWitness W p
-  , clearingFromZero (marketClearingWitness W) p root
-  , supportingFromZero (supportingPriceWitness W) p root
+  , clearingFromZero
+      (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedMarketClearingWitness W) p root
+  , supportingFromZero
+      (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedSupportingPriceWitness W) p root
   , equilibriumCharacterization W p root )
 
 ------------------------------------------------------------------------
