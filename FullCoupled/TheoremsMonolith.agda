@@ -7418,9 +7418,10 @@ finiteMixedNash-brouwer-gru-egraph-astar-distribution-proof-nash :
   Σ Profile
     (λ p →
       mixedNash p)
-finiteMixedNash-brouwer-gru-egraph-astar-distribution-proof-nash W =
+finiteMixedNash-brouwer-gru-egraph-astar-distribution-proof-nash
+  {mixedNash = mixedNash} W =
   nashEveryFiniteGameViaBrouwer
-    (mixedNash W)
+    mixedNash
     (brouwerNash W)
 
 finiteMixedNash-brouwer-gru-egraph-astar-distribution-fixed :
