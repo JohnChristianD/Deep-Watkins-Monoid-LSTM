@@ -6360,6 +6360,41 @@ record ExactFunctionIsomorphismTransportTheorem
       StateIsomorphism.to isoB (f x) ＝
       translatedFunction (StateIsomorphism.to isoA x)
 
+exactFunctionIsomorphismTransport :
+  ∀ {S T A B : Set}
+    {isoA : StateIsomorphism S A}
+    {isoB : StateIsomorphism T B}
+    (f : S → T) →
+  ExactFunctionIsomorphismTransportTheorem S T A B isoA isoB f
+exactFunctionIsomorphismTransport {isoA = isoA} {isoB = isoB} f =
+  exactFunctionIsomorphismTransportTheorem
+    (λ a →
+      StateIsomorphism.to isoB
+        (f (StateIsomorphism.from isoA a)))
+    (λ x →
+      sym
+        (ap
+          (λ y → StateIsomorphism.to isoB (f y))
+          (StateIsomorphism.from-to isoA x)))
+
+record ExactRecurrentFunctionTranslationTheorem
+  (S A : Set)
+  (isoA : StateIsomorphism S A)
+  (step : S → S)
+  (stepA : A → A) : Set₁ where
+  constructor exactRecurrentFunctionTranslationTheorem
+  field
+    recurrentConjugacy :
+      ∀ x →
+      StateIsomorphism.to isoA (step x) ＝
+      stepA (StateIsomorphism.to isoA x)
+    exactFunctionTransport :
+      ∀ {T B : Set}
+        {isoB : StateIsomorphism T B}
+        (f : S → T) →
+      ExactFunctionIsomorphismTransportTheorem
+        S T A B isoA isoB f
+
 exactRecurrentFunctionTranslation :
   ∀ {S A : Set}
     {isoA : StateIsomorphism S A}
