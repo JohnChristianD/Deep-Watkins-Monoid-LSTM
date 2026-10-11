@@ -6902,7 +6902,7 @@ klaAffineProjection-not-injective derive =
     t = klaFullBeliefState a C.one8
   in
   false-not-true
-    (ap precision
+    (ap KLAFullBeliefState.precision
       (derive {s = s} {t = t} refl))
 
 record KLAPrecisionBridgeWitness : Set₁ where
