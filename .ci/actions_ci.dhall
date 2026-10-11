@@ -424,7 +424,6 @@ DHALL
     canonical-operator-composition-theorem
     CanonicalPureNonOrangeBypassCompletionTheorem
     CanonicalStationarySubcompositionTheorem
-    canonical-persistent-excitation-requirement-theorem
     ExactContractComputabilityBoundaryTheorem
     exact-contract-computability-boundary-theorem
     megaParetoOptimal
