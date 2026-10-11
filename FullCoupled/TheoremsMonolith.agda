@@ -9614,7 +9614,7 @@ megaNoStrictAffordableAlternative-is-demand-optimality :
     budget p i b →
     ¬ strictPreference i b a)
 megaNoStrictAffordableAlternative-is-demand-optimality boundary =
-  demandOptimality boundary
+  MegaNoStrictAffordableAlternativeBoundary.demandOptimality boundary
 
 GeneralizedWalrasianEquilibrium :
   Set → Set → Set → Set₁
