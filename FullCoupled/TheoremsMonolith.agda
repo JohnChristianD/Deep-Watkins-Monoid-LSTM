@@ -9292,7 +9292,7 @@ record MegaParetoImprovement
   constructor megaParetoImprovement
   field
     weaklyBetter :
-      ∀ i → weakPreference i candidate baseline
+      ∀ i → weakPreference i baseline candidate
     strictlyBetter :
       Σ Agent (λ i → strictPreference i candidate baseline)
 
