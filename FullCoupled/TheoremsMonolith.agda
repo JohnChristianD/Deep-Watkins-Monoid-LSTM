@@ -8014,7 +8014,7 @@ f4-unit-forcing-linear-growth (succ n) s =
 nat-succ-not-le :
   ∀ n → succ n ≤ n → ⊥
 nat-succ-not-le zero ()
-nat-succ-not-le (succ n) (s≤s h) =
+nat-succ-not-le (succ n) h =
   nat-succ-not-le n h
 
 f4-unit-forcing-no-upper-bound :
@@ -8210,8 +8210,33 @@ twoPow (succ k) = twoPow k + twoPow k
 
 nat-plus-right-mono :
   ∀ {a b c : ℕ} → a ≤ b → a + c ≤ b + c
-nat-plus-right-mono z≤n = z≤n
-nat-plus-right-mono (s≤s p) = s≤s (nat-plus-right-mono p)
+nat-plus-right-mono {a} {b} {c} p = helper a b p c
+ where
+  P : (m n : ℕ) → m ≤ n → Set
+  P m n _ = (k : ℕ) → m + k ≤ n + k
+
+  base : (n : ℕ) → P zero n (zero-least n)
+  base n k =
+    transport
+      (λ x → x ≤ n + k)
+      (zero-left-neutral k ⁻¹)
+      (≤-+' n k)
+
+  step :
+    (m n : ℕ) (q : m ≤ n) →
+    P m n q →
+    P (succ m) (succ n) (succ-monotone m n q)
+  step m n q ih k =
+    transport
+      (λ y → succ m + k ≤ y)
+      (succ-left n k ⁻¹)
+      (transport
+        (λ x → x ≤ succ (n + k))
+        (succ-left m k ⁻¹)
+        (succ-monotone (m + k) (n + k) (ih k)))
+
+  helper : (m n : ℕ) (q : m ≤ n) → P m n q
+  helper = ≤-induction P base step
 
 record EfficientOperatorMonoidRepresentation
   (State Input : Set) : Set₁ where
@@ -9189,9 +9214,11 @@ canonical-unconditional-agda-egraph-astar-closure =
 
 f4-add-right-nonnegative :
   ∀ (n m : ℕ) → n ≤ n + m
-f4-add-right-nonnegative n zero = ≤-refl
+f4-add-right-nonnegative n zero = ≤-refl n
 f4-add-right-nonnegative n (succ m) =
-  s≤s (f4-add-right-nonnegative n m)
+  ≤-trans n (n + m) (succ (n + m))
+    (f4-add-right-nonnegative n m)
+    (≤-succ (n + m))
 
 record MegaGeneralizedWalrasianEquilibrium
   (State Price Allocation : Set) : Set₁ where
@@ -9318,7 +9345,7 @@ megaNatNoStrictBack :
   succ n ≤ n →
   ⊥
 megaNatNoStrictBack {zero} ()
-megaNatNoStrictBack {succ n} (s≤s h) =
+megaNatNoStrictBack {succ n} h =
   megaNatNoStrictBack h
 
 megaNatStrictCostContradiction :
@@ -10117,8 +10144,7 @@ successorMeasureOrbitInjective W s {m} {n} eq =
         (successorMeasureAfterIterate W n s)))
 
 natSucProgress : ∀ n → n < succ n
-natSucProgress zero = s≤s z≤n
-natSucProgress (succ n) = s≤s (natSucProgress n)
+natSucProgress n = ≤-refl (succ n)
 
 canonicalTotalCountStepProgress :
   ∀ {A : Set}
