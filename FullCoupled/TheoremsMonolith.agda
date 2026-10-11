@@ -8755,6 +8755,7 @@ lawIFromNLabNoether :
     PhysicalState
     Current
 lawIFromNLabNoether
+  {physicalStepFunction = physicalStepFunction}
   S
   shell
   encodeD
