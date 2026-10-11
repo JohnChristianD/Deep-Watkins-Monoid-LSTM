@@ -18,6 +18,10 @@
 #-}
 -- END MIRTH-SYNC GLOBAL OPTIONS
 
+{-# OPTIONS
+  --erasure
+#-}
+
 module FullCoupled.LearnerLogicalSpec where
 
 -- BEGIN MIRTH-SYNC CANONICAL COMMAND
