@@ -6411,6 +6411,50 @@ exactRecurrentFunctionTranslation step stepA conjugacy =
     (λ {T} {B} {isoB} f →
       exactFunctionIsomorphismTransport f)
 
+-- Function representations compose without loss: transporting f and then g
+-- agrees exactly with transporting their composition.  The witness below is
+-- derived solely from the two commuting equalities; no extra representation
+-- or convergence assumption is hidden in this interface.
+record GeneralizedRepresentationTransportCompositionTheorem : Set₁ where
+  constructor generalizedRepresentationTransportCompositionTheorem
+  field
+    exactFunctionTransport :
+      ∀ {S T A B : Set}
+        {isoA : StateIsomorphism S A}
+        {isoB : StateIsomorphism T B}
+        (f : S → T) →
+      ExactFunctionIsomorphismTransportTheorem S T A B isoA isoB f
+    functionCompositionTransport :
+      ∀ {S T U A B D : Set}
+        (isoS : StateIsomorphism S A)
+        (isoT : StateIsomorphism T B)
+        (isoU : StateIsomorphism U D)
+        (f : S → T)
+        (g : T → U)
+        (fA : A → B)
+        (gB : B → D)
+        (fCommutes :
+          ∀ x →
+          StateIsomorphism.to isoT (f x) ＝
+          fA (StateIsomorphism.to isoS x))
+        (gCommutes :
+          ∀ y →
+          StateIsomorphism.to isoU (g y) ＝
+          gB (StateIsomorphism.to isoT y)) →
+        ∀ x →
+        StateIsomorphism.to isoU (g (f x)) ＝
+        gB (fA (StateIsomorphism.to isoS x))
+
+generalizedRepresentationTransportComposition :
+  GeneralizedRepresentationTransportCompositionTheorem
+generalizedRepresentationTransportComposition =
+  generalizedRepresentationTransportCompositionTheorem
+    exactFunctionIsomorphismTransport
+    (λ isoS isoT isoU f g fA gB fCommutes gCommutes x →
+      trans
+        (gCommutes (f x))
+        (ap gB (fCommutes x)))
+
 record CanonicalExactRNNLMTheorem : Set₁ where
   constructor canonicalExactRNNLMTheorem
   field
