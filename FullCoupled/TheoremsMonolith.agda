@@ -340,7 +340,7 @@ syntax try-fun t f = try t or-else f
 -- `_+_` to disambiguate natural/integer/rational addition.
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
-open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_)
+open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_; gruStep)
 import FullCoupled.LearnerLogicalSpec as LearnerLogicalSpec
 -- END THEOREM-SPECIFIC IMPORTS
 
@@ -8737,13 +8737,13 @@ MaxwellShell D p = maxwellEquation D p
 
 lawIFromNLabNoether :
   ∀ {LearnerState PhysicalState Current : Set}
-  {PhysicalStep : PhysicalState → PhysicalState}
+  {physicalStepFunction : PhysicalState → PhysicalState}
   {MaxwellShell : PhysicalState → Set}
   (S :
     NLabNoetherConservationTheorem
       PhysicalState
       Current
-      PhysicalStep
+      physicalStepFunction
       MaxwellShell)
   (shell : ∀ p → MaxwellShell p)
   (encodeD : LearnerState → PhysicalState)
@@ -8755,6 +8755,7 @@ lawIFromNLabNoether :
     PhysicalState
     Current
 lawIFromNLabNoether
+  {physicalStepFunction = physicalStepFunction}
   S
   shell
   encodeD
@@ -8764,7 +8765,7 @@ lawIFromNLabNoether
     encodeD
     decodeD
     decodeEncodeD
-    (λ p → PhysicalStep p)
+    (λ p → physicalStepFunction p)
     (current S)
     (λ p → conservedOnShell S p (shell p))
 
@@ -8999,7 +9000,7 @@ nLabMaxwellFourLawOneStepClosed :
     Stationary
     (C.canonicalFullStep (kernel B))
     (step (semantics (hodgeRepresentation W)))
-nLabMaxwellFourLawOneStepClosed B =
+nLabMaxwellFourLawOneStepClosed {W = W} B =
   nLabMaxwellFourLawOneStep
     W
     (kernel B)
@@ -9068,7 +9069,7 @@ nLabMaxwellIterateConjugacyClosed :
     (step (semantics (hodgeRepresentation W)))
     n
     (learnerToSolution W s)
-nLabMaxwellIterateConjugacyClosed B =
+nLabMaxwellIterateConjugacyClosed {W = W} B n s =
   nLabMaxwellIterateConjugacy
     W
     (kernel B)
@@ -9168,7 +9169,7 @@ nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem-from-closed :
       Admissible
       Stationary) →
   NLabMaxwellFourLawGRUAlgebraicConsistencyTheorem B
-nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem-from-closed B =
+nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem-from-closed {W = W} B =
   nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem
     canonical-gru-statistical-injectivity-theorem
     canonicalGRUStatisticalEncodeInjective
@@ -9288,6 +9289,10 @@ megaParetoOptimal :
   (feasible : Allocation → Set) →
   Allocation → Set₁
 megaParetoOptimal
+  {Agent}
+  {Allocation}
+  {weakPreference}
+  {strictPreference}
   feasible
   a =
   feasible a ×
