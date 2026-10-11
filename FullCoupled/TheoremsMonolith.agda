@@ -9401,8 +9401,6 @@ record MegaDemandCostKernel
     paretoImprovementAffordability :
       ∀ {b : Allocation} →
       feasible b →
-      MegaParetoImprovement
-        Agent Allocation weakPreference strictPreference b a →
       (improvement : MegaParetoImprovement
         Agent Allocation weakPreference strictPreference b a) →
       budget p (pr₁ (strictlyBetter improvement)) b
