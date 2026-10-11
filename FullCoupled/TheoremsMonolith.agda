@@ -7549,18 +7549,28 @@ finiteMixedNash-brouwer-egraph-astar-proof
   W
   brouwerMapAgrees
   stableImpliesFixed
-  s =
-  finiteMixedNash-egraph-astar-proof
-    W
-    (brouwerMixedNashFixedPointBridge
+  s
+  with eventualStable W s
+... | n , stableAtN =
+  ( ( n
+    , fixedImpliesMixedNash
+        (brouwerMixedNashFixedPointBridge
+          N
+          brouwerMapAgrees)
+        (eGraphAStarIterate
+          (step W)
+          n
+          s)
+        (stableImpliesFixed
+          (eGraphAStarIterate
+            (step W)
+            n
+            s)
+          stableAtN))
+  , eGraphAStarConvergenceSemanticClosure W s )
+  , nashEveryFiniteGameViaBrouwer
+      (mixedNash N)
       N
-      brouwerMapAgrees)
-    stableImpliesFixed
-    s
-  ,
-  nashEveryFiniteGameViaBrouwer
-    (mixedNash N)
-    N
 
 
 finiteMixedNash-egraph-astar-convergence :
