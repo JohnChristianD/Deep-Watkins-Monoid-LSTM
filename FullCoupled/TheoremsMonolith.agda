@@ -6887,7 +6887,7 @@ record KLAFullBeliefState : Set where
 
 klaAffineProjection :
   KLAFullBeliefState → C.MonoidAffine
-klaAffineProjection s = meanTransform s
+klaAffineProjection s = KLAFullBeliefState.meanTransform s
 
 klaAffineProjection-not-injective :
   ¬
