@@ -1,10 +1,22 @@
 -- A proof-obligation layer over the canonical executable learner.
 -- C.Int8 is an unbounded integer wrapper (C.Int = ℤ), not bounded 8-bit
 -- arithmetic.  No descent proof is postulated or claimed by this module.
+-- BEGIN MIRTH-SYNC GLOBAL OPTIONS
 {-# OPTIONS
+  --no-fast-reduce
+  --lossy-unification
+  --experimental-lazy-instances
+  --confluence-check
+  --guarded
+  --exact-split
+  --no-infer-absurd-clauses
+  --no-projection-like
+  --erased-matches
+  --erase-record-parameters
   --without-K
   --level-universe
 #-}
+-- END MIRTH-SYNC GLOBAL OPTIONS
 
 module FullCoupled.LearnerLogicalSpec where
 
