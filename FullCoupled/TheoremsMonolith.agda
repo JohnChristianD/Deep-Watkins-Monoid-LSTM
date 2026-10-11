@@ -9000,7 +9000,7 @@ nLabMaxwellFourLawOneStepClosed :
     Stationary
     (C.canonicalFullStep (kernel B))
     (step (semantics (hodgeRepresentation W)))
-nLabMaxwellFourLawOneStepClosed B =
+nLabMaxwellFourLawOneStepClosed {W = W} B =
   nLabMaxwellFourLawOneStep
     W
     (kernel B)
