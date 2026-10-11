@@ -15,6 +15,7 @@
   --erase-record-parameters
   --without-K
   --level-universe
+  --rewriting
 #-}
 -- END MIRTH-SYNC GLOBAL OPTIONS
 
