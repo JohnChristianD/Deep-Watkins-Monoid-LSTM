@@ -9282,6 +9282,22 @@ record FiniteNonIIDGeneralizedEquilibrium
       sumNat (map (λ i → allocation i g) agents) ＝
       sumNat (map (λ i → endowment i g) agents)
 
+-- A Pareto improvement weakly benefits every agent and strictly benefits
+-- at least one. The argument order is candidate allocation, then baseline.
+record MegaParetoImprovement
+  (Agent Allocation : Set)
+  (weakPreference strictPreference :
+    Agent → Allocation → Allocation → Set)
+  (candidate baseline : Allocation) : Set₁ where
+  constructor megaParetoImprovement
+  field
+    weaklyBetter :
+      ∀ i → weakPreference i candidate baseline
+    strictlyBetter :
+      Σ Agent (λ i → strictPreference i candidate baseline)
+
+open MegaParetoImprovement public
+
 megaParetoOptimal :
   ∀ {Agent Allocation : Set}
   {weakPreference strictPreference :
