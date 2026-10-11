@@ -46,8 +46,6 @@ module FullCoupled.CanonicalLearnerMonolith where
 
 -- BEGIN MIRTH-SYNC COMMON IMPORTS
 -- Merged external import surface; internal FullCoupled imports remain module-local.
-open import MLTT.Spartan hiding (J; _+_)
-open import MLTT.Athenian
 open import Integers.Type
 open import Integers.Order
 open import Integers.Addition renaming (_+_ to _ℤ+_)
@@ -75,15 +73,6 @@ open import Rationals.Multiplication
 open import Rationals.Negation
 open import Rationals.Order
 open import Rationals.Type
-open import UF.Base
-open import UF.FunExt
-open import UF.PropTrunc
-open import UF.Size
-open import UF.Subsingletons
-open import UF.Subsingletons-FunExt
-open import UF.UA-FunExt
-open import UF.Equiv using (is-equiv; section-retraction-equiv)
-open import UF.SubtypeClassifier using (_holds)
 -- END MIRTH-SYNC COMMON IMPORTS
 
 
