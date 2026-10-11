@@ -7450,9 +7450,9 @@ finiteMixedNash-brouwer-gru-egraph-astar-distribution-fixed :
       Converges) →
   P μ∞ ＝ μ∞
 finiteMixedNash-brouwer-gru-egraph-astar-distribution-fixed W =
-  limitPreserved
+  StationaryLimitTheorem.limitPreserved
     (distributionWitness W)
-    (converges (distributionWitness W))
+    (StationaryLimitTheorem.converges (distributionWitness W))
 
 record MixedNashFixedPointBridge
   (Profile : Set)
