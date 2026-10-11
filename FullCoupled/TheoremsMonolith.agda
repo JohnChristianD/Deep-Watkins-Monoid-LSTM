@@ -8220,11 +8220,11 @@ nat-plus-right-mono {a} {b} {c} p = helper a b p c
       (zero-left-neutral k ⁻¹)
       (≤-+' n k)
 
-  step :
+  nat-plus-right-mono-succ :
     (m n : ℕ) (q : m ≤ n) →
     P m n q →
     P (succ m) (succ n) (succ-monotone m n q)
-  step m n q ih k =
+  nat-plus-right-mono-succ m n q ih k =
     transport
       (λ y → succ m + k ≤ y)
       (succ-left n k ⁻¹)
@@ -8234,7 +8234,7 @@ nat-plus-right-mono {a} {b} {c} p = helper a b p c
         (succ-monotone (m + k) (n + k) (ih k)))
 
   helper : (m n : ℕ) (q : m ≤ n) → P m n q
-  helper = ≤-induction P base step
+  helper = ≤-induction P base nat-plus-right-mono-succ
 
 record EfficientOperatorMonoidRepresentation
   (State Input : Set) : Set₁ where
