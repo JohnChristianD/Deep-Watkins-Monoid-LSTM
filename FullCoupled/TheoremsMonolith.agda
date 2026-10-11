@@ -9375,6 +9375,40 @@ megaNatStrictCostContradiction :
 megaNatStrictCostContradiction hle hlt =
   megaNatNoStrictBack (≤-trans hlt hle)
 
+-- Demand/cost closure needed by the welfare-boundary arguments.
+-- Preference improvement must force a strictly higher cost; affordability
+-- must keep the candidate's cost below the baseline allocation's cost.
+record MegaDemandCostKernel
+  (Agent Price Allocation : Set)
+  (weakPreference strictPreference :
+    Agent → Allocation → Allocation → Set)
+  (feasible : Allocation → Set)
+  (budget : Price → Agent → Allocation → Set)
+  (equilibrium : Price → Allocation → Set)
+  (cost : Price → Agent → Allocation → ℕ)
+  (p : Price)
+  (a : Allocation) : Set₁ where
+  constructor megaDemandCostKernel
+  field
+    equilibriumWitness : equilibrium p a
+    feasibleWitness : feasible a
+    preferredCostly :
+      ∀ i x y → weakPreference i x y → cost p i y ≤ cost p i x
+    strictlyPreferredCostly :
+      ∀ i x y → strictPreference i x y → cost p i y < cost p i x
+    budgetCostBound :
+      ∀ i b → budget p i b → cost p i b ≤ cost p i a
+    paretoImprovementAffordability :
+      ∀ {b : Allocation} →
+      feasible b →
+      MegaParetoImprovement
+        Agent Allocation weakPreference strictPreference b a →
+      (improvement : MegaParetoImprovement
+        Agent Allocation weakPreference strictPreference b a) →
+      budget p (pr₁ (strictlyBetter improvement)) b
+
+open MegaDemandCostKernel public
+
 megaNoStrictAffordableAlternative-from-demand-cost :
   ∀ {Agent Price Allocation : Set}
   {weakPreference strictPreference :
