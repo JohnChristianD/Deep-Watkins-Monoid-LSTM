@@ -10143,7 +10143,7 @@ strictProgressAfterIterate :
 strictProgressAfterIterate W zero s =
   stepProgress W s
 strictProgressAfterIterate W (succ n) s =
-  transitive W
+  StrictProgressWitness.strictProgressTransitive W
     (stepProgress W s)
     (strictProgressAfterIterate W n (step s))
 
