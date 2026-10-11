@@ -9069,7 +9069,7 @@ nLabMaxwellIterateConjugacyClosed :
     (step (semantics (hodgeRepresentation W)))
     n
     (learnerToSolution W s)
-nLabMaxwellIterateConjugacyClosed B =
+nLabMaxwellIterateConjugacyClosed {W = W} B =
   nLabMaxwellIterateConjugacy
     W
     (kernel B)
