@@ -94,6 +94,8 @@ cong₂ f refl refl = refl
 trans : ∀ {A : Set} {x y z : A} → x ＝ y → y ＝ z → x ＝ z
 trans refl q = q
 
+open import InfinitePigeon.FinitePigeon
+
 -- BEGIN MIRTH-SYNC CANONICAL COMMAND
 -- "$AGDA_COMMAND" -i .
 -- END MIRTH-SYNC CANONICAL COMMAND
