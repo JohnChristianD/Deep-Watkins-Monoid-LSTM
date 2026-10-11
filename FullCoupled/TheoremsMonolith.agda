@@ -8081,12 +8081,9 @@ record CanonicalPureNonOrangeBypassCompletionTheorem : Set₁ where
 
 open CanonicalPureNonOrangeBypassCompletionTheorem public
 
-canonical-persistent-excitation-requirement-theorem :
-  CanonicalPersistentExcitationRequirementTheorem
-canonical-persistent-excitation-requirement-theorem =
-  canonicalPersistentExcitationRequirementTheorem
-    tt
-    tt
+-- Persistent excitation remains a conditional learner obligation.
+-- No unconditional theorem is registered here without a stated predicate
+-- and a proof derived from the canonical learner semantics.
 
 record ExactContractComputabilityBoundaryTheorem : Set₁ where
   constructor exactContractComputabilityBoundaryTheorem
