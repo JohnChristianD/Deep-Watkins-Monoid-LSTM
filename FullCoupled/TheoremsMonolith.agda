@@ -10081,7 +10081,7 @@ record StrictProgressWitness
     stepProgress :
       ∀ s →
       measure s < measure (step s)
-    transitive :
+    strictProgressTransitive :
       ∀ {a b c} →
       a < b →
       b < c →
@@ -10110,8 +10110,8 @@ strictProgressRelation-from-witness :
   StrictProgressRelation Measure _<_
 strictProgressRelation-from-witness W =
   strictProgressRelation
-    (transitive W)
-    (irreflexive W)
+    (StrictProgressWitness.strictProgressTransitive W)
+    (StrictProgressWitness.irreflexive W)
 
 strictProgressWitness-from-relation :
   ∀ {State Measure : Set}
