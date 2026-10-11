@@ -7865,6 +7865,11 @@ finiteMixedNash-from-GRU-tail :
             n
             s)))
 finiteMixedNash-from-GRU-tail
+  {State}
+  {Feature}
+  {stateStep}
+  {featureStep}
+  {encode}
   W
   mixedNash
   featureFixedImpliesMixedNash
