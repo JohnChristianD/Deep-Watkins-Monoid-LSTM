@@ -6543,23 +6543,6 @@ canonicalHaarAttentionRecurrent accumulator xs s =
     (C.canonicalHaarFeaturedLinearScan accumulator xs)
     s
 
-recurrentListState-append :
-  ∀ {State Input : Set}
-  (R : C.RecurrentNetwork State Input)
-  (xs ys : List Input)
-  (s : State) →
-  C.recurrentListState R (xs ++ ys) s
-  ＝
-  C.recurrentListState R ys
-    (C.recurrentListState R xs s)
-recurrentListState-append R [] ys s = refl
-recurrentListState-append R (x ∷ xs) ys s =
-  recurrentListState-append
-    R
-    xs
-    ys
-    (C.runNetwork R s x)
-
 haarAccumulatorScan :
   C.HaarFeaturedLinearTransformer →
   C.HaarAccumulator →
