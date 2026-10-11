@@ -13,7 +13,7 @@ let theoremModule : Text =
 let theoremPath : Text =
       "FullCoupled/TheoremsMonolith.agda"
 let expectedImport : Text =
-      "open import " ++ learnerModule ++ " as C hiding (Int; _+Int_; _*Int_) "
+      "open import " ++ learnerModule ++ " as C hiding (Int; _+Int_; _*Int_)"
 in ''
 #!/usr/bin/env bash
 set -euo pipefail
