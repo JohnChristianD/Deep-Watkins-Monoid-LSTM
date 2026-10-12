@@ -478,10 +478,10 @@ recordFieldHeader :
   String ->
   Maybe (String × String)
 recordFieldHeader line =
-  if leadingSpaceCount line >= suc (suc (suc (suc zero))) then
-    case firstWord line of λ where
-      Nothing -> Nothing
-      Just candidate ->
+  case firstWord line of λ where
+    Nothing -> Nothing
+    Just candidate ->
+      if leadingSpaceCount line >= suc (suc (suc (suc zero))) then
         if candidate == "field" || syntaxHead candidate then
           Nothing
         else
@@ -491,8 +491,8 @@ recordFieldHeader line =
             in Just (name , trimWhitespace after)
           else
             Nothing
-  else
-    Nothing
+      else
+        Nothing
 
 parseRecordFields :
   String ->
@@ -515,8 +515,9 @@ scanRecordFields :
 scanRecordFields sourceFile [] state accumulator =
   finalizeRecordFieldState sourceFile state accumulator
 scanRecordFields sourceFile (line ∷ rest) state accumulator =
-  if topLevelLine line then
-    case topLevelRecordHeader line of λ where
+  case topLevelLine line of λ where
+    True ->
+      case topLevelRecordHeader line of λ where
       Just (recordName , _) ->
         scanRecordFields
           sourceFile
@@ -529,8 +530,8 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
           rest
           outside-record
           (finalizeRecordFieldState sourceFile state accumulator)
-  else
-    case state of λ where
+    False ->
+      case state of λ where
       outside-record ->
         scanRecordFields
           sourceFile
