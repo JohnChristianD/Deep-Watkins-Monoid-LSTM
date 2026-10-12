@@ -16,19 +16,35 @@ open import Haskell.Prelude
 CharList : Type
 CharList = List Char
 
-natBetween : Nat → Nat → Nat → Bool
-natBetween lo hi n =
-  if lo <= n then
-    if n <= hi then True else False
+charBetween : Char → Char → Char → Bool
+charBetween lower upper value =
+  if lower <= value then
+    if value <= upper then True else False
   else
     False
 
 isAsciiAlpha : Char → Bool
 isAsciiAlpha c =
-  natBetween 65 90 (c2n c) || natBetween 97 122 (c2n c)
+  charBetween 'A' 'Z' c || charBetween 'a' 'z' c
 
 isAsciiDigit : Char → Bool
-isAsciiDigit c = natBetween 48 57 (c2n c)
+isAsciiDigit c = charBetween '0' '9' c
+
+isAsciiAlphaRegression : Bool
+isAsciiAlphaRegression =
+  isAsciiAlpha 'A' && isAsciiAlpha 'z' && not (isAsciiAlpha '7')
+
+isAsciiAlphaRegressionChecked :
+  isAsciiAlphaRegression ≡ True
+isAsciiAlphaRegressionChecked = refl
+
+isAsciiDigitRegression : Bool
+isAsciiDigitRegression =
+  isAsciiDigit '0' && isAsciiDigit '9' && not (isAsciiDigit 'x')
+
+isAsciiDigitRegressionChecked :
+  isAsciiDigitRegression ≡ True
+isAsciiDigitRegressionChecked = refl
 
 isSourceSpace : Char → Bool
 isSourceSpace c =
@@ -866,3 +882,5 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS nestedRecordHeaderRejectedRegression #-}
 {-# COMPILE AGDA2HS bodyClauseRegression #-}
 {-# COMPILE AGDA2HS bodyClauseRejectsIndentedRegression #-}
+{-# COMPILE AGDA2HS isAsciiAlphaRegression #-}
+{-# COMPILE AGDA2HS isAsciiDigitRegression #-}
