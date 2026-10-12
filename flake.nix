@@ -115,9 +115,6 @@
           doCheck = false;
         };
 
-      agda2hsWithCanonicalGhc = system:
-        agda2hsTool system;
-
       agdaCommand = system:
         let
           pkgs = pkgsFor system;
