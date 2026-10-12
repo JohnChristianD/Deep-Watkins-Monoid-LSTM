@@ -426,9 +426,11 @@
                 grep -Fq "inverse-csearchable" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "inverse-preserves-csearchability" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "SearchableEquivalence" FullCoupled/TheoremsMonolith.agda
-                ${canonicalGhc system}/bin/ghc \
+                mkdir -p "$out/ghc"
+                "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
+                  -package rio \
                   -i "$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
@@ -525,7 +527,7 @@
                 "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
                 mkdir -p "$out/ghc-search"
                 "${canonicalGhc system}/bin/ghc" \
-                  -O0 -dcore-lint -i "$out" \
+                  -O0 -dcore-lint -package rio -i "$out" \
                   -odir "$out/ghc-search" -hidir "$out/ghc-search" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
                   -o "$out/graph-search-check" \
