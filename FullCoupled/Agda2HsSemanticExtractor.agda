@@ -518,83 +518,83 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
   case topLevelLine line of λ where
     True ->
       case topLevelRecordHeader line of λ where
-      Just (recordName , _) ->
-        scanRecordFields
-          sourceFile
-          rest
-          (record-waiting recordName)
-          (finalizeRecordFieldState sourceFile state accumulator)
-      Nothing ->
-        scanRecordFields
-          sourceFile
-          rest
-          outside-record
-          (finalizeRecordFieldState sourceFile state accumulator)
+        Just (recordName , _) ->
+          scanRecordFields
+            sourceFile
+            rest
+            (record-waiting recordName)
+            (finalizeRecordFieldState sourceFile state accumulator)
+        Nothing ->
+          scanRecordFields
+            sourceFile
+            rest
+            outside-record
+            (finalizeRecordFieldState sourceFile state accumulator)
     False ->
       case state of λ where
-      outside-record ->
-        scanRecordFields
-          sourceFile
-          rest
-          outside-record
-          accumulator
-      record-waiting recordName ->
-        case firstWord line of λ where
-          Just "field" ->
-            scanRecordFields
-              sourceFile
-              rest
-              (record-fields recordName)
-              accumulator
-          _ ->
-            scanRecordFields
-              sourceFile
-              rest
-              (record-waiting recordName)
-              accumulator
-      record-fields recordName ->
-        case recordFieldHeader line of λ where
-          Just (fieldName , fragment) ->
-            scanRecordFields
-              sourceFile
-              rest
-              (field-collecting
-                recordName
-                fieldName
-                (fragment ∷ []))
-              accumulator
-          Nothing ->
-            scanRecordFields
-              sourceFile
-              rest
-              (record-fields recordName)
-              accumulator
-      field-collecting recordName fieldName signatureReversed ->
-        case recordFieldHeader line of λ where
-          Just (nextFieldName , fragment) ->
-            scanRecordFields
-              sourceFile
-              rest
-              (field-collecting
-                recordName
-                nextFieldName
-                (fragment ∷ []))
-              (finalizeRecordFieldState
+        outside-record ->
+          scanRecordFields
+            sourceFile
+            rest
+            outside-record
+            accumulator
+        record-waiting recordName ->
+          case firstWord line of λ where
+            Just "field" ->
+              scanRecordFields
                 sourceFile
+                rest
+                (record-fields recordName)
+                accumulator
+            _ ->
+              scanRecordFields
+                sourceFile
+                rest
+                (record-waiting recordName)
+                accumulator
+        record-fields recordName ->
+          case recordFieldHeader line of λ where
+            Just (fieldName , fragment) ->
+              scanRecordFields
+                sourceFile
+                rest
                 (field-collecting
                   recordName
                   fieldName
-                  signatureReversed)
-                accumulator)
-          Nothing ->
-            scanRecordFields
-              sourceFile
-              rest
-              (field-collecting
-                recordName
-                fieldName
-                (trimWhitespace line ∷ signatureReversed))
-              accumulator
+                  (fragment ∷ []))
+                accumulator
+            Nothing ->
+              scanRecordFields
+                sourceFile
+                rest
+                (record-fields recordName)
+                accumulator
+        field-collecting recordName fieldName signatureReversed ->
+          case recordFieldHeader line of λ where
+            Just (nextFieldName , fragment) ->
+              scanRecordFields
+                sourceFile
+                rest
+                (field-collecting
+                  recordName
+                  nextFieldName
+                  (fragment ∷ []))
+                (finalizeRecordFieldState
+                  sourceFile
+                  (field-collecting
+                    recordName
+                    fieldName
+                    signatureReversed)
+                  accumulator)
+            Nothing ->
+              scanRecordFields
+                sourceFile
+                rest
+                (field-collecting
+                  recordName
+                  fieldName
+                  (trimWhitespace line ∷ signatureReversed))
+                accumulator
 
 finalizeRecordFieldState :
   String ->
