@@ -252,11 +252,11 @@ topLevelRecordHeaderType :
   String ->
   Maybe (String × String)
 topLevelRecordHeaderType name line =
-  if lineContainsChar ':' line then
-    let (_ , fragment) = splitFirstCharString ':' line
-    in Just (name , trimWhitespace fragment)
-  else
-    Nothing
+  case lineContainsChar ':' line of λ where
+    False -> Nothing
+    True ->
+      case splitFirstCharString ':' line of λ where
+        (_ , fragment) -> Just (name , trimWhitespace fragment)
 
 topLevelRecordHeaderName :
   String ->
