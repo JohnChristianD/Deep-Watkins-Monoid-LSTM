@@ -521,6 +521,7 @@
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
                 mkdir -p "$out/ghc"
                 "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                mkdir -p "$out/ghc-search"
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 -dcore-lint -i "$out" \
                   -odir "$out/ghc-search" -hidir "$out/ghc-search" \
