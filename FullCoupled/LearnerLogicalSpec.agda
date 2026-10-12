@@ -41,17 +41,6 @@ open import Integers.Type
 open import Integers.Order
 open import Integers.Addition renaming (_+_ to _ℤ+_)
 open import Integers.Multiplication renaming (_*_ to _ℤ*_)
-
-Int : Set
-Int = ℤ
-
-infixl 31 _+Int_
-_+Int_ : Int → Int → Int
-_+Int_ = _ℤ+_
-
-infixl 31 _*Int_
-_*Int_ : Int → Int → Int
-_*Int_ = _ℤ*_
 open import Naturals.Addition
 open import Naturals.Exponentiation
 open import Naturals.Division
@@ -74,6 +63,17 @@ open import UF.UA-FunExt
 open import UF.Equiv using (is-equiv; section-retraction-equiv)
 open import UF.SubtypeClassifier using (_holds)
 -- END MIRTH-SYNC COMMON IMPORTS
+
+Int : Set
+Int = ℤ
+
+infixl 31 _+Int_
+_+Int_ : Int → Int → Int
+_+Int_ = _ℤ+_
+
+infixl 31 _*Int_
+_*Int_ : Int → Int → Int
+_*Int_ = _ℤ*_
 
 import FullCoupled.CanonicalLearnerMonolith as C
 
