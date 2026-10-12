@@ -351,6 +351,13 @@ bodyClauseRejectsIndentedRegressionChecked :
   bodyClauseRejectsIndentedRegression ≡ True
 bodyClauseRejectsIndentedRegressionChecked = refl
 
+unwordsString : List String -> String
+unwordsString [] = ""
+unwordsString (word ∷ wordsRest) =
+  case wordsRest of λ where
+    [] -> word
+    _ -> word ++ " " ++ unwordsString wordsRest
+
 finalizeScanState :
   String ->
   ScanState ->
@@ -646,13 +653,6 @@ finalizeRecordFieldState sourceFile
     semantic-record-field
     recordName
   ∷ accumulator
-
-unwordsString : List String -> String
-unwordsString [] = ""
-unwordsString (word ∷ wordsRest) =
-  case wordsRest of λ where
-    [] -> word
-    _ -> word ++ " " ++ unwordsString wordsRest
 
 dropN : Nat -> CharList -> CharList
 dropN zero chars = chars
