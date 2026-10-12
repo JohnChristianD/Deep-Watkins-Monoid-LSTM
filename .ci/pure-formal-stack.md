@@ -49,7 +49,7 @@ Keep a machine-readable manifest with tool revisions, compiler versions, inputs,
 
 ## Current migration state (2026-10-12)
 
-The repository is **not yet fully TypeTopology-free**. `flake.nix` pins `typetopology`, and `FullCoupled/TheoremsMonolith.agda` and `FullCoupled/LearnerLogicalSpec.agda` import TypeTopology arithmetic, MLTT, UF/univalence, ordinal, and searchable-type modules. Removing the Nix input before migrating those interfaces would break the proof build. The current Agda2HS search module uses the Haskell-compatible subset, but its graph input is still produced from the TypeTopology-dependent theorem monolith in the Nix semantic app.
+The repository is **not yet fully TypeTopology-free**. `flake.nix` pins `typetopology`, and `FullCoupled/TheoremsMonolith.agda` and `FullCoupled/LearnerLogicalSpec.agda` import TypeTopology arithmetic, MLTT, UF/univalence, ordinal, and searchable-type modules. Removing the Nix input before migrating those interfaces would break the proof build. `nix run .#agda2hs-graph-search-check` is now a separate runtime-only lane: it type-checks, extracts, GHC-compiles, and executes deterministic graph regressions without invoking `agda-proof` or `TheoremsMonolith`. The existing `agda2hs-semantic-search` app still builds the live DOT input through the TypeTopology-dependent theorem monolith; separating that generated graph artifact is the next migration step.
 
 ## Migration gates
 
