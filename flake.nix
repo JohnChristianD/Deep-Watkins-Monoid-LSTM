@@ -252,6 +252,72 @@
             type = "app";
             program = "${script}/bin/mirth-agda-graph";
           };
+          agda2hs-graph-search-check = let
+            script = pkgs.writeShellApplication {
+              name = "agda2hs-graph-search-check";
+              runtimeInputs = [
+                (agdaCommand system)
+                (agda2hsCommand system)
+                (canonicalGhc system)
+                pkgs.coreutils
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda2hs-graph-search-check"
+                rm -rf "$out"
+                mkdir -p "$out"
+
+                # This lane checks only the Agda2HS runtime module closure.
+                # It intentionally avoids agda-proof and TheoremsMonolith.
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsGraphSearchCheck.agda
+
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticExtractor.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsTheoremGraphEGraph.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticSearch.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsGraphSearchCheck.agda -o "$out"
+
+                test -s "$out/FullCoupled/Agda2HsSemanticExtractor.hs"
+                test -s "$out/FullCoupled/Agda2HsTheoremGraphEGraph.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
+                test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
+
+                "${canonicalGhc system}/bin/ghc" \
+                  -O0 \
+                  -dcore-lint \
+                  -i "$out" \
+                  -odir "$out/ghc" \
+                  -hidir "$out/ghc" \
+                  -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
+                  -o "$out/graph-search-check" \
+                  "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
+
+                "$out/graph-search-check" > "$out/report.txt"
+                grep -Fxq "graph-two-leaf-branches=True" "$out/report.txt"
+                grep -Fxq "graph-dependency-order=True" "$out/report.txt"
+                grep -Fxq "graph-best-first-tie=True" "$out/report.txt"
+                grep -Fxq "graph-cycle-policy=True" "$out/report.txt"
+                grep -Fxq "graph-linear-chain=True" "$out/report.txt"
+                grep -Fxq "graph-search-contract=True" "$out/report.txt"
+
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "theoremMonolith=not-loaded" \
+                  "graphSearchContract=pass" \
+                  > "$out/manifest.tsv"
+                cat "$out/manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-graph-search-check";
+          };
+
           agda2hs-semantic-search = let
             script = pkgs.writeShellApplication {
               name = "agda2hs-semantic-search";
@@ -307,10 +373,11 @@
                 "$out/agda2hs-semantic-search" > "$out/report.txt"
                 grep -Fq "True" "$out/report.txt"
                 grep -E '^theorem-graph-edges=[1-9][0-9]* autonomous-a-star-chains=[1-9][0-9]*$' "$out/report.txt"
-                grep -E '^agda2hs autonomous theorem-graph A\\*: [1-9][0-9]* dependency chains$' "$out/report.txt"
+                grep -E '^agda2hs autonomous theorem-graph bounded DFS: [1-9][0-9]* dependency chains$' "$out/report.txt"
                 grep -Fq "autonomous-regression=True" "$out/report.txt"
                 grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
                 grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
+                grep -Fq "graphTwoLeafBranchesRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
