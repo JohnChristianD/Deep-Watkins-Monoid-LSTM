@@ -10709,9 +10709,9 @@ expandedGeneralizedAggregateExcessDemand-closure :
   equilibrium p (aggregateDemandAt p)
 expandedGeneralizedAggregateExcessDemand-closure W p root =
   ( ExpandedGeneralizedAggregateExcessDemandKernel.generalizedAggregateFeasibilityAt W p
-  , clearingFromZero
+  , GeneralizedAggregateMarketClearingWitness.clearingFromZero
       (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedMarketClearingWitness W) p root
-  , supportingFromZero
+  , GeneralizedAggregateSupportingPriceWitness.supportingFromZero
       (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedSupportingPriceWitness W) p root
   , equilibriumCharacterization W p root )
 
