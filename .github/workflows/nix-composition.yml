@@ -84,6 +84,10 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
+      - name: Verify pure Agda2HS graph search
+        timeout-minutes: 15
+        run: nix run .#agda2hs-graph-search-check
+
       - name: Run semantic lanes in one Nix environment
         timeout-minutes: 25
         run: |
@@ -142,7 +146,7 @@ jobs:
 
   auto-merge:
     name: Enable auto-merge after full verification
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     needs: [agda, semantic, pages, versions]
     runs-on: ubuntu-22.04
     permissions:

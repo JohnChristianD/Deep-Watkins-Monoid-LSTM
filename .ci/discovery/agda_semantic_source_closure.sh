@@ -52,8 +52,7 @@ root_module=$(awk '/^[[:space:]]*module[[:space:]]+/ { print $2; exit }' "$root_
 [ -n "$root_module" ] || { echo "cannot determine root module name" >&2; exit 1; }
 printf '%s\n' "${module_files[$root_module]}" >> "$output_manifest"
 
-# The pure import graph is type-checked; legacy monoliths enter only as text
-# for symbol inventory and are not claimed as kernel-checked by this flake.
+# Legacy sources are inventoried as text only, not included in the kernel-checked closure.
 while IFS= read -r -d '' file; do
   printf '%s\n' "$PWD/$file" >> "$output_manifest"
 done < <(git -C "$PWD" ls-files -z '*.agda' '*.lagda')

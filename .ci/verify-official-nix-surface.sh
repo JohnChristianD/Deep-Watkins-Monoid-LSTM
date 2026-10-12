@@ -24,9 +24,8 @@ grep -Fq 'github:NixOS/nixpkgs/' flake.nix
   echo "TypeTopology must not be in the active flake" >&2
   exit 1
 }
-
 input_count=$(grep -Ec '^[[:space:]]+(nixpkgs\.)?url[[:space:]]*=[[:space:]]*"github:' flake.nix)
-[ "$input_count" -eq 5 ] || { echo "expected five pinned flake inputs, found $input_count" >&2; exit 1; }
+[ "$input_count" -eq 5 ] || { echo "expected five pinned inputs, found $input_count" >&2; exit 1; }
 grep -Fq 'nixpkgs.url = "github:NixOS/nixpkgs/' flake.nix
 grep -Fq 'github:acornprover/acorn/' flake.nix
 grep -Fq 'github:acornprover/acornlib/' flake.nix

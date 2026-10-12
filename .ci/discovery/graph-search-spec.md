@@ -2,110 +2,96 @@
 
 ## Trust boundary
 
-The supported, type-checked source root for the pure extraction path is
-`FullCoupled.Agda2HsSemanticSearch`. Its project-owned imports are restricted
-to the Agda2HS-compatible subset and `Haskell.Prelude`. The flake must not
-fetch TypeTopology, add its source to Agda's include path, or call a wrapper
-that silently adds it.
+The supported pure extraction root is `FullCoupled.Agda2HsSemanticSearch`.
+Its project-owned imports must stay within the Agda2HS-compatible subset and
+`Haskell.Prelude`. The active flake must not fetch TypeTopology, add its source
+to Agda's include path, or call a wrapper that silently adds it.
 
-Generated Haskell is an explicit deliverable, not an opaque compiler by-product:
-the build keeps each generated `.hs` file, runs GHC with core lint, and records
-the compiler, proof kernel, search implementation, and source trust boundary in
-a manifest.
+Generated Haskell is an explicit deliverable: keep readable `.hs` output, run
+GHC with core lint, and record compiler, proof kernel, search implementation,
+and source trust boundary in a manifest.
 
-The two historical monoliths remain source-inspected during the migration so
-legacy theorem names can still be inventoried. Source scanning does not type
-check, validate, or transfer proofs from those monoliths. No CI report may
-describe them as kernel-checked by the pure flake.
+The two historical monoliths remain source-inspected during migration so
+legacy theorem names can be inventoried. Text scanning does not type-check
+those monoliths, validate their proofs, or transfer proof status. CI must not
+say they were kernel-checked by the pure flake.
 
-Acorn, XDS-Agda, and MiniVehicle are independent tools/checks. Acorn checks
-Acorn-language developments; it does not automatically import Agda proof terms.
+Acorn, XDS-Agda, and MiniVehicle are independent tools/checks. Acorn develops
+proofs in its own language; it does not automatically import Agda proof terms.
 XDS-Agda is a separate Agda development for denotational semantics. MiniVehicle
-checks its own formalised language and normalisation results. Their successes
-are not a substitute for compiling this project's generated Haskell or
-type-checking this project's Agda modules.
+checks its own formalised language. Success in those checks is not a substitute
+for this project's Agda type-check and extracted-Haskell compile.
 
 ## Three different graphs
 
-1. **Agda module graph.** Agda emits a DOT import-dependency graph for the pure
-   root module. Its vertices are modules and its edges are import relations.
-   It is not the theorem-dependency search and not an e-graph.
-2. **Law dependency graph.** An edge `(source, target)` means that the law
-   named `source` requires the law named `target`. Each node has a stable law
-   identifier and an ordered list of dependency identifiers. Search paths
-   contain identifiers, not Agda proof terms.
-3. **Equational e-graph.** The e-graph stores equivalence classes of symbolic
-   expressions; congruence rebuilding, rewrite saturation, and best-expression
+1. **Agda module graph.** DOT vertices are modules; edges represent imports.
+   This is not the law-dependency search and not an e-graph.
+2. **Law dependency graph.** An edge `(source, target)` means the law named by
+   `source` requires the law named by `target`. Search paths contain IDs, not
+   Agda proof terms.
+3. **Equational e-graph.** This stores equivalence classes of symbolic
+   expressions. Congruence rebuilding, rewrite saturation, and best-expression
    extraction are separate from dependency-path search. A graph path is not an
    equational derivation.
 
-## Dependency-path representation
+## Path representation and maximality
 
 A path is stored deepest dependency first; its head is the current/deepest node.
-For adjacent identifiers `child :: parent :: rest`, the path is valid only if
-`child` occurs in `parent`'s dependency list. Identifiers may not repeat.
-Unknown identifiers or broken edges invalidate a path.
+For adjacent IDs `child :: parent :: rest`, the path is valid only if `child`
+occurs in `parent`'s dependency list. IDs may not repeat. Unknown IDs or
+broken edges invalidate a path.
 
-Expanding a node with dependencies `[B, C]` yields sibling paths
-`[B, parent, ...]` and `[C, parent, ...]`. The parent path is unchanged while
-each sibling is formed. A previously discovered sibling must never become an
-ancestor of the next sibling.
+Expanding dependencies `[B, C]` from parent A produces sibling paths
+`[B, A]` and `[C, A]`. Each sibling starts from the same parent path; a
+sibling must never become an ancestor of the next sibling.
 
-A path is **maximal** only when it is valid and its head node has no remaining
-dependencies. A cycle such as A → B → A is not a terminal/maximal path, even
-when cycle prevention means no further child can be added. A stuck cyclic or
-malformed path is a dead end, not success.
+A path is maximal only when it is valid and its head node has no remaining
+dependencies. A cycle such as A → B → A is not maximal. When cycle prevention
+leaves no further child, that is a dead end, not success.
 
-## Two path-search routines; do not conflate them
+## Two distinct search routines
 
-- `autonomousGraphSearchFromRoot` is a bounded exhaustive depth-first
-  enumerator. Its depth bound is the number of laws. Because accepted paths
-  contain no repeated identifier, this bound is enough for any simple path.
-  It returns the sorted set/list of maximal paths reached from the root. Its
-  report must call this DFS/dependency-chain enumeration, never A*.
-- `graphAStarFirst` is the separate best-first single-plan search. Its cost is
-  `g(path) = length(path)`. The heuristic is 0 for a leaf (and for an unknown
-  node) and 1 for a node with at least one dependency. This is an admissible
-  lower bound because every non-leaf requires at least one more edge to reach
-  a leaf. Insertion uses `<=`, so an incoming equal-score node precedes the
-  existing node; that tie behaviour is regression-tested.
-- The best-first search prevents repeated identifiers and uses a finite fuel
-  bound of `3 * factorial(numberOfLaws)`. For n unique law IDs, the number of
-  non-empty simple ordered paths is bounded by
-  `sum(n!/(n-k)!, k=1..n) < 3*n!`. Exhausting fuel returns `Nothing`; it is
-  not evidence that no mathematical plan exists unless the finite-search
-  bound and graph assumptions have been established.
-- The best-first result is one cheapest dependency chain according to this
-  guidance cost. It is not a global proof-minimisation result. Search order,
-  tie-breaking, and score are heuristic planning behaviour, not kernel rules.
+- `autonomousGraphSearchFromRoot` is bounded exhaustive DFS. Its depth bound
+  is the number of laws. Since accepted paths contain no repeated ID, this
+  bound covers every simple path. Its report must say DFS/maximal dependency
+  chains, never A*.
+- `graphAStarFirst` is a separate best-first single-plan search. Cost is
+  `g(path) = length(path)`; heuristic is 0 for a leaf (or unknown node) and
+  1 for a node with dependencies. This is an admissible lower bound because
+  every non-leaf needs at least one additional edge to reach a leaf. Insertion
+  uses `<=`, so an incoming equal-score node precedes the existing node.
+- Best-first search rejects repeated IDs and uses fuel `3 * factorial(n)`.
+  Non-empty simple ordered paths are bounded by
+  `sum(n!/(n-k)!, k=1..n) < 3*n!`. Fuel exhaustion returns `Nothing`; alone
+  it is not a mathematical proof that no plan exists.
+- A best-first result is one cheapest dependency chain for this cost, not a
+  global proof-minimisation result. Search order, tie-breaking, and score are
+  planning behaviour, not kernel rules.
 
 ## Required regression contract
 
-Agda must reduce the following booleans to `True`, and the generated Haskell
-runner must print the same values:
+Agda reduces these checks to `True`, and generated Haskell prints the same:
 
-- `autonomousGraphSearchRegression`: a linear A → B → C graph has a valid plan.
-- `graphDependencyOrderRegression`: A → [B, C] generates two sibling plans,
-  [B, A] and [C, A], without leaking B into C's path.
-- `graphCycleIsNotMaximalRegression`: A → B → A cannot be accepted as a
-  maximal dependency chain.
-- `graphAStarTieBreakRegression`: equal-score insertion is stable according
-  to the documented incoming-first rule.
-- Existing semantic-law completeness and symbolic e-graph regression outputs
-  remain separate assertions and must continue to run.
+- `autonomousGraphSearchRegression`: linear A → B → C yields a valid plan.
+- `graphDependencyOrderRegression`: A → [B, C] yields [B, A] and [C, A]
+  without sibling leakage.
+- `graphTwoLeafBranchesRegression`: enumeration returns both leaf paths for
+  A → B and A → C.
+- `graphCycleIsRejectedRegression`: A → B → A is not a maximal chain.
+- `graphAStarTieBreakRegression`: equal-score insertion follows the
+  incoming-first rule.
+- Semantic-law and symbolic e-graph regressions remain separate.
 
-The DOT parser is currently intentionally narrow: it accepts lines whose
-first three whitespace-delimited tokens are `source -> target`. It strips
-surrounding quotes and a trailing semicolon. It is not a general Graphviz
-parser. Node attributes, subgraphs, quoted names containing spaces, and
-multi-line declarations are outside the accepted input grammar until covered
-by additional regression fixtures.
+The DOT parser is intentionally narrow: it accepts lines whose first three
+whitespace-delimited tokens are `source -> target`; it strips surrounding
+quotes and trailing semicolons. It is not a general Graphviz parser. Node
+attributes, subgraphs, quoted names containing spaces, and multi-line
+declarations are unsupported until separately regression-tested.
 
-## Exit criteria for the migration
+## Migration exit criteria
 
-The pure flake must: (1) have no TypeTopology input or TypeTopology include
-path; (2) type-check the four Agda2HS modules; (3) extract readable Haskell;
-(4) compile generated code with GHC core lint; (5) run search and e-graph
-regressions; (6) report legacy monoliths only as source-inventory inputs; and
-(7) execute the Acorn, XDS-Agda, and MiniVehicle checks as independent lanes.
-A green result is claimed only after CI actually reports success.
+The active flake has no TypeTopology input/include path; type-checks the pure
+Agda2HS modules; retains readable Haskell; compiles it with GHC core lint; runs
+graph/e-graph regressions; marks historical monoliths source-inventory-only;
+and runs Acorn, XDS-Agda, MiniVehicle independently. Claim a green result only
+after CI reports success.
