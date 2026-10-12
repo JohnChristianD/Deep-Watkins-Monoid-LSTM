@@ -20,10 +20,19 @@ done
 }
 
 grep -Fq 'github:NixOS/nixpkgs/' flake.nix
-grep -Fq 'github:martinescardo/TypeTopology/' flake.nix
+! grep -Eiq 'TypeTopology|typetopology' flake.nix || {
+  echo "TypeTopology must not be in the active flake" >&2
+  exit 1
+}
 
 input_count=$(grep -Ec '^[[:space:]]+(nixpkgs\.)?url[[:space:]]*=[[:space:]]*"github:' flake.nix)
-[ "$input_count" -eq 2 ]
+[ "$input_count" -eq 5 ] || { echo "expected five pinned flake inputs, found $input_count" >&2; exit 1; }
 grep -Fq 'nixpkgs.url = "github:NixOS/nixpkgs/' flake.nix
-grep -Fq 'url = "github:martinescardo/TypeTopology/' flake.nix
+grep -Fq 'github:acornprover/acorn/' flake.nix
+grep -Fq 'github:acornprover/acornlib/' flake.nix
+grep -Fq 'github:pdmosses/xds-agda/' flake.nix
+grep -Fq 'github:vehicle-lang/vehicle-formalisation/' flake.nix
+grep -Fq 'acorn-prover = acornProver system;' flake.nix
+grep -Fq 'name = "xds-agda-check";' flake.nix
+grep -Fq 'name = "mini-vehicle-check";' flake.nix
 echo 'official-nix-surface=pass'
