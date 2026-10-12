@@ -331,7 +331,7 @@
                 mkdir -p "$out"
 
                 # This lane checks only the Agda2HS runtime module closure.
-                # It intentionally avoids legacy proof wrapper and TheoremsMonolith.
+                # Historical theorem monoliths are outside this kernel-checked target.
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
@@ -347,9 +347,11 @@
                 test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
 
+                mkdir -p "$out/ghc"
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
+                  -package rio \
                   -i "$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
@@ -361,7 +363,7 @@
                 grep -Fxq "graph-two-leaf-branches=True" "$out/report.txt"
                 grep -Fxq "graph-dependency-order=True" "$out/report.txt"
                 grep -Fxq "graph-best-first-tie=True" "$out/report.txt"
-                grep -Fxq "graph-cycle-policy=True" "$out/report.txt"
+                grep -Fxq "graph-cycle-rejected=True" "$out/report.txt"
                 grep -Fxq "graph-linear-chain=True" "$out/report.txt"
                 grep -Fxq "graph-search-contract=True" "$out/report.txt"
 

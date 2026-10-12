@@ -84,7 +84,7 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Verify TypeTopology-free Agda2HS graph search
+      - name: Verify pure Agda2HS graph search
         timeout-minutes: 15
         run: nix run .#agda2hs-graph-search-check
 
