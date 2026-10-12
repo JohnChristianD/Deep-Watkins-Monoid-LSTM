@@ -1,10 +1,22 @@
 {
-  description = "Pinned Nix environment for the Agda kernel, typed semantic search, and Dhall CI scripting";
+  description = "Pure Agda2HS extraction with separate Acorn, XDS-Agda, and MiniVehicle checks";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/0439f75413ace6c42e4c722cafd4d6e5401de648";
-    typetopology = {
-      url = "github:martinescardo/TypeTopology/8761920fdaec20c9dada7ff1d6628c09491245c5";
+    acorn = {
+      url = "github:acornprover/acorn/91f29ff1d25aff15afbde214dd9b620f817a9567";
+      flake = false;
+    };
+    acornlib = {
+      url = "github:acornprover/acornlib/7df4882d379d1cd0dc31136ea903b95ebe0d270e";
+      flake = false;
+    };
+    xdsAgda = {
+      url = "github:pdmosses/xds-agda/8e2acdbf4ae910b1a3e855d6bfd5271ff4a3fcff";
+      flake = false;
+    };
+    miniVehicle = {
+      url = "github:vehicle-lang/vehicle-formalisation/289f1940f9b11c293211ba2bc9fdf5c4c24e2b0a";
       flake = false;
     };
   };
@@ -12,7 +24,10 @@
   outputs = {
     self,
     nixpkgs,
-    typetopology
+    acorn,
+    acornlib,
+    xdsAgda,
+    miniVehicle
   }:
     let
       systems = [
@@ -69,35 +84,35 @@
           ghc = null;
         };
 
-      agda2hsWithCanonicalGhc = system:
-        agda2hsTool system;
-
-      agdaTypeTopologySetup = ''
-        set -euo pipefail
-        typetopology_dir="''${TMPDIR:-/tmp}/agda2hs-typetopology"
-        if [ ! -f "$typetopology_dir/.ready" ]; then
-          rm -rf "$typetopology_dir"
-          mkdir -p "$typetopology_dir"
-          cp -a "${typetopology}/source" "$typetopology_dir/source"
-          cp "${typetopology}/typetopology.agda-lib" "$typetopology_dir/"
-          touch "$typetopology_dir/.ready"
-        fi
-      '' ;
-
-      agdaProofCommand = system:
+      agdaWithStandardLibrary = system:
         let
           pkgs = pkgsFor system;
         in
-        pkgs.writeShellApplication {
-          name = "agda-proof";
-          runtimeInputs = [
-            pkgs.agda
-            pkgs.coreutils
-          ];
-          text = ''
-            ${agdaTypeTopologySetup}
-            exec agda -i "$typetopology_dir/source" -i . "$@"
-          '' ;
+        pkgs.agda.withPackages {
+          pkgs = [ pkgs.agdaPackages.standard-library ];
+          ghc = null;
+        };
+
+      agda2hsWithCanonicalGhc = system:
+        agda2hsTool system;
+
+      acornProver = system:
+        let
+          pkgs = pkgsFor system;
+        in
+        pkgs.rustPlatform.buildRustPackage {
+          pname = "acorn";
+          version = "0.2.6";
+          src = acorn;
+          cargoLock.lockFile = "${acorn}/Cargo.lock";
+          postUnpack = ''
+            cp -a ${acornlib} "$sourceRoot/acornlib"
+          '';
+          nativeBuildInputs = [ pkgs.pkg-config ];
+          buildInputs = [ pkgs.onnxruntime pkgs.openssl ];
+          ORT_STRATEGY = "system";
+          ORT_LIB_LOCATION = "${pkgs.onnxruntime}/lib";
+          doCheck = false;
         };
 
       agdaCommand = system:
@@ -138,6 +153,7 @@
         {
           agda = agdaWithPackages system;
           agda2hs = agda2hsWithCanonicalGhc system;
+          acorn-prover = acornProver system;
           ci = pkgs.dhall;
           default = pkgs.dhall;
         });
@@ -252,6 +268,53 @@
             type = "app";
             program = "${script}/bin/mirth-agda-graph";
           };
+          acorn-smoke = let
+            script = pkgs.writeShellApplication {
+              name = "acorn-smoke";
+              runtimeInputs = [ (acornProver system) ];
+              text = ''
+                set -euo pipefail
+                acorn --version
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/acorn-smoke";
+          };
+
+          xds-agda-check = let
+            script = pkgs.writeShellApplication {
+              name = "xds-agda-check";
+              runtimeInputs = [ (agdaWithStandardLibrary system) pkgs.coreutils ];
+              text = ''
+                set -euo pipefail
+                agda --version
+                agda -i "${xdsAgda}/agda" "${xdsAgda}/agda/LC/Tests.lagda"
+                agda -i "${xdsAgda}/agda" "${xdsAgda}/agda/PCF/Checks.lagda"
+                agda -i "${xdsAgda}/agda" "${xdsAgda}/agda/Scm/Soundness-Tests.lagda"
+                echo "xds-agda-check=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/xds-agda-check";
+          };
+
+          mini-vehicle-check = let
+            script = pkgs.writeShellApplication {
+              name = "mini-vehicle-check";
+              runtimeInputs = [ (agdaWithStandardLibrary system) pkgs.coreutils ];
+              text = ''
+                set -euo pipefail
+                agda -i "${miniVehicle}/src" "${miniVehicle}/src/Everything.agda"
+                echo "mini-vehicle-check=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/mini-vehicle-check";
+          };
+
           agda2hs-graph-search-check = let
             script = pkgs.writeShellApplication {
               name = "agda2hs-graph-search-check";
@@ -268,7 +331,7 @@
                 mkdir -p "$out"
 
                 # This lane checks only the Agda2HS runtime module closure.
-                # It intentionally avoids agda-proof and TheoremsMonolith.
+                # Historical theorem monoliths are outside this kernel-checked target.
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
@@ -284,9 +347,11 @@
                 test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
 
+                mkdir -p "$out/ghc"
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
+                  -package rio \
                   -i "$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
@@ -298,7 +363,7 @@
                 grep -Fxq "graph-two-leaf-branches=True" "$out/report.txt"
                 grep -Fxq "graph-dependency-order=True" "$out/report.txt"
                 grep -Fxq "graph-best-first-tie=True" "$out/report.txt"
-                grep -Fxq "graph-cycle-policy=True" "$out/report.txt"
+                grep -Fxq "graph-cycle-rejected=True" "$out/report.txt"
                 grep -Fxq "graph-linear-chain=True" "$out/report.txt"
                 grep -Fxq "graph-search-contract=True" "$out/report.txt"
 
@@ -307,6 +372,7 @@
                   "compiler=ghc-$compiler_version" \
                   "proofKernel=Agda" \
                   "searchKernel=Agda2Hs" \
+                  "legacyMonoliths=source-scan-only" \
                   "theoremMonolith=not-loaded" \
                   "graphSearchContract=pass" \
                   > "$out/manifest.tsv"
@@ -322,7 +388,6 @@
             script = pkgs.writeShellApplication {
               name = "agda2hs-semantic-search";
               runtimeInputs = [
-                (agdaProofCommand system)
                 (agdaCommand system)
                 (agda2hsCommand system)
                 pkgs.haskellPackages.liquidhaskell
@@ -336,12 +401,12 @@
                 rm -rf "$out"
                 mkdir -p "$out"
                 bash .ci/mirth/agda_command_sync.sh --check
-                "${agdaProofCommand system}/bin/agda-proof" --dependency-graph="$out/theorems-monolith.dot" -i . FullCoupled/TheoremsMonolith.agda
-                test -s "$out/theorems-monolith.dot"
+                "${agdaCommand system}/bin/agda2hs-agda" --dependency-graph="$out/semantic-search.dot" -i . FullCoupled/Agda2HsSemanticSearch.agda
+                test -s "$out/semantic-search.dot"
                 bash .ci/discovery/agda_semantic_source_closure.sh \
-                  "$out/theorems-monolith.dot" \
+                  "$out/semantic-search.dot" \
                   "$out/.semantic-source-files" \
-                  "$PWD/FullCoupled/TheoremsMonolith.agda" \
+                  "$PWD/FullCoupled/Agda2HsSemanticSearch.agda" \
                   "${agda2hsBaseLib system}"
                 test -s "$out/.semantic-source-files"
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
@@ -361,9 +426,11 @@
                 grep -Fq "inverse-csearchable" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "inverse-preserves-csearchability" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "SearchableEquivalence" FullCoupled/TheoremsMonolith.agda
-                ${canonicalGhc system}/bin/ghc \
+                mkdir -p "$out/ghc"
+                "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
+                  -package rio \
                   -i "$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
@@ -372,9 +439,12 @@
                   "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 "$out/agda2hs-semantic-search" > "$out/report.txt"
                 grep -Fq "True" "$out/report.txt"
-                grep -E '^theorem-graph-edges=[1-9][0-9]* autonomous-a-star-chains=[1-9][0-9]*$' "$out/report.txt"
-                grep -E '^agda2hs autonomous theorem-graph bounded DFS: [1-9][0-9]* dependency chains$' "$out/report.txt"
+                grep -E '^theorem-graph-edges=[1-9][0-9]* autonomous-depth-first-chains=[1-9][0-9]*$' "$out/report.txt"
+                grep -E '^agda2hs autonomous theorem-graph DFS: [1-9][0-9]* maximal dependency chains$' "$out/report.txt"
                 grep -Fq "autonomous-regression=True" "$out/report.txt"
+                grep -Fq "graph-branch-regression=True" "$out/report.txt"
+                grep -Fq "graph-two-leaf-paths=True" "$out/report.txt"
+                grep -Fq "graph-cycle-rejected=True" "$out/report.txt"
                 grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
                 grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
                 grep -Fq "graphTwoLeafBranchesRegression" FullCoupled/Agda2HsSemanticSearch.agda
@@ -385,6 +455,7 @@
                   "plugins=none" \
                   "proofKernel=Agda" \
                   "searchKernel=Agda2Hs" \
+                  "legacyMonoliths=source-scan-only" \
                   "semanticCompletenessCheck=pass" \
                   "nontrivialCheck=pass" \
                   > "$out/agda2hs-semantic-search-manifest.tsv"
@@ -437,14 +508,47 @@
                 out="build/agda-haskell"
                 rm -rf "$out"
                 mkdir -p "$out"
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSurface.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsGraphSearchCheck.agda
                 "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticExtractor.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsTheoremGraphEGraph.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticSearch.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsGraphSearchCheck.agda -o "$out"
                 test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticExtractor.hs"
+                test -s "$out/FullCoupled/Agda2HsTheoremGraphEGraph.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
+                test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
                 mkdir -p "$out/ghc"
                 "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                mkdir -p "$out/ghc-search"
+                "${canonicalGhc system}/bin/ghc" \
+                  -O0 -dcore-lint -package rio -i "$out" \
+                  -odir "$out/ghc-search" -hidir "$out/ghc-search" \
+                  -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
+                  -o "$out/graph-search-check" \
+                  "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
+                "$out/graph-search-check" > "$out/graph-search-report.txt"
+                grep -Fxq "graph-two-leaf-branches=True" "$out/graph-search-report.txt"
+                grep -Fxq "graph-dependency-order=True" "$out/graph-search-report.txt"
+                grep -Fxq "graph-best-first-tie=True" "$out/graph-search-report.txt"
+                grep -Fxq "graph-cycle-rejected=True" "$out/graph-search-report.txt"
+                grep -Fxq "graph-linear-chain=True" "$out/graph-search-report.txt"
+                grep -Fxq "graph-search-contract=True" "$out/graph-search-report.txt"
                 liquid --version
                 z3 --version
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
-                  "source=FullCoupled/Agda2HsSurface.agda generated=build/agda-haskell/FullCoupled/Agda2HsSurface.hs ghc:pass" \
+                  "compiler=ghc-$compiler_version" \
+                  "readableModules=5" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "legacyMonoliths=source-scan-only" \
+                  "graphSearchContract=pass" \
                   > "$out/agda2hs-manifest.tsv"
                 cat "$out/agda2hs-manifest.tsv"
               '';
@@ -493,7 +597,7 @@
           agda-ci = pkgs.mkShellNoCC {
             packages = [
               pkgs.dhall
-              (agdaProofCommand system)
+              (agdaCommand system)
               pkgs.z3
               pkgs.coreutils
               pkgs.findutils
@@ -504,7 +608,7 @@
             ];
             shellHook = ''
               set -euo pipefail
-              export AGDA_COMMAND="agda-proof"
+              export AGDA_COMMAND="agda2hs-agda"
             '';
           };
 
@@ -514,18 +618,18 @@
               pkgs.dhall
               pkgs.z3
               pkgs.mirth
-              (agdaProofCommand system)
+              (agdaCommand system)
               (agdaEmacs system)
             ];
             shellHook = ''
-              export AGDA_COMMAND="agda-proof"
+              export AGDA_COMMAND="agda2hs-agda"
             '';
           };
 
           ci = pkgs.mkShell {
             packages = [
               pkgs.dhall
-              (agdaProofCommand system)
+              (agdaCommand system)
               pkgs.z3
               pkgs.coreutils
               pkgs.findutils
@@ -535,7 +639,7 @@
               pkgs.gnused
             ];
             shellHook = ''
-              export AGDA_COMMAND="agda-proof"
+              export AGDA_COMMAND="agda2hs-agda"
             '';
           };
 
@@ -546,11 +650,11 @@
               pkgs.z3
               pkgs.mirth
               pkgs.gh
-              (agdaProofCommand system)
+              (agdaCommand system)
               (agdaEmacs system)
             ];
             shellHook = ''
-              export AGDA_COMMAND="agda-proof"
+              export AGDA_COMMAND="agda2hs-agda"
             '';
           };
 
@@ -563,13 +667,13 @@
               pkgs.dhall-json
               pkgs.mirth
               pkgs.gh
-              (agdaProofCommand system)
+              (agdaCommand system)
               (agdaEmacs system)
               pkgs.stdenv.cc
               pkgs.elmPackages.elm
             ];
             shellHook = ''
-              export AGDA_COMMAND="agda-proof"
+              export AGDA_COMMAND="agda2hs-agda"
             '';
           };
         });
