@@ -490,14 +490,6 @@ parseLines :
 parseLines sourceFile sourceLines =
   reverse (scanLines sourceFile sourceLines idle [])
 
-leadingSpaceCount :
-  String ->
-  Nat
-leadingSpaceCount source =
-  leadingSpaceCountChars
-    source
-    zero
-
 leadingSpaceCountChars :
   CharList ->
   Nat ->
@@ -508,6 +500,14 @@ leadingSpaceCountChars (c ∷ rest) count =
     leadingSpaceCountChars rest (suc count)
   else
     count
+
+leadingSpaceCount :
+  String ->
+  Nat
+leadingSpaceCount source =
+  leadingSpaceCountChars
+    source
+    zero
 
 recordFieldHeader :
   String ->
