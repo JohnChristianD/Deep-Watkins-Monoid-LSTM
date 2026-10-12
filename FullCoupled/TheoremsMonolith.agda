@@ -10987,8 +10987,8 @@ monolithStationaryLawBridge-stationary :
 monolithStationaryLawBridge-stationary W =
   distributionalStationaryAggregate-stationary
     (distributionalStationaryAggregateTransport
-      (distributionalLimit W)
-      (aggregateCommutes W))
+      (MonolithStationaryLawBridge.distributionalLimit W)
+      (MonolithStationaryLawBridge.aggregateCommutes W))
 
 record MonolithEGraphProofCertificate
   (Node Edge Assumption : Set) : Set₁ where
