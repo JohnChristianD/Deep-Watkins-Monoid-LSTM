@@ -399,9 +399,11 @@ graphExpandDependencies (dependency ∷ dependencies) plan acc =
   if graphContains dependency plan then
     graphExpandDependencies dependencies plan acc
   else
+    -- Siblings branch from identical parent path. Do not carry dependency
+    -- into the recursive plan; that would invent an edge between siblings.
     graphExpandDependencies
       dependencies
-      (dependency ∷ plan)
+      plan
       (graphNode (dependency ∷ plan) ∷ acc)
 
 graphNodeScore : GraphNode -> Nat
@@ -579,7 +581,7 @@ autonomousGraphSearchReport :
   List (String × String) ->
   String
 autonomousGraphSearchReport edges =
-  "agda2hs autonomous theorem-graph A*: "
+  "agda2hs autonomous theorem-graph bounded DFS: "
   ++ show (autonomousGraphSearchCount edges)
   ++ " dependency chains"
 
