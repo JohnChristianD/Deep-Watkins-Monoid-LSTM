@@ -28,7 +28,7 @@ jobs:
         run: bash .ci/verify-official-nix-surface.sh
 
   agda:
-    name: Agda learner + theorem monoliths
+    name: Pure Agda2HS kernel surface
     needs: policy
     runs-on: ubuntu-22.04
     timeout-minutes: 35

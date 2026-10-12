@@ -19,7 +19,7 @@ graphSearchContractPassed =
   Search.graphDependencyOrderRegression
     && Search.graphTwoLeafBranchesRegression
     && Search.graphAStarTieBreakRegression
-    && Search.graphCycleIsMaximalRegression
+    && Search.graphCycleIsRejectedRegression
     && Search.autonomousGraphSearchRegression
 
 main : IO ⊤
@@ -34,8 +34,8 @@ main = do
     ("graph-best-first-tie="
       ++ show Search.graphAStarTieBreakRegression)
   putStrLn
-    ("graph-cycle-policy="
-      ++ show Search.graphCycleIsMaximalRegression)
+    ("graph-cycle-rejected="
+      ++ show Search.graphCycleIsRejectedRegression)
   putStrLn
     ("graph-linear-chain="
       ++ show Search.autonomousGraphSearchRegression)
