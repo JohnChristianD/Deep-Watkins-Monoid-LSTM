@@ -819,6 +819,24 @@ graphDependencyOrderRegressionChecked :
   graphDependencyOrderRegression ≡ True
 graphDependencyOrderRegressionChecked = refl
 
+-- Regression: each outgoing dependency must expand from the same parent.
+-- A branch must not inherit a sibling dependency and invent a path edge.
+graphTwoLeafBranchesRegression : Bool
+graphTwoLeafBranchesRegression =
+  let
+    edges =
+      ("A" , "B") ∷
+      ("A" , "C") ∷
+      []
+  in
+  case autonomousGraphSearchFromRoot "A" edges of λ where
+    (("B" ∷ "A" ∷ []) ∷ ("C" ∷ "A" ∷ []) ∷ []) → True
+    _ → False
+
+graphTwoLeafBranchesRegressionChecked :
+  graphTwoLeafBranchesRegression ≡ True
+graphTwoLeafBranchesRegressionChecked = refl
+
 graphCycleIsMaximalRegression : Bool
 graphCycleIsMaximalRegression =
   let
