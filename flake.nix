@@ -19,6 +19,17 @@
       url = "github:vehicle-lang/vehicle-formalisation/289f1940f9b11c293211ba2bc9fdf5c4c24e2b0a";
       flake = false;
     };
+    acornlib = {
+      url = "github:acornprover/acornlib/7df4882d379d1cd0dc31136ea903b95ebe0d270e";
+      flake = false;
+    };
+    xdsAgda = {
+      url = "github:pdmosses/xds-agda/8e2acdbf4ae910b1a3e855d6bfd5271ff4a3fcff";
+      flake = false;
+    };
+    miniVehicle = {
+      url = "github:vehicle-lang/vehicle-formalisation/289f1940f9b11c293211ba2bc9fdf5c4c24e2b0a";
+    };
   };
 
   outputs = {
@@ -114,6 +125,9 @@
           ORT_LIB_LOCATION = "${pkgs.onnxruntime}/lib";
           doCheck = false;
         };
+
+      agda2hsWithCanonicalGhc = system:
+        agda2hsTool system;
 
       agdaCommand = system:
         let
