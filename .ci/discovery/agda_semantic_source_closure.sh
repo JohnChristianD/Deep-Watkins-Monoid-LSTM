@@ -27,6 +27,10 @@ add_source() {
 
 add_source "$root_source"
 
+while IFS= read -r -d '' file; do
+  add_source "$PWD/$file"
+done < <(git -C "$PWD" ls-files -z '*.agda' '*.lagda')
+
 for root in "${roots[@]}"; do
   test -d "$root"
   if git -C "$root" rev-parse --show-toplevel >/dev/null 2>&1; then
