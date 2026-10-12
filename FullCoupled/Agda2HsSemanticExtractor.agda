@@ -16,6 +16,9 @@ open import Haskell.Prelude
 CharList : Type
 CharList = List Char
 
+charEq : Char -> Char -> Bool
+charEq = primCharEquality
+
 charBetween : Char → Char → Char → Bool
 charBetween lower upper value =
   if lower <= value then
@@ -98,9 +101,6 @@ data RecordFieldScanState : Type where
     String -> RecordFieldScanState
   field-collecting :
     String -> String -> List String -> RecordFieldScanState
-
-charEq : Char -> Char -> Bool
-charEq = primCharEquality
 
 isIdentifierChar : Char -> Bool
 isIdentifierChar c =
