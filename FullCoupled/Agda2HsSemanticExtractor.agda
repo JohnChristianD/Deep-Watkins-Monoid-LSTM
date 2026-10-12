@@ -184,6 +184,14 @@ splitFirstCharString target source =
   before ,
   after
 
+planContains : String -> List String -> Bool
+planContains _ [] = False
+planContains name (candidate ∷ rest) =
+  if name == candidate then
+    True
+  else
+    planContains name rest
+
 topLevelLine : String -> Bool
 topLevelLine [] = False
 topLevelLine source =
@@ -211,14 +219,6 @@ syntaxHead word =
       "instance" ∷
       "macro" ∷
       [] )
-
-planContains : String -> List String -> Bool
-planContains _ [] = False
-planContains name (candidate ∷ rest) =
-  if name == candidate then
-    True
-  else
-    planContains name rest
 
 topLevelHeader :
   String ->
