@@ -11670,7 +11670,7 @@ eGraphEconomicFixedOrbit :
   ∀ n →
   iterateStep update n fixed ＝ fixed
 eGraphEconomicFixedOrbit W zero = refl
-eGraphEconomicFixedOrbit W (succ n) =
+eGraphEconomicFixedOrbit {update = update} W (succ n) =
   trans
     (ap update (eGraphEconomicFixedOrbit W n))
     (stationary W)
