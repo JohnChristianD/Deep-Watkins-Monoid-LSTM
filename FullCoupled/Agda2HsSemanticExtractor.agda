@@ -207,10 +207,10 @@ topLevelHeader :
   String ->
   Maybe (String × String)
 topLevelHeader line =
-  if topLevelLine line then
-    case firstWord line of λ where
-      Nothing -> Nothing
-      Just name ->
+  case firstWord line of λ where
+    Nothing -> Nothing
+    Just name ->
+      if topLevelLine line then
         if syntaxHead name || name == "--" then
           Nothing
         else
@@ -219,16 +219,16 @@ topLevelHeader line =
             in Just (name , trimWhitespace fragment)
           else
             Nothing
-  else
-    Nothing
+      else
+        Nothing
 
 topLevelRecordHeader :
   String ->
   Maybe (String × String)
 topLevelRecordHeader line =
-  if topLevelLine line then
-    case firstWord line of λ where
-      Just "record" ->
+  case firstWord line of λ where
+    Just "record" ->
+      if topLevelLine line then
         case secondWord line of λ where
           Nothing -> Nothing
           Just name ->
@@ -237,9 +237,9 @@ topLevelRecordHeader line =
               in Just (name , trimWhitespace fragment)
             else
               Nothing
-      _ -> Nothing
-  else
-    Nothing
+      else
+        Nothing
+    _ -> Nothing
 
 topLevelDeclarationHeader :
   String ->
