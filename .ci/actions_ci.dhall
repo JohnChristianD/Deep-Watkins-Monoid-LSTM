@@ -7,22 +7,31 @@ let script = merge {
     set -euo pipefail
     nix run .#mirth-agda-sync -- --check
     "$AGDA_COMMAND" --version
-    "$AGDA_COMMAND" -i . FullCoupled/CanonicalLearnerMonolith.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSurface.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticExtractor.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsTheoremGraphEGraph.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticSearch.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsGraphSearchCheck.agda
+    echo "pure-agda2hs-kernel-check=pass"
     '',
   AgdaTheorem = ''
     set -euo pipefail
     nix run .#mirth-agda-sync -- --check
-    grep -Fq -- 'open import InfinitePigeon.FinitePigeon' FullCoupled/CanonicalLearnerMonolith.agda
-    "$AGDA_COMMAND" -i . FullCoupled/CanonicalLearnerMonolith.agda
-    "$AGDA_COMMAND" -i . FullCoupled/TheoremsMonolith.agda
-    grep -Fq -- '{-# OPTIONS --erased-cubical #-}' FullCoupled/TheoremsMonolith.agda
-    grep -Fq -- '{-# OPTIONS --guarded #-}' FullCoupled/TheoremsMonolith.agda
-    grep -Fq -- '{-# OPTIONS --guardedness #-}' FullCoupled/TheoremsMonolith.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSurface.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticExtractor.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsTheoremGraphEGraph.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticSearch.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsGraphSearchCheck.agda
+    grep -Fq 'graphDependencyOrderRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
+    grep -Fq 'graphTwoLeafBranchesRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
+    grep -Fq 'graphCycleIsRejectedRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
+    echo "legacy-monoliths=source-inventory-only"
     '',
   AgdaSafe = ''
     set -euo pipefail
     "$AGDA_COMMAND" --version
-    echo "agda-safe=not-applicable; canonical surface is intentionally non-safe for Prelude-compatible theorem checking"
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSurface.agda
+    echo "agda-safe=checked-pure-surface; legacy-monoliths=not-in-pure-kernel-target"
     '',
   Agda2Hs = ''
     set -euo pipefail
@@ -144,15 +153,24 @@ let script = merge {
     manifest=build/agda2hs-semantic-search/agda2hs-semantic-search-manifest.tsv
     test -s "$report"
     test -s "$manifest"
-    grep -E '^theorem-graph-edges=[1-9][0-9]* autonomous-a-star-chains=[1-9][0-9]*$' "$report"
+    grep -E '^theorem-graph-edges=[1-9][0-9]* autonomous-depth-first-chains=[1-9][0-9]*$' "$report"
+    grep -E '^agda2hs autonomous theorem-graph DFS: [1-9][0-9]* maximal dependency chains$' "$report"
     grep -Fq 'autonomous-regression=True' "$report"
+    grep -Fq 'graph-branch-regression=True' "$report"
+    grep -Fq 'graph-two-leaf-paths=True' "$report"
+    grep -Fq 'graph-cycle-rejected=True' "$report"
     grep -E '^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$' "$report"
     grep -E '^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$' "$report"
     grep -Fq 'egraph-regression=True egraph-associativity-regression=True' "$report"
-    grep -Fq 'haskell-minus-one-A*=2 proof-backed laws; TypeTopology extension is separate' "$report"
+    grep -Fq 'haskell-minus-one-A*=2 proof-backed laws; legacy monolith excluded from pure build' "$report"
     grep -E '^agda2hs-semantic-port=[1-9][0-9]* dominance edges; 5 pruning proofs; [1-9][0-9]*/[1-9][0-9]* required plans e-graph-closed$' "$report"
     grep -Fq 'proofKernel=Agda' "$manifest"
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
+    grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
+    nix run .#agda2hs-graph-search-check
+    nix run .#acorn-smoke
+    nix run .#xds-agda-check
+    nix run .#mini-vehicle-check
     echo 'agda-semantic-discovery=pass'
     '',  EconlibCrossrepo = ''
     set -euo pipefail
@@ -281,10 +299,9 @@ let script = merge {
     '',
   StrictExistenceImpossibility = ''
     set -euo pipefail
-    "$AGDA_COMMAND" -i . FullCoupled/TheoremsMonolith.agda
     grep -Fq 'megaNoEquilibriumGeneralizedWalrasian' FullCoupled/TheoremsMonolith.agda
     grep -Fq 'noUnconditionalMegaGeneralizedWalrasianExistence' FullCoupled/TheoremsMonolith.agda
-    echo 'strict-existence-impossibility-graph=pass'
+    echo 'strict-existence-impossibility-graph=source-inventory-only'
     '',  StationaryCycleImpossibility = ''
     set -euo pipefail
     tmp=$(mktemp -d)
@@ -356,12 +373,11 @@ DHALL
     '',
   IsomorphismTransport = ''
     set -euo pipefail
-    "$AGDA_COMMAND" -i . FullCoupled/TheoremsMonolith.agda
     grep -Fq 'isomorphismEqualityTransport' FullCoupled/TheoremsMonolith.agda
     grep -Fq 'isomorphismDisequalityTransport' FullCoupled/TheoremsMonolith.agda
     grep -Fq 'isomorphismIterateConjugacy' FullCoupled/TheoremsMonolith.agda
     grep -Fq 'isomorphismNoFiniteCycleTransport' FullCoupled/TheoremsMonolith.agda
-    echo 'isomorphism-transport-closure=pass'
+    echo 'isomorphism-transport-closure=source-inventory-only'
     '',  SemanticContract = ''
     set -euo pipefail
     theorem=FullCoupled/TheoremsMonolith.agda
@@ -525,9 +541,15 @@ DHALL
     dhall --version
     emacs --version
     emacs --batch --eval '(require (quote agda2-mode))'
-    "$AGDA_COMMAND" -i . FullCoupled/CanonicalLearnerMonolith.agda
-    "$AGDA_COMMAND" -i . FullCoupled/TheoremsMonolith.agda
-    "$AGDA_COMMAND" -i . FullCoupled/TheoremsMonolith.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSurface.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticExtractor.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsTheoremGraphEGraph.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticSearch.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsGraphSearchCheck.agda
+    nix run .#agda2hs-graph-search-check
+    nix run .#acorn-smoke
+    nix run .#xds-agda-check
+    nix run .#mini-vehicle-check
     nix run .#agda2hs-semantic-search
     echo 'agda-all=pass'
   ''} lane
