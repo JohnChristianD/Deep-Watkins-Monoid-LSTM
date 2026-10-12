@@ -371,6 +371,1286 @@
                 "$out/agda2hs-semantic-search" > "$out/report.txt"
                 grep -Fq "True" "$out/report.txt"
                 grep -E '^theorem-graph-edges=[1-9][0-9]* autonomous-depth-first-chains=[1-9][0-9]*
+                grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "plugins=none" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "legacyMonoliths=source-scan-only" \
+                  "semanticCompletenessCheck=pass" \
+                  "nontrivialCheck=pass" \
+                  > "$out/agda2hs-semantic-search-manifest.tsv"
+                cat "$out/agda2hs-semantic-search-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-semantic-search";
+          };
+
+          agda2hs-extract = let
+            script = pkgs.writeShellApplication {
+              name = "agda2hs-extract";
+              runtimeInputs = [
+                (agda2hsCommand system)
+                pkgs.coreutils
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda2hs"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                echo "agda2hs-extract=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-extract";
+          };
+
+          agda-haskell-pipeline = let
+            script = pkgs.writeShellApplication {
+              name = "agda-haskell-pipeline";
+              runtimeInputs = [
+                (agdaCommand system)
+                (agda2hsCommand system)
+                pkgs.haskellPackages.liquidhaskell
+                pkgs.z3
+                pkgs.coreutils
+                pkgs.findutils
+                pkgs.git
+                pkgs.mirth
+                pkgs.stdenv.cc
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda-haskell"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSurface.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticExtractor.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsTheoremGraphEGraph.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticSearch.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticExtractor.hs"
+                test -s "$out/FullCoupled/Agda2HsTheoremGraphEGraph.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
+
+                searchOut="build/agda2hs-semantic-search"
+                rm -rf "$searchOut"
+                mkdir -p "$searchOut"
+                "${agdaCommand system}/bin/agda2hs-agda" --dependency-graph="$searchOut/semantic-search.dot" -i . FullCoupled/Agda2HsSemanticSearch.agda
+                test -s "$searchOut/semantic-search.dot"
+                bash .ci/discovery/agda_semantic_source_closure.sh \
+                  "$searchOut/semantic-search.dot" \
+                  "$searchOut/.semantic-source-files" \
+                  "$PWD/FullCoupled/Agda2HsSemanticSearch.agda" \
+                  "${agda2hsBaseLib system}"
+                mkdir -p "$out/ghc-search"
+                "${canonicalGhc system}/bin/ghc" \
+                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
+                  -O0 -dcore-lint -i "$out" \
+                  -odir "$out/ghc-search" -hidir "$out/ghc-search" \
+                  -main-is FullCoupled.Agda2HsSemanticSearch.main \
+                  -o "$out/agda2hs-semantic-search" \
+                  "$out/FullCoupled/Agda2HsSemanticSearch.hs"
+                "$out/agda2hs-semantic-search" > "$out/semantic-search-report.txt"
+                grep -Fq "graph-branch-regression=True" "$out/semantic-search-report.txt"
+                grep -Fq "graph-cycle-rejected=True" "$out/semantic-search-report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/semantic-search-report.txt"
+                liquid --version
+                z3 --version
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "readableModules=4" \
+                  "legacyMonoliths=source-scan-only" \
+                  "ghc-core-lint=pass" \
+                  > "$out/agda2hs-manifest.tsv"
+                cat "$out/agda2hs-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-haskell-pipeline";
+          };
+
+          default = {
+            type = "app";
+            program = "${pkgs.dhall}/bin/dhall";
+          };
+        });
+
+      devShells = forAllSystems (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
+          presentation = pkgs.mkShell {
+            packages = [
+              pkgs.mirth
+              pkgs.stdenv.cc
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.gawk
+              pkgs.git
+              pkgs.gnugrep
+              pkgs.gnused
+              pkgs.elmPackages.elm
+              pkgs.dhall
+              pkgs.dhall-json
+            ];
+          };
+
+          simple-haskell = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.z3
+            ];
+            shellHook = ''
+            '';
+          };
+
+          agda-ci = pkgs.mkShellNoCC {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gawk
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              set -euo pipefail
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          agda-versions = pkgs.mkShellNoCC {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          ci = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gh
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default-versions = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (canonicalGhc system)
+              pkgs.haskellPackages.cabal-install
+              pkgs.z3
+              pkgs.dhall-json
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+              pkgs.stdenv.cc
+              pkgs.elmPackages.elm
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+        });
+    };
+} "$out/report.txt"
+                grep -E '^agda2hs autonomous theorem-graph DFS: [1-9][0-9]* maximal dependency chains
+                grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
+                grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "plugins=none" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "semanticCompletenessCheck=pass" \
+                  "nontrivialCheck=pass" \
+                  > "$out/agda2hs-semantic-search-manifest.tsv"
+                cat "$out/agda2hs-semantic-search-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-semantic-search";
+          };
+
+          agda2hs-extract = let
+            script = pkgs.writeShellApplication {
+              name = "agda2hs-extract";
+              runtimeInputs = [
+                (agda2hsCommand system)
+                pkgs.coreutils
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda2hs"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                echo "agda2hs-extract=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-extract";
+          };
+
+          agda-haskell-pipeline = let
+            script = pkgs.writeShellApplication {
+              name = "agda-haskell-pipeline";
+              runtimeInputs = [
+                (agdaCommand system)
+                (agda2hsCommand system)
+                pkgs.haskellPackages.liquidhaskell
+                pkgs.z3
+                pkgs.coreutils
+                pkgs.findutils
+                pkgs.git
+                pkgs.mirth
+                pkgs.stdenv.cc
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda-haskell"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                mkdir -p "$out/ghc"
+                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                liquid --version
+                z3 --version
+                printf '%s\n' \
+                  "source=FullCoupled/Agda2HsSurface.agda generated=build/agda-haskell/FullCoupled/Agda2HsSurface.hs ghc:pass" \
+                  > "$out/agda2hs-manifest.tsv"
+                cat "$out/agda2hs-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-haskell-pipeline";
+          };
+
+          default = {
+            type = "app";
+            program = "${pkgs.dhall}/bin/dhall";
+          };
+        });
+
+      devShells = forAllSystems (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
+          presentation = pkgs.mkShell {
+            packages = [
+              pkgs.mirth
+              pkgs.stdenv.cc
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.gawk
+              pkgs.git
+              pkgs.gnugrep
+              pkgs.gnused
+              pkgs.elmPackages.elm
+              pkgs.dhall
+              pkgs.dhall-json
+            ];
+          };
+
+          simple-haskell = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.z3
+            ];
+            shellHook = ''
+            '';
+          };
+
+          agda-ci = pkgs.mkShellNoCC {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gawk
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              set -euo pipefail
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          agda-versions = pkgs.mkShellNoCC {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          ci = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gh
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default-versions = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (canonicalGhc system)
+              pkgs.haskellPackages.cabal-install
+              pkgs.z3
+              pkgs.dhall-json
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+              pkgs.stdenv.cc
+              pkgs.elmPackages.elm
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+        });
+    };
+} "$out/report.txt"
+                grep -Fq "autonomous-regression=True" "$out/report.txt"
+                grep -Fq "graph-branch-regression=True" "$out/report.txt"
+                grep -Fq "graph-cycle-rejected=True" "$out/report.txt"
+                grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
+                grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "plugins=none" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "semanticCompletenessCheck=pass" \
+                  "nontrivialCheck=pass" \
+                  > "$out/agda2hs-semantic-search-manifest.tsv"
+                cat "$out/agda2hs-semantic-search-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-semantic-search";
+          };
+
+          agda2hs-extract = let
+            script = pkgs.writeShellApplication {
+              name = "agda2hs-extract";
+              runtimeInputs = [
+                (agda2hsCommand system)
+                pkgs.coreutils
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda2hs"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                echo "agda2hs-extract=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-extract";
+          };
+
+          agda-haskell-pipeline = let
+            script = pkgs.writeShellApplication {
+              name = "agda-haskell-pipeline";
+              runtimeInputs = [
+                (agdaCommand system)
+                (agda2hsCommand system)
+                pkgs.haskellPackages.liquidhaskell
+                pkgs.z3
+                pkgs.coreutils
+                pkgs.findutils
+                pkgs.git
+                pkgs.mirth
+                pkgs.stdenv.cc
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda-haskell"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                mkdir -p "$out/ghc"
+                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                liquid --version
+                z3 --version
+                printf '%s\n' \
+                  "source=FullCoupled/Agda2HsSurface.agda generated=build/agda-haskell/FullCoupled/Agda2HsSurface.hs ghc:pass" \
+                  > "$out/agda2hs-manifest.tsv"
+                cat "$out/agda2hs-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-haskell-pipeline";
+          };
+
+          default = {
+            type = "app";
+            program = "${pkgs.dhall}/bin/dhall";
+          };
+        });
+
+      devShells = forAllSystems (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
+          presentation = pkgs.mkShell {
+            packages = [
+              pkgs.mirth
+              pkgs.stdenv.cc
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.gawk
+              pkgs.git
+              pkgs.gnugrep
+              pkgs.gnused
+              pkgs.elmPackages.elm
+              pkgs.dhall
+              pkgs.dhall-json
+            ];
+          };
+
+          simple-haskell = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.z3
+            ];
+            shellHook = ''
+            '';
+          };
+
+          agda-ci = pkgs.mkShellNoCC {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gawk
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              set -euo pipefail
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          agda-versions = pkgs.mkShellNoCC {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          ci = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gh
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default-versions = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (canonicalGhc system)
+              pkgs.haskellPackages.cabal-install
+              pkgs.z3
+              pkgs.dhall-json
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+              pkgs.stdenv.cc
+              pkgs.elmPackages.elm
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+        });
+    };
+} "$out/report.txt"
+                grep -E '^agda2hs autonomous theorem-graph DFS: [1-9][0-9]* maximal dependency chains
+                grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "plugins=none" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "legacyMonoliths=source-scan-only" \
+                  "semanticCompletenessCheck=pass" \
+                  "nontrivialCheck=pass" \
+                  > "$out/agda2hs-semantic-search-manifest.tsv"
+                cat "$out/agda2hs-semantic-search-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-semantic-search";
+          };
+
+          agda2hs-extract = let
+            script = pkgs.writeShellApplication {
+              name = "agda2hs-extract";
+              runtimeInputs = [
+                (agda2hsCommand system)
+                pkgs.coreutils
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda2hs"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                echo "agda2hs-extract=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-extract";
+          };
+
+          agda-haskell-pipeline = let
+            script = pkgs.writeShellApplication {
+              name = "agda-haskell-pipeline";
+              runtimeInputs = [
+                (agdaCommand system)
+                (agda2hsCommand system)
+                pkgs.haskellPackages.liquidhaskell
+                pkgs.z3
+                pkgs.coreutils
+                pkgs.findutils
+                pkgs.git
+                pkgs.mirth
+                pkgs.stdenv.cc
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda-haskell"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSurface.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticExtractor.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsTheoremGraphEGraph.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticSearch.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticExtractor.hs"
+                test -s "$out/FullCoupled/Agda2HsTheoremGraphEGraph.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
+
+                searchOut="build/agda2hs-semantic-search"
+                rm -rf "$searchOut"
+                mkdir -p "$searchOut"
+                "${agdaCommand system}/bin/agda2hs-agda" --dependency-graph="$searchOut/semantic-search.dot" -i . FullCoupled/Agda2HsSemanticSearch.agda
+                test -s "$searchOut/semantic-search.dot"
+                bash .ci/discovery/agda_semantic_source_closure.sh \
+                  "$searchOut/semantic-search.dot" \
+                  "$searchOut/.semantic-source-files" \
+                  "$PWD/FullCoupled/Agda2HsSemanticSearch.agda" \
+                  "${agda2hsBaseLib system}"
+                mkdir -p "$out/ghc-search"
+                "${canonicalGhc system}/bin/ghc" \
+                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
+                  -O0 -dcore-lint -i "$out" \
+                  -odir "$out/ghc-search" -hidir "$out/ghc-search" \
+                  -main-is FullCoupled.Agda2HsSemanticSearch.main \
+                  -o "$out/agda2hs-semantic-search" \
+                  "$out/FullCoupled/Agda2HsSemanticSearch.hs"
+                "$out/agda2hs-semantic-search" > "$out/semantic-search-report.txt"
+                grep -Fq "graph-branch-regression=True" "$out/semantic-search-report.txt"
+                grep -Fq "graph-cycle-rejected=True" "$out/semantic-search-report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/semantic-search-report.txt"
+                liquid --version
+                z3 --version
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "readableModules=4" \
+                  "legacyMonoliths=source-scan-only" \
+                  "ghc-core-lint=pass" \
+                  > "$out/agda2hs-manifest.tsv"
+                cat "$out/agda2hs-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-haskell-pipeline";
+          };
+
+          default = {
+            type = "app";
+            program = "${pkgs.dhall}/bin/dhall";
+          };
+        });
+
+      devShells = forAllSystems (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
+          presentation = pkgs.mkShell {
+            packages = [
+              pkgs.mirth
+              pkgs.stdenv.cc
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.gawk
+              pkgs.git
+              pkgs.gnugrep
+              pkgs.gnused
+              pkgs.elmPackages.elm
+              pkgs.dhall
+              pkgs.dhall-json
+            ];
+          };
+
+          simple-haskell = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.z3
+            ];
+            shellHook = ''
+            '';
+          };
+
+          agda-ci = pkgs.mkShellNoCC {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gawk
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              set -euo pipefail
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          agda-versions = pkgs.mkShellNoCC {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          ci = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gh
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default-versions = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (canonicalGhc system)
+              pkgs.haskellPackages.cabal-install
+              pkgs.z3
+              pkgs.dhall-json
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+              pkgs.stdenv.cc
+              pkgs.elmPackages.elm
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+        });
+    };
+} "$out/report.txt"
+                grep -E '^agda2hs autonomous theorem-graph DFS: [1-9][0-9]* maximal dependency chains
+                grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
+                grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "plugins=none" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "semanticCompletenessCheck=pass" \
+                  "nontrivialCheck=pass" \
+                  > "$out/agda2hs-semantic-search-manifest.tsv"
+                cat "$out/agda2hs-semantic-search-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-semantic-search";
+          };
+
+          agda2hs-extract = let
+            script = pkgs.writeShellApplication {
+              name = "agda2hs-extract";
+              runtimeInputs = [
+                (agda2hsCommand system)
+                pkgs.coreutils
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda2hs"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                echo "agda2hs-extract=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-extract";
+          };
+
+          agda-haskell-pipeline = let
+            script = pkgs.writeShellApplication {
+              name = "agda-haskell-pipeline";
+              runtimeInputs = [
+                (agdaCommand system)
+                (agda2hsCommand system)
+                pkgs.haskellPackages.liquidhaskell
+                pkgs.z3
+                pkgs.coreutils
+                pkgs.findutils
+                pkgs.git
+                pkgs.mirth
+                pkgs.stdenv.cc
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda-haskell"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                mkdir -p "$out/ghc"
+                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                liquid --version
+                z3 --version
+                printf '%s\n' \
+                  "source=FullCoupled/Agda2HsSurface.agda generated=build/agda-haskell/FullCoupled/Agda2HsSurface.hs ghc:pass" \
+                  > "$out/agda2hs-manifest.tsv"
+                cat "$out/agda2hs-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-haskell-pipeline";
+          };
+
+          default = {
+            type = "app";
+            program = "${pkgs.dhall}/bin/dhall";
+          };
+        });
+
+      devShells = forAllSystems (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
+          presentation = pkgs.mkShell {
+            packages = [
+              pkgs.mirth
+              pkgs.stdenv.cc
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.gawk
+              pkgs.git
+              pkgs.gnugrep
+              pkgs.gnused
+              pkgs.elmPackages.elm
+              pkgs.dhall
+              pkgs.dhall-json
+            ];
+          };
+
+          simple-haskell = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.z3
+            ];
+            shellHook = ''
+            '';
+          };
+
+          agda-ci = pkgs.mkShellNoCC {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gawk
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              set -euo pipefail
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          agda-versions = pkgs.mkShellNoCC {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          ci = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gh
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default-versions = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (canonicalGhc system)
+              pkgs.haskellPackages.cabal-install
+              pkgs.z3
+              pkgs.dhall-json
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+              pkgs.stdenv.cc
+              pkgs.elmPackages.elm
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+        });
+    };
+} "$out/report.txt"
+                grep -Fq "autonomous-regression=True" "$out/report.txt"
+                grep -Fq "graph-branch-regression=True" "$out/report.txt"
+                grep -Fq "graph-cycle-rejected=True" "$out/report.txt"
+                grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
+                grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                printf '%s\n' \
+                  "compiler=ghc-$compiler_version" \
+                  "plugins=none" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "semanticCompletenessCheck=pass" \
+                  "nontrivialCheck=pass" \
+                  > "$out/agda2hs-semantic-search-manifest.tsv"
+                cat "$out/agda2hs-semantic-search-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-semantic-search";
+          };
+
+          agda2hs-extract = let
+            script = pkgs.writeShellApplication {
+              name = "agda2hs-extract";
+              runtimeInputs = [
+                (agda2hsCommand system)
+                pkgs.coreutils
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda2hs"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                echo "agda2hs-extract=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda2hs-extract";
+          };
+
+          agda-haskell-pipeline = let
+            script = pkgs.writeShellApplication {
+              name = "agda-haskell-pipeline";
+              runtimeInputs = [
+                (agdaCommand system)
+                (agda2hsCommand system)
+                pkgs.haskellPackages.liquidhaskell
+                pkgs.z3
+                pkgs.coreutils
+                pkgs.findutils
+                pkgs.git
+                pkgs.mirth
+                pkgs.stdenv.cc
+              ];
+              text = ''
+                set -euo pipefail
+                out="build/agda-haskell"
+                rm -rf "$out"
+                mkdir -p "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                test -s "$out/FullCoupled/Agda2HsSurface.hs"
+                mkdir -p "$out/ghc"
+                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                liquid --version
+                z3 --version
+                printf '%s\n' \
+                  "source=FullCoupled/Agda2HsSurface.agda generated=build/agda-haskell/FullCoupled/Agda2HsSurface.hs ghc:pass" \
+                  > "$out/agda2hs-manifest.tsv"
+                cat "$out/agda2hs-manifest.tsv"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-haskell-pipeline";
+          };
+
+          default = {
+            type = "app";
+            program = "${pkgs.dhall}/bin/dhall";
+          };
+        });
+
+      devShells = forAllSystems (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
+          presentation = pkgs.mkShell {
+            packages = [
+              pkgs.mirth
+              pkgs.stdenv.cc
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.gawk
+              pkgs.git
+              pkgs.gnugrep
+              pkgs.gnused
+              pkgs.elmPackages.elm
+              pkgs.dhall
+              pkgs.dhall-json
+            ];
+          };
+
+          simple-haskell = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.z3
+            ];
+            shellHook = ''
+            '';
+          };
+
+          agda-ci = pkgs.mkShellNoCC {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gawk
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              set -euo pipefail
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          agda-versions = pkgs.mkShellNoCC {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          ci = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (agdaCommand system)
+              pkgs.z3
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.git
+              pkgs.gh
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default-versions = pkgs.mkShell {
+            packages = [
+              (canonicalGhc system)
+              pkgs.dhall
+              pkgs.z3
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+
+          default = pkgs.mkShell {
+            packages = [
+              pkgs.dhall
+              (canonicalGhc system)
+              pkgs.haskellPackages.cabal-install
+              pkgs.z3
+              pkgs.dhall-json
+              pkgs.mirth
+              pkgs.gh
+              (agdaCommand system)
+              (agdaEmacs system)
+              pkgs.stdenv.cc
+              pkgs.elmPackages.elm
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
+          };
+        });
+    };
+} "$out/report.txt"
+                grep -Fq "autonomous-regression=True" "$out/report.txt"
+                grep -Fq "graph-branch-regression=True" "$out/report.txt"
+                grep -Fq "graph-cycle-rejected=True" "$out/report.txt"
                 grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
                 grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
