@@ -1452,6 +1452,8 @@ main = do
   putStrLn semanticSearchReport
   putStrLn (autonomousCanonicalGraphReport source)
   putStrLn ("autonomous-regression=" ++ show autonomousGraphSearchRegression)
+  putStrLn ("graph-branch-regression=" ++ show graphDependencyOrderRegression)
+  putStrLn ("graph-cycle-rejected=" ++ show graphCycleIsNotMaximalRegression)
   putStrLn ("canonical-plan=" ++ show canonicalPlan)
   putStrLn (semanticLawExtractionReport semanticLaws)
   putStrLn (requiredPlanReport requiredNames semanticLaws)
@@ -1468,6 +1470,8 @@ main = do
 {-# COMPILE AGDA2HS GraphNode #-}
 {-# COMPILE AGDA2HS autonomousGraphSearch #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchRegression #-}
+{-# COMPILE AGDA2HS graphDependencyOrderRegression #-}
+{-# COMPILE AGDA2HS graphCycleIsNotMaximalRegression #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchCount #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchReport #-}
 {-# COMPILE AGDA2HS SearchNode #-}
