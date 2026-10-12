@@ -319,17 +319,17 @@ bodyClause name line =
   case firstWord line of λ where
     Nothing -> Nothing
     Just lineName ->
-      if topLevelLine line then
-        if lineName == name then
-          if lineContainsChar '=' line then
-            let (_ , rhs) = splitFirstCharString '=' line
-            in Just (trimWhitespace rhs)
-          else
-            Nothing
-        else
-          Nothing
-      else
-        Nothing
+      case topLevelLine line of λ where
+        False -> Nothing
+        True ->
+          case lineName == name of λ where
+            False -> Nothing
+            True ->
+              case lineContainsChar '=' line of λ where
+                False -> Nothing
+                True ->
+                  case splitFirstCharString '=' line of λ where
+                    (_ , rhs) -> Just (trimWhitespace rhs)
 
 bodyClauseRegression : Bool
 bodyClauseRegression =
@@ -509,18 +509,18 @@ recordFieldHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
     Just candidate ->
-      if leadingSpaceCount line >= suc (suc (suc (suc zero))) then
-        if candidate == "field" || syntaxHead candidate then
-          Nothing
-        else
-          if lineContainsChar ':' line then
-            let (before , after) = splitFirstCharString ':' line
-                name = trimWhitespace before
-            in Just (name , trimWhitespace after)
-          else
-            Nothing
-      else
-        Nothing
+      case leadingSpaceCount line >= suc (suc (suc (suc zero))) of λ where
+        False -> Nothing
+        True ->
+          case candidate == "field" || syntaxHead candidate of λ where
+            True -> Nothing
+            False ->
+              case lineContainsChar ':' line of λ where
+                False -> Nothing
+                True ->
+                  case splitFirstCharString ':' line of λ where
+                    (before , after) ->
+                      Just (trimWhitespace before , trimWhitespace after)
 
 parseRecordFields :
   String ->
