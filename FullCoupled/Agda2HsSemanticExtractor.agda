@@ -351,12 +351,35 @@ bodyClauseRejectsIndentedRegressionChecked :
   bodyClauseRejectsIndentedRegression ≡ True
 bodyClauseRejectsIndentedRegressionChecked = refl
 
-parseLines :
+finalizeScanState :
   String ->
-  List String ->
+  ScanState ->
+  List SemanticDecl ->
   List SemanticDecl
-parseLines sourceFile sourceLines =
-  reverse (scanLines sourceFile sourceLines idle [])
+finalizeScanState _ idle accumulator =
+  accumulator
+finalizeScanState sourceFile
+  (signature-state name signatureReversed)
+  accumulator =
+  semanticDecl
+    sourceFile
+    name
+    (unwordsString (reverse signatureReversed))
+    ""
+    semantic-top-level
+    ""
+  ∷ accumulator
+finalizeScanState sourceFile
+  (body-state name signatureReversed bodyReversed)
+  accumulator =
+  semanticDecl
+    sourceFile
+    name
+    (unwordsString (reverse signatureReversed))
+    (unwordsString (reverse bodyReversed))
+    semantic-top-level
+    ""
+  ∷ accumulator
 
 scanLines :
   String ->
@@ -453,35 +476,12 @@ scanLines sourceFile (line ∷ rest) state accumulator =
               (trimWhitespace line ∷ bodyReversed))
             accumulator
 
-finalizeScanState :
+parseLines :
   String ->
-  ScanState ->
-  List SemanticDecl ->
+  List String ->
   List SemanticDecl
-finalizeScanState _ idle accumulator =
-  accumulator
-finalizeScanState sourceFile
-  (signature-state name signatureReversed)
-  accumulator =
-  semanticDecl
-    sourceFile
-    name
-    (unwordsString (reverse signatureReversed))
-    ""
-    semantic-top-level
-    ""
-  ∷ accumulator
-finalizeScanState sourceFile
-  (body-state name signatureReversed bodyReversed)
-  accumulator =
-  semanticDecl
-    sourceFile
-    name
-    (unwordsString (reverse signatureReversed))
-    (unwordsString (reverse bodyReversed))
-    semantic-top-level
-    ""
-  ∷ accumulator
+parseLines sourceFile sourceLines =
+  reverse (scanLines sourceFile sourceLines idle [])
 
 leadingSpaceCount :
   String ->
