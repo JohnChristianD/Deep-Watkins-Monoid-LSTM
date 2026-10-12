@@ -1160,21 +1160,21 @@ recordFieldDominates :
   Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   Bool
-recordFieldDominates theorem field all =
+recordFieldDominates theorem fieldLaw knownLaws =
   if semanticLawIsRecordField theorem then
     False
-  else if semanticLawIsRecordField field then
+  else if semanticLawIsRecordField fieldLaw then
     if semanticLawIsReflexive theorem then
       False
     else if normalizedSignatureEqual
       (Extractor.semanticLawSignature theorem)
-      (Extractor.semanticLawSignature field) then
-      if Extractor.semanticLawContainer field == "" then
+      (Extractor.semanticLawSignature fieldLaw) then
+      if Extractor.semanticLawContainer fieldLaw == "" then
         False
       else
         semanticLawNamePresent
-          (Extractor.semanticLawContainer field)
-          all
+          (Extractor.semanticLawContainer fieldLaw)
+          knownLaws
     else
       False
   else
@@ -1185,13 +1185,13 @@ dominanceEdgeFor :
   Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   Maybe DominanceEdge
-dominanceEdgeFor theorem field all =
-  if recordFieldDominates theorem field all then
+dominanceEdgeFor theorem fieldLaw knownLaws =
+  if recordFieldDominates theorem fieldLaw knownLaws then
     Just
       (dominanceEdge
-        (Extractor.semanticLawContainer field)
+        (Extractor.semanticLawContainer fieldLaw)
         (Extractor.semanticLawName theorem)
-        (Extractor.semanticLawName field))
+        (Extractor.semanticLawName fieldLaw))
   else
     Nothing
 
@@ -1201,21 +1201,21 @@ dominanceEdgesForFields :
   List Extractor.SemanticLaw ->
   List DominanceEdge
 dominanceEdgesForFields theorem _ [] = []
-dominanceEdgesForFields theorem all (field ∷ fields) =
-  case dominanceEdgeFor theorem field all of λ where
+dominanceEdgesForFields theorem knownLaws (fieldLaw ∷ remainingFields) =
+  case dominanceEdgeFor theorem fieldLaw knownLaws of λ where
     Nothing ->
-      dominanceEdgesForFields theorem all fields
+      dominanceEdgesForFields theorem knownLaws remainingFields
     Just edge ->
-      edge ∷ dominanceEdgesForFields theorem all fields
+      edge ∷ dominanceEdgesForFields theorem knownLaws remainingFields
 
 dominanceEdgesForTheorems :
   List Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   List DominanceEdge
 dominanceEdgesForTheorems _ [] = []
-dominanceEdgesForTheorems all (law ∷ laws) =
-  dominanceEdgesForFields law all all
-  ++ dominanceEdgesForTheorems all laws
+dominanceEdgesForTheorems knownLaws (law ∷ remainingLaws) =
+  dominanceEdgesForFields law knownLaws knownLaws
+  ++ dominanceEdgesForTheorems knownLaws remainingLaws
 
 dominanceEdgeEqual :
   DominanceEdge ->

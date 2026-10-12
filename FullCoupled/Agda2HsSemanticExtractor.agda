@@ -247,12 +247,14 @@ topLevelHeader line =
                   let (_ , fragment) = splitFirstCharString ':' line
                   in Just (name , trimWhitespace fragment)
 
-topLevelRecordHeaderAtTopLevel :
+topLevelRecordHeaderType :
+  String ->
   String ->
   Maybe (String × String)
-topLevelRecordHeaderAtTopLevel line =
-  if topLevelLine line then
-    topLevelRecordHeaderName line
+topLevelRecordHeaderType name line =
+  if lineContainsChar ':' line then
+    let (_ , fragment) = splitFirstCharString ':' line
+    in Just (name , trimWhitespace fragment)
   else
     Nothing
 
@@ -264,14 +266,12 @@ topLevelRecordHeaderName line =
     Nothing -> Nothing
     Just name -> topLevelRecordHeaderType name line
 
-topLevelRecordHeaderType :
-  String ->
+topLevelRecordHeaderAtTopLevel :
   String ->
   Maybe (String × String)
-topLevelRecordHeaderType name line =
-  if lineContainsChar ':' line then
-    let (_ , fragment) = splitFirstCharString ':' line
-    in Just (name , trimWhitespace fragment)
+topLevelRecordHeaderAtTopLevel line =
+  if topLevelLine line then
+    topLevelRecordHeaderName line
   else
     Nothing
 
