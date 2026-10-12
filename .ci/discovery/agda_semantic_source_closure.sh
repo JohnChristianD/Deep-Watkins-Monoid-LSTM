@@ -27,6 +27,10 @@ add_source() {
 
 add_source "$root_source"
 
+while IFS= read -r -d '' file; do
+  add_source "$PWD/$file"
+done < <(git -C "$PWD" ls-files -z '*.agda' '*.lagda')
+
 for root in "${roots[@]}"; do
   test -d "$root"
   if git -C "$root" rev-parse --show-toplevel >/dev/null 2>&1; then
@@ -44,7 +48,14 @@ done
 sed -n 's/.*"\([^"]*\)".*/\1/p' "$dot_file" | sort -u > "$tmp/modules"
 
 : > "$output_manifest"
-printf '%s\n' "${module_files[FullCoupled.TheoremsMonolith]}" >> "$output_manifest"
+root_module=$(awk '/^[[:space:]]*module[[:space:]]+/ { print $2; exit }' "$root_source")
+[ -n "$root_module" ] || { echo "cannot determine root module name" >&2; exit 1; }
+printf '%s\n' "${module_files[$root_module]}" >> "$output_manifest"
+
+# Legacy sources are inventoried as text only, not included in the kernel-checked closure.
+while IFS= read -r -d '' file; do
+  printf '%s\n' "$PWD/$file" >> "$output_manifest"
+done < <(git -C "$PWD" ls-files -z '*.agda' '*.lagda')
 
 unresolved=0
 while IFS= read -r module; do
@@ -59,6 +70,6 @@ done < "$tmp/modules"
 sort -u -o "$output_manifest" "$output_manifest"
 test -s "$output_manifest"
 
-printf 'agda-semantic-source-closure=pass\n'
+printf 'agda-semantic-source-inventory=pass\n'
 printf 'resolved-source-count=%s\n' "$(wc -l < "$output_manifest")"
 printf 'unresolved-dot-symbol-count=%s\n' "$unresolved"

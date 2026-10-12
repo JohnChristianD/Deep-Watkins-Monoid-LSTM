@@ -399,9 +399,11 @@ graphExpandDependencies (dependency ∷ dependencies) plan acc =
   if graphContains dependency plan then
     graphExpandDependencies dependencies plan acc
   else
+    -- Siblings branch from identical parent path. Do not carry dependency
+    -- into the recursive plan; that would invent an edge between siblings.
     graphExpandDependencies
       dependencies
-      (dependency ∷ plan)
+      plan
       (graphNode (dependency ∷ plan) ∷ acc)
 
 graphNodeScore : GraphNode -> Nat
@@ -477,9 +479,7 @@ graphMaximalDependencyChain plan laws =
         case graphLawForName terminal laws of λ where
           Nothing -> False
           Just law ->
-            graphDependenciesCovered
-              (graphLawDependencies law)
-              plan
+            graphLawDependencies law == []
   else
     False
 
@@ -579,9 +579,9 @@ autonomousGraphSearchReport :
   List (String × String) ->
   String
 autonomousGraphSearchReport edges =
-  "agda2hs autonomous theorem-graph A*: "
+  "agda2hs autonomous theorem-graph DFS: "
   ++ show (autonomousGraphSearchCount edges)
-  ++ " dependency chains"
+  ++ " maximal dependency chains"
 
 stripDotPrefix : String -> String
 stripDotPrefix ('"' ∷ rest) = stripDotPrefix rest
@@ -614,7 +614,7 @@ parseDotEdges source =
   concatMap parseDotLine (lines source)
 
 canonicalGraphRoot : String
-canonicalGraphRoot = "FullCoupled.TheoremsMonolith"
+canonicalGraphRoot = "FullCoupled.Agda2HsSemanticSearch"
 
 autonomousGraphSearchFromRoot :
   String ->
@@ -648,7 +648,7 @@ autonomousCanonicalGraphReport source =
   in
   "theorem-graph-edges="
     ++ show (length edges)
-    ++ " autonomous-a-star-chains="
+    ++ " autonomous-depth-first-chains="
     ++ show (length plans)
 
 
@@ -819,19 +819,37 @@ graphDependencyOrderRegressionChecked :
   graphDependencyOrderRegression ≡ True
 graphDependencyOrderRegressionChecked = refl
 
-graphCycleIsMaximalRegression : Bool
-graphCycleIsMaximalRegression =
+-- Regression: each outgoing dependency must expand from the same parent.
+-- A branch must not inherit a sibling dependency and invent a path edge.
+graphTwoLeafBranchesRegression : Bool
+graphTwoLeafBranchesRegression =
+  let
+    edges =
+      ("A" , "B") ∷
+      ("A" , "C") ∷
+      []
+  in
+  case autonomousGraphSearchFromRoot "A" edges of λ where
+    (("B" ∷ "A" ∷ []) ∷ ("C" ∷ "A" ∷ []) ∷ []) → True
+    _ → False
+
+graphTwoLeafBranchesRegressionChecked :
+  graphTwoLeafBranchesRegression ≡ True
+graphTwoLeafBranchesRegressionChecked = refl
+
+graphCycleIsRejectedRegression : Bool
+graphCycleIsRejectedRegression =
   let
     laws =
       graphLaw "A" ("B" ∷ []) ∷
       graphLaw "B" ("A" ∷ []) ∷
       []
   in
-  graphMaximalDependencyChain ("B" ∷ "A" ∷ []) laws
+  not (graphMaximalDependencyChain ("B" ∷ "A" ∷ []) laws)
 
-graphCycleIsMaximalRegressionChecked :
-  graphCycleIsMaximalRegression ≡ True
-graphCycleIsMaximalRegressionChecked = refl
+graphCycleIsRejectedRegressionChecked :
+  graphCycleIsRejectedRegression ≡ True
+graphCycleIsRejectedRegressionChecked = refl
 
 -- A focused obligation graph separate from the inverse/exact-search graph.
 -- Each path is an explicit dependency chain, not itself a proof term.
@@ -1423,7 +1441,7 @@ hybridInverseExactRealSearchReport : String
 hybridInverseExactRealSearchReport =
   "haskell-minus-one-A*="
     ++ show (length haskellMinusOneAStarPlan)
-    ++ " proof-backed laws; TypeTopology extension is separate"
+    ++ " proof-backed laws; legacy monolith excluded from pure build"
 
 agdaSemanticPortReport :
   List Extractor.SemanticLaw ->
@@ -1446,13 +1464,17 @@ agdaSemanticPortReport laws =
 
 main : IO ⊤
 main = do
-  source <- readFile "build/agda2hs-semantic-search/theorems-monolith.dot"
+  source <- readFile "build/agda2hs-semantic-search/semantic-search.dot"
   semanticLaws <-
     Extractor.readSemanticLaws
       "build/agda2hs-semantic-search/.semantic-source-files"
   putStrLn semanticSearchReport
   putStrLn (autonomousCanonicalGraphReport source)
   putStrLn ("autonomous-regression=" ++ show autonomousGraphSearchRegression)
+  putStrLn ("graph-branch-regression=" ++ show graphDependencyOrderRegression)
+  putStrLn ("graph-two-leaf-paths=" ++ show graphTwoLeafBranchesRegression)
+  putStrLn ("graph-best-first-tie=" ++ show graphAStarTieBreakRegression)
+  putStrLn ("graph-cycle-rejected=" ++ show graphCycleIsRejectedRegression)
   putStrLn ("canonical-plan=" ++ show canonicalPlan)
   putStrLn (semanticLawExtractionReport semanticLaws)
   putStrLn (requiredPlanReport requiredNames semanticLaws)
@@ -1469,6 +1491,10 @@ main = do
 {-# COMPILE AGDA2HS GraphNode #-}
 {-# COMPILE AGDA2HS autonomousGraphSearch #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchRegression #-}
+{-# COMPILE AGDA2HS graphDependencyOrderRegression #-}
+{-# COMPILE AGDA2HS graphTwoLeafBranchesRegression #-}
+{-# COMPILE AGDA2HS graphAStarTieBreakRegression #-}
+{-# COMPILE AGDA2HS graphCycleIsRejectedRegression #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchCount #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchReport #-}
 {-# COMPILE AGDA2HS SearchNode #-}

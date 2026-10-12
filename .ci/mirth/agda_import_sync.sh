@@ -11,7 +11,7 @@ trap 'rm -f "$block" "$merged" "$tmp"' EXIT
 sources() { git ls-files '*.agda' | LC_ALL=C sort; }
 is_extraction_surface() {
   case "$1" in
-    FullCoupled/Agda2HsSurface.agda|FullCoupled/Agda2HsSemanticExtractor.agda|FullCoupled/Agda2HsSemanticSearch.agda|FullCoupled/Agda2HsTheoremGraphEGraph.agda|FullCoupled/AgdaGraphShort.agda|FullCoupled/FormalMethods/IMP.agda|FullCoupled/FormalMethods/Types.agda|FullCoupled/FormalMethods/Security.agda|FullCoupled/FormalMethods/HoareLogic.agda|FullCoupled/FormalMethods/SeparationLogic.agda|FullCoupled/FormalMethods/OperationalSemantics.agda|FullCoupled/FormalMethods/VerificationConditions.agda|FullCoupled/FormalMethods/gentle-intro-to-reflection/tangled.agda)
+    FullCoupled/Agda2HsSurface.agda|FullCoupled/Agda2HsSemanticExtractor.agda|FullCoupled/Agda2HsSemanticSearch.agda|FullCoupled/Agda2HsTheoremGraphEGraph.agda|FullCoupled/Agda2HsGraphSearchCheck.agda|FullCoupled/AgdaGraphShort.agda|FullCoupled/FormalMethods/IMP.agda|FullCoupled/FormalMethods/Types.agda|FullCoupled/FormalMethods/Security.agda|FullCoupled/FormalMethods/HoareLogic.agda|FullCoupled/FormalMethods/SeparationLogic.agda|FullCoupled/FormalMethods/OperationalSemantics.agda|FullCoupled/FormalMethods/VerificationConditions.agda|FullCoupled/FormalMethods/gentle-intro-to-reflection/tangled.agda)
       return 0
       ;;
     *)
