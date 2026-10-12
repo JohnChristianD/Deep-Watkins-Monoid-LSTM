@@ -44,7 +44,9 @@ done
 sed -n 's/.*"\([^"]*\)".*/\1/p' "$dot_file" | sort -u > "$tmp/modules"
 
 : > "$output_manifest"
-printf '%s\n' "${module_files[FullCoupled.TheoremsMonolith]}" >> "$output_manifest"
+root_module=$(awk '/^[[:space:]]*module[[:space:]]+/ { print $2; exit }' "$root_source")
+[ -n "$root_module" ] || { echo "cannot determine root module name" >&2; exit 1; }
+printf '%s\n' "${module_files[$root_module]}" >> "$output_manifest"
 
 unresolved=0
 while IFS= read -r module; do
