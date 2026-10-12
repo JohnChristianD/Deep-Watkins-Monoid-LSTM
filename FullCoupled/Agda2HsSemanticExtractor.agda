@@ -235,17 +235,17 @@ topLevelHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
     Just name ->
-      if topLevelLine line then
-        if syntaxHead name || name == "--" then
-          Nothing
-        else
-          if lineContainsChar ':' line then
-            let (_ , fragment) = splitFirstCharString ':' line
-            in Just (name , trimWhitespace fragment)
-          else
-            Nothing
-      else
-        Nothing
+      case topLevelLine line of λ where
+        False -> Nothing
+        True ->
+          case syntaxHead name || name == "--" of λ where
+            True -> Nothing
+            False ->
+              case lineContainsChar ':' line of λ where
+                False -> Nothing
+                True ->
+                  let (_ , fragment) = splitFirstCharString ':' line
+                  in Just (name , trimWhitespace fragment)
 
 topLevelRecordHeaderAtTopLevel :
   String ->
