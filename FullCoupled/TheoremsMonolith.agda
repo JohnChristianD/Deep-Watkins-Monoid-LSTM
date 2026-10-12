@@ -11031,7 +11031,7 @@ monolithEGraphClosureCertificate-from-proof :
 monolithEGraphClosureCertificate-from-proof W =
   monolithEGraphClosureCertificate
     W
-    (λ e → proofWitness W e)
+    (λ e → MonolithEGraphProofCertificate.proofWitness W e)
 
 
 ------------------------------------------------------------------------
