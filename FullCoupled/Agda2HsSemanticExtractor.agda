@@ -192,6 +192,14 @@ planContains name (candidate ∷ rest) =
   else
     planContains name rest
 
+planContainsRegression : Bool
+planContainsRegression =
+  planContains "module" ("module" ∷ "data" ∷ [])
+    && not (planContains "unknown" ("module" ∷ "data" ∷ []))
+
+planContainsRegressionChecked : planContainsRegression ≡ True
+planContainsRegressionChecked = refl
+
 topLevelLine : String -> Bool
 topLevelLine [] = False
 topLevelLine source =
@@ -889,3 +897,4 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS isAsciiAlphaRegression #-}
 {-# COMPILE AGDA2HS isAsciiDigitRegression #-}
 {-# COMPILE AGDA2HS isSpaceRegression #-}
+{-# COMPILE AGDA2HS planContainsRegression #-}
