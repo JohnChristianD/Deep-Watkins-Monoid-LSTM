@@ -16,9 +16,6 @@ open import Haskell.Prelude
 CharList : Type
 CharList = List Char
 
-charEq : Char → Char → Bool
-charEq a b = eqNat (c2n a) (c2n b)
-
 natBetween : Nat → Nat → Nat → Bool
 natBetween lo hi n =
   if lo <= n then
@@ -291,9 +288,10 @@ bodyClause :
   String ->
   Maybe String
 bodyClause name line =
-  if topLevelLine line then
-    case firstWord line of λ where
-      Just lineName ->
+  case firstWord line of λ where
+    Nothing -> Nothing
+    Just lineName ->
+      if topLevelLine line then
         if lineName == name then
           if lineContainsChar '=' line then
             let (_ , rhs) = splitFirstCharString '=' line
@@ -302,9 +300,28 @@ bodyClause name line =
             Nothing
         else
           Nothing
-      Nothing -> Nothing
-  else
-    Nothing
+      else
+        Nothing
+
+bodyClauseRegression : Bool
+bodyClauseRegression =
+  case bodyClause "sample" "sample = body" of λ where
+    Just "body" -> True
+    _ -> False
+
+bodyClauseRegressionChecked :
+  bodyClauseRegression ≡ True
+bodyClauseRegressionChecked = refl
+
+bodyClauseRejectsIndentedRegression : Bool
+bodyClauseRejectsIndentedRegression =
+  case bodyClause "sample" "  sample = body" of λ where
+    Nothing -> True
+    _ -> False
+
+bodyClauseRejectsIndentedRegressionChecked :
+  bodyClauseRejectsIndentedRegression ≡ True
+bodyClauseRejectsIndentedRegressionChecked = refl
 
 parseLines :
   String ->
@@ -846,3 +863,5 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS countComposite #-}
 {-# COMPILE AGDA2HS topLevelRecordHeaderRegression #-}
 {-# COMPILE AGDA2HS nestedRecordHeaderRejectedRegression #-}
+{-# COMPILE AGDA2HS bodyClauseRegression #-}
+{-# COMPILE AGDA2HS bodyClauseRejectsIndentedRegression #-}
