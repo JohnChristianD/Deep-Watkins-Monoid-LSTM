@@ -146,7 +146,7 @@ jobs:
 
   auto-merge:
     name: Enable auto-merge after full verification
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     needs: [agda, semantic, pages, versions]
     runs-on: ubuntu-22.04
     permissions:
