@@ -927,9 +927,13 @@ DHALL
     dhall --version
     emacs --version
     emacs --batch --eval '(require (quote agda2-mode))'
-    "$AGDA_COMMAND" -i . FullCoupled/CanonicalLearnerMonolith.agda
-    "$AGDA_COMMAND" -i . FullCoupled/TheoremsMonolith.agda
-    "$AGDA_COMMAND" -i . FullCoupled/TheoremsMonolith.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSurface.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticExtractor.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsTheoremGraphEGraph.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticSearch.agda
+    nix run .#acorn-smoke
+    nix run .#xds-agda-check
+    nix run .#mini-vehicle-check
     nix run .#agda2hs-semantic-search
     echo 'agda-all=pass'
   ''} lane
