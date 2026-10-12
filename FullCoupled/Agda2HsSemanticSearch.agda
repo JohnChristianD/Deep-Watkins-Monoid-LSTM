@@ -401,7 +401,7 @@ graphExpandDependencies (dependency ∷ dependencies) plan acc =
   else
     graphExpandDependencies
       dependencies
-      (dependency ∷ plan)
+      plan
       (graphNode (dependency ∷ plan) ∷ acc)
 
 graphNodeScore : GraphNode -> Nat
@@ -477,9 +477,7 @@ graphMaximalDependencyChain plan laws =
         case graphLawForName terminal laws of λ where
           Nothing -> False
           Just law ->
-            graphDependenciesCovered
-              (graphLawDependencies law)
-              plan
+            graphLawDependencies law == []
   else
     False
 
@@ -579,9 +577,9 @@ autonomousGraphSearchReport :
   List (String × String) ->
   String
 autonomousGraphSearchReport edges =
-  "agda2hs autonomous theorem-graph A*: "
+  "agda2hs autonomous theorem-graph DFS: "
   ++ show (autonomousGraphSearchCount edges)
-  ++ " dependency chains"
+  ++ " maximal dependency chains"
 
 stripDotPrefix : String -> String
 stripDotPrefix ('"' ∷ rest) = stripDotPrefix rest
@@ -614,7 +612,7 @@ parseDotEdges source =
   concatMap parseDotLine (lines source)
 
 canonicalGraphRoot : String
-canonicalGraphRoot = "FullCoupled.TheoremsMonolith"
+canonicalGraphRoot = "FullCoupled.Agda2HsSemanticSearch"
 
 autonomousGraphSearchFromRoot :
   String ->
@@ -648,7 +646,7 @@ autonomousCanonicalGraphReport source =
   in
   "theorem-graph-edges="
     ++ show (length edges)
-    ++ " autonomous-a-star-chains="
+    ++ " autonomous-depth-first-chains="
     ++ show (length plans)
 
 
@@ -1424,7 +1422,7 @@ hybridInverseExactRealSearchReport : String
 hybridInverseExactRealSearchReport =
   "haskell-minus-one-A*="
     ++ show (length haskellMinusOneAStarPlan)
-    ++ " proof-backed laws; TypeTopology extension is separate"
+    ++ " proof-backed laws; legacy monolith excluded from pure build"
 
 agdaSemanticPortReport :
   List Extractor.SemanticLaw ->
@@ -1447,7 +1445,7 @@ agdaSemanticPortReport laws =
 
 main : IO ⊤
 main = do
-  source <- readFile "build/agda2hs-semantic-search/theorems-monolith.dot"
+  source <- readFile "build/agda2hs-semantic-search/semantic-search.dot"
   semanticLaws <-
     Extractor.readSemanticLaws
       "build/agda2hs-semantic-search/.semantic-source-files"
