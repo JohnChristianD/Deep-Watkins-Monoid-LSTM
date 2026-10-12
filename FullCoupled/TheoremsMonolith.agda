@@ -9282,6 +9282,22 @@ record FiniteNonIIDGeneralizedEquilibrium
       sumNat (map (λ i → allocation i g) agents) ＝
       sumNat (map (λ i → endowment i g) agents)
 
+-- A Pareto improvement weakly benefits every agent and strictly benefits
+-- at least one. The argument order is candidate allocation, then baseline.
+record MegaParetoImprovement
+  (Agent Allocation : Set)
+  (weakPreference strictPreference :
+    Agent → Allocation → Allocation → Set)
+  (candidate baseline : Allocation) : Set₁ where
+  constructor megaParetoImprovement
+  field
+    weaklyBetter :
+      ∀ i → weakPreference i baseline candidate
+    strictlyBetter :
+      Σ Agent (λ i → strictPreference i candidate baseline)
+
+open MegaParetoImprovement public
+
 megaParetoOptimal :
   ∀ {Agent Allocation : Set}
   {weakPreference strictPreference :
@@ -9358,6 +9374,38 @@ megaNatStrictCostContradiction :
   ⊥
 megaNatStrictCostContradiction hle hlt =
   megaNatNoStrictBack (≤-trans hlt hle)
+
+-- Demand/cost closure needed by the welfare-boundary arguments.
+-- Preference improvement must force a strictly higher cost; affordability
+-- must keep the candidate's cost below the baseline allocation's cost.
+record MegaDemandCostKernel
+  (Agent Price Allocation : Set)
+  (weakPreference strictPreference :
+    Agent → Allocation → Allocation → Set)
+  (feasible : Allocation → Set)
+  (budget : Price → Agent → Allocation → Set)
+  (equilibrium : Price → Allocation → Set)
+  (cost : Price → Agent → Allocation → ℕ)
+  (p : Price)
+  (a : Allocation) : Set₁ where
+  constructor megaDemandCostKernel
+  field
+    equilibriumWitness : equilibrium p a
+    feasibleWitness : feasible a
+    preferredCostly :
+      ∀ i x y → weakPreference i x y → cost p i y ≤ cost p i x
+    strictlyPreferredCostly :
+      ∀ i x y → strictPreference i x y → cost p i y < cost p i x
+    budgetCostBound :
+      ∀ i b → budget p i b → cost p i b ≤ cost p i a
+    paretoImprovementAffordability :
+      ∀ {b : Allocation} →
+      feasible b →
+      (improvement : MegaParetoImprovement
+        Agent Allocation weakPreference strictPreference b a) →
+      budget p (pr₁ (strictlyBetter improvement)) b
+
+open MegaDemandCostKernel public
 
 megaNoStrictAffordableAlternative-from-demand-cost :
   ∀ {Agent Price Allocation : Set}
@@ -9566,7 +9614,7 @@ megaNoStrictAffordableAlternative-is-demand-optimality :
     budget p i b →
     ¬ strictPreference i b a)
 megaNoStrictAffordableAlternative-is-demand-optimality boundary =
-  demandOptimality boundary
+  MegaNoStrictAffordableAlternativeBoundary.demandOptimality boundary
 
 GeneralizedWalrasianEquilibrium :
   Set → Set → Set → Set₁
@@ -9884,7 +9932,14 @@ recursiveRadner-generalized :
       {Agent = Agent}
       {Allocation = Allocation}
       {Portfolio = Portfolio})
-recursiveRadner-generalized =
+recursiveRadner-generalized
+  {State}
+  {Agent}
+  {Commodity}
+  {Asset}
+  {Price}
+  {Allocation}
+  {Portfolio} =
   megaGeneralizedWalrasianEquilibrium
     (λ x → x)
     (λ pricePair allocationPair →
@@ -9970,6 +10025,28 @@ noUnconditionalMegaGeneralizedWalrasianExistence
   megaNoEquilibriumWitness
     (theorem megaNoEquilibriumGeneralizedWalrasian)
 
+-- A global Walrasian square carries two aggregate interpretations and
+-- explicit round-trip maps through price and allocation representations.
+-- The three fields are obligations: aggregate agreement and both retractions.
+record MegaWalrasianGlobalSquareConjugacy
+  (State Price Allocation : Set)
+  (sourceAggregate targetAggregate :
+    (State → Allocation) → Allocation)
+  (priceOf : State → Price)
+  (stateOfPrice : Price → State)
+  (allocationOf : State → Allocation)
+  (stateOfAllocation : Allocation → State) : Set₁ where
+  constructor megaWalrasianGlobalSquareConjugacy
+  field
+    aggregateConjugacy :
+      ∀ f → sourceAggregate f ＝ targetAggregate f
+    priceRoundTrip :
+      ∀ s → stateOfPrice (priceOf s) ＝ s
+    allocationRoundTrip :
+      ∀ s → stateOfAllocation (allocationOf s) ＝ s
+
+open MegaWalrasianGlobalSquareConjugacy public
+
 megaNoEquilibriumWalrasianSquare :
   MegaWalrasianGlobalSquareConjugacy
     ⊤
@@ -10004,12 +10081,12 @@ record StrictProgressWitness
     stepProgress :
       ∀ s →
       measure s < measure (step s)
-    transitive :
+    strictProgressTransitive :
       ∀ {a b c} →
       a < b →
       b < c →
       a < c
-    irreflexive :
+    strictProgressIrreflexive :
       ∀ a → ¬ (a < a)
 
 record StrictProgressRelation
@@ -10033,8 +10110,8 @@ strictProgressRelation-from-witness :
   StrictProgressRelation Measure _<_
 strictProgressRelation-from-witness W =
   strictProgressRelation
-    (transitive W)
-    (irreflexive W)
+    (StrictProgressWitness.strictProgressTransitive W)
+    (StrictProgressWitness.strictProgressIrreflexive W)
 
 strictProgressWitness-from-relation :
   ∀ {State Measure : Set}
@@ -10066,7 +10143,7 @@ strictProgressAfterIterate :
 strictProgressAfterIterate W zero s =
   stepProgress W s
 strictProgressAfterIterate W (succ n) s =
-  transitive W
+  StrictProgressWitness.strictProgressTransitive W
     (stepProgress W s)
     (strictProgressAfterIterate W n (step s))
 
@@ -10080,7 +10157,7 @@ noPositiveFiniteCycleFromStrictProgress :
   iterateStep step (succ n) s ＝ s →
   ⊥
 noPositiveFiniteCycleFromStrictProgress W n s eq =
-  irreflexive W
+  StrictProgressWitness.strictProgressIrreflexive W
     (measure W s)
     (transport (λ t → measure W s < measure W t)
       eq
@@ -10173,7 +10250,7 @@ canonicalTotalCountStrictProgress K =
     (λ s → C.totalCount (C.lcbCounts s))
     (λ s → canonicalTotalCountStepProgress K s)
     <-trans
-    <-irrefl
+    (λ n → megaNatNoStrictBack {n = n})
 
 canonicalNoPositiveCycleFromTotalCount :
   ∀ {A : Set}
@@ -10277,10 +10354,10 @@ monolithFactorTransition-to-relationWitness :
 monolithFactorTransition-to-relationWitness W =
   relationFactorTransitionWitness
     (factorTransitionWitness
-      (factorStep W)
-      (factorStepCommutes W))
-    (observeRespects W)
-    (relationStepPreserved W)
+      (MonolithFactorTransitionClosure.factorStep W)
+      (MonolithFactorTransitionClosure.factorStepCommutes W))
+    (MonolithFactorTransitionClosure.observeRespects W)
+    (MonolithFactorTransitionClosure.relationStepPreserved W)
 
 record MonolithCommutingSquareTransport
   (A B : Set)
@@ -10369,9 +10446,9 @@ record MonolithProductionSideAssumptionBundle
       consumptionFeasible i (consumer i)
     aggregateFeasibility :
       aggregateFeasible allocation
-    marketClearingWitness :
+    bundleMarketClearingWitness :
       marketClearing price allocation
-    supportingPriceWitness :
+    bundleSupportingPriceWitness :
       supportingPrice price allocation
 
 open MonolithProductionSideAssumptionBundle public
@@ -10538,7 +10615,7 @@ record ExpandedGeneralizedAggregateExcessDemandKernel
       GeneralizedAggregateDemandSupplyWitness.aggregateSupplyAt
         aggregateDemandSupplyWitness
         p
-    aggregateFeasibilityWitness :
+    generalizedAggregateFeasibilityAt :
       ∀ p →
       aggregateFeasible p (aggregateDemandAt p)
     excessWitness :
@@ -10558,14 +10635,14 @@ record ExpandedGeneralizedAggregateExcessDemandKernel
         continuous
         homogeneousZero
         walrasLaw
-    marketClearingWitness :
+    generalizedMarketClearingWitness :
       GeneralizedAggregateMarketClearingWitness
         Price
         ExcessDemand
         excessDemand
         zeroExcess
         marketClearing
-    supportingPriceWitness :
+    generalizedSupportingPriceWitness :
       GeneralizedAggregateSupportingPriceWitness
         Price
         Allocation
@@ -10631,10 +10708,12 @@ expandedGeneralizedAggregateExcessDemand-closure :
   supports p (aggregateDemandAt p) ×
   equilibrium p (aggregateDemandAt p)
 expandedGeneralizedAggregateExcessDemand-closure W p root =
-  ( aggregateFeasibilityWitness W p
-  , clearingFromZero (marketClearingWitness W) p root
-  , supportingFromZero (supportingPriceWitness W) p root
-  , equilibriumCharacterization W p root )
+  ( ExpandedGeneralizedAggregateExcessDemandKernel.generalizedAggregateFeasibilityAt W p
+  , GeneralizedAggregateMarketClearingWitness.clearingFromZero
+      (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedMarketClearingWitness W) p root
+  , GeneralizedAggregateSupportingPriceWitness.supportingFromZero
+      (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedSupportingPriceWitness W) p root
+  , ExpandedGeneralizedAggregateExcessDemandKernel.equilibriumCharacterization W p root )
 
 ------------------------------------------------------------------------
 -- E-graph composition node: semantic path plus the entire economic
@@ -10760,9 +10839,9 @@ eGraphEconomicAggregateExcessDemand-closure :
     supports p (aggregateDemandAt p) ×
     equilibrium p (aggregateDemandAt p))
 eGraphEconomicAggregateExcessDemand-closure W =
-  semanticPath W
+  EGraphEconomicAggregateExcessDemandComposition.semanticPath W
   , expandedGeneralizedAggregateExcessDemand-closure
-      (economicKernel W)
+      (EGraphEconomicAggregateExcessDemandComposition.economicKernel W)
 
 ------------------------------------------------------------------------
 -- Research note: this node records the literature-facing requirements.
@@ -10805,7 +10884,7 @@ expandedGeneralizedAggregateExcessDemand-fixedPoint :
   excessDemand p ＝ zeroExcess →
   priceUpdate p ＝ p
 expandedGeneralizedAggregateExcessDemand-fixedPoint W p root =
-  fixedPointFromRoot W p root
+  GeneralizedAggregateExcessDemandFixedPointWitness.fixedPointFromRoot W p root
 
 record EGraphEconomicAggregateExcessDemandFixedPointComposition
   (Expression State Price ExcessDemand : Set)
@@ -10856,9 +10935,9 @@ eGraphEconomicAggregateExcessDemand-fixedPointClosure :
     excessDemand p ＝ zeroExcess →
     priceUpdate p ＝ p)
 eGraphEconomicAggregateExcessDemand-fixedPointClosure W =
-  semanticPath W
+  EGraphEconomicAggregateExcessDemandFixedPointComposition.semanticPath W
   , expandedGeneralizedAggregateExcessDemand-fixedPoint
-      (fixedPointWitness W)
+      (EGraphEconomicAggregateExcessDemandFixedPointComposition.fixedPointWitness W)
 
 ------------------------------------------------------------------------
 -- The production/economic bridge now has an explicit fixed-point seam.
@@ -10908,8 +10987,8 @@ monolithStationaryLawBridge-stationary :
 monolithStationaryLawBridge-stationary W =
   distributionalStationaryAggregate-stationary
     (distributionalStationaryAggregateTransport
-      (distributionalLimit W)
-      (aggregateCommutes W))
+      (MonolithStationaryLawBridge.distributionalLimit W)
+      (MonolithStationaryLawBridge.aggregateCommutes W))
 
 record MonolithEGraphProofCertificate
   (Node Edge Assumption : Set) : Set₁ where
@@ -10952,7 +11031,7 @@ monolithEGraphClosureCertificate-from-proof :
 monolithEGraphClosureCertificate-from-proof W =
   monolithEGraphClosureCertificate
     W
-    (λ e → proofWitness W e)
+    (λ e → MonolithEGraphProofCertificate.proofWitness W e)
 
 
 ------------------------------------------------------------------------
@@ -11075,6 +11154,9 @@ record CommonsNonDerivabilityCounterexample : Set₁ where
 
 open CommonsNonDerivabilityCounterexample public
 
+twoNotLeOne :
+  ¬ succ (succ zero) ≤ succ zero
+twoNotLeOne ()
 noUnconditionalCommonsPreservation :
   ∀ (C : CommonsNonDerivabilityCounterexample) →
   ¬ CommonsPreservationDerivation
@@ -11098,9 +11180,6 @@ noUnconditionalCommonsPreservation C D =
           (commonsWorld C)
           (allLocallyOptimal C))))
 
-twoNotLeOne :
-  ¬ succ (succ zero) ≤ succ zero
-twoNotLeOne ()
 
 twoAgentCommonsCounterexample :
   CommonsNonDerivabilityCounterexample
