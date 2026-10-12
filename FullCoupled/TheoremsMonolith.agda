@@ -11154,6 +11154,9 @@ record CommonsNonDerivabilityCounterexample : Set₁ where
 
 open CommonsNonDerivabilityCounterexample public
 
+twoNotLeOne :
+  ¬ succ (succ zero) ≤ succ zero
+twoNotLeOne ()
 noUnconditionalCommonsPreservation :
   ∀ (C : CommonsNonDerivabilityCounterexample) →
   ¬ CommonsPreservationDerivation
@@ -11177,9 +11180,6 @@ noUnconditionalCommonsPreservation C D =
           (commonsWorld C)
           (allLocallyOptimal C))))
 
-twoNotLeOne :
-  ¬ succ (succ zero) ≤ succ zero
-twoNotLeOne ()
 
 twoAgentCommonsCounterexample :
   CommonsNonDerivabilityCounterexample
