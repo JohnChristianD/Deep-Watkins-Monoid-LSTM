@@ -10935,9 +10935,9 @@ eGraphEconomicAggregateExcessDemand-fixedPointClosure :
     excessDemand p ＝ zeroExcess →
     priceUpdate p ＝ p)
 eGraphEconomicAggregateExcessDemand-fixedPointClosure W =
-  semanticPath W
+  EGraphEconomicAggregateExcessDemandFixedPointComposition.semanticPath W
   , expandedGeneralizedAggregateExcessDemand-fixedPoint
-      (fixedPointWitness W)
+      (EGraphEconomicAggregateExcessDemandFixedPointComposition.fixedPointWitness W)
 
 ------------------------------------------------------------------------
 -- The production/economic bridge now has an explicit fixed-point seam.
