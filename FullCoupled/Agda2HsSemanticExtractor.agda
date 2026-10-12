@@ -16,9 +16,6 @@ open import Haskell.Prelude
 CharList : Type
 CharList = List Char
 
-charEq : Char -> Char -> Bool
-charEq = primCharEquality
-
 charBetween : Char → Char → Char → Bool
 charBetween lower upper value =
   if lower <= value then
@@ -51,10 +48,10 @@ isAsciiDigitRegressionChecked = refl
 
 isSourceSpace : Char → Bool
 isSourceSpace c =
-  if charEq c ' ' then True
-  else if charEq c '\n' then True
-  else if charEq c '\r' then True
-  else charEq c '\t'
+  if eqChar c ' ' then True
+  else if eqChar c '\n' then True
+  else if eqChar c '\r' then True
+  else eqChar c '\t'
 
 data SemanticKind : Type where
   semantic-top-level : SemanticKind
@@ -108,10 +105,10 @@ isIdentifierChar c =
     True
   else if isAsciiDigit c then
     True
-  else if charEq c '_' then
+  else if eqChar c '_' then
     True
   else
-    charEq c '-'
+    eqChar c '-'
 
 isSpace : Char -> Bool
 isSpace = primIsSpace
@@ -148,7 +145,7 @@ secondWord source =
 containsChar : Char -> CharList -> Bool
 containsChar _ [] = False
 containsChar target (c ∷ rest) =
-  if charEq target c then
+  if eqChar target c then
     True
   else
     containsChar target rest
@@ -163,7 +160,7 @@ splitFirstChar :
   CharList × CharList
 splitFirstChar target [] = [] , []
 splitFirstChar target (c ∷ rest) =
-  if charEq target c then
+  if eqChar target c then
     [] , rest
   else
     let (before , after) = splitFirstChar target rest
@@ -654,7 +651,7 @@ matchesPrefix :
 matchesPrefix [] _ = True
 matchesPrefix (_ ∷ _) [] = False
 matchesPrefix (needle ∷ needles) (candidate ∷ candidates) =
-  if charEq needle candidate then
+  if eqChar needle candidate then
     matchesPrefix needles candidates
   else
     False
