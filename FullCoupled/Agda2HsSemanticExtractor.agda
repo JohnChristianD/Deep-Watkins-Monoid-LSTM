@@ -111,7 +111,14 @@ isIdentifierChar c =
     eqChar c '-'
 
 isSpace : Char -> Bool
-isSpace = primIsSpace
+isSpace = isSourceSpace
+
+isSpaceRegression : Bool
+isSpaceRegression =
+  isSpace ' ' && isSpace '\n' && not (isSpace 'x')
+
+isSpaceRegressionChecked : isSpaceRegression ≡ True
+isSpaceRegressionChecked = refl
 
 dropLeadingSpaces : CharList -> CharList
 dropLeadingSpaces [] = []
@@ -881,3 +888,4 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS bodyClauseRejectsIndentedRegression #-}
 {-# COMPILE AGDA2HS isAsciiAlphaRegression #-}
 {-# COMPILE AGDA2HS isAsciiDigitRegression #-}
+{-# COMPILE AGDA2HS isSpaceRegression #-}
