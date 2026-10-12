@@ -10839,9 +10839,9 @@ eGraphEconomicAggregateExcessDemand-closure :
     supports p (aggregateDemandAt p) ×
     equilibrium p (aggregateDemandAt p))
 eGraphEconomicAggregateExcessDemand-closure W =
-  semanticPath W
+  EGraphEconomicAggregateExcessDemandComposition.semanticPath W
   , expandedGeneralizedAggregateExcessDemand-closure
-      (economicKernel W)
+      (EGraphEconomicAggregateExcessDemandComposition.economicKernel W)
 
 ------------------------------------------------------------------------
 -- Research note: this node records the literature-facing requirements.
