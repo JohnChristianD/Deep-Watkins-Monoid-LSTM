@@ -433,14 +433,51 @@
                 out="build/agda-haskell"
                 rm -rf "$out"
                 mkdir -p "$out"
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSurface.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
                 "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSurface.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticExtractor.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsTheoremGraphEGraph.agda -o "$out"
+                "${agda2hsCommand system}/bin/agda2hs-ci" FullCoupled/Agda2HsSemanticSearch.agda -o "$out"
                 test -s "$out/FullCoupled/Agda2HsSurface.hs"
-                mkdir -p "$out/ghc"
-                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticExtractor.hs"
+                test -s "$out/FullCoupled/Agda2HsTheoremGraphEGraph.hs"
+                test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
+
+                searchOut="build/agda2hs-semantic-search"
+                rm -rf "$searchOut"
+                mkdir -p "$searchOut"
+                "${agdaCommand system}/bin/agda2hs-agda" --dependency-graph="$searchOut/semantic-search.dot" -i . FullCoupled/Agda2HsSemanticSearch.agda
+                test -s "$searchOut/semantic-search.dot"
+                bash .ci/discovery/agda_semantic_source_closure.sh \
+                  "$searchOut/semantic-search.dot" \
+                  "$searchOut/.semantic-source-files" \
+                  "$PWD/FullCoupled/Agda2HsSemanticSearch.agda" \
+                  "${agda2hsBaseLib system}"
+                mkdir -p "$out/ghc-search"
+                "${canonicalGhc system}/bin/ghc" \
+                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
+                  -O0 -dcore-lint -i "$out" \
+                  -odir "$out/ghc-search" -hidir "$out/ghc-search" \
+                  -main-is FullCoupled.Agda2HsSemanticSearch.main \
+                  -o "$out/agda2hs-semantic-search" \
+                  "$out/FullCoupled/Agda2HsSemanticSearch.hs"
+                "$out/agda2hs-semantic-search" > "$out/semantic-search-report.txt"
+                grep -Fq "graph-branch-regression=True" "$out/semantic-search-report.txt"
+                grep -Fq "graph-cycle-rejected=True" "$out/semantic-search-report.txt"
+                grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/semantic-search-report.txt"
                 liquid --version
                 z3 --version
+                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
-                  "source=FullCoupled/Agda2HsSurface.agda generated=build/agda-haskell/FullCoupled/Agda2HsSurface.hs ghc:pass" \
+                  "compiler=ghc-$compiler_version" \
+                  "proofKernel=Agda" \
+                  "searchKernel=Agda2Hs" \
+                  "readableModules=4" \
+                  "legacyMonoliths=source-scan-only" \
+                  "ghc-core-lint=pass" \
                   > "$out/agda2hs-manifest.tsv"
                 cat "$out/agda2hs-manifest.tsv"
               '';
