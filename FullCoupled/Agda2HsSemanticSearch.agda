@@ -819,19 +819,20 @@ graphDependencyOrderRegressionChecked :
   graphDependencyOrderRegression ≡ True
 graphDependencyOrderRegressionChecked = refl
 
-graphCycleIsMaximalRegression : Bool
-graphCycleIsMaximalRegression =
+-- A cycle is not a leaf-complete dependency chain: there is no terminal leaf.
+graphCycleIsNotMaximalRegression : Bool
+graphCycleIsNotMaximalRegression =
   let
     laws =
       graphLaw "A" ("B" ∷ []) ∷
       graphLaw "B" ("A" ∷ []) ∷
       []
   in
-  graphMaximalDependencyChain ("B" ∷ "A" ∷ []) laws
+  not (graphMaximalDependencyChain ("B" ∷ "A" ∷ []) laws)
 
-graphCycleIsMaximalRegressionChecked :
-  graphCycleIsMaximalRegression ≡ True
-graphCycleIsMaximalRegressionChecked = refl
+graphCycleIsNotMaximalRegressionChecked :
+  graphCycleIsNotMaximalRegression ≡ True
+graphCycleIsNotMaximalRegressionChecked = refl
 
 -- A focused obligation graph separate from the inverse/exact-search graph.
 -- Each path is an explicit dependency chain, not itself a proof term.
