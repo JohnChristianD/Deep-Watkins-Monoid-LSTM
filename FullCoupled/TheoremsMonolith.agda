@@ -10713,7 +10713,7 @@ expandedGeneralizedAggregateExcessDemand-closure W p root =
       (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedMarketClearingWitness W) p root
   , GeneralizedAggregateSupportingPriceWitness.supportingFromZero
       (ExpandedGeneralizedAggregateExcessDemandKernel.generalizedSupportingPriceWitness W) p root
-  , equilibriumCharacterization W p root )
+  , ExpandedGeneralizedAggregateExcessDemandKernel.equilibriumCharacterization W p root )
 
 ------------------------------------------------------------------------
 -- E-graph composition node: semantic path plus the entire economic
