@@ -222,24 +222,61 @@ topLevelHeader line =
       else
         Nothing
 
+topLevelRecordHeaderAtTopLevel :
+  String ->
+  Maybe (String × String)
+topLevelRecordHeaderAtTopLevel line =
+  if topLevelLine line then
+    topLevelRecordHeaderName line
+  else
+    Nothing
+
+topLevelRecordHeaderName :
+  String ->
+  Maybe (String × String)
+topLevelRecordHeaderName line =
+  case secondWord line of λ where
+    Nothing -> Nothing
+    Just name -> topLevelRecordHeaderType name line
+
+topLevelRecordHeaderType :
+  String ->
+  String ->
+  Maybe (String × String)
+topLevelRecordHeaderType name line =
+  if lineContainsChar ':' line then
+    let (_ , fragment) = splitFirstCharString ':' line
+    in Just (name , trimWhitespace fragment)
+  else
+    Nothing
+
 topLevelRecordHeader :
   String ->
   Maybe (String × String)
 topLevelRecordHeader line =
   case firstWord line of λ where
-    Just "record" ->
-      if topLevelLine line then
-        case secondWord line of λ where
-          Nothing -> Nothing
-          Just name ->
-            if lineContainsChar ':' line then
-              let (_ , fragment) = splitFirstCharString ':' line
-              in Just (name , trimWhitespace fragment)
-            else
-              Nothing
-      else
-        Nothing
+    Just "record" -> topLevelRecordHeaderAtTopLevel line
     _ -> Nothing
+
+topLevelRecordHeaderRegression : Bool
+topLevelRecordHeaderRegression =
+  case topLevelRecordHeader "record Example : Set where" of λ where
+    Just ("Example" , "Set where") -> True
+    _ -> False
+
+topLevelRecordHeaderRegressionChecked :
+  topLevelRecordHeaderRegression ≡ True
+topLevelRecordHeaderRegressionChecked = refl
+
+nestedRecordHeaderRejectedRegression : Bool
+nestedRecordHeaderRejectedRegression =
+  case topLevelRecordHeader "  record Example : Set where" of λ where
+    Nothing -> True
+    _ -> False
+
+nestedRecordHeaderRejectedRegressionChecked :
+  nestedRecordHeaderRejectedRegression ≡ True
+nestedRecordHeaderRejectedRegressionChecked = refl
 
 topLevelDeclarationHeader :
   String ->
@@ -807,3 +844,5 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS semanticLawDependencies #-}
 {-# COMPILE AGDA2HS countNonreflexive #-}
 {-# COMPILE AGDA2HS countComposite #-}
+{-# COMPILE AGDA2HS topLevelRecordHeaderRegression #-}
+{-# COMPILE AGDA2HS nestedRecordHeaderRejectedRegression #-}

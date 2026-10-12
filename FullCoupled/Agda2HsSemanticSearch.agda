@@ -467,21 +467,25 @@ graphDependenciesCovered (dependency ∷ dependencies) plan =
   else
     False
 
+graphPlanHeadIsLeaf :
+  List String ->
+  List GraphLaw ->
+  Bool
+graphPlanHeadIsLeaf plan laws =
+  case graphFirst plan of λ where
+    Nothing -> False
+    Just terminal ->
+      case graphLawForName terminal laws of λ where
+        Nothing -> False
+        Just law ->
+          graphLawDependencies law == []
+
 graphMaximalDependencyChain :
   List String ->
   List GraphLaw ->
   Bool
 graphMaximalDependencyChain plan laws =
-  if graphValidPlan plan laws then
-    case graphFirst plan of λ where
-      Nothing -> False
-      Just terminal ->
-        case graphLawForName terminal laws of λ where
-          Nothing -> False
-          Just law ->
-            graphLawDependencies law == []
-  else
-    False
+  graphValidPlan plan laws && graphPlanHeadIsLeaf plan laws
 
 graphAppend : {A : Type} -> List A -> List A -> List A
 graphAppend [] ys = ys
