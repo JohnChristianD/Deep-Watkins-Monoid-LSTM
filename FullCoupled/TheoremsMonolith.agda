@@ -10884,7 +10884,7 @@ expandedGeneralizedAggregateExcessDemand-fixedPoint :
   excessDemand p ＝ zeroExcess →
   priceUpdate p ＝ p
 expandedGeneralizedAggregateExcessDemand-fixedPoint W p root =
-  fixedPointFromRoot W p root
+  GeneralizedAggregateExcessDemandFixedPointWitness.fixedPointFromRoot W p root
 
 record EGraphEconomicAggregateExcessDemandFixedPointComposition
   (Expression State Price ExcessDemand : Set)
