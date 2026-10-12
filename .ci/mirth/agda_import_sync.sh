@@ -54,7 +54,7 @@ collect_imports() {
         if (line ~ /TWA[.]Thesis[.]Chapter3[.](ClosenessSpaces|SearchableTypes)[[:space:]]+fe([[:space:]]|$)/) next
         if (line ~ /^open import (Agda[.]Builtin[.]Reflection|Haskell[.]Law[.]Num[.]Def|Haskell[.]Law[.]Num[.]Int|Haskell[.]Prelude[.]Nat[.]Properties|Unsafe[.]Haskell)([[:space:]]|$)/) next
         if (line ~ /^open import InfinitePigeon[.]FinitePigeon([[:space:]]|$)/) next
-        # Keep the learner logical spec's MLTT and UF foundational imports module-local.
+        # Keep MLTT and UF foundations used by LearnerLogicalSpec module-local.
         if (line ~ /^open import (MLTT[.]Spartan|MLTT[.]Athenian|UF[.](Base|FunExt|PropTrunc|Size|Subsingletons|Subsingletons-FunExt|UA-FunExt|Equiv|SubtypeClassifier))([[:space:]]|$)/) next
         print line
       }
