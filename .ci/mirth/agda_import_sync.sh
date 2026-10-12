@@ -54,6 +54,8 @@ collect_imports() {
         if (line ~ /TWA[.]Thesis[.]Chapter3[.](ClosenessSpaces|SearchableTypes)[[:space:]]+fe([[:space:]]|$)/) next
         if (line ~ /^open import (Agda[.]Builtin[.]Reflection|Haskell[.]Law[.]Num[.]Def|Haskell[.]Law[.]Num[.]Int|Haskell[.]Prelude[.]Nat[.]Properties|Unsafe[.]Haskell)([[:space:]]|$)/) next
         if (line ~ /^open import InfinitePigeon[.]FinitePigeon([[:space:]]|$)/) next
+        # Keep the learner logical spec's MLTT and UF foundational imports module-local.
+        if (line ~ /^open import (MLTT[.]Spartan|MLTT[.]Athenian|UF[.](Base|FunExt|PropTrunc|Size|Subsingletons|Subsingletons-FunExt|UA-FunExt|Equiv|SubtypeClassifier))([[:space:]]|$)/) next
         print line
       }
     ' "$file"
@@ -99,7 +101,9 @@ external_drift() {
           mod !~ /^Haskell[.]Law[.]Num[.](Def|Int)([[:space:]]|$)/ &&
           mod !~ /^Haskell[.]Prelude[.]Nat[.]Properties([[:space:]]|$)/ &&
           mod !~ /^InfinitePigeon[.]FinitePigeon([[:space:]]|$)/ &&
-          mod !~ /^Unsafe[.]Haskell([[:space:]]|$)/)
+          mod !~ /^Unsafe[.]Haskell([[:space:]]|$)/ &&
+          mod !~ /^MLTT[.](Spartan|Athenian)([[:space:]]|$)/ &&
+          mod !~ /^UF[.](Base|FunExt|PropTrunc|Size|Subsingletons|Subsingletons-FunExt|UA-FunExt|Equiv|SubtypeClassifier)([[:space:]]|$)/)
         print FILENAME ": " $0
     }
   ' "$file"
