@@ -11334,6 +11334,10 @@ noUnconditionalCanonicalPriceDerivation C D =
            (allocation₂ C)
            (equilibrium₂ C)))
 
+-- Disjoint sum constructors rule out a shared canonical price.
+twoPriceDistinct : (inj₁ tt : ⊤ ⊎ ⊤) ≢ inj₂ tt
+twoPriceDistinct ()
+
 twoWorldsNoCommonSupportingPrice :
   ¬ Σ (⊤ ⊎ ⊤)
     (λ p →
