@@ -1311,7 +1311,7 @@ semanticPlanEGraphReport plan =
       EGraph.addExpr
         (EGraph.leftAssocExpr plan)
         EGraph.emptyGraph
-    (report , _) =
+    (_ , report) =
       EGraph.saturateUntilStable
         EGraph.semanticRewriteRules
         graph0
