@@ -29,12 +29,17 @@
 (local edges [])
 (each [_ path (ipairs source-files)]
   (local content (read-file path))
+  (local content-lines (fun.totable (string.gmatch content "[^\\n]+")))
+  (local module-lines
+    (fun.totable
+      (fun.filter
+        (fn [line] (string.match line "^%s*module%s+"))
+        content-lines)))
   (local module-name
-    (or
-      (string.match content "^%s*module%s+([^%s]+)")
-      (string.match content "\\n%s*module%s+([^%s]+)")))
+    (if (> (# module-lines) 0)
+      (string.match (. module-lines 1) "^%s*module%s+([^%s]+)")
+      nil))
   (local imports [])
-  (local content-lines (fun.totable (string.gmatch content "[^\n]+")))
   (each [_ line (ipairs content-lines)]
     (local imported
       (or
