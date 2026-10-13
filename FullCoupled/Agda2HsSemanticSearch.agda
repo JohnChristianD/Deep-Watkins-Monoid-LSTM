@@ -215,7 +215,7 @@ astarWithFuel (suc fuel) required laws (node ∷ frontier) =
       Nothing →
         Just node
 
-      Just capability →
+      (Just capability) →
         let children = expandForCapability capability laws node
             frontier' = insertAll required children frontier
         in
