@@ -234,7 +234,7 @@ topLevelHeader :
 topLevelHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
-    Just headerName ->
+    (Just headerName) ->
       case topLevelLine line of λ where
         False -> Nothing
         True ->
@@ -318,7 +318,7 @@ bodyClause :
 bodyClause name line =
   case firstWord line of λ where
     Nothing -> Nothing
-    Just lineName ->
+    (Just lineName) ->
       case topLevelLine line of λ where
         False -> Nothing
         True ->
@@ -400,7 +400,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
   case state of λ where
     idle ->
       case topLevelRecordHeader line of λ where
-        Just (name , fragment) ->
+        (Just (name , fragment)) ->
           scanLines
             sourceFile
             rest
@@ -408,7 +408,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
             accumulator
         Nothing ->
           case topLevelHeader line of λ where
-            Just (name , fragment) ->
+            (Just (name , fragment)) ->
               scanLines
                 sourceFile
                 rest
@@ -418,7 +418,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
               scanLines sourceFile rest idle accumulator
     signature-state name signatureReversed ->
       case bodyClause name line of λ where
-        Just body ->
+        (Just body) ->
           scanLines
             sourceFile
             rest
@@ -426,7 +426,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
             accumulator
         Nothing ->
           case topLevelDeclarationHeader line of λ where
-            Just nextName ->
+            (Just nextName) ->
               if nextName == name then
                 scanLines
                   sourceFile
@@ -454,7 +454,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
                 accumulator
     body-state name signatureReversed bodyReversed ->
       case topLevelDeclarationHeader line of λ where
-        Just nextName ->
+        (Just nextName) ->
           if nextName == name then
             scanLines
               sourceFile
@@ -515,7 +515,7 @@ recordFieldHeader :
 recordFieldHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
-    Just candidate ->
+    (Just candidate) ->
       case leadingSpaceCount line >= suc (suc (suc (suc zero))) of λ where
         False -> Nothing
         True ->
@@ -565,7 +565,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
   case topLevelLine line of λ where
     True ->
       case topLevelRecordHeader line of λ where
-        Just (recordName , _) ->
+        (Just (recordName , _)) ->
           scanRecordFields
             sourceFile
             rest
@@ -587,7 +587,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
             accumulator
         record-waiting recordName ->
           case firstWord line of λ where
-            Just "field" ->
+            (Just "field") ->
               scanRecordFields
                 sourceFile
                 rest
@@ -601,7 +601,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
                 accumulator
         record-fields recordName ->
           case recordFieldHeader line of λ where
-            Just (fieldName , fragment) ->
+            (Just (fieldName , fragment)) ->
               scanRecordFields
                 sourceFile
                 rest
@@ -618,7 +618,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
                 accumulator
         field-collecting recordName fieldName signatureReversed ->
           case recordFieldHeader line of λ where
-            Just (nextFieldName , fragment) ->
+            (Just (nextFieldName , fragment)) ->
               scanRecordFields
                 sourceFile
                 rest

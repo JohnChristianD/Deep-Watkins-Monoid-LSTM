@@ -220,7 +220,7 @@ rebuildBindings (binding node id ∷ rest) graph changed =
   in
   case findOtherNode canonical id (bindings graph) of λ where
     Nothing -> rebuildBindings rest graph changed
-    Just other ->
+    (Just other) ->
       if equivalent id other graph then
         rebuildBindings rest graph changed
       else
@@ -242,7 +242,7 @@ bindSubstitution : String -> Nat -> Substitution -> Maybe Substitution
 bindSubstitution name id (substitution entries) =
   case lookupSubstitution name (substitution entries) of λ where
     Nothing -> Just (substitution ((name , id) ∷ entries))
-    Just old ->
+    (Just old) ->
       if old == id then Just (substitution entries) else Nothing
 
 matchPattern :
@@ -299,7 +299,7 @@ instantiatePatterns [] _ graph = Just ([] , graph)
 instantiatePatterns (pattern ∷ patterns) sub graph =
   case instantiatePattern pattern sub graph of λ where
     Nothing -> Nothing
-    Just (id , graph') ->
+    (Just (id , graph')) ->
       case instantiatePatterns patterns sub graph' of λ where
         Nothing -> Nothing
         Just (ids , graph'') -> Just (id ∷ ids , graph'')
@@ -309,7 +309,7 @@ applyMatch :
 applyMatch rule rootId sub graph =
   case instantiatePattern (rhs rule) sub graph of λ where
     Nothing -> graph , zero
-    Just (rhsId , graph') ->
+    (Just (rhsId , graph')) ->
       let left = root graph' rootId
           right = root graph' rhsId
       in if left == right then graph' , zero
@@ -410,7 +410,7 @@ classAnalysisFor target (binding node id ∷ rest) graph =
     let cost = localCost node in
     case tail of λ where
       Nothing -> Just (classAnalysis target (suc zero) cost)
-      Just current ->
+      (Just current) ->
         let nextCount = suc (analysisENodeCount current)
             nextCost =
               if cost < analysisMinLocalCost current then
@@ -447,10 +447,10 @@ mutual
   extractChildren (child ∷ children) graph depth seen =
     case extractBestSeen child graph depth seen of λ where
       Nothing -> Nothing
-      Just first ->
+      (Just first) ->
         case extractChildren children graph depth seen of λ where
           Nothing -> Nothing
-          Just rest ->
+          (Just rest) ->
             Just
               (childExtraction
                 (extractedExpr first ∷ extractedChildren rest)
@@ -466,7 +466,7 @@ mutual
           if root graph id == target then
             case extractChildren children graph (predNat depth) seen of λ where
               Nothing -> Nothing
-              Just children' ->
+              (Just children') ->
                 Just
                   (extraction
                     (app symbol (extractedChildren children'))

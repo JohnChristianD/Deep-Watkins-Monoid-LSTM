@@ -383,7 +383,7 @@ graphExpandNode (graphNode []) _ = []
 graphExpandNode (graphNode (terminal ∷ rest)) laws =
   case graphLawForName terminal laws of λ where
     Nothing -> []
-    Just law ->
+    (Just law) ->
       graphExpandDependencies
         (graphLawDependencies law)
         (terminal ∷ rest)
@@ -474,10 +474,10 @@ graphPlanHeadIsLeaf :
 graphPlanHeadIsLeaf plan laws =
   case graphFirst plan of λ where
     Nothing -> False
-    Just terminal ->
+    (Just terminal) ->
       case graphLawForName terminal laws of λ where
         Nothing -> False
-        Just law ->
+        (Just law) ->
           graphLawDependencies law == []
 
 graphMaximalDependencyChain :
@@ -703,10 +703,10 @@ graphAStarHeuristic :
 graphAStarHeuristic laws node =
   case graphFirst (graphNodePlan node) of λ where
     Nothing -> zero
-    Just terminal ->
+    (Just terminal) ->
       case graphLawForName terminal laws of λ where
         Nothing -> zero
-        Just law ->
+        (Just law) ->
           if graphLawDependencies law == [] then
             zero
           else
@@ -1021,7 +1021,7 @@ requiredPlanForName :
 requiredPlanForName requested semanticLaws =
   case semanticLawForName requested semanticLaws of λ where
     Nothing -> Nothing
-    Just law ->
+    (Just law) ->
       if semanticLawCanSeed law then
         let graphLaws = semanticGraphLaws semanticLaws
         in
@@ -1047,7 +1047,7 @@ requiredPlans (name ∷ names) semanticLaws =
   case requiredPlanForName name semanticLaws of λ where
     Nothing ->
       requiredPlans names semanticLaws
-    Just plan ->
+    (Just plan) ->
       if requiredPlanIsValid semanticLaws plan then
         (name , plan) ∷ requiredPlans names semanticLaws
       else
@@ -1205,7 +1205,7 @@ dominanceEdgesForFields theorem knownLaws (fieldLaw ∷ remainingFields) =
   case dominanceEdgeFor theorem fieldLaw knownLaws of λ where
     Nothing ->
       dominanceEdgesForFields theorem knownLaws remainingFields
-    Just edge ->
+    (Just edge) ->
       edge ∷ dominanceEdgesForFields theorem knownLaws remainingFields
 
 dominanceEdgesForTheorems :
@@ -1355,7 +1355,7 @@ semanticPlanEGraphExtractable plan =
       (suc (EGraph.enodeCount graph))
   of λ where
     Nothing -> False
-    Just extraction ->
+    (Just extraction) ->
       EGraph.extractedCost extraction > zero
 
 plansEGraphClosed :
@@ -1378,7 +1378,7 @@ requiredPlanEGraphCount (name ∷ names) laws =
   case requiredPlanForName name laws of λ where
     Nothing ->
       requiredPlanEGraphCount names laws
-    Just plan ->
+    (Just plan) ->
       let tail = requiredPlanEGraphCount names laws in
       if semanticPlanEGraphComplete plan &&
          semanticPlanEGraphExtractable plan then
