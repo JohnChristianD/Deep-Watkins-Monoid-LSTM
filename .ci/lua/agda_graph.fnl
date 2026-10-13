@@ -31,10 +31,10 @@
   (local content (read-file path))
   (local imports [])
   (each [_ imported
-      (string.gmatch content "\\n%s*open%s+import%s+([^%s]+)")]
+      (string.gmatch content "\n%s*open%s+import%s+([^%s]+)")]
     (table.insert imports imported))
   (each [_ imported
-      (string.gmatch content "\\n%s*import%s+([^%s]+)")]
+      (string.gmatch content "\n%s*import%s+([^%s]+)")]
     (table.insert imports imported))
   (table.insert nodes {:id module-name :label module-name :source path})
   (each [_ imported (ipairs imports)]
