@@ -1,0 +1,178 @@
+name: Nix connected composition verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-semantic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Verify official Nix surface
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify official Nix surface
+        run: bash .ci/verify-official-nix-surface.sh
+
+  agda:
+    name: Pure Agda2HS kernel surface
+    needs: policy
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
+        with:
+          installer-version: '2.35.1'
+      - name: Run Agda lanes in one Nix environment
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          nix develop .#agda-ci -c bash -e -c '
+            set -euo pipefail
+            run_lane() {
+              local lane="$1"
+              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
+            }
+            run_lane AgdaLearner
+            run_lane AgdaTheorem
+          '
+
+  versions:
+    name: Nix tool versions
+    needs: policy
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
+        with:
+          installer-version: '2.35.1'
+
+
+      - name: Run version lane
+        env:
+          CI_LANE: '(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.Versions)'
+        run: |
+          set -euo pipefail
+          nix develop .#agda-versions -c bash -e -c '
+            set -euo pipefail
+            CI_LANE="$CI_LANE" dhall text --file .ci/actions_ci.dhall | bash -e
+          '
+
+  semantic:
+    name: Agda semantic/e-graph verification
+    needs: policy
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
+        with:
+          installer-version: '2.35.1'
+      - name: Verify pure Agda2HS graph search
+        timeout-minutes: 15
+        run: nix run .#agda2hs-graph-search-check
+
+      - name: Check Scott–Strachey and guarded stream semantics
+        timeout-minutes: 15
+        run: |
+          nix run .#scott-strachey-domain-check
+          nix run .#monoid-lstm-stream-check
+
+      - name: Smoke-test Nix LuaJIT, Fennel, and Luafun
+        timeout-minutes: 10
+        run: nix run .#fennel-smoke
+
+      - name: Verify pinned Nix Streamly packages
+        timeout-minutes: 15
+        run: nix run .#streamly-tools-check
+
+      - name: Run semantic lanes in one Nix environment
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          nix develop .#agda-ci -c bash -e -c '
+            set -euo pipefail
+            run_lane() {
+              local lane="$1"
+              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
+            }
+            run_lane Discovery
+            run_lane Agda2Hs
+            run_lane EconlibCrossrepo
+            run_lane EconlibEquilibriumSearch
+            run_lane StrictExistenceImpossibility
+            run_lane StationaryCycleImpossibility
+            run_lane IsomorphismTransport
+            run_lane SemanticContract
+            run_lane Surface
+          '
+      - name: Publish live theorem/economic graph artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theorem-economic-closure-graph
+          if-no-files-found: ignore
+          path: |
+            .ci/discovery/theorem-monolith-egraph-sync.dhall
+            .ci/discovery/economic-closure-graph.dhall
+            build/agda-haskell/agda2hs-manifest.tsv
+            build/agda-haskell/malonzo-files.txt
+
+  pages:
+    name: Pages build verification
+    needs: policy
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
+        with:
+          installer-version: '2.35.1'
+      - name: Run Fennel and Pages lanes in one Nix environment
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          nix develop .#presentation -c bash -e -c '
+            set -euo pipefail
+            run_lane() {
+              local lane="$1"
+              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
+            }
+            run_lane FennelPresentation
+            run_lane Pages
+          '
+
+  auto-merge:
+    name: Enable auto-merge after full verification
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    needs: [agda, semantic, pages, versions]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable GitHub auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
+
