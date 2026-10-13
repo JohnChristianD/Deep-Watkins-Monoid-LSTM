@@ -45,7 +45,7 @@ jobs:
             set -euo pipefail
             run_lane() {
               local lane="$1"
-              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | MirthFastDirty | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
+              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
             }
             run_lane AgdaLearner
             run_lane AgdaTheorem
@@ -66,7 +66,7 @@ jobs:
 
       - name: Run version lane
         env:
-          CI_LANE: '(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | MirthFastDirty | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.Versions)'
+          CI_LANE: '(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.Versions)'
         run: |
           set -euo pipefail
           nix develop .#agda-versions -c bash -e -c '
@@ -96,7 +96,7 @@ jobs:
             set -euo pipefail
             run_lane() {
               local lane="$1"
-              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | MirthFastDirty | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
+              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
             }
             run_lane Discovery
             run_lane Agda2Hs
@@ -130,7 +130,7 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Run Mirth and Pages lanes in one Nix environment
+      - name: Run Fennel and Pages lanes in one Nix environment
         timeout-minutes: 20
         run: |
           set -euo pipefail
@@ -138,9 +138,9 @@ jobs:
             set -euo pipefail
             run_lane() {
               local lane="$1"
-              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | MirthFastDirty | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
+              CI_LANE="(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.$lane)" dhall text --file .ci/actions_ci.dhall | bash -e
             }
-            run_lane MirthFastDirty
+            run_lane FennelPresentation
             run_lane Pages
           '
 
