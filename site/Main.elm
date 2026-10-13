@@ -288,10 +288,8 @@ styleSheet =
     Html.node "style" []
         [ text
             (String.join ""
-                [ "@font-face{font-family:'Julia Mono';src:url('https://cdn.jsdelivr.net/gh/cormullion/juliamono@0.63.2/webfonts/JuliaMono-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap;}"
-                , "@font-face{font-family:'Julia Mono';src:url('https://cdn.jsdelivr.net/gh/cormullion/juliamono@0.63.2/webfonts/JuliaMono-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap;}"
-                , "@font-face{font-family:'Writer';src:url('https://raw.githubusercontent.com/tonsky/font-writer/master/ttf/Writer-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap;}"
-                , ":root{font-family:'Writer','Julia Mono','Noto Emoji';background:"
+                [ "@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;700&display=swap');"
+                , ":root{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;background:"
                 , perceptualCss paper
                 , ";color:"
                 , perceptualCss ink
@@ -301,7 +299,7 @@ styleSheet =
                 , perceptualCss paper
                 , ";color:"
                 , perceptualCss ink
-                , ";font-family:'Writer','Julia Mono','Noto Emoji';}"
+                , ";font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;}"
                 , "button,input{font:inherit;}"
                 , "button,input,select{border:1px solid color-mix(in srgb,"
                 , perceptualCss ink
@@ -313,8 +311,8 @@ styleSheet =
                 , ".rail{position:sticky;top:0;height:100vh;overflow:auto;padding:1.5rem 1.25rem;border-right:1px solid color-mix(in srgb,"
                 , perceptualCss ink
                 , " 18%,transparent);}"
-                , ".brand{font-family:'Julia Mono';font-weight:700;letter-spacing:-.04em;font-size:1.05rem;margin-bottom:1.5rem;}"
-                , ".eyebrow{font-family:'Julia Mono';font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:"
+                , ".brand{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-weight:700;letter-spacing:-.04em;font-size:1.05rem;margin-bottom:1.5rem;}"
+                , ".eyebrow{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:"
                 , perceptualCss quiet
                 , ";}"
                 , ".module-list{list-style:none;padding:0;margin:1rem 0;display:grid;gap:.25rem;}"
@@ -328,8 +326,8 @@ styleSheet =
                 , ".mast{display:block;max-width:70ch;border-bottom:1px solid color-mix(in srgb,"
                 , perceptualCss ink
                 , " 22%,transparent);padding-bottom:1.4rem;margin-bottom:2.5rem;}"
-                , "h1{font-family:'Julia Mono';font-size:clamp(2.1rem,5vw,4.2rem);line-height:1;letter-spacing:-.055em;margin:.35rem 0 1rem;max-width:18ch;}"
-                , "h2{font-family:'Julia Mono';font-size:1.1rem;line-height:1.3;letter-spacing:-.025em;margin:0 0 .8rem;}"
+                , "h1{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:clamp(2.1rem,5vw,4.2rem);line-height:1;letter-spacing:-.055em;margin:.35rem 0 1rem;max-width:18ch;}"
+                , "h2{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:1.1rem;line-height:1.3;letter-spacing:-.025em;margin:0 0 .8rem;}"
                 , ".lede{font-size:1.05rem;line-height:1.45;max-width:68ch;margin:0;}"
                 , ".stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.75rem;max-width:70ch;margin-top:1.5rem;}"
                 , ".stat{padding:.8rem 0;border-top:2px solid "
@@ -337,7 +335,7 @@ styleSheet =
                 , ";background:color-mix(in srgb,"
                 , perceptualCss accent
                 , " 8%,transparent);}"
-                , ".stat strong{display:block;font-family:'Julia Mono';font-size:1.25rem;line-height:1.2;}"
+                , ".stat strong{display:block;font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:1.25rem;line-height:1.2;}"
                 , ".tools{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 1.5rem;}"
                 , ".tools input,.tools button{padding:.65rem .75rem;border-radius:.2rem;}"
                 , ".tools input{min-width:min(30rem,100%);flex:1;}"
@@ -349,12 +347,12 @@ styleSheet =
                 , ".record:hover{border-color:"
                 , perceptualCss accent
                 , ";}"
-                , ".record .kind{font-family:'Julia Mono';font-size:.67rem;letter-spacing:.14em;text-transform:uppercase;color:"
+                , ".record .kind{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.67rem;letter-spacing:.14em;text-transform:uppercase;color:"
                 , perceptualCss quiet
                 , ";}"
-                , ".record h3{font-family:'Julia Mono';font-size:.95rem;overflow-wrap:anywhere;margin:.45rem 0;}"
+                , ".record h3{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.95rem;overflow-wrap:anywhere;margin:.45rem 0;}"
                 , ".record p{margin:.45rem 0;line-height:1.45;max-width:70ch;}"
-                , ".source{font-family:'Julia Mono';font-size:.72rem;line-height:1.35;color:"
+                , ".source{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.72rem;line-height:1.35;color:"
                 , perceptualCss quiet
                 , ";overflow-wrap:anywhere;}"
                 , ".map{border-top:1px solid color-mix(in srgb,"
@@ -363,7 +361,7 @@ styleSheet =
                 , ".map svg{display:block;width:100%;min-width:38rem;height:22rem;}"
                 , ".relation{display:grid;grid-template-columns:minmax(0,1fr) minmax(7rem,9rem) minmax(0,1fr);gap:.75rem;align-items:center;padding:.7rem 0;border-bottom:1px solid color-mix(in srgb,"
                 , perceptualCss ink
-                , " 12%,transparent);font-family:'Julia Mono';font-size:.75rem;}"
+                , " 12%,transparent);font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.75rem;}"
                 , ".relation-end{min-width:0;overflow-wrap:anywhere;}"
                 , ".relation-middle{min-width:7rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.25rem;overflow-wrap:anywhere;}"
                 , ".relation-kind{font-size:.62rem;line-height:1.2;letter-spacing:.04em;}"
@@ -374,10 +372,10 @@ styleSheet =
                 , ".swatch{width:4rem;height:2rem;border:1px solid color-mix(in srgb,"
                 , perceptualCss ink
                 , " 20%,transparent);}"
-                , ".footer{font-family:'Julia Mono';font-size:.68rem;line-height:1.4;color:"
+                , ".footer{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.68rem;line-height:1.4;color:"
                 , perceptualCss quiet
                 , ";margin-top:4rem;}"
-                , "body{font-size:16px;line-height:1.4;}p,li{max-width:70ch;}strong{font-weight:700;}em{font-style:italic;}code,pre{font-family:'Julia Mono';font-size:.86em;}a{color:inherit;text-underline-offset:.16em;}a:hover{text-decoration-thickness:2px;}@media(max-width:800px){.shell{display:block}.rail{position:relative;height:auto;border-right:0;border-bottom:1px solid color-mix(in srgb,"
+                , "body{font-size:16px;line-height:1.4;}p,li{max-width:70ch;}strong{font-weight:700;}em{font-style:italic;}code,pre{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.86em;}a{color:inherit;text-underline-offset:.16em;}a:hover{text-decoration-thickness:2px;}@media(max-width:800px){.shell{display:block}.rail{position:relative;height:auto;border-right:0;border-bottom:1px solid color-mix(in srgb,"
                 , perceptualCss ink
                 , " 18%,transparent);overflow-x:hidden;}.module-list{grid-template-columns:minmax(0,1fr);}.module-list button{min-width:0;overflow-wrap:anywhere;}.mast{grid-template-columns:1fr}.main{padding:1rem;overflow-x:hidden}.map{overflow-x:auto}.map svg{min-width:30rem}}"
                 ]
@@ -547,7 +545,7 @@ graphView model =
                     [ SA.x (String.fromFloat x)
                     , SA.y (String.fromFloat (y + 3))
                     , SA.textAnchor "middle"
-                    , SA.fontFamily "Julia Mono"
+                    , SA.fontFamily "Atkinson Hyperlegible Mono, Iosevka, monospace"
                     , SA.fontSize "7"
                     , SA.fill (perceptualCss paper)
                     ]

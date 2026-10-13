@@ -529,17 +529,29 @@ recordFieldHeader line =
                     (before , after) ->
                       Just (trimWhitespace before , trimWhitespace after)
 
-parseRecordFields :
+finalizeRecordFieldState :
   String ->
-  List String ->
+  RecordFieldScanState ->
+  List SemanticDecl ->
   List SemanticDecl
-parseRecordFields sourceFile sourceLines =
-  reverse
-    (scanRecordFields
-      sourceFile
-      sourceLines
-      outside-record
-      [])
+finalizeRecordFieldState _ outside-record accumulator =
+  accumulator
+finalizeRecordFieldState _ (record-waiting _) accumulator =
+  accumulator
+finalizeRecordFieldState _ (record-fields _) accumulator =
+  accumulator
+finalizeRecordFieldState sourceFile
+  (field-collecting recordName fieldName signatureReversed)
+  accumulator =
+  semanticDecl
+    sourceFile
+    (recordName ++ "." ++ fieldName)
+    (unwordsString (reverse signatureReversed))
+    ""
+    semantic-record-field
+    recordName
+  ∷ accumulator
+
 
 scanRecordFields :
   String ->
@@ -631,28 +643,17 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
                   (trimWhitespace line ∷ signatureReversed))
                 accumulator
 
-finalizeRecordFieldState :
+parseRecordFields :
   String ->
-  RecordFieldScanState ->
-  List SemanticDecl ->
+  List String ->
   List SemanticDecl
-finalizeRecordFieldState _ outside-record accumulator =
-  accumulator
-finalizeRecordFieldState _ (record-waiting _) accumulator =
-  accumulator
-finalizeRecordFieldState _ (record-fields _) accumulator =
-  accumulator
-finalizeRecordFieldState sourceFile
-  (field-collecting recordName fieldName signatureReversed)
-  accumulator =
-  semanticDecl
-    sourceFile
-    (recordName ++ "." ++ fieldName)
-    (unwordsString (reverse signatureReversed))
-    ""
-    semantic-record-field
-    recordName
-  ∷ accumulator
+parseRecordFields sourceFile sourceLines =
+  reverse
+    (scanRecordFields
+      sourceFile
+      sourceLines
+      outside-record
+      [])
 
 dropN : Nat -> CharList -> CharList
 dropN zero chars = chars
