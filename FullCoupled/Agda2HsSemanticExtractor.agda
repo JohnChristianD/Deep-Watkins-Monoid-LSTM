@@ -906,6 +906,9 @@ countComposite (law ∷ laws) =
 semanticLawName : SemanticLaw -> String
 semanticLawName = lawName
 
+semanticLawSignature : SemanticLaw -> String
+semanticLawSignature = lawSignature
+
 semanticLawDependencies : SemanticLaw -> List String
 semanticLawDependencies = lawDependencies
 
@@ -921,6 +924,7 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS readSemanticLaws #-}
 {-# COMPILE AGDA2HS semanticLawId #-}
 {-# COMPILE AGDA2HS semanticLawName #-}
+{-# COMPILE AGDA2HS semanticLawSignature #-}
 {-# COMPILE AGDA2HS semanticLawDependencies #-}
 {-# COMPILE AGDA2HS countNonreflexive #-}
 {-# COMPILE AGDA2HS countComposite #-}
