@@ -1014,14 +1014,12 @@ requiredPlanForName requested semanticLaws =
   case semanticLawForName requested semanticLaws of λ where
     Nothing -> Nothing
     (Just law) ->
-      if semanticLawCanSeed law then
-        let graphLaws = semanticGraphLaws semanticLaws
-        in
-        graphAStarFirst
-          graphLaws
-          (graphNode (Extractor.semanticLawId law ∷ []))
-      else
-        Nothing
+      case semanticLawCanSeed law of λ where
+        True ->
+          graphAStarFirst
+            (semanticGraphLaws semanticLaws)
+            (graphNode (Extractor.semanticLawId law ∷ []))
+        False -> Nothing
 
 requiredPlanIsValid :
   List Extractor.SemanticLaw ->
