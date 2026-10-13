@@ -1,9 +1,0 @@
-module actions.agda_to_elm
-
-import std.prelude
-import std.world
-
-
-def main {
-    "module GeneratedTheoremSurface exposing (siteTitle, sourceFiles, nodeLines, edgeLines, asciiSanitize)\n\nimport Char\nimport GeneratedAgdaGraph as Graph\nimport String\n\nsiteTitle : String\nsiteTitle =\n    case Graph.nodes of\n        first :: _ ->\n            first.source\n\n        [] ->\n            \"AgdaGraph\"\n\nsourceFiles : List String\nsourceFiles =\n    unique (List.map .source Graph.nodes)\n\nunique : List String -> List String\nunique values =\n    uniqueHelp values []\n\nuniqueHelp : List String -> List String -> List String\nuniqueHelp values seen =\n    case values of\n        [] ->\n            seen\n\n        value :: rest ->\n            if List.member value seen then\n                uniqueHelp rest seen\n\n            else\n                uniqueHelp rest (seen ++ [ value ])\n\nsanitizeChar : Char -> Char\nsanitizeChar char =\n    if Char.toCode char < 128 then\n        char\n\n    else\n        Char.fromCode 63\n\nasciiSanitize : String -> String\nasciiSanitize value =\n    String.map sanitizeChar value\n\nnodeLine : Graph.Node -> String\nnodeLine node =\n    asciiSanitize (node.source ++ \":\" ++ node.label)\n\nnodeLines : List String\nnodeLines =\n    List.map nodeLine Graph.nodes\n\nedgeLine : Graph.Edge -> String\nedgeLine edge =\n    asciiSanitize\n        (edge.source\n            ++ \" --\"\n            ++ edge.relation\n            ++ \"--> \"\n            ++ edge.target\n        )\n\nedgeLines : List String\nedgeLines =\n    List.map edgeLine Graph.edges\n" print
-}

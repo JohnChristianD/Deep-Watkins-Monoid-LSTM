@@ -34,8 +34,11 @@ grep -Fq 'github:vehicle-lang/vehicle-formalisation/' flake.nix
 grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.nix
 grep -Fq 'name = "fennel-smoke";' flake.nix
 grep -Fq 'name = "streamly-tools-check";' flake.nix
-! grep -Eiq 'p[.]rio|-package rio' flake.nix || { echo "Rio remains in active compiler packages" >&2; exit 1; }
+! grep -Eiq 'p[.]rio|-package rio|mirth|TypeTopology|typetopology' flake.nix || { echo "retired compiler dependency remains in active flake" >&2; exit 1; }
+grep -Fq 'pkgs.luajitPackages.buildLuaPackage' flake.nix
+grep -Fq 'pkgs.luajit.withPackages' flake.nix
 grep -Fq 'acorn-prover = acornProver system;' flake.nix
 grep -Fq 'name = "xds-agda-check";' flake.nix
 grep -Fq 'name = "mini-vehicle-check";' flake.nix
+grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
 echo 'official-nix-surface=pass'

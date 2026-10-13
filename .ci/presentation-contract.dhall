@@ -2,10 +2,10 @@
     [ "FullCoupled.CanonicalLearnerMonolith"
     , "FullCoupled.TheoremsMonolith"
     ]
-, graphGenerator = ".ci/mirth/agda_graph.mth"
-, surfaceGenerator = ".ci/mirth/agda_to_elm.mth"
+, graphGenerator = ".ci/lua/agda_graph.fnl"
+, surfaceGenerator = ".ci/lua/agda_surface.fnl"
 , elmManifest = ".ci/elm-application.dhall"
 , siteEntry = "index.html"
 , compiledElm = "elm.js"
-, asciiGenerator = ".ci/mirth/ascii_surface.mth"
+, asciiGenerator = ".ci/lua/ascii_surface.fnl"
 }

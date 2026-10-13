@@ -1,9 +1,0 @@
-module actions.agda_import_sync
-
-import std.prelude
-import std.world
-
-
-def main {
-  "bash .ci/mirth/agda_import_sync.sh \"$1\"\n" print
-}

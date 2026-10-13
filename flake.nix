@@ -228,108 +228,6 @@
             type = "app";
             program = "${pkgs.dhall}/bin/dhall";
           };
-          mirth-fast-dirty-source = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-fast-dirty-source";
-              runtimeInputs = [ pkgs.coreutils ];
-              text = ''
-                set -euo pipefail
-                cat .ci/mirth/agda_to_elm.mth
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-fast-dirty-source";
-          };
-          mirth-c99-sync = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-c99-sync";
-              runtimeInputs = [ pkgs.mirth pkgs.stdenv.cc pkgs.coreutils ];
-              text = ''
-                set -euo pipefail
-                test "$#" = 1
-                output="$1"
-                tmp=$(mktemp -d)
-                trap 'rm -rf "$tmp"' EXIT
-                mirthc .ci/mirth/agda_to_elm.mth -o "$tmp/agda-to-elm.c"
-                cc -std=c99 "$tmp/agda-to-elm.c" -o "$output"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-c99-sync";
-          };
-          mirth-agda-import-sync = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-agda-import-sync";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
-              text = ''
-                set -euo pipefail
-                bash .ci/mirth/agda_import_sync.sh "$@"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-agda-import-sync";
-          };
-
-          mirth-agda-command-sync = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-agda-command-sync";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
-              text = ''
-                set -euo pipefail
-                bash .ci/mirth/agda_command_sync.sh "$@"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-agda-command-sync";
-          };
-
-          mirth-agda-sync = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-agda-sync";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
-              text = ''
-                set -euo pipefail
-                bash .ci/mirth/agda_import_sync.sh "$@"
-                bash .ci/mirth/agda_command_sync.sh "$@"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-agda-sync";
-          };
-
-          mirth-ascii-sync = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-ascii-sync";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
-              text = ''
-                set -euo pipefail
-                bash .ci/mirth/ascii_surface.sh
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-ascii-sync";
-          };
-
-          mirth-agda-graph = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-agda-graph";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
-              text = ''
-                set -euo pipefail
-                bash .ci/mirth/agda_graph.sh "$@"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-agda-graph";
-          };
-
           fennel-smoke = let
             script = pkgs.writeShellApplication {
               name = "fennel-smoke";
@@ -561,7 +459,6 @@
                 out="build/agda2hs-semantic-search"
                 rm -rf "$out"
                 mkdir -p "$out"
-                bash .ci/mirth/agda_command_sync.sh --check
                 "${agdaCommand system}/bin/agda2hs-agda" --dependency-graph="$out/semantic-search.dot" -i . FullCoupled/Agda2HsSemanticSearch.agda
                 test -s "$out/semantic-search.dot"
                 bash .ci/discovery/agda_semantic_source_closure.sh \
@@ -660,7 +557,6 @@
                 pkgs.coreutils
                 pkgs.findutils
                 pkgs.git
-                pkgs.mirth
                 pkgs.stdenv.cc
               ];
               text = ''
@@ -733,7 +629,6 @@
             packages = [
               (fennelRuntime system)
               pkgs.luajit
-              pkgs.mirth
               pkgs.stdenv.cc
               pkgs.coreutils
               pkgs.findutils
@@ -786,7 +681,6 @@
               (canonicalGhc system)
               pkgs.dhall
               pkgs.z3
-              pkgs.mirth
               (agdaCommand system)
               (agdaEmacs system)
             ];
@@ -817,7 +711,6 @@
               (canonicalGhc system)
               pkgs.dhall
               pkgs.z3
-              pkgs.mirth
               pkgs.gh
               (agdaCommand system)
               (agdaEmacs system)
@@ -834,7 +727,6 @@
               pkgs.haskellPackages.cabal-install
               pkgs.z3
               pkgs.dhall-json
-              pkgs.mirth
               pkgs.gh
               (agdaCommand system)
               (agdaEmacs system)

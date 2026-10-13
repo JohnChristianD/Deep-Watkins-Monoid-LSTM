@@ -1,8 +1,0 @@
-module actions.agda_command_sync
-
-import std.prelude
-import std.world
-
-def main {
-  "set -euo pipefail\nexec bash .ci/mirth/agda_command_sync.sh \"$@\"\n" print
-}
