@@ -1248,11 +1248,6 @@ graphDominanceEdges laws =
     (dominanceEdgesForTheorems laws laws)
     []
 
-dedupeStrings :
-  List String ->
-  List String
-dedupeStrings values = dedupeStringsWithSeen values []
-
 dedupeStringsWithSeen :
   List String ->
   List String ->
@@ -1263,6 +1258,11 @@ dedupeStringsWithSeen (value ∷ values) seen =
     dedupeStringsWithSeen values seen
   else
     dedupeStringsWithSeen values (value ∷ seen)
+
+dedupeStrings :
+  List String ->
+  List String
+dedupeStrings values = dedupeStringsWithSeen values []
 
 graphDominatedPublicTheorems :
   List Extractor.SemanticLaw ->
