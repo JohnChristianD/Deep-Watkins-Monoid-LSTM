@@ -2,7 +2,7 @@ module FullCoupled.Agda2HsSemanticSearch where
 
 open import Haskell.Prelude
 
-open import FullCoupled.Agda2HsSemanticExtractor as Extractor
+import FullCoupled.Agda2HsSemanticExtractor as Extractor
 open import FullCoupled.Agda2HsTheoremGraphEGraph using
   ( symbolicEGraphRegression
   ; eGraphAssociativityRegression

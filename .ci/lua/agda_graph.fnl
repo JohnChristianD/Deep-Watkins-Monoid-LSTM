@@ -29,6 +29,7 @@
 (local edges [])
 (each [_ path (ipairs source-files)]
   (local content (read-file path))
+  (local content-lines (fun.totable (string.gmatch content "[^\\n]+")))
   (local module-name
     (string.gsub
       (string.gsub path "%.agda$" "")
