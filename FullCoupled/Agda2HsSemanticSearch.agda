@@ -367,18 +367,6 @@ graphLawSeeds (law ∷ laws) =
 graphContains : String -> List String -> Bool
 graphContains = planContains
 
-graphExpandNode :
-  GraphNode -> List GraphLaw -> List GraphNode
-graphExpandNode (graphNode []) _ = []
-graphExpandNode (graphNode (terminal ∷ rest)) laws =
-  case graphLawForName terminal laws of λ where
-    Nothing -> []
-    (Just law) ->
-      graphExpandDependencies
-        (graphLawDependencies law)
-        (terminal ∷ rest)
-        []
-
 graphExpandDependencies :
   List String ->
   List String ->
@@ -395,6 +383,18 @@ graphExpandDependencies (dependency ∷ dependencies) plan acc =
       dependencies
       plan
       (graphNode (dependency ∷ plan) ∷ acc)
+
+graphExpandNode :
+  GraphNode -> List GraphLaw -> List GraphNode
+graphExpandNode (graphNode []) _ = []
+graphExpandNode (graphNode (terminal ∷ rest)) laws =
+  case graphLawForName terminal laws of λ where
+    Nothing -> []
+    (Just law) ->
+      graphExpandDependencies
+        (graphLawDependencies law)
+        (terminal ∷ rest)
+        []
 
 graphNodeScore : GraphNode -> Nat
 graphNodeScore node = length (graphNodePlan node)
