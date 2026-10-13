@@ -1218,17 +1218,6 @@ dominanceEdgeEqual left right =
   &&
   dominanceField left == dominanceField right
 
-dedupeDominanceEdges :
-  List DominanceEdge ->
-  List DominanceEdge ->
-  List DominanceEdge
-dedupeDominanceEdges [] seen = reverse seen
-dedupeDominanceEdges (edge ∷ edges) seen =
-  if dominanceEdgeMember edge seen then
-    dedupeDominanceEdges edges seen
-  else
-    dedupeDominanceEdges edges (edge ∷ seen)
-
 dominanceEdgeMember :
   DominanceEdge ->
   List DominanceEdge ->
@@ -1239,6 +1228,17 @@ dominanceEdgeMember edge (candidate ∷ rest) =
     True
   else
     dominanceEdgeMember edge rest
+
+dedupeDominanceEdges :
+  List DominanceEdge ->
+  List DominanceEdge ->
+  List DominanceEdge
+dedupeDominanceEdges [] seen = reverse seen
+dedupeDominanceEdges (edge ∷ edges) seen =
+  if dominanceEdgeMember edge seen then
+    dedupeDominanceEdges edges seen
+  else
+    dedupeDominanceEdges edges (edge ∷ seen)
 
 graphDominanceEdges :
   List Extractor.SemanticLaw ->
