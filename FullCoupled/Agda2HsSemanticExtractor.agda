@@ -234,18 +234,37 @@ topLevelHeader :
 topLevelHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
-    Just name ->
+    (Just headerName) ->
       case topLevelLine line of λ where
         False -> Nothing
         True ->
-          case syntaxHead name || name == "--" of λ where
+          case syntaxHead headerName || headerName == "--" of λ where
             True -> Nothing
             False ->
               case lineContainsChar ':' line of λ where
                 False -> Nothing
                 True ->
                   let (_ , fragment) = splitFirstCharString ':' line
-                  in Just (name , trimWhitespace fragment)
+                  in Just (headerName , trimWhitespace fragment)
+
+topLevelRecordHeaderType :
+  String ->
+  String ->
+  Maybe (String × String)
+topLevelRecordHeaderType name line =
+  case lineContainsChar ':' line of λ where
+    False -> Nothing
+    True ->
+      case splitFirstCharString ':' line of λ where
+        (_ , fragment) -> Just (name , trimWhitespace fragment)
+
+topLevelRecordHeaderName :
+  String ->
+  Maybe (String × String)
+topLevelRecordHeaderName line =
+  case secondWord line of λ where
+    Nothing -> Nothing
+    (Just recordName) -> topLevelRecordHeaderType recordName line
 
 topLevelRecordHeaderAtTopLevel :
   String ->
@@ -256,38 +275,23 @@ topLevelRecordHeaderAtTopLevel line =
   else
     Nothing
 
-topLevelRecordHeaderName :
-  String ->
-  Maybe (String × String)
-topLevelRecordHeaderName line =
-  case secondWord line of λ where
-    Nothing -> Nothing
-    Just name -> topLevelRecordHeaderType name line
-
-topLevelRecordHeaderType :
-  String ->
-  String ->
-  Maybe (String × String)
-topLevelRecordHeaderType name line =
-  if lineContainsChar ':' line then
-    let (_ , fragment) = splitFirstCharString ':' line
-    in Just (name , trimWhitespace fragment)
-  else
-    Nothing
-
 topLevelRecordHeader :
   String ->
   Maybe (String × String)
 topLevelRecordHeader line =
   case firstWord line of λ where
-    Just "record" -> topLevelRecordHeaderAtTopLevel line
-    _ -> Nothing
+    Nothing -> Nothing
+    (Just firstName) ->
+      case firstName == "record" of λ where
+        True -> topLevelRecordHeaderAtTopLevel line
+        False -> Nothing
 
 topLevelRecordHeaderRegression : Bool
 topLevelRecordHeaderRegression =
   case topLevelRecordHeader "record Example : Set where" of λ where
-    Just ("Example" , "Set where") -> True
-    _ -> False
+    Nothing -> False
+    (Just (recordName , recordType)) ->
+      recordName == "Example" && recordType == "Set where"
 
 topLevelRecordHeaderRegressionChecked :
   topLevelRecordHeaderRegression ≡ True
@@ -309,7 +313,7 @@ topLevelDeclarationHeader :
 topLevelDeclarationHeader line =
   case topLevelHeader line of λ where
     Nothing -> Nothing
-    Just (name , _) -> Just name
+    (Just (name , _)) -> Just name
 
 bodyClause :
   String ->
@@ -318,24 +322,24 @@ bodyClause :
 bodyClause name line =
   case firstWord line of λ where
     Nothing -> Nothing
-    Just lineName ->
-      if topLevelLine line then
-        if lineName == name then
-          if lineContainsChar '=' line then
-            let (_ , rhs) = splitFirstCharString '=' line
-            in Just (trimWhitespace rhs)
-          else
-            Nothing
-        else
-          Nothing
-      else
-        Nothing
+    (Just lineName) ->
+      case topLevelLine line of λ where
+        False -> Nothing
+        True ->
+          case lineName == name of λ where
+            False -> Nothing
+            True ->
+              case lineContainsChar '=' line of λ where
+                False -> Nothing
+                True ->
+                  case splitFirstCharString '=' line of λ where
+                    (_ , rhs) -> Just (trimWhitespace rhs)
 
 bodyClauseRegression : Bool
 bodyClauseRegression =
   case bodyClause "sample" "sample = body" of λ where
-    Just "body" -> True
-    _ -> False
+    Nothing -> False
+    (Just body) -> body == "body"
 
 bodyClauseRegressionChecked :
   bodyClauseRegression ≡ True
@@ -351,107 +355,12 @@ bodyClauseRejectsIndentedRegressionChecked :
   bodyClauseRejectsIndentedRegression ≡ True
 bodyClauseRejectsIndentedRegressionChecked = refl
 
-parseLines :
-  String ->
-  List String ->
-  List SemanticDecl
-parseLines sourceFile sourceLines =
-  reverse (scanLines sourceFile sourceLines idle [])
-
-scanLines :
-  String ->
-  List String ->
-  ScanState ->
-  List SemanticDecl ->
-  List SemanticDecl
-scanLines sourceFile [] state accumulator =
-  finalizeScanState sourceFile state accumulator
-scanLines sourceFile (line ∷ rest) state accumulator =
-  case state of λ where
-    idle ->
-      case topLevelRecordHeader line of λ where
-        Just (name , fragment) ->
-          scanLines
-            sourceFile
-            rest
-            (signature-state name (fragment ∷ []))
-            accumulator
-        Nothing ->
-          case topLevelHeader line of λ where
-            Just (name , fragment) ->
-              scanLines
-                sourceFile
-                rest
-                (signature-state name (fragment ∷ []))
-                accumulator
-            Nothing ->
-              scanLines sourceFile rest idle accumulator
-    signature-state name signatureReversed ->
-      case bodyClause name line of λ where
-        Just body ->
-          scanLines
-            sourceFile
-            rest
-            (body-state name signatureReversed (body ∷ []))
-            accumulator
-        Nothing ->
-          case topLevelDeclarationHeader line of λ where
-            Just nextName ->
-              if nextName == name then
-                scanLines
-                  sourceFile
-                  rest
-                  (signature-state
-                    name
-                    (trimWhitespace line ∷ signatureReversed))
-                  accumulator
-              else
-                scanLines
-                  sourceFile
-                  (line ∷ rest)
-                  idle
-                  (finalizeScanState
-                    sourceFile
-                    (signature-state name signatureReversed)
-                    accumulator)
-            Nothing ->
-              scanLines
-                sourceFile
-                rest
-                (signature-state
-                  name
-                  (trimWhitespace line ∷ signatureReversed))
-                accumulator
-    body-state name signatureReversed bodyReversed ->
-      case topLevelDeclarationHeader line of λ where
-        Just nextName ->
-          if nextName == name then
-            scanLines
-              sourceFile
-              rest
-              (body-state
-                name
-                signatureReversed
-                (trimWhitespace line ∷ bodyReversed))
-              accumulator
-          else
-            scanLines
-              sourceFile
-              (line ∷ rest)
-              idle
-              (finalizeScanState
-                sourceFile
-                (body-state name signatureReversed bodyReversed)
-                accumulator)
-        Nothing ->
-          scanLines
-            sourceFile
-            rest
-            (body-state
-              name
-              signatureReversed
-              (trimWhitespace line ∷ bodyReversed))
-            accumulator
+unwordsString : List String -> String
+unwordsString [] = ""
+unwordsString (word ∷ wordsRest) =
+  case wordsRest of λ where
+    [] -> word
+    _ -> word ++ " " ++ unwordsString wordsRest
 
 finalizeScanState :
   String ->
@@ -483,13 +392,129 @@ finalizeScanState sourceFile
     ""
   ∷ accumulator
 
-leadingSpaceCount :
+scanLines :
   String ->
-  Nat
-leadingSpaceCount source =
-  leadingSpaceCountChars
-    source
-    zero
+  List String ->
+  ScanState ->
+  List SemanticDecl ->
+  List SemanticDecl
+scanLines sourceFile [] state accumulator =
+  finalizeScanState sourceFile state accumulator
+scanLines sourceFile (line ∷ rest) state accumulator =
+  case state of λ where
+    idle ->
+      case topLevelRecordHeader line of λ where
+        (Just (name , fragment)) ->
+          scanLines
+            sourceFile
+            rest
+            (signature-state name (fragment ∷ []))
+            accumulator
+        Nothing ->
+          case topLevelHeader line of λ where
+            (Just (name , fragment)) ->
+              scanLines
+                sourceFile
+                rest
+                (signature-state name (fragment ∷ []))
+                accumulator
+            Nothing ->
+              scanLines sourceFile rest idle accumulator
+    (signature-state name signatureReversed) ->
+      case bodyClause name line of λ where
+        (Just body) ->
+          scanLines
+            sourceFile
+            rest
+            (body-state name signatureReversed (body ∷ []))
+            accumulator
+        Nothing ->
+          case topLevelDeclarationHeader line of λ where
+            (Just nextName) ->
+              if nextName == name then
+                scanLines
+                  sourceFile
+                  rest
+                  (signature-state
+                    name
+                    (trimWhitespace line ∷ signatureReversed))
+                  accumulator
+              else
+                case topLevelHeader line of λ where
+                  Nothing ->
+                    scanLines
+                      sourceFile
+                      rest
+                      idle
+                      (finalizeScanState
+                        sourceFile
+                        (signature-state name signatureReversed)
+                        accumulator)
+                  (Just (nextName , fragment)) ->
+                    scanLines
+                      sourceFile
+                      rest
+                      (signature-state nextName (fragment ∷ []))
+                      (finalizeScanState
+                        sourceFile
+                        (signature-state name signatureReversed)
+                        accumulator)
+            Nothing ->
+              scanLines
+                sourceFile
+                rest
+                (signature-state
+                  name
+                  (trimWhitespace line ∷ signatureReversed))
+                accumulator
+    (body-state name signatureReversed bodyReversed) ->
+      case topLevelDeclarationHeader line of λ where
+        (Just nextName) ->
+          if nextName == name then
+            scanLines
+              sourceFile
+              rest
+              (body-state
+                name
+                signatureReversed
+                (trimWhitespace line ∷ bodyReversed))
+              accumulator
+          else
+            case topLevelHeader line of λ where
+              Nothing ->
+                scanLines
+                  sourceFile
+                  rest
+                  idle
+                  (finalizeScanState
+                    sourceFile
+                    (body-state name signatureReversed bodyReversed)
+                    accumulator)
+              (Just (nextName , fragment)) ->
+                scanLines
+                  sourceFile
+                  rest
+                  (signature-state nextName (fragment ∷ []))
+                  (finalizeScanState
+                    sourceFile
+                    (body-state name signatureReversed bodyReversed)
+                    accumulator)
+        Nothing ->
+          scanLines
+            sourceFile
+            rest
+            (body-state
+              name
+              signatureReversed
+              (trimWhitespace line ∷ bodyReversed))
+            accumulator
+
+parseLines :
+  String ->
+  List String ->
+  List SemanticDecl
+parseLines sourceFile sourceLines =
+  reverse (scanLines sourceFile sourceLines idle [])
 
 leadingSpaceCountChars :
   CharList ->
@@ -502,127 +527,33 @@ leadingSpaceCountChars (c ∷ rest) count =
   else
     count
 
+leadingSpaceCount :
+  String ->
+  Nat
+leadingSpaceCount source =
+  leadingSpaceCountChars
+    source
+    zero
+
 recordFieldHeader :
   String ->
   Maybe (String × String)
 recordFieldHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
-    Just candidate ->
-      if leadingSpaceCount line >= suc (suc (suc (suc zero))) then
-        if candidate == "field" || syntaxHead candidate then
-          Nothing
-        else
-          if lineContainsChar ':' line then
-            let (before , after) = splitFirstCharString ':' line
-                name = trimWhitespace before
-            in Just (name , trimWhitespace after)
-          else
-            Nothing
-      else
-        Nothing
-
-parseRecordFields :
-  String ->
-  List String ->
-  List SemanticDecl
-parseRecordFields sourceFile sourceLines =
-  reverse
-    (scanRecordFields
-      sourceFile
-      sourceLines
-      outside-record
-      [])
-
-scanRecordFields :
-  String ->
-  List String ->
-  RecordFieldScanState ->
-  List SemanticDecl ->
-  List SemanticDecl
-scanRecordFields sourceFile [] state accumulator =
-  finalizeRecordFieldState sourceFile state accumulator
-scanRecordFields sourceFile (line ∷ rest) state accumulator =
-  case topLevelLine line of λ where
-    True ->
-      case topLevelRecordHeader line of λ where
-        Just (recordName , _) ->
-          scanRecordFields
-            sourceFile
-            rest
-            (record-waiting recordName)
-            (finalizeRecordFieldState sourceFile state accumulator)
-        Nothing ->
-          scanRecordFields
-            sourceFile
-            rest
-            outside-record
-            (finalizeRecordFieldState sourceFile state accumulator)
-    False ->
-      case state of λ where
-        outside-record ->
-          scanRecordFields
-            sourceFile
-            rest
-            outside-record
-            accumulator
-        record-waiting recordName ->
-          case firstWord line of λ where
-            Just "field" ->
-              scanRecordFields
-                sourceFile
-                rest
-                (record-fields recordName)
-                accumulator
-            _ ->
-              scanRecordFields
-                sourceFile
-                rest
-                (record-waiting recordName)
-                accumulator
-        record-fields recordName ->
-          case recordFieldHeader line of λ where
-            Just (fieldName , fragment) ->
-              scanRecordFields
-                sourceFile
-                rest
-                (field-collecting
-                  recordName
-                  fieldName
-                  (fragment ∷ []))
-                accumulator
-            Nothing ->
-              scanRecordFields
-                sourceFile
-                rest
-                (record-fields recordName)
-                accumulator
-        field-collecting recordName fieldName signatureReversed ->
-          case recordFieldHeader line of λ where
-            Just (nextFieldName , fragment) ->
-              scanRecordFields
-                sourceFile
-                rest
-                (field-collecting
-                  recordName
-                  nextFieldName
-                  (fragment ∷ []))
-                (finalizeRecordFieldState
-                  sourceFile
-                  (field-collecting
-                    recordName
-                    fieldName
-                    signatureReversed)
-                  accumulator)
-            Nothing ->
-              scanRecordFields
-                sourceFile
-                rest
-                (field-collecting
-                  recordName
-                  fieldName
-                  (trimWhitespace line ∷ signatureReversed))
-                accumulator
+    (Just candidate) ->
+      case leadingSpaceCount line >= suc (suc (suc (suc zero))) of λ where
+        False -> Nothing
+        True ->
+          case candidate == "field" || syntaxHead candidate of λ where
+            True -> Nothing
+            False ->
+              case lineContainsChar ':' line of λ where
+                False -> Nothing
+                True ->
+                  case splitFirstCharString ':' line of λ where
+                    (before , after) ->
+                      Just (trimWhitespace before , trimWhitespace after)
 
 finalizeRecordFieldState :
   String ->
@@ -647,12 +578,120 @@ finalizeRecordFieldState sourceFile
     recordName
   ∷ accumulator
 
-unwordsString : List String -> String
-unwordsString [] = ""
-unwordsString (word ∷ wordsRest) =
-  case wordsRest of λ where
-    [] -> word
-    _ -> word ++ " " ++ unwordsString wordsRest
+
+scanRecordFields :
+  String ->
+  List String ->
+  RecordFieldScanState ->
+  List SemanticDecl ->
+  List SemanticDecl
+scanRecordFields sourceFile [] state accumulator =
+  finalizeRecordFieldState sourceFile state accumulator
+scanRecordFields sourceFile (line ∷ rest) state accumulator =
+  case topLevelLine line of λ where
+    True ->
+      case topLevelRecordHeader line of λ where
+        (Just (recordName , _)) ->
+          scanRecordFields
+            sourceFile
+            rest
+            (record-waiting recordName)
+            (finalizeRecordFieldState sourceFile state accumulator)
+        Nothing ->
+          scanRecordFields
+            sourceFile
+            rest
+            outside-record
+            (finalizeRecordFieldState sourceFile state accumulator)
+    False ->
+      case state of λ where
+        outside-record ->
+          scanRecordFields
+            sourceFile
+            rest
+            outside-record
+            accumulator
+        (record-waiting recordName) ->
+          case firstWord line of λ where
+            Nothing ->
+              scanRecordFields
+                sourceFile
+                rest
+                (record-waiting recordName)
+                accumulator
+            (Just lineWord) ->
+              case lineWord == "field" of λ where
+                True ->
+                  scanRecordFields
+                    sourceFile
+                    rest
+                    (record-fields recordName)
+                    accumulator
+                False ->
+                  scanRecordFields
+                    sourceFile
+                    rest
+                    (record-waiting recordName)
+                    accumulator
+        (record-fields recordName) ->
+          case recordFieldHeader line of λ where
+            (Just (fieldName , fragment)) ->
+              scanRecordFields
+                sourceFile
+                rest
+                (field-collecting
+                  recordName
+                  fieldName
+                  (fragment ∷ []))
+                accumulator
+            Nothing ->
+              scanRecordFields
+                sourceFile
+                rest
+                (record-fields recordName)
+                accumulator
+        (field-collecting recordName fieldName signatureReversed) ->
+          case recordFieldHeader line of λ where
+            (Just (nextFieldName , fragment)) ->
+              scanRecordFields
+                sourceFile
+                rest
+                (field-collecting
+                  recordName
+                  nextFieldName
+                  (fragment ∷ []))
+                (finalizeRecordFieldState
+                  sourceFile
+                  (field-collecting
+                    recordName
+                    fieldName
+                    signatureReversed)
+                  accumulator)
+            Nothing ->
+              scanRecordFields
+                sourceFile
+                rest
+                (field-collecting
+                  recordName
+                  fieldName
+                  (trimWhitespace line ∷ signatureReversed))
+                accumulator
+
+parseRecordFields :
+  String ->
+  List String ->
+  List SemanticDecl
+parseRecordFields sourceFile sourceLines =
+  reverse
+    (scanRecordFields
+      sourceFile
+      sourceLines
+      outside-record
+      [])
+
+charListLength : CharList -> Nat
+charListLength [] = zero
+charListLength (_ ∷ rest) = suc (charListLength rest)
 
 dropN : Nat -> CharList -> CharList
 dropN zero chars = chars
@@ -687,18 +726,12 @@ containsIdentifierFrom :
   CharList ->
   Bool
 containsIdentifierFrom _ [] _ = False
-containsIdentifierFrom previous haystack needle =
-  if matchesPrefix needle haystack then
+containsIdentifierFrom previous (c ∷ rest) needle =
+  if matchesPrefix needle (c ∷ rest) then
     boundaryBefore previous &&
-    boundaryAfter (dropN (length needle) haystack)
+    boundaryAfter (dropN (charListLength needle) (c ∷ rest))
   else
-    case haystack of λ where
-      [] -> False
-      (c ∷ rest) ->
-        containsIdentifierFrom
-          (Just c)
-          rest
-          needle
+    containsIdentifierFrom (Just c) rest needle
 
 containsIdentifier :
   String ->
@@ -723,33 +756,30 @@ findDependencies :
   List String
 findDependencies _ _ _ [] accumulator =
   reverse accumulator
-findDependencies originSource name text allDeclarations accumulator =
-  case allDeclarations of λ where
-    [] -> reverse accumulator
-    (candidate ∷ rest) ->
-      let targetSource = SemanticDecl.sourceFile candidate
-          targetName = declName candidate
-          targetId = targetSource ++ "#" ++ targetName
-          alreadySeen = planContains targetId accumulator
-          found =
-            if targetName == name || alreadySeen then
-              False
-            else if targetSource == originSource then
-              containsIdentifier text targetName
-            else
-              containsIdentifier text ("." ++ targetName)
-          nextAccumulator =
-            if found then
-              targetId ∷ accumulator
-            else
-              accumulator
-      in
-      findDependencies
-        originSource
-        name
-        text
-        rest
-        nextAccumulator
+findDependencies originSource name text (candidate ∷ rest) accumulator =
+  let targetSource = SemanticDecl.sourceFile candidate
+      targetName = declName candidate
+      targetId = targetSource ++ "#" ++ targetName
+      alreadySeen = planContains targetId accumulator
+      found =
+        if targetName == name || alreadySeen then
+          False
+        else if targetSource == originSource then
+          containsIdentifier text targetName
+        else
+          containsIdentifier text ("." ++ targetName)
+      nextAccumulator =
+        if found then
+          targetId ∷ accumulator
+        else
+          accumulator
+  in
+  findDependencies
+    originSource
+    name
+    text
+    rest
+    nextAccumulator
 
 semanticSignature : SemanticDecl -> Bool
 semanticSignature decl =
@@ -759,6 +789,19 @@ semanticSignature decl =
 semanticReflexive : SemanticDecl -> Bool
 semanticReflexive decl =
   trimWhitespace (declBody decl) == "refl"
+
+hasAtLeastTwoDependencies : List String -> Bool
+hasAtLeastTwoDependencies (_ ∷ _ ∷ _) = True
+hasAtLeastTwoDependencies _ = False
+
+hasAtLeastTwoDependenciesRegression : Bool
+hasAtLeastTwoDependenciesRegression =
+  hasAtLeastTwoDependencies ("first" ∷ "second" ∷ [])
+    && not (hasAtLeastTwoDependencies ("first" ∷ []))
+
+hasAtLeastTwoDependenciesRegressionChecked :
+  hasAtLeastTwoDependenciesRegression ≡ True
+hasAtLeastTwoDependenciesRegressionChecked = refl
 
 semanticLawsFromDeclarations :
   List SemanticDecl ->
@@ -775,7 +818,7 @@ semanticLawsFromDeclarations allDeclarations (decl ∷ rest) =
           []
       reflexive = semanticReflexive decl
       composite =
-        (length dependencies >= suc (suc zero)) &&
+        hasAtLeastTwoDependencies dependencies &&
         not reflexive
       law =
         semanticLaw
@@ -810,6 +853,15 @@ readAllSources (sourceFile ∷ rest) accumulator = do
   declarations <- readSourceDeclarations sourceFile
   readAllSources rest (reverse declarations ++ accumulator)
 
+filterNonEmpty : List String -> List String
+filterNonEmpty [] = []
+filterNonEmpty (line ∷ rest) =
+  if trimWhitespace line == "" then
+    filterNonEmpty rest
+  else
+    line ∷ filterNonEmpty rest
+
+
 readSemanticLaws :
   String ->
   IO (List SemanticLaw)
@@ -824,14 +876,6 @@ readSemanticLaws manifest = do
     (semanticLawsFromDeclarations
       declarations
       semanticDeclarations)
-
-filterNonEmpty : List String -> List String
-filterNonEmpty [] = []
-filterNonEmpty (line ∷ rest) =
-  if trimWhitespace line == "" then
-    filterNonEmpty rest
-  else
-    line ∷ filterNonEmpty rest
 
 semanticLawId : SemanticLaw -> String
 semanticLawId law =

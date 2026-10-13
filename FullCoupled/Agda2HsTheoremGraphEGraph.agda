@@ -121,7 +121,7 @@ parentsLookup : Nat -> List (Nat × Nat) -> Nat
 parentsLookup key parents =
   case lookupPair key parents of λ where
     Nothing -> key
-    Just parent -> parent
+    (Just parent) -> parent
 
 rootWithFuel : Nat -> Nat -> List (Nat × Nat) -> Nat
 rootWithFuel zero id _ = id
@@ -168,7 +168,7 @@ hashconsNode raw graph =
         (nextId graph')
         (parents graph')
         (binding node id ∷ bindings graph')
-    Just id -> root graph id , graph
+    (Just id) -> root graph id , graph
 
 addExpr : Expr -> EGraph -> Nat × EGraph
 addExpr (atom symbol) graph =
@@ -220,7 +220,7 @@ rebuildBindings (binding node id ∷ rest) graph changed =
   in
   case findOtherNode canonical id (bindings graph) of λ where
     Nothing -> rebuildBindings rest graph changed
-    Just other ->
+    (Just other) ->
       if equivalent id other graph then
         rebuildBindings rest graph changed
       else
@@ -242,7 +242,7 @@ bindSubstitution : String -> Nat -> Substitution -> Maybe Substitution
 bindSubstitution name id (substitution entries) =
   case lookupSubstitution name (substitution entries) of λ where
     Nothing -> Just (substitution ((name , id) ∷ entries))
-    Just old ->
+    (Just old) ->
       if old == id then Just (substitution entries) else Nothing
 
 matchPattern :
@@ -250,7 +250,7 @@ matchPattern :
 matchPattern (pvar name) class graph sub =
   case bindSubstitution name (root graph class) sub of λ where
     Nothing -> []
-    Just result -> result ∷ []
+    (Just result) -> result ∷ []
 matchPattern (papp symbol patterns) class graph sub =
   matchNodes symbol patterns (root graph class) graph (bindings graph) sub
 
@@ -286,11 +286,11 @@ instantiatePattern :
 instantiatePattern (pvar name) sub graph =
   case lookupSubstitution name sub of λ where
     Nothing -> Nothing
-    Just id -> Just (id , graph)
+    (Just id) -> Just (id , graph)
 instantiatePattern (papp symbol patterns) sub graph =
   case instantiatePatterns patterns sub graph of λ where
     Nothing -> Nothing
-    Just (ids , graph') -> Just (hashconsNode (enode symbol ids) graph')
+    (Just (ids , graph')) -> Just (hashconsNode (enode symbol ids) graph')
 
 instantiatePatterns :
   List Pattern -> Substitution -> EGraph ->
@@ -299,17 +299,17 @@ instantiatePatterns [] _ graph = Just ([] , graph)
 instantiatePatterns (pattern ∷ patterns) sub graph =
   case instantiatePattern pattern sub graph of λ where
     Nothing -> Nothing
-    Just (id , graph') ->
+    (Just (id , graph')) ->
       case instantiatePatterns patterns sub graph' of λ where
         Nothing -> Nothing
-        Just (ids , graph'') -> Just (id ∷ ids , graph'')
+        (Just (ids , graph'')) -> Just (id ∷ ids , graph'')
 
 applyMatch :
   RewriteRule -> Nat -> Substitution -> EGraph -> EGraph × Nat
 applyMatch rule rootId sub graph =
   case instantiatePattern (rhs rule) sub graph of λ where
     Nothing -> graph , zero
-    Just (rhsId , graph') ->
+    (Just (rhsId , graph')) ->
       let left = root graph' rootId
           right = root graph' rhsId
       in if left == right then graph' , zero
@@ -410,7 +410,7 @@ classAnalysisFor target (binding node id ∷ rest) graph =
     let cost = localCost node in
     case tail of λ where
       Nothing -> Just (classAnalysis target (suc zero) cost)
-      Just current ->
+      (Just current) ->
         let nextCount = suc (analysisENodeCount current)
             nextCost =
               if cost < analysisMinLocalCost current then
@@ -425,7 +425,7 @@ analyzeRoots [] _ = []
 analyzeRoots (rootId ∷ roots) graph =
   case classAnalysisFor rootId (bindings graph) graph of λ where
     Nothing -> analyzeRoots roots graph
-    Just result -> result ∷ analyzeRoots roots graph
+    (Just result) -> result ∷ analyzeRoots roots graph
 
 analyze : EGraph -> List ClassAnalysis
 analyze graph = analyzeRoots (rootClasses graph) graph
@@ -447,10 +447,10 @@ mutual
   extractChildren (child ∷ children) graph depth seen =
     case extractBestSeen child graph depth seen of λ where
       Nothing -> Nothing
-      Just first ->
+      (Just first) ->
         case extractChildren children graph depth seen of λ where
           Nothing -> Nothing
-          Just rest ->
+          (Just rest) ->
             Just
               (childExtraction
                 (extractedExpr first ∷ extractedChildren rest)
@@ -466,7 +466,7 @@ mutual
           if root graph id == target then
             case extractChildren children graph (predNat depth) seen of λ where
               Nothing -> Nothing
-              Just children' ->
+              (Just children') ->
                 Just
                   (extraction
                     (app symbol (extractedChildren children'))
@@ -616,7 +616,7 @@ regressionGraph =
       extractOk =
         case extractBest nested stable (suc (enodeCount stable)) of λ where
           Nothing -> False
-          Just result -> extractedCost result > zero
+          (Just result) -> extractedCost result > zero
       quotientOk = classCount g5 < enodeCount g5
       iterationOk = saturationIterations report > zero
       saturationOk =

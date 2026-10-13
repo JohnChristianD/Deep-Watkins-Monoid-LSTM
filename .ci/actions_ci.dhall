@@ -104,9 +104,10 @@ let script = merge {
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledElm": "elm.js"' "$tmp/presentation-contract.json"
     grep -Fq '"asciiGenerator": ".ci/mirth/ascii_surface.mth"' "$tmp/presentation-contract.json"
-    grep -Fq 'JuliaMono' site/Main.elm
-    grep -Fq 'Noto Emoji' site/Main.elm
-    grep -Fq 'Writer' site/Main.elm
+    grep -Fq 'Atkinson Hyperlegible Mono' site/Main.elm
+    grep -Fq 'Iosevka' site/Main.elm
+    grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/Main.elm
+    ! grep -Eiq 'Writer|Julia[[:space:]]Mono|JuliaMono|Noto Emoji' site/Main.elm
     grep -Fq 'CAT02LMS' site/Main.elm
     grep -Fq 'maximin' site/Main.elm
     grep -Fq 'data-module' site/Main.elm

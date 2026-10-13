@@ -383,7 +383,7 @@ graphExpandNode (graphNode []) _ = []
 graphExpandNode (graphNode (terminal ∷ rest)) laws =
   case graphLawForName terminal laws of λ where
     Nothing -> []
-    Just law ->
+    (Just law) ->
       graphExpandDependencies
         (graphLawDependencies law)
         (terminal ∷ rest)
@@ -474,10 +474,10 @@ graphPlanHeadIsLeaf :
 graphPlanHeadIsLeaf plan laws =
   case graphFirst plan of λ where
     Nothing -> False
-    Just terminal ->
+    (Just terminal) ->
       case graphLawForName terminal laws of λ where
         Nothing -> False
-        Just law ->
+        (Just law) ->
           graphLawDependencies law == []
 
 graphMaximalDependencyChain :
@@ -609,8 +609,10 @@ stripDotToken text =
 parseDotLine : String -> List (String × String)
 parseDotLine line =
   case words line of λ where
-    (source ∷ "->" ∷ target ∷ rest) ->
-      (stripDotToken source , stripDotToken target) ∷ []
+    (source ∷ separator ∷ target ∷ rest) ->
+      case separator == "->" of λ where
+        True -> (stripDotToken source , stripDotToken target) ∷ []
+        False -> []
     _ -> []
 
 parseDotEdges : String -> List (String × String)
@@ -703,10 +705,10 @@ graphAStarHeuristic :
 graphAStarHeuristic laws node =
   case graphFirst (graphNodePlan node) of λ where
     Nothing -> zero
-    Just terminal ->
+    (Just terminal) ->
       case graphLawForName terminal laws of λ where
         Nothing -> zero
-        Just law ->
+        (Just law) ->
           if graphLawDependencies law == [] then
             zero
           else
@@ -1021,7 +1023,7 @@ requiredPlanForName :
 requiredPlanForName requested semanticLaws =
   case semanticLawForName requested semanticLaws of λ where
     Nothing -> Nothing
-    Just law ->
+    (Just law) ->
       if semanticLawCanSeed law then
         let graphLaws = semanticGraphLaws semanticLaws
         in
@@ -1047,7 +1049,7 @@ requiredPlans (name ∷ names) semanticLaws =
   case requiredPlanForName name semanticLaws of λ where
     Nothing ->
       requiredPlans names semanticLaws
-    Just plan ->
+    (Just plan) ->
       if requiredPlanIsValid semanticLaws plan then
         (name , plan) ∷ requiredPlans names semanticLaws
       else
@@ -1160,21 +1162,21 @@ recordFieldDominates :
   Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   Bool
-recordFieldDominates theorem field all =
+recordFieldDominates theorem fieldLaw knownLaws =
   if semanticLawIsRecordField theorem then
     False
-  else if semanticLawIsRecordField field then
+  else if semanticLawIsRecordField fieldLaw then
     if semanticLawIsReflexive theorem then
       False
     else if normalizedSignatureEqual
       (Extractor.semanticLawSignature theorem)
-      (Extractor.semanticLawSignature field) then
-      if Extractor.semanticLawContainer field == "" then
+      (Extractor.semanticLawSignature fieldLaw) then
+      if Extractor.semanticLawContainer fieldLaw == "" then
         False
       else
         semanticLawNamePresent
-          (Extractor.semanticLawContainer field)
-          all
+          (Extractor.semanticLawContainer fieldLaw)
+          knownLaws
     else
       False
   else
@@ -1185,13 +1187,13 @@ dominanceEdgeFor :
   Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   Maybe DominanceEdge
-dominanceEdgeFor theorem field all =
-  if recordFieldDominates theorem field all then
+dominanceEdgeFor theorem fieldLaw knownLaws =
+  if recordFieldDominates theorem fieldLaw knownLaws then
     Just
       (dominanceEdge
-        (Extractor.semanticLawContainer field)
+        (Extractor.semanticLawContainer fieldLaw)
         (Extractor.semanticLawName theorem)
-        (Extractor.semanticLawName field))
+        (Extractor.semanticLawName fieldLaw))
   else
     Nothing
 
@@ -1201,21 +1203,21 @@ dominanceEdgesForFields :
   List Extractor.SemanticLaw ->
   List DominanceEdge
 dominanceEdgesForFields theorem _ [] = []
-dominanceEdgesForFields theorem all (field ∷ fields) =
-  case dominanceEdgeFor theorem field all of λ where
+dominanceEdgesForFields theorem knownLaws (fieldLaw ∷ remainingFields) =
+  case dominanceEdgeFor theorem fieldLaw knownLaws of λ where
     Nothing ->
-      dominanceEdgesForFields theorem all fields
-    Just edge ->
-      edge ∷ dominanceEdgesForFields theorem all fields
+      dominanceEdgesForFields theorem knownLaws remainingFields
+    (Just edge) ->
+      edge ∷ dominanceEdgesForFields theorem knownLaws remainingFields
 
 dominanceEdgesForTheorems :
   List Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   List DominanceEdge
 dominanceEdgesForTheorems _ [] = []
-dominanceEdgesForTheorems all (law ∷ laws) =
-  dominanceEdgesForFields law all all
-  ++ dominanceEdgesForTheorems all laws
+dominanceEdgesForTheorems knownLaws (law ∷ remainingLaws) =
+  dominanceEdgesForFields law knownLaws knownLaws
+  ++ dominanceEdgesForTheorems knownLaws remainingLaws
 
 dominanceEdgeEqual :
   DominanceEdge ->
@@ -1355,7 +1357,7 @@ semanticPlanEGraphExtractable plan =
       (suc (EGraph.enodeCount graph))
   of λ where
     Nothing -> False
-    Just extraction ->
+    (Just extraction) ->
       EGraph.extractedCost extraction > zero
 
 plansEGraphClosed :
@@ -1378,7 +1380,7 @@ requiredPlanEGraphCount (name ∷ names) laws =
   case requiredPlanForName name laws of λ where
     Nothing ->
       requiredPlanEGraphCount names laws
-    Just plan ->
+    (Just plan) ->
       let tail = requiredPlanEGraphCount names laws in
       if semanticPlanEGraphComplete plan &&
          semanticPlanEGraphExtractable plan then
