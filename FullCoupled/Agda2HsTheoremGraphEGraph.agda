@@ -114,10 +114,16 @@ memberNat _ [] = False
 memberNat x (y ∷ ys) =
   if x == y then True else memberNat x ys
 
+natEqual : Nat -> Nat -> Bool
+natEqual zero zero = True
+natEqual zero (suc _) = False
+natEqual (suc _) zero = False
+natEqual (suc left) (suc right) = natEqual left right
+
 lookupNatPair : Nat -> List (Nat × Nat) -> Maybe Nat
 lookupNatPair _ [] = Nothing
 lookupNatPair key ((candidate , value) ∷ rest) =
-  if key == candidate then Just value else lookupNatPair key rest
+  if natEqual key candidate then Just value else lookupNatPair key rest
 
 lookupStringPair : String -> List (String × Nat) -> Maybe Nat
 lookupStringPair _ [] = Nothing
