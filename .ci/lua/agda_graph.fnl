@@ -31,10 +31,10 @@
   (local content (read-file path))
   (local module-name (string.gsub (string.gsub path "%.agda$" "") "/" "."))
   (local imports [])
-  (each [_ imported
+  (each [imported
       (string.gmatch content "\n%s*open%s+import%s+([^%s]+)")]
     (table.insert imports imported))
-  (each [_ imported
+  (each [imported
       (string.gmatch content "\n%s*import%s+([^%s]+)")]
     (table.insert imports imported))
   (table.insert nodes {:id module-name :label module-name :source path})
