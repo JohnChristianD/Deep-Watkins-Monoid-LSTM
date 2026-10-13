@@ -238,12 +238,12 @@ equivalent : Nat -> Nat -> EGraph -> Bool
 equivalent left right graph = root graph left == root graph right
 
 findOtherNode :
-  ENode -> Nat -> List Binding -> Maybe Nat
-findOtherNode _ _ [] = Nothing
-findOtherNode target excluded (binding candidate id ∷ rest) =
-  if id == excluded then findOtherNode target excluded rest
-  else if sameENode target candidate then Just id
-  else findOtherNode target excluded rest
+  ENode -> Nat -> EGraph -> List Binding -> Maybe Nat
+findOtherNode _ _ _ [] = Nothing
+findOtherNode target excluded graph (binding candidate id ∷ rest) =
+  if id == excluded then findOtherNode target excluded graph rest
+  else if sameENode target (canonicalNode graph candidate) then Just id
+  else findOtherNode target excluded graph rest
 
 rebuildBindings :
   List Binding -> EGraph -> Bool -> EGraph × Bool
@@ -251,7 +251,7 @@ rebuildBindings [] graph changed = graph , changed
 rebuildBindings (binding node id ∷ rest) graph changed =
   let canonical = canonicalNode graph node
   in
-  case findOtherNode canonical id (bindings graph) of λ where
+  case findOtherNode canonical id graph (bindings graph) of λ where
     Nothing -> rebuildBindings rest graph changed
     (Just other) ->
       if equivalent id other graph then
@@ -514,7 +514,7 @@ mutual
     case extractBestSeen fuel child graph seen of λ where
       Nothing -> Nothing
       (Just first) ->
-        case extractChildren (suc fuel) children graph seen of λ where
+        case extractChildren fuel children graph seen of λ where
           Nothing -> Nothing
           (Just rest) ->
             Just

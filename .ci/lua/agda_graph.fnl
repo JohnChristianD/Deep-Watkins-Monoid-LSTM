@@ -14,7 +14,7 @@
   content))
 (local elm-escape
   (fn [value]
-  (local escaped (string.gsub value "\\" "\\\\"))
+  (var escaped (string.gsub value "\\" "\\\\"))
   (set escaped (string.gsub escaped "\"" "\\\""))
   (set escaped (string.gsub escaped "\n" "\\n"))
   (set escaped (string.gsub escaped "\r" "\\r"))
@@ -29,7 +29,7 @@
 (local edges [])
 (each [_ path (ipairs source-files)]
   (local content (read-file path))
-  (local module-name nil)
+  (var module-name nil)
   (local imports [])
   (local content-lines (fun.totable (string.gmatch content "[^\n]+")))
   (each [_ line (ipairs content-lines)]
