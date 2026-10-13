@@ -463,27 +463,33 @@ mutual
   bestBindingForRoot target
     (binding (enode symbol children) id ∷ rest)
     graph depth seen =
-    let candidate =
-          if root graph id == target then
-            case extractChildren children graph (predNat depth) seen of λ where
-              Nothing -> Nothing
-              (Just children') ->
-                Just
-                  (extraction
-                    (app symbol (extractedChildren children'))
-                    (localCost (enode symbol children) +
-                     extractedCostSum children'))
-          else Nothing
-    in chooseCheaper candidate
-         (bestBindingForRoot target rest graph depth seen)
+    case root graph id == target of λ where
+      False ->
+        bestBindingForRoot target rest graph depth seen
+      True ->
+        let candidate =
+              case extractChildren children graph (predNat depth) seen of λ where
+                Nothing -> Nothing
+                (Just children') ->
+                  Just
+                    (extraction
+                      (app symbol (extractedChildren children'))
+                      (localCost (enode symbol children) +
+                       extractedCostSum children'))
+        in chooseCheaper candidate
+             (bestBindingForRoot target rest graph depth seen)
 
   extractBestSeen :
     Nat -> EGraph -> Nat -> List Nat -> Maybe Extraction
   extractBestSeen class graph depth seen =
-    if depth == zero then Nothing else
-      let target = root graph class in
-      if memberNat target seen then Nothing
-      else bestBindingForRoot target (bindings graph) graph depth (target ∷ seen)
+    case depth == zero of λ where
+      True -> Nothing
+      False ->
+        let target = root graph class in
+        case memberNat target seen of λ where
+          True -> Nothing
+          False ->
+            bestBindingForRoot target (bindings graph) graph depth (target ∷ seen)
 
   extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
     extractBest class graph depth = extractBestSeen class graph depth []
