@@ -816,8 +816,12 @@ graphDependencyOrderRegression =
       []
   in
   case graphExpandNode (graphNode ("A" ∷ [])) laws of λ where
-    (graphNode ("B" ∷ "A" ∷ []) ∷
-     graphNode ("C" ∷ "A" ∷ []) ∷ []) → True
+    (graphNode (firstDependency ∷ firstRoot ∷ []) ∷
+     graphNode (secondDependency ∷ secondRoot ∷ []) ∷ []) ->
+      firstDependency == "B" &&
+      firstRoot == "A" &&
+      secondDependency == "C" &&
+      secondRoot == "A"
     _ → False
 
 graphDependencyOrderRegressionChecked :
@@ -835,7 +839,12 @@ graphTwoLeafBranchesRegression =
       []
   in
   case autonomousGraphSearchFromRoot "A" edges of λ where
-    (("B" ∷ "A" ∷ []) ∷ ("C" ∷ "A" ∷ []) ∷ []) → True
+    ((firstLeaf ∷ firstRoot ∷ []) ∷
+     (secondLeaf ∷ secondRoot ∷ []) ∷ []) ->
+      firstLeaf == "B" &&
+      firstRoot == "A" &&
+      secondLeaf == "C" &&
+      secondRoot == "A"
     _ → False
 
 graphTwoLeafBranchesRegressionChecked :
