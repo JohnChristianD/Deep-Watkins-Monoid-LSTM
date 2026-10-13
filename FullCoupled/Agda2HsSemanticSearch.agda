@@ -609,8 +609,10 @@ stripDotToken text =
 parseDotLine : String -> List (String × String)
 parseDotLine line =
   case words line of λ where
-    (source ∷ "->" ∷ target ∷ rest) ->
-      (stripDotToken source , stripDotToken target) ∷ []
+    (source ∷ separator ∷ target ∷ rest) ->
+      case separator == "->" of λ where
+        True -> (stripDotToken source , stripDotToken target) ∷ []
+        False -> []
     _ -> []
 
 parseDotEdges : String -> List (String × String)

@@ -280,14 +280,18 @@ topLevelRecordHeader :
   Maybe (String × String)
 topLevelRecordHeader line =
   case firstWord line of λ where
-    (Just "record") -> topLevelRecordHeaderAtTopLevel line
-    _ -> Nothing
+    Nothing -> Nothing
+    (Just firstName) ->
+      case firstName == "record" of λ where
+        True -> topLevelRecordHeaderAtTopLevel line
+        False -> Nothing
 
 topLevelRecordHeaderRegression : Bool
 topLevelRecordHeaderRegression =
   case topLevelRecordHeader "record Example : Set where" of λ where
-    (Just ("Example" , "Set where")) -> True
-    _ -> False
+    Nothing -> False
+    (Just (recordName , recordType)) ->
+      recordName == "Example" && recordType == "Set where"
 
 topLevelRecordHeaderRegressionChecked :
   topLevelRecordHeaderRegression ≡ True
@@ -334,8 +338,8 @@ bodyClause name line =
 bodyClauseRegression : Bool
 bodyClauseRegression =
   case bodyClause "sample" "sample = body" of λ where
-    (Just "body") -> True
-    _ -> False
+    Nothing -> False
+    (Just body) -> body == "body"
 
 bodyClauseRegressionChecked :
   bodyClauseRegression ≡ True
@@ -587,18 +591,26 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
             accumulator
         record-waiting recordName ->
           case firstWord line of λ where
-            (Just "field") ->
-              scanRecordFields
-                sourceFile
-                rest
-                (record-fields recordName)
-                accumulator
-            _ ->
+            Nothing ->
               scanRecordFields
                 sourceFile
                 rest
                 (record-waiting recordName)
                 accumulator
+            (Just lineWord) ->
+              case lineWord == "field" of λ where
+                True ->
+                  scanRecordFields
+                    sourceFile
+                    rest
+                    (record-fields recordName)
+                    accumulator
+                False ->
+                  scanRecordFields
+                    sourceFile
+                    rest
+                    (record-waiting recordName)
+                    accumulator
         record-fields recordName ->
           case recordFieldHeader line of λ where
             (Just (fieldName , fragment)) ->
