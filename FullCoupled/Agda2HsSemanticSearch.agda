@@ -331,15 +331,15 @@ graphLawAddDependency name dependency [] =
   graphLaw name (dependency ∷ []) ∷ []
 graphLawAddDependency name dependency
   (law ∷ laws) =
-  if name == (graphLawName law) then
-    let deps =
-          if planContains dependency (graphLawDependencies law) then
-            graphLawDependencies law
-          else
-            dependency ∷ graphLawDependencies law
-    in graphLaw name deps ∷ laws
-  else
-    law ∷ graphLawAddDependency name dependency laws
+  case name == graphLawName law of λ where
+    True ->
+      case planContains dependency (graphLawDependencies law) of λ where
+        True -> graphLaw name (graphLawDependencies law) ∷ laws
+        False ->
+          graphLaw name
+            (dependency ∷ graphLawDependencies law) ∷ laws
+    False ->
+      law ∷ graphLawAddDependency name dependency laws
 
 ensureGraphLaw : String -> List GraphLaw -> List GraphLaw
 ensureGraphLaw name [] = graphLaw name [] ∷ []
