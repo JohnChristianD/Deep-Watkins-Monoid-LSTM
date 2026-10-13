@@ -121,7 +121,7 @@ parentsLookup : Nat -> List (Nat × Nat) -> Nat
 parentsLookup key parents =
   case lookupPair key parents of λ where
     Nothing -> key
-    Just parent -> parent
+    (Just parent) -> parent
 
 rootWithFuel : Nat -> Nat -> List (Nat × Nat) -> Nat
 rootWithFuel zero id _ = id
@@ -168,7 +168,7 @@ hashconsNode raw graph =
         (nextId graph')
         (parents graph')
         (binding node id ∷ bindings graph')
-    Just id -> root graph id , graph
+    (Just id) -> root graph id , graph
 
 addExpr : Expr -> EGraph -> Nat × EGraph
 addExpr (atom symbol) graph =
@@ -250,7 +250,7 @@ matchPattern :
 matchPattern (pvar name) class graph sub =
   case bindSubstitution name (root graph class) sub of λ where
     Nothing -> []
-    Just result -> result ∷ []
+    (Just result) -> result ∷ []
 matchPattern (papp symbol patterns) class graph sub =
   matchNodes symbol patterns (root graph class) graph (bindings graph) sub
 
@@ -286,11 +286,11 @@ instantiatePattern :
 instantiatePattern (pvar name) sub graph =
   case lookupSubstitution name sub of λ where
     Nothing -> Nothing
-    Just id -> Just (id , graph)
+    (Just id) -> Just (id , graph)
 instantiatePattern (papp symbol patterns) sub graph =
   case instantiatePatterns patterns sub graph of λ where
     Nothing -> Nothing
-    Just (ids , graph') -> Just (hashconsNode (enode symbol ids) graph')
+    (Just (ids , graph')) -> Just (hashconsNode (enode symbol ids) graph')
 
 instantiatePatterns :
   List Pattern -> Substitution -> EGraph ->
@@ -302,7 +302,7 @@ instantiatePatterns (pattern ∷ patterns) sub graph =
     (Just (id , graph')) ->
       case instantiatePatterns patterns sub graph' of λ where
         Nothing -> Nothing
-        Just (ids , graph'') -> Just (id ∷ ids , graph'')
+        (Just (ids , graph'')) -> Just (id ∷ ids , graph'')
 
 applyMatch :
   RewriteRule -> Nat -> Substitution -> EGraph -> EGraph × Nat
@@ -425,7 +425,7 @@ analyzeRoots [] _ = []
 analyzeRoots (rootId ∷ roots) graph =
   case classAnalysisFor rootId (bindings graph) graph of λ where
     Nothing -> analyzeRoots roots graph
-    Just result -> result ∷ analyzeRoots roots graph
+    (Just result) -> result ∷ analyzeRoots roots graph
 
 analyze : EGraph -> List ClassAnalysis
 analyze graph = analyzeRoots (rootClasses graph) graph
@@ -616,7 +616,7 @@ regressionGraph =
       extractOk =
         case extractBest nested stable (suc (enodeCount stable)) of λ where
           Nothing -> False
-          Just result -> extractedCost result > zero
+          (Just result) -> extractedCost result > zero
       quotientOk = classCount g5 < enodeCount g5
       iterationOk = saturationIterations report > zero
       saturationOk =

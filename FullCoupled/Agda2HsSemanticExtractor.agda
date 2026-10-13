@@ -264,7 +264,7 @@ topLevelRecordHeaderName :
 topLevelRecordHeaderName line =
   case secondWord line of λ where
     Nothing -> Nothing
-    Just recordName -> topLevelRecordHeaderType recordName line
+    (Just recordName) -> topLevelRecordHeaderType recordName line
 
 topLevelRecordHeaderAtTopLevel :
   String ->
@@ -280,13 +280,13 @@ topLevelRecordHeader :
   Maybe (String × String)
 topLevelRecordHeader line =
   case firstWord line of λ where
-    Just "record" -> topLevelRecordHeaderAtTopLevel line
+    (Just "record") -> topLevelRecordHeaderAtTopLevel line
     _ -> Nothing
 
 topLevelRecordHeaderRegression : Bool
 topLevelRecordHeaderRegression =
   case topLevelRecordHeader "record Example : Set where" of λ where
-    Just ("Example" , "Set where") -> True
+    (Just ("Example" , "Set where")) -> True
     _ -> False
 
 topLevelRecordHeaderRegressionChecked :
@@ -309,7 +309,7 @@ topLevelDeclarationHeader :
 topLevelDeclarationHeader line =
   case topLevelHeader line of λ where
     Nothing -> Nothing
-    Just (name , _) -> Just name
+    (Just (name , _)) -> Just name
 
 bodyClause :
   String ->
@@ -334,7 +334,7 @@ bodyClause name line =
 bodyClauseRegression : Bool
 bodyClauseRegression =
   case bodyClause "sample" "sample = body" of λ where
-    Just "body" -> True
+    (Just "body") -> True
     _ -> False
 
 bodyClauseRegressionChecked :
