@@ -19,6 +19,10 @@
       url = "github:vehicle-lang/vehicle-formalisation/289f1940f9b11c293211ba2bc9fdf5c4c24e2b0a";
       flake = false;
     };
+    luafun = {
+      url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
+      flake = false;
+    };
   };
 
   outputs = {
@@ -27,7 +31,8 @@
     acorn,
     acornlib,
     xdsAgda,
-    miniVehicle
+    miniVehicle,
+    luafun
   }:
     let
       systems = [
@@ -69,7 +74,6 @@
           pkgs = pkgsFor system;
         in
         pkgs.haskellPackages.ghcWithPackages (p: [
-          p.rio
           p.liquidhaskell
         ]);
 
@@ -95,6 +99,45 @@
 
       agda2hsWithCanonicalGhc = system:
         agda2hsTool system;
+
+
+      luafunModule = system:
+        let pkgs = pkgsFor system;
+        in pkgs.stdenvNoCC.mkDerivation {
+          pname = "luafun";
+          version = "stable-02960048";
+          src = luafun;
+          dontBuild = true;
+          installPhase = ''
+            mkdir -p "$out/share/lua/5.1"
+            install -m 0644 fun.lua "$out/share/lua/5.1/fun.lua"
+          '';
+        };
+
+      fennelRuntime = system:
+        let
+          pkgs = pkgsFor system;
+          luafunModulePkg = luafunModule system;
+        in
+        pkgs.writeShellApplication {
+          name = "fennel";
+          runtimeInputs = [ pkgs.luajit pkgs.luajitPackages.fennel ];
+          text = ''
+            export LUA_PATH="\${luafunModulePkg}/share/lua/5.1/?.lua;;"
+            exec \${pkgs.luajitPackages.fennel}/bin/fennel "$@"
+          '';
+        };
+
+      streamlyGhc = system:
+        let pkgs = pkgsFor system;
+        in
+        pkgs.haskellPackages.ghcWithPackages (p: [
+          p.streamly
+          p.streamly-core
+          p.streamly-shell
+          p.streamly-coreutils
+          p.streamly-process
+        ]);
 
       acornProver = system:
         let
@@ -268,6 +311,92 @@
             type = "app";
             program = "${script}/bin/mirth-agda-graph";
           };
+
+          fennel-smoke = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-smoke";
+              runtimeInputs = [ (fennelRuntime system) pkgs.luajit pkgs.coreutils pkgs.gnugrep ];
+              text = ''
+                set -euo pipefail
+                LUA_PATH="\${luafunModule system}/share/lua/5.1/?.lua;;" \
+                  luajit -e 'local fun = require("fun"); assert(type(fun.map) == "function")'
+                fennel --version
+                tmp=$(mktemp -d)
+                trap 'rm -rf "$tmp"' EXIT
+                printf '%s\n' '(print "fennel-luajit=pass")' > "$tmp/smoke.fnl"
+                test "$(fennel "$tmp/smoke.fnl")" = "fennel-luajit=pass"
+                echo "fennel-luajit-smoke=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "\${script}/bin/fennel-smoke";
+          };
+
+          fennel-agda-graph = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-agda-graph";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                exec \${fennelRuntime system}/bin/fennel .ci/lua/agda_graph.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "\${script}/bin/fennel-agda-graph";
+          };
+
+          fennel-ascii-surface = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-ascii-surface";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                exec \${fennelRuntime system}/bin/fennel .ci/lua/ascii_surface.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "\${script}/bin/fennel-ascii-surface";
+          };
+
+          fennel-surface = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-surface";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
+              text = ''
+                set -euo pipefail
+                exec \${fennelRuntime system}/bin/fennel .ci/lua/agda_surface.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "\${script}/bin/fennel-surface";
+          };
+
+          streamly-tools-check = let
+            script = pkgs.writeShellApplication {
+              name = "streamly-tools-check";
+              runtimeInputs = [ (streamlyGhc system) pkgs.coreutils pkgs.gnugrep ];
+              text = ''
+                set -euo pipefail
+                ghc --numeric-version
+                packages="$(ghc-pkg list)"
+                for package in streamly streamly-core streamly-shell streamly-coreutils streamly-process; do
+                  grep -Fq -- "$package-" <<< "$packages" || {
+                    echo "missing Nix-provided Haskell package: $package" >&2
+                    exit 1
+                  }
+                done
+                echo "streamly-nix-packages=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "\${script}/bin/streamly-tools-check";
+          };
+
           acorn-smoke = let
             script = pkgs.writeShellApplication {
               name = "acorn-smoke";
@@ -351,8 +480,7 @@
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
-                  -package rio \
-                  -i "$out" \
+                                    -i "$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
@@ -430,8 +558,7 @@
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
-                  -package rio \
-                  -i "$out" \
+                                    -i "$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
                   -main-is FullCoupled.Agda2HsSemanticSearch.main \
@@ -524,10 +651,10 @@
                 test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
                 mkdir -p "$out/ghc"
-                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
                 mkdir -p "$out/ghc-search"
                 "${canonicalGhc system}/bin/ghc" \
-                  -O0 -dcore-lint -package rio -i "$out" \
+                  -O0 -dcore-lint -i "$out" \
                   -odir "$out/ghc-search" -hidir "$out/ghc-search" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
                   -o "$out/graph-search-check" \
@@ -571,6 +698,8 @@
         {
           presentation = pkgs.mkShell {
             packages = [
+              (fennelRuntime system)
+              pkgs.luajit
               pkgs.mirth
               pkgs.stdenv.cc
               pkgs.coreutils
@@ -592,6 +721,13 @@
             ];
             shellHook = ''
             '';
+          };
+
+          streamly = pkgs.mkShell {
+            packages = [
+              (streamlyGhc system)
+              pkgs.haskellPackages.cabal-install
+            ];
           };
 
           agda-ci = pkgs.mkShellNoCC {

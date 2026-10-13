@@ -25,12 +25,16 @@ grep -Fq 'github:NixOS/nixpkgs/' flake.nix
   exit 1
 }
 input_count=$(grep -Ec '^[[:space:]]+(nixpkgs\.)?url[[:space:]]*=[[:space:]]*"github:' flake.nix)
-[ "$input_count" -eq 5 ] || { echo "expected five pinned inputs, found $input_count" >&2; exit 1; }
+[ "$input_count" -eq 6 ] || { echo "expected six pinned inputs, found $input_count" >&2; exit 1; }
 grep -Fq 'nixpkgs.url = "github:NixOS/nixpkgs/' flake.nix
 grep -Fq 'github:acornprover/acorn/' flake.nix
 grep -Fq 'github:acornprover/acornlib/' flake.nix
 grep -Fq 'github:pdmosses/xds-agda/' flake.nix
 grep -Fq 'github:vehicle-lang/vehicle-formalisation/' flake.nix
+grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.nix
+grep -Fq 'name = "fennel-smoke";' flake.nix
+grep -Fq 'name = "streamly-tools-check";' flake.nix
+! grep -Eiq 'p[.]rio|-package rio' flake.nix || { echo "Rio remains in active compiler packages" >&2; exit 1; }
 grep -Fq 'acorn-prover = acornProver system;' flake.nix
 grep -Fq 'name = "xds-agda-check";' flake.nix
 grep -Fq 'name = "mini-vehicle-check";' flake.nix
