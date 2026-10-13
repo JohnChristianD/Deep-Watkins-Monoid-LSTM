@@ -485,7 +485,7 @@ nodeCard model index node =
 nodeOptions : Model -> Html Msg
 nodeOptions model =
     nav [ HA.class "rail" ]
-        [ div [ HA.class "brand" ] [ text "Agda / Mirth" ]
+        [ div [ HA.class "brand" ] [ text "Agda / Fennel" ]
         , div [ HA.class "eyebrow" ] [ text "generated surface" ]
         , p [] [ text "A navigable proof surface, synchronized from the Agda dependency graph." ]
         , ul [ HA.class "module-list" ]

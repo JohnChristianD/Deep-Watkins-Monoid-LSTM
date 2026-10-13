@@ -216,6 +216,7 @@
         {
           agda = agdaWithPackages system;
           agda2hs = agda2hsWithCanonicalGhc system;
+          agda-emacs = agdaEmacs system;
           acorn-prover = acornProver system;
           ci = pkgs.dhall;
           default = pkgs.dhall;
@@ -249,6 +250,20 @@
           in {
             type = "app";
             program = "${script}/bin/fennel-smoke";
+          };
+
+          agda-import-sync = let
+            script = pkgs.writeShellApplication {
+              name = "agda-import-sync";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_import_sync.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-import-sync";
           };
 
           fennel-agda-graph = let
@@ -656,6 +671,13 @@
               pkgs.elmPackages.elm
               pkgs.dhall
               pkgs.dhall-json
+            ];
+          };
+
+          agda-emacs = pkgs.mkShell {
+            packages = [
+              (agdaCommand system)
+              (agdaEmacs system)
             ];
           };
 

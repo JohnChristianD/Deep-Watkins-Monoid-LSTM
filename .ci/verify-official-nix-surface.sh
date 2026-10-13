@@ -34,6 +34,10 @@ grep -Fq 'github:vehicle-lang/vehicle-formalisation/' flake.nix
 grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.nix
 grep -Fq 'name = "fennel-smoke";' flake.nix
 grep -Fq 'name = "streamly-tools-check";' flake.nix
+grep -Fq 'name = "agda-import-sync";' flake.nix
+grep -Fq 'agda-emacs = agdaEmacs system;' flake.nix
+test -f .ci/lua/agda_import_sync.fnl
+test -f .ci/agda/import-contracts.tsv
 test -f .ci/agda/global-options.txt
 grep -Fxq -- '--erasure' .ci/agda/global-options.txt
 grep -Fxq -- '--no-projection-like' .ci/agda/global-options.txt
