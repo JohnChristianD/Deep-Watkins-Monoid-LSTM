@@ -491,8 +491,8 @@ mutual
           False ->
             bestBindingForRoot target (bindings graph) graph depth (target ∷ seen)
 
-  extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
-    extractBest class graph depth = extractBestSeen class graph depth []
+extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
+extractBest class graph depth = extractBestSeen class graph depth []
 
 associativityRule : RewriteRule
 associativityRule =
