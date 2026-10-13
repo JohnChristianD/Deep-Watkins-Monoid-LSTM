@@ -726,18 +726,12 @@ containsIdentifierFrom :
   CharList ->
   Bool
 containsIdentifierFrom _ [] _ = False
-containsIdentifierFrom previous haystack needle =
-  if matchesPrefix needle haystack then
+containsIdentifierFrom previous (c ∷ rest) needle =
+  if matchesPrefix needle (c ∷ rest) then
     boundaryBefore previous &&
-    boundaryAfter (dropN (charListLength needle) haystack)
+    boundaryAfter (dropN (charListLength needle) (c ∷ rest))
   else
-    case haystack of λ where
-      [] -> False
-      (c ∷ rest) ->
-        containsIdentifierFrom
-          (Just c)
-          rest
-          needle
+    containsIdentifierFrom (Just c) rest needle
 
 containsIdentifier :
   String ->
@@ -762,33 +756,30 @@ findDependencies :
   List String
 findDependencies _ _ _ [] accumulator =
   reverse accumulator
-findDependencies originSource name text allDeclarations accumulator =
-  case allDeclarations of λ where
-    [] -> reverse accumulator
-    (candidate ∷ rest) ->
-      let targetSource = SemanticDecl.sourceFile candidate
-          targetName = declName candidate
-          targetId = targetSource ++ "#" ++ targetName
-          alreadySeen = planContains targetId accumulator
-          found =
-            if targetName == name || alreadySeen then
-              False
-            else if targetSource == originSource then
-              containsIdentifier text targetName
-            else
-              containsIdentifier text ("." ++ targetName)
-          nextAccumulator =
-            if found then
-              targetId ∷ accumulator
-            else
-              accumulator
-      in
-      findDependencies
-        originSource
-        name
-        text
-        rest
-        nextAccumulator
+findDependencies originSource name text (candidate ∷ rest) accumulator =
+  let targetSource = SemanticDecl.sourceFile candidate
+      targetName = declName candidate
+      targetId = targetSource ++ "#" ++ targetName
+      alreadySeen = planContains targetId accumulator
+      found =
+        if targetName == name || alreadySeen then
+          False
+        else if targetSource == originSource then
+          containsIdentifier text targetName
+        else
+          containsIdentifier text ("." ++ targetName)
+      nextAccumulator =
+        if found then
+          targetId ∷ accumulator
+        else
+          accumulator
+  in
+  findDependencies
+    originSource
+    name
+    text
+    rest
+    nextAccumulator
 
 semanticSignature : SemanticDecl -> Bool
 semanticSignature decl =
@@ -798,6 +789,19 @@ semanticSignature decl =
 semanticReflexive : SemanticDecl -> Bool
 semanticReflexive decl =
   trimWhitespace (declBody decl) == "refl"
+
+hasAtLeastTwoDependencies : List String -> Bool
+hasAtLeastTwoDependencies (_ ∷ _ ∷ _) = True
+hasAtLeastTwoDependencies _ = False
+
+hasAtLeastTwoDependenciesRegression : Bool
+hasAtLeastTwoDependenciesRegression =
+  hasAtLeastTwoDependencies ("first" ∷ "second" ∷ [])
+    && not (hasAtLeastTwoDependencies ("first" ∷ []))
+
+hasAtLeastTwoDependenciesRegressionChecked :
+  hasAtLeastTwoDependenciesRegression ≡ True
+hasAtLeastTwoDependenciesRegressionChecked = refl
 
 semanticLawsFromDeclarations :
   List SemanticDecl ->
@@ -814,7 +818,7 @@ semanticLawsFromDeclarations allDeclarations (decl ∷ rest) =
           []
       reflexive = semanticReflexive decl
       composite =
-        (length dependencies >= suc (suc zero)) &&
+        hasAtLeastTwoDependencies dependencies &&
         not reflexive
       law =
         semanticLaw
