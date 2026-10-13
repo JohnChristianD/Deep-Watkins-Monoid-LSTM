@@ -777,12 +777,3 @@ eGraphAssociativityRegression = regressionAssociativityOk regressionGraph
 eGraphAssociativityRegression-proof :
   eGraphAssociativityRegression ≡ True
 eGraphAssociativityRegression-proof = refl
-
-eGraphAssociativityRegression : Bool
-eGraphAssociativityRegression =
-  case regressionGraph of λ where
-    (_ , ok) -> ok
-
-eGraphAssociativityRegression-proof :
-  eGraphAssociativityRegression ≡ True
-eGraphAssociativityRegression-proof = refl
