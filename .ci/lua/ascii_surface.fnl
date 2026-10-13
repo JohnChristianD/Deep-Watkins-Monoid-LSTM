@@ -7,7 +7,7 @@
   (pipe:close)
   lines))
 (local read-file
-  (fn [path] [path]
+  (fn [path]
   (local file (assert (io.open path "rb")))
   (local content (file:read "*a"))
   (file:close)

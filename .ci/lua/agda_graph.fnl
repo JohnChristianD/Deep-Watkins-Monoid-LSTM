@@ -7,13 +7,13 @@
   (pipe:close)
   lines))
 (local read-file
-  (fn [path] [path]
+  (fn [path]
   (local file (assert (io.open path "r")))
   (local content (file:read "*a"))
   (file:close)
   content))
 (local elm-escape
-  (fn [value] [value]
+  (fn [value]
   (local escaped (string.gsub value "\\" "\\\\"))
   (set escaped (string.gsub escaped "\"" "\\\""))
   (set escaped (string.gsub escaped "\n" "\\n"))
