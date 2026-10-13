@@ -517,17 +517,18 @@ mutual
                 (extractedCost first + extractedCostSum rest))
 
   bestBindingForRoot :
-    Nat -> List Binding -> EGraph -> Nat -> List Nat -> Maybe Extraction
+      Nat -> List Binding -> EGraph -> Nat -> List Nat -> Maybe Extraction
   bestBindingForRoot _ [] _ _ _ = Nothing
+  bestBindingForRoot _ (_ ∷ _) _ zero _ = Nothing
   bestBindingForRoot target
     (binding (enode symbol children) id ∷ rest)
-    graph depth seen =
+    graph (suc depth) seen =
     case root graph id == target of λ where
       False ->
-        bestBindingForRoot target rest graph depth seen
+        bestBindingForRoot target rest graph (suc depth) seen
       True ->
         let candidate =
-              case extractChildren children graph (predNat depth) seen of λ where
+              case extractChildren children graph depth seen of λ where
                 Nothing -> Nothing
                 (Just children') ->
                   Just
@@ -536,23 +537,20 @@ mutual
                       (localCost (enode symbol children) +
                        extractedCostSum children'))
         in chooseCheaper candidate
-             (bestBindingForRoot target rest graph depth seen)
+             (bestBindingForRoot target rest graph (suc depth) seen)
 
   extractBestSeen :
-    Nat -> EGraph -> Nat -> List Nat -> Maybe Extraction
-  extractBestSeen class graph depth seen =
-    case depth == zero of λ where
+      Nat -> EGraph -> Nat -> List Nat -> Maybe Extraction
+  extractBestSeen _ _ zero _ = Nothing
+  extractBestSeen class graph (suc depth) seen =
+    let target = root graph class in
+    case memberNat target seen of λ where
       True -> Nothing
       False ->
-        let target = root graph class in
-        case memberNat target seen of λ where
-          True -> Nothing
-          False ->
-            bestBindingForRoot target (bindings graph) graph depth (target ∷ seen)
+        bestBindingForRoot target (bindings graph) graph depth (target ∷ seen)
 
 extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
 extractBest class graph depth = extractBestSeen class graph depth []
-
 associativityRule : RewriteRule
 associativityRule =
   rewriteRule
@@ -574,7 +572,7 @@ emptyRightRule =
       (pvar "A" ∷
        papp "empty-proof-compose" [] ∷
        []))
-    (pvar "A" ∷ [])
+    (pvar "A")
 
 emptyLeftRule : RewriteRule
 emptyLeftRule =
@@ -584,7 +582,7 @@ emptyLeftRule =
       (papp "empty-proof-compose" [] ∷
        pvar "A" ∷
        []))
-    (pvar "A" ∷ [])
+    (pvar "A")
 
 semanticRewriteRules : List RewriteRule
 semanticRewriteRules =
