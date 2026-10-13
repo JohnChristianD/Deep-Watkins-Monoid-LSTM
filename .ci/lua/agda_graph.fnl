@@ -29,6 +29,7 @@
 (local edges [])
 (each [_ path (ipairs source-files)]
   (local content (read-file path))
+  (local module-name (string.gsub (string.gsub path "%.agda$" "") "/" "."))
   (local imports [])
   (each [_ imported
       (string.gmatch content "\n%s*open%s+import%s+([^%s]+)")]
