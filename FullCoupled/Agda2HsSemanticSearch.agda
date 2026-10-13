@@ -312,7 +312,7 @@ graphLawForName :
   String -> List GraphLaw -> Maybe GraphLaw
 graphLawForName _ [] = Nothing
 graphLawForName name (law ∷ laws) =
-  if name == graphLawName law then
+  if name == (graphLawName law) then
     Just law
   else
     graphLawForName name laws
@@ -331,7 +331,7 @@ graphLawAddDependency name dependency [] =
   graphLaw name (dependency ∷ []) ∷ []
 graphLawAddDependency name dependency
   (law ∷ laws) =
-  if name == graphLawName law then
+  if name == (graphLawName law) then
     let deps =
           if planContains dependency (graphLawDependencies law) then
             graphLawDependencies law
@@ -344,7 +344,7 @@ graphLawAddDependency name dependency
 ensureGraphLaw : String -> List GraphLaw -> List GraphLaw
 ensureGraphLaw name [] = graphLaw name [] ∷ []
 ensureGraphLaw name (law ∷ laws) =
-  if name == graphLawName law then
+  if name == (graphLawName law) then
     law ∷ laws
   else
     law ∷ ensureGraphLaw name laws
