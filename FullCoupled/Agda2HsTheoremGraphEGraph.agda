@@ -273,13 +273,14 @@ matchChildren :
 matchChildren [] [] _ sub = sub ∷ []
 matchChildren [] (_ ∷ _) _ _ = []
 matchChildren (_ ∷ _) [] _ _ = []
-matchChildren (pattern ∷ patterns) (child ∷ children) graph sub =
+matchChildren (childPattern ∷ remainingPatterns) (child ∷ children) graph sub =
   concatMap
-    (λ next -> matchChildren patterns children graph next)
-    (matchPattern pattern child graph sub)
+    (λ next -> matchChildren remainingPatterns children graph next)
+    (matchPattern childPattern child graph sub)
 
 eMatch : Pattern -> Nat -> EGraph -> List Substitution
-eMatch pattern class graph = matchPattern pattern class graph (substitution [])
+eMatch searchPattern class graph =
+  matchPattern searchPattern class graph (substitution [])
 
 instantiatePattern :
   Pattern -> Substitution -> EGraph -> Maybe (Nat × EGraph)
@@ -296,11 +297,11 @@ instantiatePatterns :
   List Pattern -> Substitution -> EGraph ->
   Maybe (List Nat × EGraph)
 instantiatePatterns [] _ graph = Just ([] , graph)
-instantiatePatterns (pattern ∷ patterns) sub graph =
-  case instantiatePattern pattern sub graph of λ where
+instantiatePatterns (currentPattern ∷ remainingPatterns) sub graph =
+  case instantiatePattern currentPattern sub graph of λ where
     Nothing -> Nothing
     (Just (id , graph')) ->
-      case instantiatePatterns patterns sub graph' of λ where
+      case instantiatePatterns remainingPatterns sub graph' of λ where
         Nothing -> Nothing
         (Just (ids , graph'')) -> Just (id ∷ ids , graph'')
 

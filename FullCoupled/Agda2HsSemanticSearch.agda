@@ -1553,4 +1553,4 @@ main = do
 {-# COMPILE AGDA2HS haskellMinusOneAStarComplete #-}
 {-# COMPILE AGDA2HS hybridInverseExactRealPlan #-}
 {-# COMPILE AGDA2HS hybridInverseExactRealSearchReport #-}
-{-# COMPILE AGDA2HS agdaSemanticPortReport #}
+{-# COMPILE AGDA2HS agdaSemanticPortReport #-}
