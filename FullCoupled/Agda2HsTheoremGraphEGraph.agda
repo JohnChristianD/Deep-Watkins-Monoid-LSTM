@@ -246,65 +246,67 @@ bindSubstitution name id (substitution entries) =
     (Just old) ->
       if old == id then Just (substitution entries) else Nothing
 
-matchPattern :
-  Pattern -> Nat -> EGraph -> Substitution -> List Substitution
-matchPattern (pvar name) class graph sub =
-  case bindSubstitution name (root graph class) sub of λ where
-    Nothing -> []
-    (Just result) -> result ∷ []
-matchPattern (papp symbol patterns) class graph sub =
-  matchNodes symbol patterns (root graph class) graph (bindings graph) sub
+mutual
+  matchPattern :
+    Pattern -> Nat -> EGraph -> Substitution -> List Substitution
+  matchPattern (pvar name) class graph sub =
+    case bindSubstitution name (root graph class) sub of λ where
+      Nothing -> []
+      (Just result) -> result ∷ []
+  matchPattern (papp symbol patterns) class graph sub =
+    matchNodes symbol patterns (root graph class) graph (bindings graph) sub
 
-matchNodes :
-  String -> List Pattern -> Nat -> EGraph ->
-  List Binding -> Substitution -> List Substitution
-matchNodes _ _ _ _ [] _ = []
-matchNodes symbol patterns target graph
-  (binding (enode candidate children) class ∷ rest) sub =
-  if root graph class == target then
-    if candidate == symbol then
-      matchChildren patterns children graph sub
-      ++ matchNodes symbol patterns target graph rest sub
+  matchNodes :
+    String -> List Pattern -> Nat -> EGraph ->
+    List Binding -> Substitution -> List Substitution
+  matchNodes _ _ _ _ [] _ = []
+  matchNodes symbol patterns target graph
+    (binding (enode candidate children) class ∷ rest) sub =
+    if root graph class == target then
+      if candidate == symbol then
+        matchChildren patterns children graph sub
+        ++ matchNodes symbol patterns target graph rest sub
+      else matchNodes symbol patterns target graph rest sub
     else matchNodes symbol patterns target graph rest sub
-  else matchNodes symbol patterns target graph rest sub
 
-matchChildren :
-  List Pattern -> List Nat -> EGraph ->
-  Substitution -> List Substitution
-matchChildren [] [] _ sub = sub ∷ []
-matchChildren [] (_ ∷ _) _ _ = []
-matchChildren (_ ∷ _) [] _ _ = []
-matchChildren (childPattern ∷ remainingPatterns) (child ∷ children) graph sub =
-  concatMap
-    (λ next -> matchChildren remainingPatterns children graph next)
-    (matchPattern childPattern child graph sub)
+  matchChildren :
+    List Pattern -> List Nat -> EGraph ->
+    Substitution -> List Substitution
+  matchChildren [] [] _ sub = sub ∷ []
+  matchChildren [] (_ ∷ _) _ _ = []
+  matchChildren (_ ∷ _) [] _ _ = []
+  matchChildren (childPattern ∷ remainingPatterns) (child ∷ children) graph sub =
+    concatMap
+      (λ next -> matchChildren remainingPatterns children graph next)
+      (matchPattern childPattern child graph sub)
 
 eMatch : Pattern -> Nat -> EGraph -> List Substitution
 eMatch searchPattern class graph =
   matchPattern searchPattern class graph (substitution [])
 
-instantiatePattern :
-  Pattern -> Substitution -> EGraph -> Maybe (Nat × EGraph)
-instantiatePattern (pvar name) sub graph =
-  case lookupSubstitution name sub of λ where
-    Nothing -> Nothing
-    (Just id) -> Just (id , graph)
-instantiatePattern (papp symbol patterns) sub graph =
-  case instantiatePatterns patterns sub graph of λ where
-    Nothing -> Nothing
-    (Just (ids , graph')) -> Just (hashconsNode (enode symbol ids) graph')
+mutual
+  instantiatePattern :
+    Pattern -> Substitution -> EGraph -> Maybe (Nat × EGraph)
+  instantiatePattern (pvar name) sub graph =
+    case lookupSubstitution name sub of λ where
+      Nothing -> Nothing
+      (Just id) -> Just (id , graph)
+  instantiatePattern (papp symbol patterns) sub graph =
+    case instantiatePatterns patterns sub graph of λ where
+      Nothing -> Nothing
+      (Just (ids , graph')) -> Just (hashconsNode (enode symbol ids) graph')
 
-instantiatePatterns :
-  List Pattern -> Substitution -> EGraph ->
-  Maybe (List Nat × EGraph)
-instantiatePatterns [] _ graph = Just ([] , graph)
-instantiatePatterns (currentPattern ∷ remainingPatterns) sub graph =
-  case instantiatePattern currentPattern sub graph of λ where
-    Nothing -> Nothing
-    (Just (id , graph')) ->
-      case instantiatePatterns remainingPatterns sub graph' of λ where
-        Nothing -> Nothing
-        (Just (ids , graph'')) -> Just (id ∷ ids , graph'')
+  instantiatePatterns :
+    List Pattern -> Substitution -> EGraph ->
+    Maybe (List Nat × EGraph)
+  instantiatePatterns [] _ graph = Just ([] , graph)
+  instantiatePatterns (currentPattern ∷ remainingPatterns) sub graph =
+    case instantiatePattern currentPattern sub graph of λ where
+      Nothing -> Nothing
+      (Just (id , graph')) ->
+        case instantiatePatterns remainingPatterns sub graph' of λ where
+          Nothing -> Nothing
+          (Just (ids , graph'')) -> Just (id ∷ ids , graph'')
 
 applyMatch :
   RewriteRule -> Nat -> Substitution -> EGraph -> EGraph × Nat
@@ -317,6 +319,14 @@ applyMatch rule rootId sub graph =
       in if left == right then graph' , zero
          else mergeRoots left right graph' , suc zero
 
+applySubstitutions :
+  List Substitution -> RewriteRule -> Nat -> EGraph -> Nat ->
+  EGraph × Nat
+applySubstitutions [] _ _ graph count = graph , count
+applySubstitutions (sub ∷ rest) rule rootId graph count =
+  let (graph' , changed) = applyMatch rule rootId sub graph in
+  applySubstitutions rest rule rootId graph' (count + changed)
+
 applyRuleToRoot :
   RewriteRule -> Nat -> EGraph -> EGraph × Nat
 applyRuleToRoot rule rootId graph =
@@ -327,17 +337,6 @@ applyRuleToRoot rule rootId graph =
     graph
     zero
 
-applySubstitutions :
-  List Substitution -> RewriteRule -> Nat -> EGraph -> Nat ->
-  EGraph × Nat
-applySubstitutions [] _ _ graph count = graph , count
-applySubstitutions (sub ∷ rest) rule rootId graph count =
-  let (graph' , changed) = applyMatch rule rootId sub graph in
-  applySubstitutions rest rule rootId graph' (count + changed)
-
-rootClasses : EGraph -> List Nat
-rootClasses graph = uniqueRoots (bindings graph) graph []
-
 uniqueRoots :
   List Binding -> EGraph -> List Nat -> List Nat
 uniqueRoots [] _ seen = reverse seen
@@ -345,6 +344,9 @@ uniqueRoots (binding _ id ∷ rest) graph seen =
   let r = root graph id in
   if memberNat r seen then uniqueRoots rest graph seen
   else uniqueRoots rest graph (r ∷ seen)
+
+rootClasses : EGraph -> List Nat
+rootClasses graph = uniqueRoots (bindings graph) graph []
 
 applyRulesToRoots :
   RewriteRule -> List Nat -> EGraph -> EGraph × Nat
@@ -538,19 +540,19 @@ semanticRewriteRules =
 lawExpr : String -> Expr
 lawExpr id = app "semantic-law" (atom id ∷ [])
 
+leftAssocExprAcc : Expr -> List String -> Expr
+leftAssocExprAcc acc [] = acc
+leftAssocExprAcc acc (id ∷ rest) =
+  leftAssocExprAcc
+    (app "proof-compose" (acc ∷ lawExpr id ∷ []))
+    rest
+
 leftAssocExpr : List String -> Expr
 leftAssocExpr [] = atom "empty-proof-compose"
 leftAssocExpr (id ∷ []) = lawExpr id
 leftAssocExpr (a ∷ b ∷ rest) =
   leftAssocExprAcc
     (app "proof-compose" (lawExpr a ∷ lawExpr b ∷ []))
-    rest
-
-leftAssocExprAcc : Expr -> List String -> Expr
-leftAssocExprAcc acc [] = acc
-leftAssocExprAcc acc (id ∷ rest) =
-  leftAssocExprAcc
-    (app "proof-compose" (acc ∷ lawExpr id ∷ []))
     rest
 
 rightAssocExpr : List String -> Expr
