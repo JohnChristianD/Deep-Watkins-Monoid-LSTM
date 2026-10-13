@@ -532,7 +532,7 @@ mutual
     seen =
     case root graph id == target of λ where
       False ->
-        bestBindingForRoot (suc fuel) target rest graph seen
+        bestBindingForRoot fuel target rest graph seen
       True ->
         let candidate =
               case extractChildren fuel children graph seen of λ where
@@ -544,7 +544,7 @@ mutual
                       (localCost (enode symbol children) +
                        extractedCostSum children'))
         in chooseCheaper candidate
-             (bestBindingForRoot (suc fuel) target rest graph seen)
+             (bestBindingForRoot fuel target rest graph seen)
 
 extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
 extractBest class graph fuel = extractBestSeen fuel class graph []
