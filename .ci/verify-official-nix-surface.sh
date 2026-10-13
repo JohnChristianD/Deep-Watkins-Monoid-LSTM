@@ -45,4 +45,5 @@ grep -Fq 'acorn-prover = acornProver system;' flake.nix
 grep -Fq 'name = "xds-agda-check";' flake.nix
 grep -Fq 'name = "mini-vehicle-check";' flake.nix
 grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
+grep -Fq 'name = "monoid-lstm-stream-check";' flake.nix
 echo 'official-nix-surface=pass'

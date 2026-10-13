@@ -377,6 +377,21 @@
             program = "${script}/bin/scott-strachey-domain-check";
           };
 
+          monoid-lstm-stream-check = let
+            script = pkgs.writeShellApplication {
+              name = "monoid-lstm-stream-check";
+              runtimeInputs = [ (agdaCommand system) ];
+              text = ''
+                set -euo pipefail
+                agda2hs-agda -i . FullCoupled/FormalMethods/MonoidLSTMStreams.agda
+                echo "monoid-lstm-stream-check=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/monoid-lstm-stream-check";
+          };
+
           agda2hs-graph-search-check = let
             script = pkgs.writeShellApplication {
               name = "agda2hs-graph-search-check";
