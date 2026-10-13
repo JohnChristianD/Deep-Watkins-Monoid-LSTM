@@ -47,9 +47,13 @@ Make the executable search path small, deterministic, and auditable. Keep each t
 
 Keep a machine-readable manifest with tool revisions, compiler versions, inputs, assumptions, checked propositions, artifacts, and regression outcomes. “No plugins” or a successful compiler exit is not a soundness claim.
 
-## Current migration state (2026-10-12)
+## Current migration state (2026-10-13)
 
-The repository is **not yet fully TypeTopology-free**. `flake.nix` pins `typetopology`, and `FullCoupled/TheoremsMonolith.agda` and `FullCoupled/LearnerLogicalSpec.agda` import TypeTopology arithmetic, MLTT, UF/univalence, ordinal, and searchable-type modules. Removing the Nix input before migrating those interfaces would break the proof build. `nix run .#agda2hs-graph-search-check` is now a separate runtime-only lane: it type-checks, extracts, GHC-compiles, and executes deterministic graph regressions without invoking `agda-proof` or `TheoremsMonolith`. The existing `agda2hs-semantic-search` app still builds the live DOT input through the TypeTopology-dependent theorem monolith; separating that generated graph artifact is the next migration step.
+The active `flake.nix` no longer includes TypeTopology, Rio, or Mirth as build/runtime dependencies. Fennel runs through Nix-provided LuaJIT; Luafun is pinned and packaged with `buildLuaPackage`; Streamly packages are requested from the pinned Nixpkgs Haskell package set. CI checks the Agda2HS runtime closure and treats the legacy theorem files separately.
+
+**Full source-level TypeTopology retirement is not complete.** `FullCoupled/TheoremsMonolith.agda` and `FullCoupled/LearnerLogicalSpec.agda` still import TypeTopology's integer, natural, rational, MLTT, univalence, ordinal, and searchable-type APIs. Their imports cannot safely be deleted without porting the used interfaces and proving the dependent lemmas, or deliberately removing those theorem surfaces. The current graph-search executable does not import either legacy file. Do not treat removal from `flake.nix` as proof that all historical Agda source is independent of TypeTopology.
+
+Global executable Agda/Agda2HS flags are stored one-per-line in `.ci/agda/global-options.txt`; both Nix wrappers load that same file. Module-specific pragmas, such as `{-# OPTIONS --safe #-}` for the domain starter, remain source-local.
 
 ## Migration gates
 
@@ -62,8 +66,14 @@ The repository is **not yet fully TypeTopology-free**. `flake.nix` pins `typetop
 The target is a small executable core plus explicitly separated proof sidecars. Full TypeTopology retirement is a gated migration, not a dependency deletion that leaves theorem imports unresolved.
 
 
+## Agda command policy
+
+The canonical global CLI flags are one-per-line in `.ci/agda/global-options.txt`. The Nix wrappers pass those flags to both `agda` and `agda2hs`. Keep flags with semantic or safety scope local to an individual file or CI lane; in particular, `--guardedness` must not be added globally because its compatibility differs from `--safe`.
+
 ## Scott–Strachey and search semantics
 
 The checked starter module is `FullCoupled/FormalMethods/ScottStracheyDomains.agda`. It distinguishes `bottom` from the defined numeric zero and interprets a small language of numerals, divergence, and strict addition. Its counterexamples show that strict lifted operations do not, in general, give a ring or semiring over the *whole lifted carrier*; this does not imply a defect in the unlifted integers, rationals, or reals.
 
 This is an executable starter model—not yet a full CPO/Scott-continuity/fixed-point theorem. A complete account still needs chain suprema, monotonicity/continuity proofs, and a least-fixed-point construction for recursive search. The graph/A* implementation remains a separate executable algorithm with bounded runtime regressions.
+
+`FullCoupled/FormalMethods/MonoidLSTMStreams.agda` is the isolated guarded stream layer: it defines delayed streams, suffix duplication/extension, a coinductive bisimulation relation, and finite-prefix causality proofs for mapping and stateful scans. The scan is an interface for the concrete LSTM recurrence, not yet a proof about the repository's deployed model. Reflection is not imported because these definitions do not inspect or construct Agda syntax trees.

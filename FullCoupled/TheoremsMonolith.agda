@@ -1,4 +1,3 @@
--- BEGIN MIRTH-SYNC GLOBAL OPTIONS
 {-# OPTIONS
   --lossy-unification
   --experimental-lazy-instances
@@ -15,7 +14,6 @@
   --type-in-type
   --no-positivity-check
 #-}
--- END MIRTH-SYNC GLOBAL OPTIONS
 
 
 {-# OPTIONS
@@ -28,7 +26,6 @@
 
 module FullCoupled.TheoremsMonolith where
 
--- BEGIN MIRTH-SYNC COMMON IMPORTS
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude
 open import Integers.Type
@@ -58,7 +55,6 @@ open import Rationals.Multiplication
 open import Rationals.Negation
 open import Rationals.Order
 open import Rationals.Type
--- END MIRTH-SYNC COMMON IMPORTS
 
 -- Stable Agda 2.8.0.2 reflection compatibility surface.
 -- Reuses TypeTopology's existing BOOL/NATURAL/LIST/SIGMA bindings instead
@@ -294,13 +290,7 @@ try-fun = catchTC
 syntax try-fun t f = try t or-else f
 
 
--- BEGIN MIRTH-SYNC CANONICAL COMMAND
--- "$AGDA_COMMAND" -i .
--- END MIRTH-SYNC CANONICAL COMMAND
 
--- BEGIN MIRTH-SYNC THEOREM GRAPH COMMAND
--- "$AGDA_COMMAND" --dependency-graph=.ci/discovery/theorems-monolith.dot -i . FullCoupled/TheoremsMonolith.agda
--- END MIRTH-SYNC THEOREM GRAPH COMMAND
 
 -- BEGIN THEOREM GRAPH COMMAND
 -- "$AGDA_COMMAND" --dependency-graph=.ci/discovery/theorems-monolith.dot -i . FullCoupled/TheoremsMonolith.agda

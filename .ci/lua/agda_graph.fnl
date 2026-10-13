@@ -29,18 +29,14 @@
 (local edges [])
 (each [_ path (ipairs source-files)]
   (local content (read-file path))
-  (local module-name
-    (string.gsub
-      (string.gsub path "%.agda$" "")
-      "/"
-      "."))
+  (local module-name (string.gsub (string.gsub path "%.agda$" "") "/" "."))
   (local imports [])
-  (each [_ line (ipairs content-lines)]
-    (local imported
-      (or
-        (string.match line "^%s*open%s+import%s+([^%s]+)")
-        (string.match line "^%s*import%s+([^%s]+)")))
-    (when imported (table.insert imports imported)))
+  (each [imported
+      (string.gmatch content "\n%s*open%s+import%s+([^%s]+)")]
+    (table.insert imports imported))
+  (each [imported
+      (string.gmatch content "\n%s*import%s+([^%s]+)")]
+    (table.insert imports imported))
   (table.insert nodes {:id module-name :label module-name :source path})
   (each [_ imported (ipairs imports)]
     (table.insert edges {:source module-name :target imported :relation "imports"})))

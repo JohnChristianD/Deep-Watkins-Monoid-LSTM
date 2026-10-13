@@ -187,7 +187,8 @@
             pkgs.coreutils
           ];
           text = ''
-            exec agda --erasure --no-projection-like -l agda2hs-base -i . "$@"
+            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            exec agda "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
           '' ;
         };
 
@@ -202,7 +203,8 @@
             pkgs.coreutils
           ];
           text = ''
-            exec agda2hs --erasure --no-projection-like -l agda2hs-base -i . "$@"
+            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            exec agda2hs "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
           '' ;
         };
     in
@@ -373,6 +375,21 @@
           in {
             type = "app";
             program = "${script}/bin/scott-strachey-domain-check";
+          };
+
+          monoid-lstm-stream-check = let
+            script = pkgs.writeShellApplication {
+              name = "monoid-lstm-stream-check";
+              runtimeInputs = [ (agdaCommand system) ];
+              text = ''
+                set -euo pipefail
+                agda2hs-agda -i . FullCoupled/FormalMethods/MonoidLSTMStreams.agda
+                echo "monoid-lstm-stream-check=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/monoid-lstm-stream-check";
           };
 
           agda2hs-graph-search-check = let

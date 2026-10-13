@@ -1,4 +1,3 @@
--- BEGIN MIRTH-SYNC GLOBAL OPTIONS
 {-# OPTIONS
   --lossy-unification
   --experimental-lazy-instances
@@ -15,7 +14,6 @@
   --type-in-type
   --no-positivity-check
 #-}
--- END MIRTH-SYNC GLOBAL OPTIONS
 
 ------------------------------------------------------------------------
 -- Canonical learner semantics.
@@ -42,7 +40,6 @@
 
 module FullCoupled.CanonicalLearnerMonolith where
 
--- BEGIN MIRTH-SYNC COMMON IMPORTS
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude
 open import Integers.Type
@@ -72,7 +69,6 @@ open import Rationals.Multiplication
 open import Rationals.Negation
 open import Rationals.Order
 open import Rationals.Type
--- END MIRTH-SYNC COMMON IMPORTS
 
 
 cong₂ : ∀ {A B C : Set} (f : A → B → C) {x y : A} {u v : B} → x ＝ y → u ＝ v → f x u ＝ f y v
@@ -81,9 +77,6 @@ cong₂ f refl refl = refl
 trans : ∀ {A : Set} {x y z : A} → x ＝ y → y ＝ z → x ＝ z
 trans refl q = q
 
--- BEGIN MIRTH-SYNC CANONICAL COMMAND
--- "$AGDA_COMMAND" -i .
--- END MIRTH-SYNC CANONICAL COMMAND
 
 
 record Int8 : Set where

@@ -2,7 +2,7 @@ module FullCoupled.Agda2HsSemanticSearch where
 
 open import Haskell.Prelude
 
-open import FullCoupled.Agda2HsSemanticExtractor as Extractor
+import FullCoupled.Agda2HsSemanticExtractor as Extractor
 open import FullCoupled.Agda2HsTheoremGraphEGraph using
   ( symbolicEGraphRegression
   ; eGraphAssociativityRegression
@@ -312,7 +312,7 @@ graphLawForName :
   String -> List GraphLaw -> Maybe GraphLaw
 graphLawForName _ [] = Nothing
 graphLawForName name (law ∷ laws) =
-  if name == graphLawName law then
+  if name == (graphLawName law) then
     Just law
   else
     graphLawForName name laws
@@ -331,20 +331,20 @@ graphLawAddDependency name dependency [] =
   graphLaw name (dependency ∷ []) ∷ []
 graphLawAddDependency name dependency
   (law ∷ laws) =
-  if name == graphLawName law then
-    let deps =
-          if planContains dependency (graphLawDependencies law) then
-            graphLawDependencies law
-          else
-            dependency ∷ graphLawDependencies law
-    in graphLaw name deps ∷ laws
-  else
-    law ∷ graphLawAddDependency name dependency laws
+  case name == graphLawName law of λ where
+    True ->
+      case planContains dependency (graphLawDependencies law) of λ where
+        True -> graphLaw name (graphLawDependencies law) ∷ laws
+        False ->
+          graphLaw name
+            (dependency ∷ graphLawDependencies law) ∷ laws
+    False ->
+      law ∷ graphLawAddDependency name dependency laws
 
 ensureGraphLaw : String -> List GraphLaw -> List GraphLaw
 ensureGraphLaw name [] = graphLaw name [] ∷ []
 ensureGraphLaw name (law ∷ laws) =
-  if name == graphLawName law then
+  if name == (graphLawName law) then
     law ∷ laws
   else
     law ∷ ensureGraphLaw name laws
@@ -367,18 +367,6 @@ graphLawSeeds (law ∷ laws) =
 graphContains : String -> List String -> Bool
 graphContains = planContains
 
-graphExpandNode :
-  GraphNode -> List GraphLaw -> List GraphNode
-graphExpandNode (graphNode []) _ = []
-graphExpandNode (graphNode (terminal ∷ rest)) laws =
-  case graphLawForName terminal laws of λ where
-    Nothing -> []
-    (Just law) ->
-      graphExpandDependencies
-        (graphLawDependencies law)
-        (terminal ∷ rest)
-        []
-
 graphExpandDependencies :
   List String ->
   List String ->
@@ -395,6 +383,18 @@ graphExpandDependencies (dependency ∷ dependencies) plan acc =
       dependencies
       plan
       (graphNode (dependency ∷ plan) ∷ acc)
+
+graphExpandNode :
+  GraphNode -> List GraphLaw -> List GraphNode
+graphExpandNode (graphNode []) _ = []
+graphExpandNode (graphNode (terminal ∷ rest)) laws =
+  case graphLawForName terminal laws of λ where
+    Nothing -> []
+    (Just law) ->
+      graphExpandDependencies
+        (graphLawDependencies law)
+        (terminal ∷ rest)
+        []
 
 graphNodeScore : GraphNode -> Nat
 graphNodeScore node = length (graphNodePlan node)
@@ -1014,14 +1014,12 @@ requiredPlanForName requested semanticLaws =
   case semanticLawForName requested semanticLaws of λ where
     Nothing -> Nothing
     (Just law) ->
-      if semanticLawCanSeed law then
-        let graphLaws = semanticGraphLaws semanticLaws
-        in
-        graphAStarFirst
-          graphLaws
-          (graphNode (Extractor.semanticLawId law ∷ []))
-      else
-        Nothing
+      case semanticLawCanSeed law of λ where
+        True ->
+          graphAStarFirst
+            (semanticGraphLaws semanticLaws)
+            (graphNode (Extractor.semanticLawId law ∷ []))
+        False -> Nothing
 
 requiredPlanIsValid :
   List Extractor.SemanticLaw ->

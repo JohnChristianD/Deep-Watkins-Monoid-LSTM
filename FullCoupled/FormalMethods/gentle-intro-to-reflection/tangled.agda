@@ -1,4 +1,3 @@
--- BEGIN MIRTH-SYNC GLOBAL OPTIONS
 {-# OPTIONS
   --lossy-unification
   --backtracking-instance-search
@@ -13,12 +12,10 @@
   --no-projection-like
   --erasure
 #-}
--- END MIRTH-SYNC GLOBAL OPTIONS
 
 
 module tangled where
 
--- BEGIN MIRTH-SYNC COMMON IMPORTS
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude hiding (String; ⊥)
 open import MLTT.Spartan hiding (J)
@@ -40,13 +37,9 @@ open import UF.Size
 open import UF.Subsingletons
 open import UF.Subsingletons-FunExt
 open import UF.UA-FunExt
--- END MIRTH-SYNC COMMON IMPORTS
 
 open import Agda.Builtin.Reflection as Builtin
 
--- BEGIN MIRTH-SYNC CANONICAL COMMAND
--- "$AGDA_COMMAND" -i .
--- END MIRTH-SYNC CANONICAL COMMAND
 
 
 {- [[file:~/reflection/gentle-intro-to-reflection.lagda::*Introduction][Introduction:1]] -}
