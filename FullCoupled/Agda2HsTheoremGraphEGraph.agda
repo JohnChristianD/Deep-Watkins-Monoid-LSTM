@@ -102,10 +102,33 @@ memberNat _ [] = False
 memberNat x (y ∷ ys) =
   if x == y then True else memberNat x ys
 
-lookupPair : {A B : Type} -> A -> List (A × B) -> Maybe B
-lookupPair _ [] = Nothing
-lookupPair key ((candidate , value) ∷ rest) =
-  if key == candidate then Just value else lookupPair key rest
+lookupNatPair : Nat -> List (Nat × Nat) -> Maybe Nat
+lookupNatPair _ [] = Nothing
+lookupNatPair key ((candidate , value) ∷ rest) =
+  if key == candidate then Just value else lookupNatPair key rest
+
+lookupStringPair : String -> List (String × Nat) -> Maybe Nat
+lookupStringPair _ [] = Nothing
+lookupStringPair key ((candidate , value) ∷ rest) =
+  if key == candidate then Just value else lookupStringPair key rest
+
+lookupNatPairRegression : Bool
+lookupNatPairRegression =
+  case lookupNatPair 2 ((1 , 10) ∷ (2 , 20) ∷ []) of λ where
+    Nothing -> False
+    (Just value) -> value == 20
+
+lookupNatPairRegressionChecked : lookupNatPairRegression ≡ True
+lookupNatPairRegressionChecked = refl
+
+lookupStringPairRegression : Bool
+lookupStringPairRegression =
+  case lookupStringPair "right" (("left" , 1) ∷ ("right" , 2) ∷ []) of λ where
+    Nothing -> False
+    (Just value) -> value == 2
+
+lookupStringPairRegressionChecked : lookupStringPairRegression ≡ True
+lookupStringPairRegressionChecked = refl
 
 setPair : {A B : Type} -> A -> B -> List (A × B) -> List (A × B)
 setPair key value pairs = (key , value) ∷ pairs
@@ -119,7 +142,7 @@ listEqualNat (x ∷ xs) (y ∷ ys) =
 
 parentsLookup : Nat -> List (Nat × Nat) -> Nat
 parentsLookup key parents =
-  case lookupPair key parents of λ where
+  case lookupNatPair key parents of λ where
     Nothing -> key
     (Just parent) -> parent
 
@@ -237,7 +260,7 @@ merge : Nat -> Nat -> EGraph -> EGraph
 merge left right graph = rebuild (mergeRoots left right graph)
 
 lookupSubstitution : String -> Substitution -> Maybe Nat
-lookupSubstitution name (substitution entries) = lookupPair name entries
+lookupSubstitution name (substitution entries) = lookupStringPair name entries
 
 bindSubstitution : String -> Nat -> Substitution -> Maybe Substitution
 bindSubstitution name id (substitution entries) =
