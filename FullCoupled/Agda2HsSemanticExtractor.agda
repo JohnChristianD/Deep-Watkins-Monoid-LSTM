@@ -420,7 +420,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
                 accumulator
             Nothing ->
               scanLines sourceFile rest idle accumulator
-    signature-state name signatureReversed ->
+    (signature-state name signatureReversed) ->
       case bodyClause name line of λ where
         (Just body) ->
           scanLines
@@ -456,7 +456,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
                   name
                   (trimWhitespace line ∷ signatureReversed))
                 accumulator
-    body-state name signatureReversed bodyReversed ->
+    (body-state name signatureReversed bodyReversed) ->
       case topLevelDeclarationHeader line of λ where
         (Just nextName) ->
           if nextName == name then
@@ -589,7 +589,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
             rest
             outside-record
             accumulator
-        record-waiting recordName ->
+        (record-waiting recordName) ->
           case firstWord line of λ where
             Nothing ->
               scanRecordFields
@@ -611,7 +611,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
                     rest
                     (record-waiting recordName)
                     accumulator
-        record-fields recordName ->
+        (record-fields recordName) ->
           case recordFieldHeader line of λ where
             (Just (fieldName , fragment)) ->
               scanRecordFields
@@ -628,7 +628,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
                 rest
                 (record-fields recordName)
                 accumulator
-        field-collecting recordName fieldName signatureReversed ->
+        (field-collecting recordName fieldName signatureReversed) ->
           case recordFieldHeader line of λ where
             (Just (nextFieldName , fragment)) ->
               scanRecordFields
