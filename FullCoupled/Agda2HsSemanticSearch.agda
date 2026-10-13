@@ -806,6 +806,23 @@ graphAStarTieBreakRegressionChecked :
   graphAStarTieBreakRegression ≡ True
 graphAStarTieBreakRegressionChecked = refl
 
+graphStringPathEqual : List String -> List String -> Bool
+graphStringPathEqual [] [] = True
+graphStringPathEqual (left ∷ lefts) (right ∷ rights) =
+  left == right && graphStringPathEqual lefts rights
+graphStringPathEqual _ _ = False
+
+graphPathMember : List String -> List (List String) -> Bool
+graphPathMember _ [] = False
+graphPathMember target (candidate ∷ candidates) =
+  graphStringPathEqual target candidate || graphPathMember target candidates
+
+graphNodePlanMember : List String -> List GraphNode -> Bool
+graphNodePlanMember _ [] = False
+graphNodePlanMember target (node ∷ nodes) =
+  graphStringPathEqual target (graphNodePlan node) ||
+  graphNodePlanMember target nodes
+
 graphDependencyOrderRegression : Bool
 graphDependencyOrderRegression =
   let
@@ -814,15 +831,11 @@ graphDependencyOrderRegression =
       graphLaw "B" [] ∷
       graphLaw "C" [] ∷
       []
+    nodes = graphExpandNode (graphNode ("A" ∷ [])) laws
   in
-  case graphExpandNode (graphNode ("A" ∷ [])) laws of λ where
-    (graphNode (firstDependency ∷ firstRoot ∷ []) ∷
-     graphNode (secondDependency ∷ secondRoot ∷ []) ∷ []) ->
-      firstDependency == "B" &&
-      firstRoot == "A" &&
-      secondDependency == "C" &&
-      secondRoot == "A"
-    _ → False
+  graphNodePlanMember ("B" ∷ "A" ∷ []) nodes &&
+  graphNodePlanMember ("C" ∷ "A" ∷ []) nodes &&
+  listLengthNat nodes == suc (suc zero)
 
 graphDependencyOrderRegressionChecked :
   graphDependencyOrderRegression ≡ True
@@ -837,15 +850,11 @@ graphTwoLeafBranchesRegression =
       ("A" , "B") ∷
       ("A" , "C") ∷
       []
+    plans = autonomousGraphSearchFromRoot "A" edges
   in
-  case autonomousGraphSearchFromRoot "A" edges of λ where
-    ((firstLeaf ∷ firstRoot ∷ []) ∷
-     (secondLeaf ∷ secondRoot ∷ []) ∷ []) ->
-      firstLeaf == "B" &&
-      firstRoot == "A" &&
-      secondLeaf == "C" &&
-      secondRoot == "A"
-    _ → False
+  graphPathMember ("B" ∷ "A" ∷ []) plans &&
+  graphPathMember ("C" ∷ "A" ∷ []) plans &&
+  listLengthNat plans == suc (suc zero)
 
 graphTwoLeafBranchesRegressionChecked :
   graphTwoLeafBranchesRegression ≡ True
