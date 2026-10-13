@@ -1,5 +1,5 @@
 # mode<TAB>path<TAB>prefix<TAB>expected-line<TAB>expected-count
-sync	FullCoupled/TheoremsMonolith.agda	open import FullCoupled.CanonicalLearnerMonolith	open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_)	1
+sync	FullCoupled/TheoremsMonolith.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/TheoremsMonolith.agda	import FullCoupled.LearnerLogicalSpec	import FullCoupled.LearnerLogicalSpec as LearnerLogicalSpec	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prelude	open import Haskell.Prelude public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Equality	open import Agda.Builtin.Equality public	1
