@@ -7,7 +7,6 @@ module FullCoupled.Agda2HsTheoremGraphEGraph where
 
 -- BEGIN MIRTH-SYNC COMMON IMPORTS
 open import Haskell.Prelude
-open import Agda.Builtin.String using (primStringToList)
 -- END MIRTH-SYNC COMMON IMPORTS
 
 -- BEGIN MIRTH-SYNC CANONICAL COMMAND
@@ -54,10 +53,6 @@ bindingCount (_ ∷ rest) = suc (bindingCount rest)
 natListCount : List Nat -> Nat
 natListCount [] = zero
 natListCount (_ ∷ rest) = suc (natListCount rest)
-
-charListCount : List Char -> Nat
-charListCount [] = zero
-charListCount (_ ∷ rest) = suc (charListCount rest)
 
 bindingCountRegression : Bool
 bindingCountRegression =
@@ -452,8 +447,8 @@ saturateUntilStable rules graph =
      saturationReport iterations rewrites changed complete
 
 stringLength : String -> Nat
-stringLength text =
-  charListCount (primStringToList text)
+stringLength [] = zero
+stringLength (_ ∷ rest) = suc (stringLength rest)
 
 stringLengthRegression : Bool
 stringLengthRegression =
