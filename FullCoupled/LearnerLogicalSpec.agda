@@ -1,7 +1,6 @@
 -- A proof-obligation layer over the canonical executable learner.
 -- C.Int8 is an unbounded integer wrapper (C.Int = ℤ), not bounded 8-bit
 -- arithmetic.  No descent proof is postulated or claimed by this module.
--- BEGIN MIRTH-SYNC GLOBAL OPTIONS
 {-# OPTIONS
   --no-fast-reduce
   --lossy-unification
@@ -21,7 +20,6 @@
   --type-in-type
   --no-positivity-check
 #-}
--- END MIRTH-SYNC GLOBAL OPTIONS
 
 {-# OPTIONS
   --erasure
@@ -29,11 +27,7 @@
 
 module FullCoupled.LearnerLogicalSpec where
 
--- BEGIN MIRTH-SYNC CANONICAL COMMAND
--- "$AGDA_COMMAND" -i .
--- END MIRTH-SYNC CANONICAL COMMAND
 
--- BEGIN MIRTH-SYNC COMMON IMPORTS
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude
 open import Integers.Type
@@ -63,7 +57,6 @@ open import Rationals.Multiplication
 open import Rationals.Negation
 open import Rationals.Order
 open import Rationals.Type
--- END MIRTH-SYNC COMMON IMPORTS
 
 open import MLTT.Spartan hiding (J; _+_)
 open import MLTT.Athenian
