@@ -692,7 +692,7 @@ regressionGraph =
             _ -> True
       analysisOk = classAnalysisCount (analyze stable) > zero
       extractOk =
-        case extractBest nested stable (suc (enodeCount stable)) of λ where
+        case extractBest nested stable (suc (enodeCount stable * enodeCount stable * enodeCount stable)) of λ where
           Nothing -> False
           (Just result) -> extractedCost result > zero
       quotientOk = classCount g5 < enodeCount g5
