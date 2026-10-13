@@ -42,6 +42,12 @@ record SearchNode : Type where
 
 open SearchNode public
 
+-- Search costs and fuel are Agda Nat values. The extracted Haskell
+-- Prelude's length has type Int, so keep proof-search arithmetic explicit.
+listLengthNat : {A : Type} -> List A -> Nat
+listLengthNat [] = zero
+listLengthNat (_ ∷ rest) = suc (listLengthNat rest)
+
 requiredCapabilities : List Capability
 requiredCapabilities =
   inversion ∷ exact-search ∷ uniform-continuity ∷ []
@@ -131,7 +137,7 @@ expandForCapability capability (law ∷ laws) node =
     rest
 nodeCost : SearchNode → Nat
 nodeCost node =
-  length (plan node)
+  listLengthNat (plan node)
 
 nodeHeuristic :
   List Capability →
@@ -191,7 +197,7 @@ factorial (suc n) = suc n * factorial n
 
 searchFuel : List SemanticLaw → Nat
 searchFuel laws =
-  suc (suc (suc (suc zero))) * factorial (length laws)
+  suc (suc (suc (suc zero))) * factorial (listLengthNat laws)
 
 astarWithFuel :
   Nat →
@@ -273,7 +279,7 @@ canonicalSearchIsComplete = refl
 
 canonicalPlanNontrivial : Bool
 canonicalPlanNontrivial =
-  length canonicalPlan == suc (suc (suc zero))
+  listLengthNat canonicalPlan == suc (suc (suc zero))
 
 canonicalPlanIsNontrivial :
   canonicalPlanNontrivial ≡ True
@@ -397,7 +403,7 @@ graphExpandNode (graphNode (terminal ∷ rest)) laws =
         []
 
 graphNodeScore : GraphNode -> Nat
-graphNodeScore node = length (graphNodePlan node)
+graphNodeScore node = listLengthNat (graphNodePlan node)
 
 graphInsert :
   GraphNode -> List GraphNode -> List GraphNode
@@ -529,7 +535,7 @@ graphSearchSeeds depth laws (node ∷ nodes) =
     (graphSearchSeeds depth laws nodes)
 
 graphPlanScore : List String -> Nat
-graphPlanScore = length
+graphPlanScore = listLengthNat
 
 graphInsertPlan :
   List String ->
@@ -557,7 +563,7 @@ autonomousGraphSearch edges =
       seeds = graphLawSeeds laws
       candidates =
         graphSearchSeeds
-          (length laws)
+          (listLengthNat laws)
           laws
           seeds
   in
@@ -567,7 +573,7 @@ autonomousGraphSearchCount :
   List (String × String) ->
   Nat
 autonomousGraphSearchCount edges =
-  length (autonomousGraphSearch edges)
+  listLengthNat (autonomousGraphSearch edges)
 
 autonomousGraphSearchReport :
   List (String × String) ->
@@ -621,7 +627,7 @@ autonomousGraphSearchFromRoot root edges =
   in
   graphSortPlans
     (graphSearchDepth
-      (length laws)
+      (listLengthNat laws)
       laws
       (graphNode (root ∷ [])))
 
@@ -635,7 +641,7 @@ autonomousCanonicalGraphSearchCount :
   String ->
   Nat
 autonomousCanonicalGraphSearchCount source =
-  length (autonomousCanonicalGraphSearch source)
+  listLengthNat (autonomousCanonicalGraphSearch source)
 
 autonomousCanonicalGraphReport : String -> String
 autonomousCanonicalGraphReport source =
@@ -709,7 +715,7 @@ graphAStarScore :
   GraphNode ->
   Nat
 graphAStarScore laws node =
-  length (graphNodePlan node) + graphAStarHeuristic laws node
+  listLengthNat (graphNodePlan node) + graphAStarHeuristic laws node
 
 graphAStarInsert :
   List GraphLaw ->
@@ -765,9 +771,9 @@ graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) =
 -- no valid maximal chain exists; it avoids a too-small n! cutoff.
 graphAStarFuelBound : List GraphLaw -> Nat
 graphAStarFuelBound laws =
-  factorial (length laws)
-    + factorial (length laws)
-    + factorial (length laws)
+  factorial (listLengthNat laws)
+    + factorial (listLengthNat laws)
+    + factorial (listLengthNat laws)
 
 graphAStarFirst :
   List GraphLaw ->
@@ -1048,14 +1054,14 @@ requiredPlanCount :
   List Extractor.SemanticLaw ->
   Nat
 requiredPlanCount names semanticLaws =
-  length (requiredPlans names semanticLaws)
+  listLengthNat (requiredPlans names semanticLaws)
 
 requiredPlanComplete :
   List String ->
   List Extractor.SemanticLaw ->
   Bool
 requiredPlanComplete names semanticLaws =
-  requiredPlanCount names semanticLaws == length names
+  requiredPlanCount names semanticLaws == listLengthNat names
 
 requiredPlanReport :
   List String ->
@@ -1082,7 +1088,7 @@ semanticLawExtractionReport :
   String
 semanticLawExtractionReport laws =
   "semantic-laws="
-    ++ show (length laws)
+    ++ show (listLengthNat laws)
     ++ " nonreflexive="
     ++ show (Extractor.countNonreflexive laws)
     ++ " composite="
@@ -1218,17 +1224,6 @@ dominanceEdgeEqual left right =
   &&
   dominanceField left == dominanceField right
 
-dedupeDominanceEdges :
-  List DominanceEdge ->
-  List DominanceEdge ->
-  List DominanceEdge
-dedupeDominanceEdges [] seen = reverse seen
-dedupeDominanceEdges (edge ∷ edges) seen =
-  if dominanceEdgeMember edge seen then
-    dedupeDominanceEdges edges seen
-  else
-    dedupeDominanceEdges edges (edge ∷ seen)
-
 dominanceEdgeMember :
   DominanceEdge ->
   List DominanceEdge ->
@@ -1240,6 +1235,17 @@ dominanceEdgeMember edge (candidate ∷ rest) =
   else
     dominanceEdgeMember edge rest
 
+dedupeDominanceEdges :
+  List DominanceEdge ->
+  List DominanceEdge ->
+  List DominanceEdge
+dedupeDominanceEdges [] seen = reverse seen
+dedupeDominanceEdges (edge ∷ edges) seen =
+  if dominanceEdgeMember edge seen then
+    dedupeDominanceEdges edges seen
+  else
+    dedupeDominanceEdges edges (edge ∷ seen)
+
 graphDominanceEdges :
   List Extractor.SemanticLaw ->
   List DominanceEdge
@@ -1247,18 +1253,6 @@ graphDominanceEdges laws =
   dedupeDominanceEdges
     (dominanceEdgesForTheorems laws laws)
     []
-
-graphDominatedPublicTheorems :
-  List Extractor.SemanticLaw ->
-  List String
-graphDominatedPublicTheorems laws =
-  dedupeStrings
-    (map dominanceTheorem (graphDominanceEdges laws))
-
-dedupeStrings :
-  List String ->
-  List String
-dedupeStrings values = dedupeStringsWithSeen values []
 
 dedupeStringsWithSeen :
   List String ->
@@ -1270,6 +1264,18 @@ dedupeStringsWithSeen (value ∷ values) seen =
     dedupeStringsWithSeen values seen
   else
     dedupeStringsWithSeen values (value ∷ seen)
+
+dedupeStrings :
+  List String ->
+  List String
+dedupeStrings values = dedupeStringsWithSeen values []
+
+graphDominatedPublicTheorems :
+  List Extractor.SemanticLaw ->
+  List String
+graphDominatedPublicTheorems laws =
+  dedupeStrings
+    (map dominanceTheorem (graphDominanceEdges laws))
 
 prunedPublicTheoremNames : List String
 prunedPublicTheoremNames =
@@ -1311,11 +1317,12 @@ semanticPlanEGraphReport plan =
       EGraph.addExpr
         (EGraph.leftAssocExpr plan)
         EGraph.emptyGraph
+    (_ , report) =
+      EGraph.saturateUntilStable
+        EGraph.semanticRewriteRules
+        graph0
   in
-  pr₂
-    (EGraph.saturateUntilStable
-      EGraph.semanticRewriteRules
-      graph0)
+  report
 
 semanticPlanEGraphComplete :
   List String ->
@@ -1381,7 +1388,7 @@ requiredPlanEGraphComplete :
   List Extractor.SemanticLaw ->
   Bool
 requiredPlanEGraphComplete names laws =
-  requiredPlanEGraphCount names laws == length names
+  requiredPlanEGraphCount names laws == listLengthNat names
 
 haskellMinusOneTargetCapabilities : List Capability
 haskellMinusOneTargetCapabilities =

@@ -176,6 +176,22 @@
           doCheck = false;
         };
 
+      agdaCli = system:
+        let
+          pkgs = pkgsFor system;
+        in
+        pkgs.writeShellApplication {
+          name = "agda";
+          runtimeInputs = [
+            (agdaWithPackages system)
+            pkgs.coreutils
+          ];
+          text = ''
+            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            exec "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
+          '' ;
+        };
+
       agdaCommand = system:
         let
           pkgs = pkgsFor system;
@@ -214,8 +230,9 @@
           pkgs = pkgsFor system;
         in
         {
-          agda = agdaWithPackages system;
+          agda = agdaCli system;
           agda2hs = agda2hsWithCanonicalGhc system;
+          agda-emacs = agdaEmacs system;
           acorn-prover = acornProver system;
           ci = pkgs.dhall;
           default = pkgs.dhall;
@@ -249,6 +266,20 @@
           in {
             type = "app";
             program = "${script}/bin/fennel-smoke";
+          };
+
+          agda-import-sync = let
+            script = pkgs.writeShellApplication {
+              name = "agda-import-sync";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_import_sync.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-import-sync";
           };
 
           fennel-agda-graph = let
@@ -657,6 +688,17 @@
               pkgs.dhall
               pkgs.dhall-json
             ];
+          };
+
+          agda-emacs = pkgs.mkShell {
+            packages = [
+              (agdaCli system)
+              (agdaCommand system)
+              (agdaEmacs system)
+            ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
           };
 
           simple-haskell = pkgs.mkShell {

@@ -77,3 +77,13 @@ The checked starter module is `FullCoupled/FormalMethods/ScottStracheyDomains.ag
 This is an executable starter model—not yet a full CPO/Scott-continuity/fixed-point theorem. A complete account still needs chain suprema, monotonicity/continuity proofs, and a least-fixed-point construction for recursive search. The graph/A* implementation remains a separate executable algorithm with bounded runtime regressions.
 
 `FullCoupled/FormalMethods/MonoidLSTMStreams.agda` is the isolated guarded stream layer: it defines delayed streams, suffix duplication/extension, a coinductive bisimulation relation, and finite-prefix causality proofs for mapping and stateful scans. The scan is an interface for the concrete LSTM recurrence, not yet a proof about the repository's deployed model. Reflection is not imported because these definitions do not inspect or construct Agda syntax trees.
+
+## Fennel synchronization and Cubical audit (2026-10-13)
+
+The canonical Agda import contract is declared in `.ci/agda/import-contracts.tsv` and checked by `.ci/lua/agda_import_sync.fnl`, packaged by Nix as `.#agda-import-sync`. `--sync` updates only explicitly declared import lines; `--check` is read-only. Both executable wrappers still read the one-per-line `.ci/agda/global-options.txt`. The `.#agda-emacs` package and `.#agda-emacs` development shell expose Emacs with the Nix-provided Agda mode.
+
+The tracked Agda/Literate Agda sources have no Cubical imports, Cubical option pragmas, or listed Cubical primitives, so no proof definitions were deleted speculatively. The Fennel sync check now rejects those constructs and legacy Mirth sync markers. Reflection remains in the canonical learner where reflection is used; coinduction remains in the learner and guarded stream module where delayed/coinductive definitions use it. Reflection is intentionally outside the Agda2HS executable closure because that runtime does not construct or inspect Agda syntax trees.
+
+This does not claim complete source-level TypeTopology retirement: the legacy theorem and logical-spec modules still use APIs previously supplied by TypeTopology. Those imports require an explicit symbol-by-symbol port plus proof repair, or a conscious decision to retire the corresponding theorem surface; deleting import lines alone would break their typechecking contract.
+
+The `.#agda` package exposes an executable named `agda` with the centralized common flags, and `.#agda-emacs` puts that wrapper ahead of the Nix-provided Agda mode. The separate `agda2hs-agda` wrapper remains available for CI and explicit Agda2HS-specific workflows.

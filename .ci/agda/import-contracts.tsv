@@ -1,0 +1,14 @@
+# mode<TAB>path<TAB>prefix<TAB>expected-line<TAB>expected-count
+sync	FullCoupled/TheoremsMonolith.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+sync	FullCoupled/TheoremsMonolith.agda	import FullCoupled.LearnerLogicalSpec	import FullCoupled.LearnerLogicalSpec as LearnerLogicalSpec	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prelude	open import Haskell.Prelude public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Equality	open import Agda.Builtin.Equality public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Equality.Rewrite	open import Agda.Builtin.Equality.Rewrite public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Reflection	open import Agda.Builtin.Reflection public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Coinduction	open import Agda.Builtin.Coinduction public	1
+sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.Coinduction	open import Agda.Builtin.Coinduction using (∞; ♯_; ♭)	1
+sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+sync	FullCoupled/Agda2HsGraphSearchCheck.agda	open import Haskell.Prelude	open import Haskell.Prelude	1

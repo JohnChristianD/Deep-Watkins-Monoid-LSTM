@@ -353,11 +353,7 @@ DHALL
     set -euo pipefail
     theorem=FullCoupled/TheoremsMonolith.agda
     learner=FullCoupled/CanonicalLearnerMonolith.agda
-    import_sync=.ci/theorem-learner-import-sync.dhall
-    generated_import_sync=$(mktemp)
-    trap 'rm -f "$generated_import_sync"' EXIT
-    dhall text --file "$import_sync" > "$generated_import_sync"
-    bash "$generated_import_sync"
+    nix run .#agda-import-sync -- --check
     required='
     canonical-recurrent-prefix-monoid-homomorphism
     canonicalF4-prefix-monoid-homomorphism
