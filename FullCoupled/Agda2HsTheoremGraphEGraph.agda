@@ -497,27 +497,29 @@ chooseCheaper (Just left) (Just right) =
 
 mutual
   extractBestSeen :
-      Nat -> EGraph -> Nat -> List Nat -> Maybe Extraction
-  extractBestSeen _ _ zero _ = Nothing
-  extractBestSeen class graph (suc depth) seen =
-    case memberNat (root graph class) seen of λ where
+      Nat -> Nat -> EGraph -> List Nat -> Maybe Extraction
+  extractBestSeen zero _ _ _ = Nothing
+  extractBestSeen (suc fuel) class graph seen =
+    let target = root graph class
+    in case memberNat target seen of λ where
       True -> Nothing
       False ->
         bestBindingForRoot
-          (root graph class)
+          fuel
+          target
           (bindings graph)
           graph
-          depth
-          (root graph class ∷ seen)
+          (target ∷ seen)
 
   extractChildren :
-      List Nat -> EGraph -> Nat -> List Nat -> Maybe ChildExtraction
-  extractChildren [] _ _ _ = Just (childExtraction [] zero)
-  extractChildren (child ∷ children) graph depth seen =
-    case extractBestSeen child graph depth seen of λ where
+      Nat -> List Nat -> EGraph -> List Nat -> Maybe ChildExtraction
+  extractChildren _ [] _ _ = Just (childExtraction [] zero)
+  extractChildren zero (_ ∷ _) _ _ = Nothing
+  extractChildren (suc fuel) (child ∷ children) graph seen =
+    case extractBestSeen fuel child graph seen of λ where
       Nothing -> Nothing
       (Just first) ->
-        case extractChildren children graph depth seen of λ where
+        case extractChildren (suc fuel) children graph seen of λ where
           Nothing -> Nothing
           (Just rest) ->
             Just
@@ -526,20 +528,19 @@ mutual
                 (extractedCost first + extractedCostSum rest))
 
   bestBindingForRoot :
-      Nat -> List Binding -> EGraph -> Nat -> List Nat -> Maybe Extraction
-  bestBindingForRoot _ [] _ _ _ = Nothing
-  bestBindingForRoot _ (_ ∷ _) _ zero _ = Nothing
-  bestBindingForRoot target
+      Nat -> Nat -> List Binding -> EGraph -> List Nat -> Maybe Extraction
+  bestBindingForRoot _ _ [] _ _ = Nothing
+  bestBindingForRoot zero _ (_ ∷ _) _ _ = Nothing
+  bestBindingForRoot (suc fuel) target
     (binding (enode symbol children) id ∷ rest)
     graph
-    (suc depth)
     seen =
     case root graph id == target of λ where
       False ->
-        bestBindingForRoot target rest graph (suc depth) seen
+        bestBindingForRoot (suc fuel) target rest graph seen
       True ->
         let candidate =
-              case extractChildren children graph depth seen of λ where
+              case extractChildren fuel children graph seen of λ where
                 Nothing -> Nothing
                 (Just children') ->
                   Just
@@ -548,10 +549,10 @@ mutual
                       (localCost (enode symbol children) +
                        extractedCostSum children'))
         in chooseCheaper candidate
-             (bestBindingForRoot target rest graph (suc depth) seen)
+             (bestBindingForRoot (suc fuel) target rest graph seen)
 
 extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
-extractBest class graph depth = extractBestSeen class graph depth []
+extractBest class graph fuel = extractBestSeen fuel class graph []
 associativityRule : RewriteRule
 associativityRule =
   rewriteRule
