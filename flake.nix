@@ -230,8 +230,7 @@
           pkgs = pkgsFor system;
         in
         {
-          agda = agdaWithPackages system;
-          agda-cli = agdaCli system;
+          agda = agdaCli system;
           agda2hs = agda2hsWithCanonicalGhc system;
           agda-emacs = agdaEmacs system;
           acorn-prover = acornProver system;

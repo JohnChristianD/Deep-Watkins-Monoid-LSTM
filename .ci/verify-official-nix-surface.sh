@@ -36,7 +36,7 @@ grep -Fq 'name = "fennel-smoke";' flake.nix
 grep -Fq 'name = "streamly-tools-check";' flake.nix
 grep -Fq 'name = "agda-import-sync";' flake.nix
 grep -Fq 'agda-emacs = agdaEmacs system;' flake.nix
-grep -Fq 'agda-cli = agdaCli system;' flake.nix
+grep -Fq 'agda = agdaCli system;' flake.nix
 test -f .ci/lua/agda_import_sync.fnl
 test -f .ci/agda/import-contracts.tsv
 test -f .ci/agda/global-options.txt
