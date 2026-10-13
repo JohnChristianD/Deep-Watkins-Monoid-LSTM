@@ -86,6 +86,11 @@ let script = merge {
     grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/Main.elm
     ! grep -Eiq 'Writer|Julia[[:space:]]Mono|JuliaMono|Noto Emoji' site/Main.elm
     grep -Fq 'CAT02LMS' site/Main.elm
+    grep -Fq '.shell{min-height:100vh;display:block;max-width:76ch;' site/Main.elm
+    grep -Fq 'Formal-methods reading trail' site/Main.elm
+    grep -Fq 'Browse modules' site/Main.elm
+    grep -Fq 'Haskell denotational semantics' site/Main.elm
+    ! grep -Fq 'Mirth' site/Main.elm
     grep -Fq 'maximin' site/Main.elm
     grep -Fq 'data-module' site/Main.elm
     output_dir="$tmp"
