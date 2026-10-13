@@ -7,6 +7,7 @@ module FullCoupled.Agda2HsTheoremGraphEGraph where
 
 -- BEGIN MIRTH-SYNC COMMON IMPORTS
 open import Haskell.Prelude
+open import Agda.Builtin.String using (primStringToList)
 -- END MIRTH-SYNC COMMON IMPORTS
 
 -- BEGIN MIRTH-SYNC CANONICAL COMMAND
@@ -50,6 +51,14 @@ bindingCount : List Binding -> Nat
 bindingCount [] = zero
 bindingCount (_ ∷ rest) = suc (bindingCount rest)
 
+natListCount : List Nat -> Nat
+natListCount [] = zero
+natListCount (_ ∷ rest) = suc (natListCount rest)
+
+charListCount : List Char -> Nat
+charListCount [] = zero
+charListCount (_ ∷ rest) = suc (charListCount rest)
+
 bindingCountRegression : Bool
 bindingCountRegression =
   bindingCount [] == zero
@@ -82,6 +91,10 @@ record ClassAnalysis : Type where
     analysisMinLocalCost : Nat
 
 open ClassAnalysis public
+
+classAnalysisCount : List ClassAnalysis -> Nat
+classAnalysisCount [] = zero
+classAnalysisCount (_ ∷ rest) = suc (classAnalysisCount rest)
 
 record SaturationReport : Type where
   constructor saturationReport
@@ -406,10 +419,10 @@ saturatePass (rule ∷ rules) roots graph =
   in graph'' , count + tailCount
 
 classCount : EGraph -> Nat
-classCount graph = length (rootClasses graph)
+classCount graph = natListCount (rootClasses graph)
 
 enodeCount : EGraph -> Nat
-enodeCount graph = length (bindings graph)
+enodeCount graph = bindingCount (bindings graph)
 
 saturateWithFuel :
   Nat -> List RewriteRule -> EGraph -> Nat -> Nat -> EGraph × Nat × Nat × Bool
@@ -440,11 +453,18 @@ saturateUntilStable rules graph =
 
 stringLength : String -> Nat
 stringLength text =
-  length (text)
+  charListCount (primStringToList text)
+
+stringLengthRegression : Bool
+stringLengthRegression =
+  stringLength "Agda" == suc (suc (suc (suc zero)))
+
+stringLengthRegressionChecked : stringLengthRegression ≡ True
+stringLengthRegressionChecked = refl
 
 localCost : ENode -> Nat
 localCost (enode symbol children) =
-  suc (stringLength symbol + length children)
+  suc (stringLength symbol + natListCount children)
 
 classAnalysisFor :
   Nat -> List Binding -> EGraph -> Maybe ClassAnalysis
@@ -663,7 +683,7 @@ regressionGraph =
           stable of λ where
             [] -> False
             _ -> True
-      analysisOk = length (analyze stable) > zero
+      analysisOk = classAnalysisCount (analyze stable) > zero
       extractOk =
         case extractBest nested stable (suc (enodeCount stable)) of λ where
           Nothing -> False
