@@ -88,6 +88,14 @@ jobs:
         timeout-minutes: 15
         run: nix run .#agda2hs-graph-search-check
 
+      - name: Smoke-test Nix LuaJIT, Fennel, and Luafun
+        timeout-minutes: 10
+        run: nix run .#fennel-smoke
+
+      - name: Verify pinned Nix Streamly packages
+        timeout-minutes: 15
+        run: nix run .#streamly-tools-check
+
       - name: Run semantic lanes in one Nix environment
         timeout-minutes: 25
         run: |

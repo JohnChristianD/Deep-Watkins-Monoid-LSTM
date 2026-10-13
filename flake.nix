@@ -187,7 +187,8 @@
             pkgs.coreutils
           ];
           text = ''
-            exec agda --erasure --no-projection-like -l agda2hs-base -i . "$@"
+            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            exec agda "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
           '' ;
         };
 
@@ -202,7 +203,8 @@
             pkgs.coreutils
           ];
           text = ''
-            exec agda2hs --erasure --no-projection-like -l agda2hs-base -i . "$@"
+            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            exec agda2hs "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
           '' ;
         };
     in

@@ -34,6 +34,10 @@ grep -Fq 'github:vehicle-lang/vehicle-formalisation/' flake.nix
 grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.nix
 grep -Fq 'name = "fennel-smoke";' flake.nix
 grep -Fq 'name = "streamly-tools-check";' flake.nix
+test -f .ci/agda/global-options.txt
+grep -Fxq -- '--erasure' .ci/agda/global-options.txt
+grep -Fxq -- '--no-projection-like' .ci/agda/global-options.txt
+! grep -E 'exec (agda|agda2hs) .*--(erasure|no-projection-like)' flake.nix || { echo "global Agda flags must come from .ci/agda/global-options.txt" >&2; exit 1; }
 ! grep -Eiq 'p[.]rio|-package rio|mirth|TypeTopology|typetopology' flake.nix || { echo "retired compiler dependency remains in active flake" >&2; exit 1; }
 grep -Fq 'pkgs.luajitPackages.buildLuaPackage' flake.nix
 grep -Fq 'pkgs.luajit.withPackages' flake.nix
