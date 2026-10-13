@@ -263,7 +263,7 @@ canonicalPlan : List String
 canonicalPlan =
   case canonicalSearch of λ where
     Nothing → []
-    Just node → plan node
+    (Just node) → plan node
 
 canonicalSearchComplete : Bool
 canonicalSearchComplete =
@@ -271,7 +271,7 @@ canonicalSearchComplete =
     requiredCapabilities
     (case canonicalSearch of λ where
       Nothing → []
-      Just node → covered node)
+      (Just node) → covered node)
 
 canonicalSearchIsComplete :
   canonicalSearchComplete ≡ True
@@ -427,7 +427,7 @@ graphValidChain (_ ∷ []) _ = True
 graphValidChain (child ∷ parent ∷ rest) laws =
   case graphLawForName parent laws of λ where
     Nothing -> False
-    Just law →
+    (Just law) →
       if planContains child (graphLawDependencies law) then
         graphValidChain (parent ∷ rest) laws
       else
@@ -883,10 +883,10 @@ learnerLogicalGraphRegression : Bool
 learnerLogicalGraphRegression =
   case learnerTracePlan of λ where
     Nothing → False
-    Just tracePlan →
+    (Just tracePlan) →
       case learnerDescentPlan of λ where
         Nothing → False
-        Just descentPlan →
+        (Just descentPlan) →
           graphValidPlan tracePlan learnerObligationGraph
             && graphValidPlan descentPlan learnerObligationGraph
             && graphMaximalDependencyChain tracePlan learnerObligationGraph
@@ -1419,7 +1419,7 @@ haskellMinusOneAStarPlan : List String
 haskellMinusOneAStarPlan =
   case haskellMinusOneAStar of λ where
     Nothing → []
-    Just node → plan node
+    (Just node) → plan node
 
 haskellMinusOneAStarComplete : Bool
 haskellMinusOneAStarComplete =
@@ -1427,7 +1427,7 @@ haskellMinusOneAStarComplete =
     haskellMinusOneTargetCapabilities
     (case haskellMinusOneAStar of λ where
       Nothing → []
-      Just node → covered node)
+      (Just node) → covered node)
 
 haskellMinusOneAStarIsComplete :
   haskellMinusOneAStarComplete ≡ True
