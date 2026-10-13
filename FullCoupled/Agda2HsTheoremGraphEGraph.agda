@@ -170,19 +170,20 @@ hashconsNode raw graph =
         (binding node id ∷ bindings graph')
     (Just id) -> root graph id , graph
 
-addExpr : Expr -> EGraph -> Nat × EGraph
-addExpr (atom symbol) graph =
-  hashconsNode (enode symbol []) graph
-addExpr (app symbol children) graph =
-  let (childIds , graph') = addExprs children graph in
-  hashconsNode (enode symbol childIds) graph'
+mutual
+  addExpr : Expr -> EGraph -> Nat × EGraph
+  addExpr (atom symbol) graph =
+    hashconsNode (enode symbol []) graph
+  addExpr (app symbol children) graph =
+    let (childIds , graph') = addExprs children graph in
+    hashconsNode (enode symbol childIds) graph'
 
-addExprs : List Expr -> EGraph -> List Nat × EGraph
-addExprs [] graph = [] , graph
-addExprs (x ∷ xs) graph =
-  let (id , graph') = addExpr x graph
-      (ids , graph'') = addExprs xs graph'
-  in id ∷ ids , graph''
+  addExprs : List Expr -> EGraph -> List Nat × EGraph
+  addExprs [] graph = [] , graph
+  addExprs (x ∷ xs) graph =
+    let (id , graph') = addExpr x graph
+        (ids , graph'') = addExprs xs graph'
+    in id ∷ ids , graph''
 
 mergeRoots : Nat -> Nat -> EGraph -> EGraph
 mergeRoots left right graph =
