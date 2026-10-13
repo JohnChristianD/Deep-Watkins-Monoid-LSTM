@@ -1,8 +1,3 @@
-{-# OPTIONS
-  --erasure
-  --no-projection-like
-#-}
-
 module FullCoupled.Agda2HsSemanticSearch where
 
 -- BEGIN MIRTH-SYNC COMMON IMPORTS

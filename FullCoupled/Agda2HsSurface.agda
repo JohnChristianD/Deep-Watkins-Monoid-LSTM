@@ -1,8 +1,3 @@
-{-# OPTIONS
-  --erasure
-  --no-projection-like
-#-}
-
 module FullCoupled.Agda2HsSurface where
 
 -- BEGIN MIRTH-SYNC CANONICAL COMMAND

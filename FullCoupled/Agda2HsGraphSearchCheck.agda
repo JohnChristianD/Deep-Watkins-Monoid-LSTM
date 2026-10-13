@@ -1,8 +1,3 @@
-{-# OPTIONS
-  --erasure
-  --no-projection-like
-#-}
-
 module FullCoupled.Agda2HsGraphSearchCheck where
 
 -- BEGIN MIRTH-SYNC CANONICAL COMMAND

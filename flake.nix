@@ -462,6 +462,21 @@
             program = "${script}/bin/mini-vehicle-check";
           };
 
+          scott-strachey-domain-check = let
+            script = pkgs.writeShellApplication {
+              name = "scott-strachey-domain-check";
+              runtimeInputs = [ (agdaCommand system) ];
+              text = ''
+                set -euo pipefail
+                agda2hs-agda -i . FullCoupled/FormalMethods/ScottStracheyDomains.agda
+                echo "scott-strachey-domain-check=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/scott-strachey-domain-check";
+          };
+
           agda2hs-graph-search-check = let
             script = pkgs.writeShellApplication {
               name = "agda2hs-graph-search-check";
