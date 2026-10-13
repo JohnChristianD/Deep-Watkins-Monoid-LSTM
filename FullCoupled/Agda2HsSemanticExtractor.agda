@@ -440,14 +440,25 @@ scanLines sourceFile (line ∷ rest) state accumulator =
                     (trimWhitespace line ∷ signatureReversed))
                   accumulator
               else
-                scanLines
-                  sourceFile
-                  (line ∷ rest)
-                  idle
-                  (finalizeScanState
-                    sourceFile
-                    (signature-state name signatureReversed)
-                    accumulator)
+                case topLevelHeader line of λ where
+                  Nothing ->
+                    scanLines
+                      sourceFile
+                      rest
+                      idle
+                      (finalizeScanState
+                        sourceFile
+                        (signature-state name signatureReversed)
+                        accumulator)
+                  (Just (nextName , fragment)) ->
+                    scanLines
+                      sourceFile
+                      rest
+                      (signature-state nextName (fragment ∷ []))
+                      (finalizeScanState
+                        sourceFile
+                        (signature-state name signatureReversed)
+                        accumulator)
             Nothing ->
               scanLines
                 sourceFile
@@ -469,14 +480,25 @@ scanLines sourceFile (line ∷ rest) state accumulator =
                 (trimWhitespace line ∷ bodyReversed))
               accumulator
           else
-            scanLines
-              sourceFile
-              (line ∷ rest)
-              idle
-              (finalizeScanState
-                sourceFile
-                (body-state name signatureReversed bodyReversed)
-                accumulator)
+            case topLevelHeader line of λ where
+              Nothing ->
+                scanLines
+                  sourceFile
+                  rest
+                  idle
+                  (finalizeScanState
+                    sourceFile
+                    (body-state name signatureReversed bodyReversed)
+                    accumulator)
+              (Just (nextName , fragment)) ->
+                scanLines
+                  sourceFile
+                  rest
+                  (signature-state nextName (fragment ∷ []))
+                  (finalizeScanState
+                    sourceFile
+                    (body-state name signatureReversed bodyReversed)
+                    accumulator)
         Nothing ->
           scanLines
             sourceFile
@@ -667,6 +689,10 @@ parseRecordFields sourceFile sourceLines =
       outside-record
       [])
 
+charListLength : CharList -> Nat
+charListLength [] = zero
+charListLength (_ ∷ rest) = suc (charListLength rest)
+
 dropN : Nat -> CharList -> CharList
 dropN zero chars = chars
 dropN (suc n) [] = []
@@ -703,7 +729,7 @@ containsIdentifierFrom _ [] _ = False
 containsIdentifierFrom previous haystack needle =
   if matchesPrefix needle haystack then
     boundaryBefore previous &&
-    boundaryAfter (dropN (length needle) haystack)
+    boundaryAfter (dropN (charListLength needle) haystack)
   else
     case haystack of λ where
       [] -> False
