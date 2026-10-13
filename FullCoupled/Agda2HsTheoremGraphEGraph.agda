@@ -198,9 +198,6 @@ mergeRoots left right graph =
 equivalent : Nat -> Nat -> EGraph -> Bool
 equivalent left right graph = root graph left == root graph right
 
-merge : Nat -> Nat -> EGraph -> EGraph
-merge left right graph = rebuild (mergeRoots left right graph)
-
 findOtherNode :
   ENode -> Nat -> List Binding -> Maybe Nat
 findOtherNode _ _ [] = Nothing
@@ -208,10 +205,6 @@ findOtherNode target excluded (binding candidate id ∷ rest) =
   if id == excluded then findOtherNode target excluded rest
   else if sameENode target candidate then Just id
   else findOtherNode target excluded rest
-
-rebuildPass : EGraph -> EGraph × Bool
-rebuildPass graph =
-  rebuildBindings (bindings graph) graph False
 
 rebuildBindings :
   List Binding -> EGraph -> Bool -> EGraph × Bool
@@ -227,6 +220,10 @@ rebuildBindings (binding node id ∷ rest) graph changed =
       else
         rebuildBindings rest (mergeRoots id other graph) True
 
+rebuildPass : EGraph -> EGraph × Bool
+rebuildPass graph =
+  rebuildBindings (bindings graph) graph False
+
 rebuildWithFuel : Nat -> EGraph -> EGraph
 rebuildWithFuel zero graph = graph
 rebuildWithFuel (suc fuel) graph =
@@ -235,6 +232,9 @@ rebuildWithFuel (suc fuel) graph =
 
 rebuild : EGraph -> EGraph
 rebuild graph = rebuildWithFuel (suc (length (bindings graph))) graph
+
+merge : Nat -> Nat -> EGraph -> EGraph
+merge left right graph = rebuild (mergeRoots left right graph)
 
 lookupSubstitution : String -> Substitution -> Maybe Nat
 lookupSubstitution name (substitution entries) = lookupPair name entries
