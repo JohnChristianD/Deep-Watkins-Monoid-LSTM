@@ -46,6 +46,18 @@ record Binding : Type where
 
 open Binding public
 
+bindingCount : List Binding -> Nat
+bindingCount [] = zero
+bindingCount (_ ∷ rest) = suc (bindingCount rest)
+
+bindingCountRegression : Bool
+bindingCountRegression =
+  bindingCount [] == zero
+  && bindingCount (binding (enode "atom" []) zero ∷ []) == suc zero
+
+bindingCountRegressionChecked : bindingCountRegression ≡ True
+bindingCountRegressionChecked = refl
+
 record EGraph : Type where
   constructor egraph
   field
@@ -254,7 +266,7 @@ rebuildWithFuel (suc fuel) graph =
   if changed then rebuildWithFuel fuel graph' else graph'
 
 rebuild : EGraph -> EGraph
-rebuild graph = rebuildWithFuel (suc (length (bindings graph))) graph
+rebuild graph = rebuildWithFuel (suc (bindingCount (bindings graph))) graph
 
 merge : Nat -> Nat -> EGraph -> EGraph
 merge left right graph = rebuild (mergeRoots left right graph)
