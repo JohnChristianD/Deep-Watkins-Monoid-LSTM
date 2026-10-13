@@ -179,8 +179,10 @@
   "--guardedness is module/lane-specific and must not be made global")
 
 (local flake (read-file "flake.nix"))
-(assert (= (count-substring flake ".ci/agda/global-options.txt") 2)
-  "both Nix wrappers must read .ci/agda/global-options.txt")
+(assert (= (count-substring flake ".ci/agda/global-options.txt") 3)
+  "the Agda, Agda2HS-Agda and Agda2HS wrappers must read .ci/agda/global-options.txt")
+(assert (string.find flake "name = \"agda\";" 1 true)
+  "missing editor-friendly Agda wrapper")
 (assert (string.find flake "exec agda " 1 true) "missing wrapped Agda command")
 (assert (string.find flake "exec agda2hs " 1 true) "missing wrapped Agda2HS command")
 

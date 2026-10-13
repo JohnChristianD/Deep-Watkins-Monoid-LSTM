@@ -176,6 +176,22 @@
           doCheck = false;
         };
 
+      agdaCli = system:
+        let
+          pkgs = pkgsFor system;
+        in
+        pkgs.writeShellApplication {
+          name = "agda";
+          runtimeInputs = [
+            (agdaWithPackages system)
+            pkgs.coreutils
+          ];
+          text = ''
+            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            exec "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
+          '' ;
+        };
+
       agdaCommand = system:
         let
           pkgs = pkgsFor system;
@@ -215,6 +231,7 @@
         in
         {
           agda = agdaWithPackages system;
+          agda-cli = agdaCli system;
           agda2hs = agda2hsWithCanonicalGhc system;
           agda-emacs = agdaEmacs system;
           acorn-prover = acornProver system;
@@ -676,9 +693,13 @@
 
           agda-emacs = pkgs.mkShell {
             packages = [
+              (agdaCli system)
               (agdaCommand system)
               (agdaEmacs system)
             ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
           };
 
           simple-haskell = pkgs.mkShell {
