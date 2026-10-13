@@ -1311,11 +1311,12 @@ semanticPlanEGraphReport plan =
       EGraph.addExpr
         (EGraph.leftAssocExpr plan)
         EGraph.emptyGraph
+    (report , _) =
+      EGraph.saturateUntilStable
+        EGraph.semanticRewriteRules
+        graph0
   in
-  pr₂
-    (EGraph.saturateUntilStable
-      EGraph.semanticRewriteRules
-      graph0)
+  report
 
 semanticPlanEGraphComplete :
   List String ->
