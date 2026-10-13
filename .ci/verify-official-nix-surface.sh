@@ -42,6 +42,15 @@ test -f .ci/agda/import-contracts.tsv
 test -f .ci/agda/global-options.txt
 grep -Fxq -- '--erasure' .ci/agda/global-options.txt
 grep -Fxq -- '--no-projection-like' .ci/agda/global-options.txt
+
+# The legacy monoliths are source-inventory-only until their stale imports are
+# ported. Even so, do not let an inconsistent/untrusted option set accumulate.
+for source in FullCoupled/CanonicalLearnerMonolith.agda FullCoupled/LearnerLogicalSpec.agda; do
+  if grep -Eq '^[[:space:]]*--(no-fast-reduce|no-termination-check|type-in-type|no-positivity-check|large-indices|forced-argument-recursion|omega-in-omega|no-omega-in-omega)([[:space:]]|$)' "$source"; then
+    echo "unsafe or incompatible Agda option remains in $source" >&2
+    exit 1
+  fi
+done
 ! grep -E 'exec (agda|agda2hs) .*--(erasure|no-projection-like)' flake.nix || { echo "global Agda flags must come from .ci/agda/global-options.txt" >&2; exit 1; }
 ! grep -Eiq 'p[.]rio|-package rio|mirth|TypeTopology|typetopology' flake.nix || { echo "retired compiler dependency remains in active flake" >&2; exit 1; }
 grep -Fq 'pkgs.luajitPackages.buildLuaPackage' flake.nix

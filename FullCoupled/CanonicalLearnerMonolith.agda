@@ -8,14 +8,8 @@
   --erase-record-parameters
   --prop
   --confluence-check
-  --no-fast-reduce
   --rewriting
-  --no-termination-check
-  --type-in-type
-  --no-positivity-check
   --flat-split
-  --large-indices
-  --forced-argument-recursion
   -v
 #-}
 
