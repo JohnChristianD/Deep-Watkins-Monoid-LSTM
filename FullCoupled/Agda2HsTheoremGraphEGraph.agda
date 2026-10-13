@@ -500,54 +500,55 @@ chooseCheaper other Nothing = other
 chooseCheaper (Just left) (Just right) =
   if extractedCost left < extractedCost right then Just left else Just right
 
-mutual
-  extractChildren :
-      List Nat -> EGraph -> Nat -> List Nat -> Maybe ChildExtraction
-  extractChildren [] _ _ _ = Just (childExtraction [] zero)
-  extractChildren (child ∷ children) graph depth seen =
-    case extractBestSeen child graph depth seen of λ where
-      Nothing -> Nothing
-      (Just first) ->
-        case extractChildren children graph depth seen of λ where
-          Nothing -> Nothing
-          (Just rest) ->
-            Just
-              (childExtraction
-                (extractedExpr first ∷ extractedChildren rest)
-                (extractedCost first + extractedCostSum rest))
+extractBestSeen :
+    Nat -> EGraph -> Nat -> List Nat -> Maybe Extraction
+extractBestSeen _ _ zero _ = Nothing
+extractBestSeen class graph (suc depth) seen =
+  case memberNat target seen of λ where
+    True -> Nothing
+    False ->
+      bestBindingForRoot target (bindings graph) depth (target ∷ seen)
+  where
+    target : Nat
+    target = root graph class
 
-  bestBindingForRoot :
-      Nat -> List Binding -> EGraph -> Nat -> List Nat -> Maybe Extraction
-  bestBindingForRoot _ [] _ _ _ = Nothing
-  bestBindingForRoot _ (_ ∷ _) _ zero _ = Nothing
-  bestBindingForRoot target
-    (binding (enode symbol children) id ∷ rest)
-    graph (suc depth) seen =
-    case root graph id == target of λ where
-      False ->
-        bestBindingForRoot target rest graph (suc depth) seen
-      True ->
-        let candidate =
-              case extractChildren children graph depth seen of λ where
-                Nothing -> Nothing
-                (Just children') ->
-                  Just
-                    (extraction
-                      (app symbol (extractedChildren children'))
-                      (localCost (enode symbol children) +
-                       extractedCostSum children'))
-        in chooseCheaper candidate
-             (bestBindingForRoot target rest graph (suc depth) seen)
+    bestBindingForRoot :
+        Nat -> List Binding -> Nat -> List Nat -> Maybe Extraction
+    bestBindingForRoot _ [] _ _ = Nothing
+    bestBindingForRoot _ (_ ∷ _) zero _ = Nothing
+    bestBindingForRoot target
+      (binding (enode symbol children) id ∷ rest)
+      (suc remainingDepth) seen =
+      case root graph id == target of λ where
+        False ->
+          bestBindingForRoot target rest (suc remainingDepth) seen
+        True ->
+          let candidate =
+                case extractChildren children remainingDepth seen of λ where
+                  Nothing -> Nothing
+                  (Just children') ->
+                    Just
+                      (extraction
+                        (app symbol (extractedChildren children'))
+                        (localCost (enode symbol children) +
+                         extractedCostSum children'))
+          in chooseCheaper candidate
+               (bestBindingForRoot target rest (suc remainingDepth) seen)
 
-  extractBestSeen :
-      Nat -> EGraph -> Nat -> List Nat -> Maybe Extraction
-  extractBestSeen _ _ zero _ = Nothing
-  extractBestSeen class graph (suc depth) seen =
-    let target = root graph class in
-    case memberNat target seen of λ where
-      True -> Nothing
-      False ->
-        bestBindingForRoot target (bindings graph) graph depth (target ∷ seen)
+    extractChildren :
+        List Nat -> Nat -> List Nat -> Maybe ChildExtraction
+    extractChildren [] _ _ = Just (childExtraction [] zero)
+    extractChildren (child ∷ children) childDepth seen =
+      case extractBestSeen child graph childDepth seen of λ where
+        Nothing -> Nothing
+        (Just first) ->
+          case extractChildren children childDepth seen of λ where
+            Nothing -> Nothing
+            (Just rest) ->
+              Just
+                (childExtraction
+                  (extractedExpr first ∷ extractedChildren rest)
+                  (extractedCost first + extractedCostSum rest))
 
 extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
 extractBest class graph depth = extractBestSeen class graph depth []

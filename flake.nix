@@ -123,8 +123,8 @@
           name = "fennel";
           runtimeInputs = [ pkgs.luajit pkgs.luajitPackages.fennel ];
           text = ''
-            export LUA_PATH="\${luafunModulePkg}/share/lua/5.1/?.lua;;"
-            exec \${pkgs.luajitPackages.fennel}/bin/fennel "$@"
+            export LUA_PATH="${luafunModulePkg}/share/lua/5.1/?.lua;;"
+            exec ${pkgs.luajitPackages.fennel}/bin/fennel "$@"
           '';
         };
 
@@ -318,7 +318,7 @@
               runtimeInputs = [ (fennelRuntime system) pkgs.luajit pkgs.coreutils pkgs.gnugrep ];
               text = ''
                 set -euo pipefail
-                LUA_PATH="\${luafunModule system}/share/lua/5.1/?.lua;;" \
+                LUA_PATH="${luafunModule system}/share/lua/5.1/?.lua;;" \
                   luajit -e 'local fun = require("fun"); assert(type(fun.map) == "function")'
                 fennel --version
                 tmp=$(mktemp -d)
@@ -330,7 +330,7 @@
             };
           in {
             type = "app";
-            program = "\${script}/bin/fennel-smoke";
+            program = "${script}/bin/fennel-smoke";
           };
 
           fennel-agda-graph = let
@@ -339,12 +339,12 @@
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
-                exec \${fennelRuntime system}/bin/fennel .ci/lua/agda_graph.fnl "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_graph.fnl "$@"
               '';
             };
           in {
             type = "app";
-            program = "\${script}/bin/fennel-agda-graph";
+            program = "${script}/bin/fennel-agda-graph";
           };
 
           fennel-ascii-surface = let
@@ -353,12 +353,12 @@
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
-                exec \${fennelRuntime system}/bin/fennel .ci/lua/ascii_surface.fnl "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/ascii_surface.fnl "$@"
               '';
             };
           in {
             type = "app";
-            program = "\${script}/bin/fennel-ascii-surface";
+            program = "${script}/bin/fennel-ascii-surface";
           };
 
           fennel-surface = let
@@ -367,12 +367,12 @@
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
               text = ''
                 set -euo pipefail
-                exec \${fennelRuntime system}/bin/fennel .ci/lua/agda_surface.fnl "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_surface.fnl "$@"
               '';
             };
           in {
             type = "app";
-            program = "\${script}/bin/fennel-surface";
+            program = "${script}/bin/fennel-surface";
           };
 
           streamly-tools-check = let
@@ -394,7 +394,7 @@
             };
           in {
             type = "app";
-            program = "\${script}/bin/streamly-tools-check";
+            program = "${script}/bin/streamly-tools-check";
           };
 
           acorn-smoke = let
