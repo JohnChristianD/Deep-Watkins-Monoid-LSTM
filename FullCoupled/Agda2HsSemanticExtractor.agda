@@ -234,18 +234,18 @@ topLevelHeader :
 topLevelHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
-    Just name ->
+    Just headerName ->
       case topLevelLine line of λ where
         False -> Nothing
         True ->
-          case syntaxHead name || name == "--" of λ where
+          case syntaxHead headerName || headerName == "--" of λ where
             True -> Nothing
             False ->
               case lineContainsChar ':' line of λ where
                 False -> Nothing
                 True ->
                   let (_ , fragment) = splitFirstCharString ':' line
-                  in Just (name , trimWhitespace fragment)
+                  in Just (headerName , trimWhitespace fragment)
 
 topLevelRecordHeaderType :
   String ->
@@ -264,7 +264,7 @@ topLevelRecordHeaderName :
 topLevelRecordHeaderName line =
   case secondWord line of λ where
     Nothing -> Nothing
-    Just name -> topLevelRecordHeaderType name line
+    Just recordName -> topLevelRecordHeaderType recordName line
 
 topLevelRecordHeaderAtTopLevel :
   String ->
