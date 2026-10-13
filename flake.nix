@@ -102,29 +102,47 @@
 
 
       luafunModule = system:
-        let pkgs = pkgsFor system;
-        in pkgs.stdenvNoCC.mkDerivation {
+        let
+          pkgs = pkgsFor system;
+          lua = pkgs.luajit;
+        in
+        pkgs.luajitPackages.buildLuaPackage {
           pname = "luafun";
-          version = "stable-02960048";
+          version = "scm-1";
           src = luafun;
           dontBuild = true;
           installPhase = ''
-            mkdir -p "$out/share/lua/5.1"
-            install -m 0644 fun.lua "$out/share/lua/5.1/fun.lua"
+            runHook preInstall
+            install -Dm0644 fun.lua "$out/share/lua/${lua.luaversion}/fun.lua"
+            runHook postInstall
           '';
+          meta = {
+            description = "High-performance functional programming library for Lua";
+            homepage = "https://luafun.github.io/";
+            license = pkgs.lib.licenses.mit;
+          };
         };
+
+      luaFennelEnv = system:
+        let
+          pkgs = pkgsFor system;
+          luafunPkg = luafunModule system;
+        in
+        pkgs.luajit.withPackages (ps: [
+          ps.fennel
+          luafunPkg
+        ]);
 
       fennelRuntime = system:
         let
           pkgs = pkgsFor system;
-          luafunModulePkg = luafunModule system;
+          luaEnv = luaFennelEnv system;
         in
         pkgs.writeShellApplication {
           name = "fennel";
-          runtimeInputs = [ pkgs.luajit pkgs.luajitPackages.fennel ];
+          runtimeInputs = [ luaEnv ];
           text = ''
-            export LUA_PATH="${luafunModulePkg}/share/lua/5.1/?.lua;;"
-            exec ${pkgs.luajitPackages.fennel}/bin/fennel "$@"
+            exec ${luaEnv}/bin/fennel "$@"
           '';
         };
 
@@ -169,7 +187,7 @@
             pkgs.coreutils
           ];
           text = ''
-            exec agda -l agda2hs-base -i . "$@"
+            exec agda --erasure --no-projection-like -l agda2hs-base -i . "$@"
           '' ;
         };
 
@@ -184,7 +202,7 @@
             pkgs.coreutils
           ];
           text = ''
-            exec agda2hs -l agda2hs-base -i . "$@"
+            exec agda2hs --erasure --no-projection-like -l agda2hs-base -i . "$@"
           '' ;
         };
     in
