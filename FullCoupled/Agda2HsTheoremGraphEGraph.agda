@@ -512,6 +512,21 @@ extractBestSeen class graph (suc depth) seen =
     target : Nat
     target = root graph class
 
+    extractChildren :
+        List Nat -> Nat -> List Nat -> Maybe ChildExtraction
+    extractChildren [] _ _ = Just (childExtraction [] zero)
+    extractChildren (child ∷ children) childDepth seen =
+      case extractBestSeen child graph childDepth seen of λ where
+        Nothing -> Nothing
+        (Just first) ->
+          case extractChildren children childDepth seen of λ where
+            Nothing -> Nothing
+            (Just rest) ->
+              Just
+                (childExtraction
+                  (extractedExpr first ∷ extractedChildren rest)
+                  (extractedCost first + extractedCostSum rest))
+
     bestBindingForRoot :
         Nat -> List Binding -> Nat -> List Nat -> Maybe Extraction
     bestBindingForRoot _ [] _ _ = Nothing
@@ -534,21 +549,6 @@ extractBestSeen class graph (suc depth) seen =
                          extractedCostSum children'))
           in chooseCheaper candidate
                (bestBindingForRoot target rest (suc remainingDepth) seen)
-
-    extractChildren :
-        List Nat -> Nat -> List Nat -> Maybe ChildExtraction
-    extractChildren [] _ _ = Just (childExtraction [] zero)
-    extractChildren (child ∷ children) childDepth seen =
-      case extractBestSeen child graph childDepth seen of λ where
-        Nothing -> Nothing
-        (Just first) ->
-          case extractChildren children childDepth seen of λ where
-            Nothing -> Nothing
-            (Just rest) ->
-              Just
-                (childExtraction
-                  (extractedExpr first ∷ extractedChildren rest)
-                  (extractedCost first + extractedCostSum rest))
 
 extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
 extractBest class graph depth = extractBestSeen class graph depth []
