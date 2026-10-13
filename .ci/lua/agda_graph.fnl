@@ -29,16 +29,11 @@
 (local edges [])
 (each [_ path (ipairs source-files)]
   (local content (read-file path))
-  (local content-lines (fun.totable (string.gmatch content "[^\\n]+")))
-  (local module-lines
-    (fun.totable
-      (fun.filter
-        (fn [line] (string.match line "^%s*module%s+"))
-        content-lines)))
   (local module-name
-    (if (> (# module-lines) 0)
-      (string.match (. module-lines 1) "^%s*module%s+([^%s]+)")
-      nil))
+    (string.gsub
+      (string.gsub path "%.agda$" "")
+      "/"
+      "."))
   (local imports [])
   (each [_ line (ipairs content-lines)]
     (local imported
@@ -46,7 +41,6 @@
         (string.match line "^%s*open%s+import%s+([^%s]+)")
         (string.match line "^%s*import%s+([^%s]+)")))
     (when imported (table.insert imports imported)))
-  (assert module-name (.. "missing top-level Agda module in " path))
   (table.insert nodes {:id module-name :label module-name :source path})
   (each [_ imported (ipairs imports)]
     (table.insert edges {:source module-name :target imported :relation "imports"})))
