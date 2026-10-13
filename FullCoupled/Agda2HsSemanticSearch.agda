@@ -1373,8 +1373,8 @@ semanticPlanEGraphExtractable plan =
       (suc (EGraph.enodeCount graph))
   of λ where
     Nothing -> False
-    (Just extraction) ->
-      EGraph.extractedCost extraction > zero
+    (Just bestResult) ->
+      EGraph.extractedCost bestResult > zero
 
 plansEGraphClosed :
   List (List String) ->
