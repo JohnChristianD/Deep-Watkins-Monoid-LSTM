@@ -406,20 +406,20 @@ classAnalysisFor :
   Nat -> List Binding -> EGraph -> Maybe ClassAnalysis
 classAnalysisFor target [] _ = Nothing
 classAnalysisFor target (binding node id ∷ rest) graph =
-  let tail = classAnalysisFor target rest graph in
-  if root graph id == target then
-    let cost = localCost node in
-    case tail of λ where
-      Nothing -> Just (classAnalysis target (suc zero) cost)
-      (Just current) ->
-        let nextCount = suc (analysisENodeCount current)
-            nextCost =
-              if cost < analysisMinLocalCost current then
-                cost
-              else
-                analysisMinLocalCost current
-        in Just (classAnalysis target nextCount nextCost)
-  else tail
+  case root graph id == target of λ where
+    False -> classAnalysisFor target rest graph
+    True ->
+      case classAnalysisFor target rest graph of λ where
+        Nothing ->
+          Just (classAnalysis target (suc zero) (localCost node))
+        (Just current) ->
+          let nextCount = suc (analysisENodeCount current)
+              cost = localCost node
+              nextCost =
+                case cost < analysisMinLocalCost current of λ where
+                  True -> cost
+                  False -> analysisMinLocalCost current
+          in Just (classAnalysis target nextCount nextCost)
 
 analyzeRoots : List Nat -> EGraph -> List ClassAnalysis
 analyzeRoots [] _ = []
