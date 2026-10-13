@@ -99,7 +99,7 @@
     (local content (read-file path))
     (assert (not (string.find content "MIRTH-SYNC" 1 true))
       (.. path ": legacy Mirth sync marker remains"))
-    (each [line-number line (ipairs (fun.totable (string.gmatch content "[^\\n]+")))]
+    (each [line-number line (ipairs (fun.totable (string.gmatch content "[^\n]+")))]
       (when (and (not (string.match line "^%s*%-%-"))
                  (cubical-marker line))
         (set hits (+ hits 1))
@@ -115,7 +115,7 @@
       (.. path ": missing Haskell.Prelude"))
     (assert (not (string.find content "Unsafe.Haskell" 1 true))
       (.. path ": Unsafe.Haskell is outside the trusted extraction boundary"))
-    (each [line (string.gmatch content "[^\\n]+")]
+    (each [line (string.gmatch content "[^\n]+")]
       (local imported
         (or
           (string.match line "^%s*open%s+import%s+([^%s]+)")
