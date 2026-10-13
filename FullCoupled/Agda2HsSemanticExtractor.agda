@@ -811,6 +811,15 @@ readAllSources (sourceFile ∷ rest) accumulator = do
   declarations <- readSourceDeclarations sourceFile
   readAllSources rest (reverse declarations ++ accumulator)
 
+filterNonEmpty : List String -> List String
+filterNonEmpty [] = []
+filterNonEmpty (line ∷ rest) =
+  if trimWhitespace line == "" then
+    filterNonEmpty rest
+  else
+    line ∷ filterNonEmpty rest
+
+
 readSemanticLaws :
   String ->
   IO (List SemanticLaw)
@@ -825,14 +834,6 @@ readSemanticLaws manifest = do
     (semanticLawsFromDeclarations
       declarations
       semanticDeclarations)
-
-filterNonEmpty : List String -> List String
-filterNonEmpty [] = []
-filterNonEmpty (line ∷ rest) =
-  if trimWhitespace line == "" then
-    filterNonEmpty rest
-  else
-    line ∷ filterNonEmpty rest
 
 semanticLawId : SemanticLaw -> String
 semanticLawId law =
