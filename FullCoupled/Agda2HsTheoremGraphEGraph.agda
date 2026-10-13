@@ -646,7 +646,9 @@ regressionGraph =
       saturationOk)
 
 symbolicEGraphRegression : Bool
-symbolicEGraphRegression = pr₂ regressionGraph
+symbolicEGraphRegression =
+  case regressionGraph of λ where
+    (_ , ok) -> ok
 
 symbolicEGraphRegression-proof :
   symbolicEGraphRegression ≡ True
