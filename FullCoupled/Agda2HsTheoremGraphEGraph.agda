@@ -616,7 +616,24 @@ rightAssocExpr (a ∷ b ∷ rest) =
 emptyGraph : EGraph
 emptyGraph = egraph zero [] []
 
-regressionGraph : EGraph × Bool
+record EGraphRegression : Type where
+  constructor egraphRegression
+  field
+    regressionStableGraph : EGraph
+    regressionCongruenceOk : Bool
+    regressionAssociativityOk : Bool
+    regressionRightIdentityOk : Bool
+    regressionLeftIdentityOk : Bool
+    regressionMatchingOk : Bool
+    regressionAnalysisOk : Bool
+    regressionExtractOk : Bool
+    regressionQuotientOk : Bool
+    regressionIterationOk : Bool
+    regressionSaturationOk : Bool
+
+open EGraphRegression public
+
+regressionGraph : EGraphRegression
 regressionGraph =
   let (a , g1) = addExpr (atom "a") emptyGraph
       (b , g2) = addExpr (atom "b") g1
@@ -684,26 +701,82 @@ regressionGraph =
         saturationComplete report &&
         saturationComplete rightReport &&
         saturationComplete leftReport
-  in stable ,
-     (congruenceOk &&
-      associativityOk &&
-      rightIdentityOk &&
-      leftIdentityOk &&
-      matchingOk &&
-      analysisOk &&
-      extractOk &&
-      quotientOk &&
-      iterationOk &&
-      saturationOk)
+  in egraphRegression
+       stable
+       congruenceOk
+       associativityOk
+       rightIdentityOk
+       leftIdentityOk
+       matchingOk
+       analysisOk
+       extractOk
+       quotientOk
+       iterationOk
+       saturationOk
+
+regressionCongruence-proof :
+  regressionCongruenceOk regressionGraph ≡ True
+regressionCongruence-proof = refl
+
+regressionAssociativity-proof :
+  regressionAssociativityOk regressionGraph ≡ True
+regressionAssociativity-proof = refl
+
+regressionRightIdentity-proof :
+  regressionRightIdentityOk regressionGraph ≡ True
+regressionRightIdentity-proof = refl
+
+regressionLeftIdentity-proof :
+  regressionLeftIdentityOk regressionGraph ≡ True
+regressionLeftIdentity-proof = refl
+
+regressionMatching-proof :
+  regressionMatchingOk regressionGraph ≡ True
+regressionMatching-proof = refl
+
+regressionAnalysis-proof :
+  regressionAnalysisOk regressionGraph ≡ True
+regressionAnalysis-proof = refl
+
+regressionExtraction-proof :
+  regressionExtractOk regressionGraph ≡ True
+regressionExtraction-proof = refl
+
+regressionQuotient-proof :
+  regressionQuotientOk regressionGraph ≡ True
+regressionQuotient-proof = refl
+
+regressionIterations-proof :
+  regressionIterationOk regressionGraph ≡ True
+regressionIterations-proof = refl
+
+regressionSaturation-proof :
+  regressionSaturationOk regressionGraph ≡ True
+regressionSaturation-proof = refl
 
 symbolicEGraphRegression : Bool
 symbolicEGraphRegression =
-  case regressionGraph of λ where
-    (_ , ok) -> ok
+  regressionCongruenceOk regressionGraph &&
+  regressionAssociativityOk regressionGraph &&
+  regressionRightIdentityOk regressionGraph &&
+  regressionLeftIdentityOk regressionGraph &&
+  regressionMatchingOk regressionGraph &&
+  regressionAnalysisOk regressionGraph &&
+  regressionExtractOk regressionGraph &&
+  regressionQuotientOk regressionGraph &&
+  regressionIterationOk regressionGraph &&
+  regressionSaturationOk regressionGraph
 
 symbolicEGraphRegression-proof :
   symbolicEGraphRegression ≡ True
 symbolicEGraphRegression-proof = refl
+
+eGraphAssociativityRegression : Bool
+eGraphAssociativityRegression = regressionAssociativityOk regressionGraph
+
+eGraphAssociativityRegression-proof :
+  eGraphAssociativityRegression ≡ True
+eGraphAssociativityRegression-proof = refl
 
 eGraphAssociativityRegression : Bool
 eGraphAssociativityRegression =

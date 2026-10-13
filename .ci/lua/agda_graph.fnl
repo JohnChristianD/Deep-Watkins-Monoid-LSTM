@@ -34,7 +34,7 @@
   (local content-lines (fun.totable (string.gmatch content "[^\n]+")))
   (each [_ line (ipairs content-lines)]
     (when (not module-name)
-      (set module-name (string.match line "^%s*module%s+([%w%.%-]+)")))
+      (set module-name (string.match line "^%s*module%s+([^%s]+)")))
     (local imported
       (or
         (string.match line "^%s*open%s+import%s+([^%s]+)")
