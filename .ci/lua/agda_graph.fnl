@@ -1,22 +1,25 @@
 (local fun (require :fun))
-(local function read-lines [command]
+(local read-lines
+  (fn [command]
   (local pipe (assert (io.popen command "r")))
   (local lines [])
   (each [line (pipe:lines)] (table.insert lines line))
   (pipe:close)
-  lines)
-(local function read-file [path]
+  lines))
+(local read-file
+  (fn [path]
   (local file (assert (io.open path "r")))
   (local content (file:read "*a"))
   (file:close)
-  content)
-(local function elm-escape [value]
-  (local escaped (string.gsub value "\\" "\\\\"))
+  content))
+(local elm-escape
+  (fn [value]
+  (var escaped (string.gsub value "\\" "\\\\"))
   (set escaped (string.gsub escaped "\"" "\\\""))
   (set escaped (string.gsub escaped "\n" "\\n"))
   (set escaped (string.gsub escaped "\r" "\\r"))
   (set escaped (string.gsub escaped "\t" "\\t"))
-  escaped)
+  escaped))
 (local source-files
   (fun.totable
     (fun.filter
@@ -26,18 +29,18 @@
 (local edges [])
 (each [_ path (ipairs source-files)]
   (local content (read-file path))
-  (local module-name nil)
+  (local module-name
+    (string.gsub
+      (string.gsub path "%.agda$" "")
+      "/"
+      "."))
   (local imports [])
-  (local content-lines (fun.totable (string.gmatch content "[^\n]+")))
   (each [_ line (ipairs content-lines)]
-    (when (not module-name)
-      (set module-name (string.match line "^%s*module%s+([%w%.%-]+)")))
     (local imported
       (or
         (string.match line "^%s*open%s+import%s+([^%s]+)")
         (string.match line "^%s*import%s+([^%s]+)")))
     (when imported (table.insert imports imported)))
-  (assert module-name (.. "missing top-level Agda module in " path))
   (table.insert nodes {:id module-name :label module-name :source path})
   (each [_ imported (ipairs imports)]
     (table.insert edges {:source module-name :target imported :relation "imports"})))

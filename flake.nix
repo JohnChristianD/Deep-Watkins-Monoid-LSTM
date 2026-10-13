@@ -19,6 +19,10 @@
       url = "github:vehicle-lang/vehicle-formalisation/289f1940f9b11c293211ba2bc9fdf5c4c24e2b0a";
       flake = false;
     };
+    luafun = {
+      url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
+      flake = false;
+    };
   };
 
   outputs = {
@@ -27,7 +31,8 @@
     acorn,
     acornlib,
     xdsAgda,
-    miniVehicle
+    miniVehicle,
+    luafun
   }:
     let
       systems = [
@@ -69,7 +74,6 @@
           pkgs = pkgsFor system;
         in
         pkgs.haskellPackages.ghcWithPackages (p: [
-          p.rio
           p.liquidhaskell
         ]);
 
@@ -95,6 +99,63 @@
 
       agda2hsWithCanonicalGhc = system:
         agda2hsTool system;
+
+
+      luafunModule = system:
+        let
+          pkgs = pkgsFor system;
+          lua = pkgs.luajit;
+        in
+        pkgs.luajitPackages.buildLuaPackage {
+          pname = "luafun";
+          version = "scm-1";
+          src = luafun;
+          dontBuild = true;
+          installPhase = ''
+            runHook preInstall
+            install -Dm0644 fun.lua "$out/share/lua/${lua.luaversion}/fun.lua"
+            runHook postInstall
+          '';
+          meta = {
+            description = "High-performance functional programming library for Lua";
+            homepage = "https://luafun.github.io/";
+            license = pkgs.lib.licenses.mit;
+          };
+        };
+
+      luaFennelEnv = system:
+        let
+          pkgs = pkgsFor system;
+          luafunPkg = luafunModule system;
+        in
+        pkgs.luajit.withPackages (ps: [
+          ps.fennel
+          luafunPkg
+        ]);
+
+      fennelRuntime = system:
+        let
+          pkgs = pkgsFor system;
+          luaEnv = luaFennelEnv system;
+        in
+        pkgs.writeShellApplication {
+          name = "fennel";
+          runtimeInputs = [ luaEnv ];
+          text = ''
+            exec ${luaEnv}/bin/fennel "$@"
+          '';
+        };
+
+      streamlyGhc = system:
+        let pkgs = pkgsFor system;
+        in
+        pkgs.haskellPackages.ghcWithPackages (p: [
+          p.streamly
+          p.streamly-core
+          p.streamly-shell
+          p.streamly-coreutils
+          p.streamly-process
+        ]);
 
       acornProver = system:
         let
@@ -126,7 +187,7 @@
             pkgs.coreutils
           ];
           text = ''
-            exec agda -l agda2hs-base -i . "$@"
+            exec agda --erasure --no-projection-like -l agda2hs-base -i . "$@"
           '' ;
         };
 
@@ -141,7 +202,7 @@
             pkgs.coreutils
           ];
           text = ''
-            exec agda2hs -l agda2hs-base -i . "$@"
+            exec agda2hs --erasure --no-projection-like -l agda2hs-base -i . "$@"
           '' ;
         };
     in
@@ -167,107 +228,91 @@
             type = "app";
             program = "${pkgs.dhall}/bin/dhall";
           };
-          mirth-fast-dirty-source = let
+          fennel-smoke = let
             script = pkgs.writeShellApplication {
-              name = "mirth-fast-dirty-source";
-              runtimeInputs = [ pkgs.coreutils ];
+              name = "fennel-smoke";
+              runtimeInputs = [ (fennelRuntime system) pkgs.luajit pkgs.coreutils pkgs.gnugrep ];
               text = ''
                 set -euo pipefail
-                cat .ci/mirth/agda_to_elm.mth
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-fast-dirty-source";
-          };
-          mirth-c99-sync = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-c99-sync";
-              runtimeInputs = [ pkgs.mirth pkgs.stdenv.cc pkgs.coreutils ];
-              text = ''
-                set -euo pipefail
-                test "$#" = 1
-                output="$1"
+                LUA_PATH="${luafunModule system}/share/lua/5.1/?.lua;;" \
+                  luajit -e 'local fun = require("fun"); assert(type(fun.map) == "function")'
+                fennel --version
                 tmp=$(mktemp -d)
                 trap 'rm -rf "$tmp"' EXIT
-                mirthc .ci/mirth/agda_to_elm.mth -o "$tmp/agda-to-elm.c"
-                cc -std=c99 "$tmp/agda-to-elm.c" -o "$output"
+                printf '%s\n' '(print "fennel-luajit=pass")' > "$tmp/smoke.fnl"
+                test "$(fennel "$tmp/smoke.fnl")" = "fennel-luajit=pass"
+                echo "fennel-luajit-smoke=pass"
               '';
             };
           in {
             type = "app";
-            program = "${script}/bin/mirth-c99-sync";
-          };
-          mirth-agda-import-sync = let
-            script = pkgs.writeShellApplication {
-              name = "mirth-agda-import-sync";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
-              text = ''
-                set -euo pipefail
-                bash .ci/mirth/agda_import_sync.sh "$@"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mirth-agda-import-sync";
+            program = "${script}/bin/fennel-smoke";
           };
 
-          mirth-agda-command-sync = let
+          fennel-agda-graph = let
             script = pkgs.writeShellApplication {
-              name = "mirth-agda-command-sync";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
+              name = "fennel-agda-graph";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
-                bash .ci/mirth/agda_command_sync.sh "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_graph.fnl "$@"
               '';
             };
           in {
             type = "app";
-            program = "${script}/bin/mirth-agda-command-sync";
+            program = "${script}/bin/fennel-agda-graph";
           };
 
-          mirth-agda-sync = let
+          fennel-ascii-surface = let
             script = pkgs.writeShellApplication {
-              name = "mirth-agda-sync";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
+              name = "fennel-ascii-surface";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
-                bash .ci/mirth/agda_import_sync.sh "$@"
-                bash .ci/mirth/agda_command_sync.sh "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/ascii_surface.fnl "$@"
               '';
             };
           in {
             type = "app";
-            program = "${script}/bin/mirth-agda-sync";
+            program = "${script}/bin/fennel-ascii-surface";
           };
 
-          mirth-ascii-sync = let
+          fennel-surface = let
             script = pkgs.writeShellApplication {
-              name = "mirth-ascii-sync";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
+              name = "fennel-surface";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
               text = ''
                 set -euo pipefail
-                bash .ci/mirth/ascii_surface.sh
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_surface.fnl "$@"
               '';
             };
           in {
             type = "app";
-            program = "${script}/bin/mirth-ascii-sync";
+            program = "${script}/bin/fennel-surface";
           };
 
-          mirth-agda-graph = let
+          streamly-tools-check = let
             script = pkgs.writeShellApplication {
-              name = "mirth-agda-graph";
-              runtimeInputs = [ pkgs.coreutils pkgs.git ];
+              name = "streamly-tools-check";
+              runtimeInputs = [ (streamlyGhc system) pkgs.coreutils pkgs.gnugrep ];
               text = ''
                 set -euo pipefail
-                bash .ci/mirth/agda_graph.sh "$@"
+                ghc --numeric-version
+                packages="$(ghc-pkg list)"
+                for package in streamly streamly-core streamly-shell streamly-coreutils streamly-process; do
+                  grep -Fq -- "$package-" <<< "$packages" || {
+                    echo "missing Nix-provided Haskell package: $package" >&2
+                    exit 1
+                  }
+                done
+                echo "streamly-nix-packages=pass"
               '';
             };
           in {
             type = "app";
-            program = "${script}/bin/mirth-agda-graph";
+            program = "${script}/bin/streamly-tools-check";
           };
+
           acorn-smoke = let
             script = pkgs.writeShellApplication {
               name = "acorn-smoke";
@@ -315,6 +360,21 @@
             program = "${script}/bin/mini-vehicle-check";
           };
 
+          scott-strachey-domain-check = let
+            script = pkgs.writeShellApplication {
+              name = "scott-strachey-domain-check";
+              runtimeInputs = [ (agdaCommand system) ];
+              text = ''
+                set -euo pipefail
+                agda2hs-agda -i . FullCoupled/FormalMethods/ScottStracheyDomains.agda
+                echo "scott-strachey-domain-check=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/scott-strachey-domain-check";
+          };
+
           agda2hs-graph-search-check = let
             script = pkgs.writeShellApplication {
               name = "agda2hs-graph-search-check";
@@ -351,8 +411,7 @@
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
-                  -package rio \
-                  -i "$out" \
+                                    -i "$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
@@ -400,7 +459,6 @@
                 out="build/agda2hs-semantic-search"
                 rm -rf "$out"
                 mkdir -p "$out"
-                bash .ci/mirth/agda_command_sync.sh --check
                 "${agdaCommand system}/bin/agda2hs-agda" --dependency-graph="$out/semantic-search.dot" -i . FullCoupled/Agda2HsSemanticSearch.agda
                 test -s "$out/semantic-search.dot"
                 bash .ci/discovery/agda_semantic_source_closure.sh \
@@ -430,8 +488,7 @@
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
-                  -package rio \
-                  -i "$out" \
+                                    -i "$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
                   -main-is FullCoupled.Agda2HsSemanticSearch.main \
@@ -500,7 +557,6 @@
                 pkgs.coreutils
                 pkgs.findutils
                 pkgs.git
-                pkgs.mirth
                 pkgs.stdenv.cc
               ];
               text = ''
@@ -524,10 +580,10 @@
                 test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
                 mkdir -p "$out/ghc"
-                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -package rio -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
                 mkdir -p "$out/ghc-search"
                 "${canonicalGhc system}/bin/ghc" \
-                  -O0 -dcore-lint -package rio -i "$out" \
+                  -O0 -dcore-lint -i "$out" \
                   -odir "$out/ghc-search" -hidir "$out/ghc-search" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
                   -o "$out/graph-search-check" \
@@ -571,7 +627,8 @@
         {
           presentation = pkgs.mkShell {
             packages = [
-              pkgs.mirth
+              (fennelRuntime system)
+              pkgs.luajit
               pkgs.stdenv.cc
               pkgs.coreutils
               pkgs.findutils
@@ -592,6 +649,13 @@
             ];
             shellHook = ''
             '';
+          };
+
+          streamly = pkgs.mkShell {
+            packages = [
+              (streamlyGhc system)
+              pkgs.haskellPackages.cabal-install
+            ];
           };
 
           agda-ci = pkgs.mkShellNoCC {
@@ -617,7 +681,6 @@
               (canonicalGhc system)
               pkgs.dhall
               pkgs.z3
-              pkgs.mirth
               (agdaCommand system)
               (agdaEmacs system)
             ];
@@ -648,7 +711,6 @@
               (canonicalGhc system)
               pkgs.dhall
               pkgs.z3
-              pkgs.mirth
               pkgs.gh
               (agdaCommand system)
               (agdaEmacs system)
@@ -665,7 +727,6 @@
               pkgs.haskellPackages.cabal-install
               pkgs.z3
               pkgs.dhall-json
-              pkgs.mirth
               pkgs.gh
               (agdaCommand system)
               (agdaEmacs system)

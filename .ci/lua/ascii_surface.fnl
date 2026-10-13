@@ -1,15 +1,17 @@
 (local fun (require :fun))
-(local function read-lines [command]
+(local read-lines
+  (fn [command]
   (local pipe (assert (io.popen command "r")))
   (local lines [])
   (each [line (pipe:lines)] (table.insert lines line))
   (pipe:close)
-  lines)
-(local function read-file [path]
+  lines))
+(local read-file
+  (fn [path]
   (local file (assert (io.open path "rb")))
   (local content (file:read "*a"))
   (file:close)
-  content)
+  content))
 (local files
   (fun.totable
     (fun.filter

@@ -60,3 +60,10 @@ The repository is **not yet fully TypeTopology-free**. `flake.nix` pins `typetop
 5. **Require closure proof.** CI must build from a clean checkout and verify the search fixtures, Agda kernel gates, Haskell extraction/GHC checks, sidecar assumptions, and generated manifests. Report each lane as pass, fail, unavailable, or blocked. Do not collapse them into one green Boolean.
 
 The target is a small executable core plus explicitly separated proof sidecars. Full TypeTopology retirement is a gated migration, not a dependency deletion that leaves theorem imports unresolved.
+
+
+## Scott–Strachey and search semantics
+
+The checked starter module is `FullCoupled/FormalMethods/ScottStracheyDomains.agda`. It distinguishes `bottom` from the defined numeric zero and interprets a small language of numerals, divergence, and strict addition. Its counterexamples show that strict lifted operations do not, in general, give a ring or semiring over the *whole lifted carrier*; this does not imply a defect in the unlifted integers, rationals, or reals.
+
+This is an executable starter model—not yet a full CPO/Scott-continuity/fixed-point theorem. A complete account still needs chain suprema, monotonicity/continuity proofs, and a least-fixed-point construction for recursive search. The graph/A* implementation remains a separate executable algorithm with bounded runtime regressions.

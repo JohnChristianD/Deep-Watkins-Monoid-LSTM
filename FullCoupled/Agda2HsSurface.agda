@@ -1,13 +1,5 @@
-{-# OPTIONS
-  --erasure
-  --no-projection-like
-#-}
-
 module FullCoupled.Agda2HsSurface where
 
--- BEGIN MIRTH-SYNC CANONICAL COMMAND
--- "$AGDA_COMMAND" -i .
--- END MIRTH-SYNC CANONICAL COMMAND
 
 open import Haskell.Prelude
 

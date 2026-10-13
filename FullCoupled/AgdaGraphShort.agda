@@ -1,12 +1,8 @@
 module FullCoupled.AgdaGraphShort where
 
 
--- BEGIN MIRTH-SYNC CANONICAL COMMAND
--- "$AGDA_COMMAND" -i .
--- END MIRTH-SYNC CANONICAL COMMAND
 
 
--- BEGIN MIRTH-SYNC COMMON IMPORTS
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude hiding (String; ⊥)
 open import MLTT.Spartan hiding (J)
@@ -28,7 +24,6 @@ open import UF.Size
 open import UF.Subsingletons
 open import UF.Subsingletons-FunExt
 open import UF.UA-FunExt
--- END MIRTH-SYNC COMMON IMPORTS
 
 
 import FullCoupled.CanonicalLearnerMonolith as C

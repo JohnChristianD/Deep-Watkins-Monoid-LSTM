@@ -1,11 +1,10 @@
-let Lane = < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | MirthFastDirty | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >
+let Lane = < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >
 
 let lane : Lane = env:CI_LANE
 
 let script = merge {
   AgdaLearner = ''
     set -euo pipefail
-    nix run .#mirth-agda-sync -- --check
     "$AGDA_COMMAND" --version
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSurface.agda
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticExtractor.agda
@@ -16,7 +15,6 @@ let script = merge {
     '',
   AgdaTheorem = ''
     set -euo pipefail
-    nix run .#mirth-agda-sync -- --check
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSurface.agda
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticExtractor.agda
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsTheoremGraphEGraph.agda
@@ -40,50 +38,29 @@ let script = merge {
     test -s build/agda-haskell/agda2hs-manifest.tsv
     echo "agda2hs=pass"
     echo "agda2hs-plugins=none"    '',
-  MirthFastDirty = ''
+  FennelPresentation = ''
     set -euo pipefail
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
-    test -f .ci/mirth/agda_to_elm.mth
-    test -f .ci/mirth/ascii_surface.mth
-    test -f .ci/mirth/agda_import_sync.mth
-    test -f .ci/mirth/agda_command_sync.mth
-    test -f .ci/mirth/agda_graph.mth
-    grep -Fq 'module actions.agda_to_elm' .ci/mirth/agda_to_elm.mth
-    grep -Fq 'siteTitle : String' .ci/mirth/agda_to_elm.mth
-    grep -Fq 'Graph.nodes' .ci/mirth/agda_to_elm.mth
-
-    nix run .#mirth-ascii-sync
-    nix run .#mirth-agda-import-sync -- --check
-    nix run .#mirth-agda-command-sync -- --check
-    nix run .#mirth-agda-graph -- "$tmp/GeneratedAgdaGraph.elm"
-    test -s "$tmp/GeneratedAgdaGraph.elm"
-    grep -Fq 'module GeneratedAgdaGraph exposing (Node, Edge, nodes, edges)' "$tmp/GeneratedAgdaGraph.elm"
-    grep -Fq 'FullCoupled.TheoremsMonolith' "$tmp/GeneratedAgdaGraph.elm"
-
-    mirthc .ci/mirth/agda_to_elm.mth -o "$tmp/agda-to-elm.c"
-    cc -std=c99 "$tmp/agda-to-elm.c" -o "$tmp/agda-to-elm"
-    "$tmp/agda-to-elm" > "$tmp/GeneratedTheoremSurface.elm"
-    test -s "$tmp/GeneratedTheoremSurface.elm"
-    grep -Fq 'siteTitle : String' "$tmp/GeneratedTheoremSurface.elm"
-    grep -Fq 'nodeLines : List String' "$tmp/GeneratedTheoremSurface.elm"
-    grep -Fq 'edgeLines : List String' "$tmp/GeneratedTheoremSurface.elm"
-    if LC_ALL=C grep -n '[^[:print:][:space:]]' "$tmp/GeneratedTheoremSurface.elm"; then exit 1; fi
-    echo "mirth-c99-transpile-and-execute=pass"
+    mkdir -p "$tmp/src"
+    test -f .ci/lua/agda_graph.fnl
+    test -f .ci/lua/agda_surface.fnl
+    test -f .ci/lua/ascii_surface.fnl
+    nix run .#fennel-ascii-surface
+    nix run .#fennel-agda-graph -- "$tmp/src/GeneratedAgdaGraph.elm"
+    test -s "$tmp/src/GeneratedAgdaGraph.elm"
+    grep -Fq 'module GeneratedAgdaGraph exposing (Node, Edge, nodes, edges)' "$tmp/src/GeneratedAgdaGraph.elm"
+    grep -Fq 'FullCoupled.TheoremsMonolith' "$tmp/src/GeneratedAgdaGraph.elm"
+    nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
+    test -s "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'nodeLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'edgeLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
+    if LC_ALL=C grep -n '[^[:print:][:space:]]' "$tmp/src/GeneratedTheoremSurface.elm"; then exit 1; fi
+    echo "fennel-luajit-presentation=pass"
     '',
   Pages = ''
     set -euo pipefail
-    nix run .#mirth-agda-sync -- --check
-    nix run .#mirth-agda-command-sync -- --check
-    grep -Fq -- '-- BEGIN MIRTH-SYNC CANONICAL COMMAND' FullCoupled/Agda2HsSemanticSearch.agda
-    grep -Fq -- '-- BEGIN THEOREM GRAPH COMMAND' FullCoupled/TheoremsMonolith.agda
-    grep -Fq -- '-- "$AGDA_COMMAND" --dependency-graph=.ci/discovery/theorems-monolith.dot -i . FullCoupled/TheoremsMonolith.agda' FullCoupled/TheoremsMonolith.agda
-    awk '
-      /-- BEGIN MIRTH-SYNC THEOREM GRAPH COMMAND/ { in_mirth=1 }
-      /-- END MIRTH-SYNC THEOREM GRAPH COMMAND/ { in_mirth=0 }
-      !in_mirth && /-- "\$AGDA_COMMAND" --dependency-graph=.ci\/discovery\/theorems-monolith\.dot -i \. FullCoupled\/TheoremsMonolith\.agda/ { found=1 }
-      END { exit(found ? 0 : 1) }
-    ' FullCoupled/TheoremsMonolith.agda
     grep -Fq 'open import Haskell.Prelude' FullCoupled/Agda2HsSemanticSearch.agda
     ! grep -Eiq '^import Unsafe[.]Haskell|^open import (Naturals|MLTT[.]|UF[.]|TWA[.])' FullCoupled/Agda2HsSemanticSearch.agda
     grep -Fq 'open import Haskell.Prelude' FullCoupled/Agda2HsSemanticExtractor.agda
@@ -98,12 +75,12 @@ let script = merge {
     grep -Fq 'module FullCoupled.TheoremsMonolith' FullCoupled/TheoremsMonolith.agda
     dhall type --file .ci/presentation-contract.dhall >/dev/null
     dhall-to-json --file .ci/presentation-contract.dhall > "$tmp/presentation-contract.json"
-    grep -Fq '"graphGenerator": ".ci/mirth/agda_graph.mth"' "$tmp/presentation-contract.json"
-    grep -Fq '"surfaceGenerator": ".ci/mirth/agda_to_elm.mth"' "$tmp/presentation-contract.json"
+    grep -Fq '"graphGenerator": ".ci/lua/agda_graph.fnl"' "$tmp/presentation-contract.json"
+    grep -Fq '"surfaceGenerator": ".ci/lua/agda_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq '"elmManifest": ".ci/elm-application.dhall"' "$tmp/presentation-contract.json"
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledElm": "elm.js"' "$tmp/presentation-contract.json"
-    grep -Fq '"asciiGenerator": ".ci/mirth/ascii_surface.mth"' "$tmp/presentation-contract.json"
+    grep -Fq '"asciiGenerator": ".ci/lua/ascii_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq 'Atkinson Hyperlegible Mono' site/Main.elm
     grep -Fq 'Iosevka' site/Main.elm
     grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/Main.elm
@@ -118,19 +95,12 @@ let script = merge {
     mkdir -p "$output_dir"
     mkdir -p "$tmp/src"
     cp site/Main.elm "$tmp/src/Main.elm"
-    echo "pages-stage=mirth-graph-compile"
-    echo "pages-stage=mirth-graph-compile-done"
-    nix run .#mirth-agda-graph -- "$tmp/src/GeneratedAgdaGraph.elm"
-    echo "pages-stage=mirth-surface-compile"
-    mirthc .ci/mirth/agda_to_elm.mth -o "$tmp/agda-to-elm.c"
-    echo "pages-stage=mirth-surface-compile-done"
-    cc -std=c99 "$tmp/agda-to-elm.c" -o "$tmp/agda-to-elm"
-    echo "pages-stage=surface-run-1"
-    "$tmp/agda-to-elm" > "$tmp/agda-to-elm.sh"
-    echo "pages-stage=surface-run-1-done"
-    echo "pages-stage=surface-run-2"
-    "$tmp/agda-to-elm" > "$tmp/src/GeneratedTheoremSurface.elm"
-    echo "pages-stage=surface-run-2-done"
+    echo "pages-stage=fennel-graph"
+    nix run .#fennel-agda-graph -- "$tmp/src/GeneratedAgdaGraph.elm"
+    echo "pages-stage=fennel-graph-done"
+    echo "pages-stage=fennel-surface"
+    nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
+    echo "pages-stage=fennel-surface-done"
     test -s "$tmp/src/GeneratedAgdaGraph.elm"
     test -s "$tmp/src/GeneratedTheoremSurface.elm"
     grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
@@ -148,7 +118,6 @@ let script = merge {
     '',
   Discovery = ''
     set -euo pipefail
-    nix run .#mirth-agda-sync -- --check
     nix run .#agda2hs-semantic-search
     report=build/agda2hs-semantic-search/report.txt
     manifest=build/agda2hs-semantic-search/agda2hs-semantic-search-manifest.tsv
@@ -172,6 +141,7 @@ let script = merge {
     nix run .#acorn-smoke
     nix run .#xds-agda-check
     nix run .#mini-vehicle-check
+    nix run .#scott-strachey-domain-check
     echo 'agda-semantic-discovery=pass'
     '',  EconlibCrossrepo = ''
     set -euo pipefail
@@ -490,7 +460,7 @@ DHALL
     count=$(git ls-files '*Monolith.agda' | wc -l)
     [ "$count" -eq 2 ] || { echo "expected exactly two Agda monoliths, found $count"; exit 1; }
     agda_count=$(git ls-files '*.agda' | wc -l)
-    [ "$agda_count" -eq 15 ] || { echo "expected exactly fifteen tracked Agda sources, found $agda_count"; exit 1; }
+    [ "$agda_count" -eq 16 ] || { echo "expected exactly sixteen tracked Agda sources, found $agda_count"; exit 1; }
     [ -f FullCoupled/CanonicalLearnerMonolith.agda ] || { echo "missing canonical learner monolith"; exit 1; }
     [ -f FullCoupled/TheoremsMonolith.agda ] || { echo "missing theorem monolith"; exit 1; }
     imports=$(git ls-files '*.agda' | xargs grep -hE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+' || true)
@@ -508,7 +478,7 @@ DHALL
     done < <(git ls-files '*.md' '*.markdown')
     [ "$md_link_found" -eq 0 ] || { echo "Markdown links are forbidden outside Elm sites"; exit 1; }
     ! git ls-files -z | xargs -0 grep -Eil "$retired" 2>/dev/null | grep -q . || { echo "retired semantic term present"; exit 1; }
-    ! grep -nE '(^|[[:space:];])pkgs\.python3([[:space:]]|$)|(^|[[:space:];])python3([[:space:]]|$)|(^|[[:space:];])python([[:space:]]|$)|pkgs\.pythonPackages' flake.nix .ci/*.sh .ci/*.dhall .ci/mirth/*.mth 2>/dev/null || { echo "non-JAX Python toolchain reference present"; exit 1; }
+    ! grep -nE '(^|[[:space:];])pkgs\.python3([[:space:]]|$)|(^|[[:space:];])python3([[:space:]]|$)|(^|[[:space:];])python([[:space:]]|$)|pkgs\.pythonPackages' flake.nix .ci/*.sh .ci/*.dhall .ci/lua/*.fnl 2>/dev/null || { echo "non-JAX Python toolchain reference present"; exit 1; }
     ! grep -nE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+(MLTT\\.Fin|Data\\.Fin|Fin\\.Base|Data\\.Vec|Vec\\.Base)([[:space:]]|$)' -- *.agda FullCoupled/**/*.agda 2>/dev/null || { echo "Fin/Vec imports are forbidden; use Nat/List/Set instead"; exit 1; }
     # Canonical proof/data surface: use Nat, Int/Integer, Rational, List, and Set-like structures.
     # Keep Fin and Vec out of the project-owned Agda API; transitive library internals remain library concerns.
@@ -520,7 +490,7 @@ DHALL
     ghc --numeric-version
     test -n "$(ghc --numeric-version)"
     "$AGDA_COMMAND" --version
-    command -v mirthc >/dev/null
+    nix run .#fennel-smoke
     dhall --version
     z3 --version
     emacs --version
@@ -535,8 +505,7 @@ DHALL
     '',
   All = ''
     set -euo pipefail
-    nix run .#mirth-agda-sync -- --check
-    command -v mirthc >/dev/null
+    nix run .#fennel-smoke
     "$AGDA_COMMAND" --version
     ghc --numeric-version
     dhall --version
@@ -551,6 +520,7 @@ DHALL
     nix run .#acorn-smoke
     nix run .#xds-agda-check
     nix run .#mini-vehicle-check
+    nix run .#scott-strachey-domain-check
     nix run .#agda2hs-semantic-search
     echo 'agda-all=pass'
   ''} lane

@@ -1,13 +1,5 @@
-{-# OPTIONS
-  --erasure
-  --no-projection-like
-#-}
-
 module FullCoupled.Agda2HsGraphSearchCheck where
 
--- BEGIN MIRTH-SYNC CANONICAL COMMAND
--- "$AGDA_COMMAND" -i .
--- END MIRTH-SYNC CANONICAL COMMAND
 
 open import Haskell.Prelude
 import FullCoupled.Agda2HsSemanticSearch as Search

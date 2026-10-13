@@ -1,13 +1,6 @@
-{-# OPTIONS
-  --erasure
-  --no-projection-like
-#-}
-
 module FullCoupled.Agda2HsSemanticSearch where
 
--- BEGIN MIRTH-SYNC COMMON IMPORTS
 open import Haskell.Prelude
--- END MIRTH-SYNC COMMON IMPORTS
 
 open import FullCoupled.Agda2HsSemanticExtractor as Extractor
 open import FullCoupled.Agda2HsTheoremGraphEGraph using
@@ -17,9 +10,6 @@ open import FullCoupled.Agda2HsTheoremGraphEGraph using
 
 open import FullCoupled.Agda2HsTheoremGraphEGraph as EGraph
 
--- BEGIN MIRTH-SYNC CANONICAL COMMAND
--- "$AGDA_COMMAND" -i .
--- END MIRTH-SYNC CANONICAL COMMAND
 
 data Capability : Type where
   inversion : Capability
@@ -1553,4 +1543,4 @@ main = do
 {-# COMPILE AGDA2HS haskellMinusOneAStarComplete #-}
 {-# COMPILE AGDA2HS hybridInverseExactRealPlan #-}
 {-# COMPILE AGDA2HS hybridInverseExactRealSearchReport #-}
-{-# COMPILE AGDA2HS agdaSemanticPortReport #}
+{-# COMPILE AGDA2HS agdaSemanticPortReport #-}
