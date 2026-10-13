@@ -420,18 +420,20 @@ graphInsertAll [] frontier = frontier
 graphInsertAll (node ∷ nodes) frontier =
   graphInsertAll nodes (graphInsert node frontier)
 
+graphEdgeValid : String -> String -> List GraphLaw -> Bool
+graphEdgeValid child parent laws =
+  case graphLawForName parent laws of λ where
+    Nothing -> False
+    (Just law) ->
+      planContains child (graphLawDependencies law)
+
 graphValidChain :
   List String -> List GraphLaw -> Bool
 graphValidChain [] _ = False
 graphValidChain (_ ∷ []) _ = True
 graphValidChain (child ∷ parent ∷ rest) laws =
-  case graphLawForName parent laws of λ where
-    Nothing -> False
-    (Just law) →
-      if planContains child (graphLawDependencies law) then
-        graphValidChain (parent ∷ rest) laws
-      else
-        False
+  graphEdgeValid child parent laws &&
+  graphValidChain (parent ∷ rest) laws
 
 graphAllUnique :
   List String -> Bool
@@ -796,8 +798,9 @@ graphAStarTieBreakRegression =
     incoming = graphNode ("B" ∷ [])
   in
   case graphAStarInsert laws incoming (existing ∷ []) of λ where
-    (graphNode ("B" ∷ []) ∷ graphNode ("A" ∷ []) ∷ []) → True
-    _ → False
+    (graphNode (firstName ∷ []) ∷ graphNode (secondName ∷ []) ∷ []) ->
+      firstName == "B" && secondName == "A"
+    _ -> False
 
 graphAStarTieBreakRegressionChecked :
   graphAStarTieBreakRegression ≡ True
