@@ -1766,6 +1766,7 @@ main = do
 {-# COMPILE AGDA2HS semanticSearchExecutableReport #-}
 {-# COMPILE AGDA2HS learnerLogicalRequiredNames #-}
 {-# COMPILE AGDA2HS learnerTracePlan #-}
+{-# COMPILE AGDA2HS learnerObligationGraph #-}
 {-# COMPILE AGDA2HS learnerDescentPlan #-}
 {-# COMPILE AGDA2HS learnerLogicalGraphRegression #-}
 {-# COMPILE AGDA2HS learnerLogicalPlanReport #-}
