@@ -1,2 +1,17 @@
---erasure
---no-projection-like
+  --lossy-unification
+  --experimental-lazy-instances
+  --sized-types
+  --exact-split
+  --no-projection-like
+  --erased-matches
+  --erase-record-parameters
+  --prop
+  --confluence-check
+  --two-level
+  --rewriting
+  --level-universe
+  --cumulativity
+  --auto-inline
+  --polarity
+  --flat-split
+  -v=1
