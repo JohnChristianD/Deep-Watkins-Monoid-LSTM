@@ -10,6 +10,8 @@ sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Has
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS recNat #-}	{-# COMPILE AGDA2HS recNat #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS factorial #-}	{-# COMPILE AGDA2HS factorial #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphStringPathEqual #-}	{-# COMPILE AGDA2HS graphStringPathEqual #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathMember #-}	{-# COMPILE AGDA2HS graphPathMember #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphNodePlanMember #-}	{-# COMPILE AGDA2HS graphNodePlanMember #-}	1
@@ -30,8 +32,6 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarIns
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarWrapChildren #-}	{-# COMPILE AGDA2HS graphAStarWrapChildren #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarExpandNode #-}	{-# COMPILE AGDA2HS graphAStarExpandNode #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}	{-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS repeatBy #-}	{-# COMPILE AGDA2HS repeatBy #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS factorialFuel #-}	{-# COMPILE AGDA2HS factorialFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS searchFuel #-}	{-# COMPILE AGDA2HS searchFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS astarWithFuel #-}	{-# COMPILE AGDA2HS astarWithFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDepthFuel #-}	{-# COMPILE AGDA2HS graphDepthFuel #-}	1
