@@ -174,6 +174,8 @@
 (local options-path ".ci/agda/global-options.txt")
 (local options (read-file options-path))
 (assert (= (count-exact-line options "--erasure") 1) "global options must contain --erasure exactly once")
+(assert (= (count-exact-line options "--verbose=1") 1) "global options must use CLI spelling --verbose=1 exactly once")
+(assert (= (count-exact-line options "-v=1") 0) "source-pragma verbosity spelling -v=1 must not be passed through the CLI wrapper")
 (assert (= (count-exact-line options "--no-projection-like") 1) "global options must contain --no-projection-like exactly once")
 (assert (not (string.find options "--guardedness" 1 true))
   "--guardedness is module/lane-specific and must not be made global")

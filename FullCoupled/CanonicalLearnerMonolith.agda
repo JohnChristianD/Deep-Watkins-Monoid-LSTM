@@ -1,23 +1,3 @@
-{-# OPTIONS
-  --lossy-unification
-  --experimental-lazy-instances
-  --sized-types
-  --exact-split
-  --no-projection-like
-  --erased-matches
-  --erase-record-parameters
-  --prop
-  --confluence-check
-  --two-level
-  --rewriting
-  --level-universe
-  --cumulativity
-  --auto-inline
-  --polarity
-  --flat-split
-  -v=1
-#-}
-
 ------------------------------------------------------------------------
 -- Canonical learner semantics.
 --
@@ -54,7 +34,6 @@ open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
 open import Haskell.Law.Monad.List public
 open import Haskell.Law.Monoid.List public
-open import Haskell.Law.Ord.Ordering public
 open import Haskell.Prim.Thunks public
 open import Haskell.Prim.Equality public
 open import Haskell.Prim.Absurd public

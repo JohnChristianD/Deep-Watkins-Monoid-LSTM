@@ -68,7 +68,7 @@ The target is a small executable core plus explicitly separated proof sidecars. 
 
 ## Agda command policy
 
-The canonical global CLI flags are one-per-line in `.ci/agda/global-options.txt`. The Nix wrappers pass those flags to both `agda` and `agda2hs`. Keep flags with semantic or safety scope local to an individual file or CI lane; in particular, `--guardedness` must not be added globally because its compatibility differs from `--safe`.
+The canonical global CLI flags are one-per-line in `.ci/agda/global-options.txt`. The Nix wrappers pass those flags to both `agda` and `agda2hs`. Use CLI spellings such as `--verbose=1`; short `-v=1` is source-pragma syntax and must not be passed through the wrapper. Keep flags with semantic or safety scope local to an individual file or CI lane; in particular, `--guardedness` must not be added globally because its compatibility differs from `--safe`.
 
 ## Scott–Strachey and search semantics
 

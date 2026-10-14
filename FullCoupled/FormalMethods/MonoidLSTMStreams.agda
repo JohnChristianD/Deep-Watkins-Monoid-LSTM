@@ -1,4 +1,4 @@
-{-# OPTIONS --sized-types --no-guardedness #-}
+{-# OPTIONS --no-guardedness #-}
 
 module FullCoupled.FormalMethods.MonoidLSTMStreams where
 
