@@ -48,6 +48,7 @@ data SemanticKind : Type where
   semantic-record-field : SemanticKind
 
 record SemanticDecl : Type where
+  no-eta-equality
   constructor MkSemanticDecl
   field
     sourceFile : String
@@ -60,6 +61,7 @@ record SemanticDecl : Type where
 open SemanticDecl public
 
 record SemanticLaw : Type where
+  no-eta-equality
   constructor MkSemanticLaw
   field
     lawSource : String
