@@ -687,8 +687,8 @@ charListLength (_ ∷ rest) = suc (charListLength rest)
 
 dropN : Nat -> CharList -> CharList
 dropN _ [] = []
-dropN n chars@(c ∷ rest) =
-  if n == 0 then chars else dropN (n - 1) rest
+dropN n (c ∷ rest) =
+  if n == 0 then c ∷ rest else dropN (n - 1) rest
 
 matchesPrefix :
   CharList ->
