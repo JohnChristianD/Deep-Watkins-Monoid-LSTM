@@ -61,7 +61,7 @@ mapStreamPrefix :
   (n : Nat) (f : A → B) (input : Stream i A) →
   streamPrefix n (mapStream f input) ≡
   mapList f (streamPrefix n input)
-mapStreamPrefix zero f input = refl
+mapStreamPrefix 0 f input = refl
 mapStreamPrefix (suc n) f input =
   cong (λ rest → f (streamHead input) ∷ rest)
     (mapStreamPrefix n f (streamTail input))
