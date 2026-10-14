@@ -1,6 +1,7 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude
+import Haskell.Prim as Prim
 
 
 CharList : Type
@@ -688,7 +689,9 @@ charListLength (_ ∷ rest) = suc (charListLength rest)
 dropN : Nat -> CharList -> CharList
 dropN _ [] = []
 dropN n (c ∷ rest) =
-  if n == 0 then c ∷ rest else dropN (n - 1) rest
+  if Prim.eqNat n 0
+  then c ∷ rest
+  else dropN (Prim.monusNat n 1) rest
 
 matchesPrefix :
   CharList ->
