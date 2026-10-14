@@ -2432,8 +2432,8 @@ record CanonicalF4GlobalOptimizerStabilityTheorem : Set₁ where
     thetaTranslation :
       ∀ {A} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.thetaQ (C.canonicalOptimizerStep K s) ＝
-      C.int8Add
-        (C.int8Add (C.thetaQ (C.optimizer s)) (C.canonicalSignal K s))
+      C.intCodeAdd
+        (C.intCodeAdd (C.thetaQ (C.optimizer s)) (C.canonicalSignal K s))
         (C.l2Correction (C.globalL2 (C.optimizerKernel K)))
     stableNonThetaCoordinates :
       ∀ {A} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
@@ -3517,12 +3517,12 @@ record CanonicalAQLoopTheorem : Set₁ where
     watkinsEndogenousCoupling :
       ∀ K s →
       C.canonicalWatkinsTarget K s ＝
-      C.int8Add
-        (C.int8Add
-          (C.int8Add
+      C.intCodeAdd
+        (C.intCodeAdd
+          (C.intCodeAdd
             (C.canonicalReward8 K s)
             (C.canonicalQLogBias K s))
-          (C.int8Mul C.canonicalDiscount8
+          (C.intCodeMul C.canonicalDiscount8
             (C.maxCriticValue8 (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
 
@@ -4420,12 +4420,12 @@ canonicalBiasedWatkinsNegativeQMunchausenL2Target =
 canonical-qLog2Bias8-law :
   ∀ x →
   C.qLog2Bias8 x ＝
-  C.int8Neg
-    (C.int8OfNat
+  C.intCodeNeg
+    (C.intCodeOfNat
       (C.dyadicDivide
         (C.munchausenScale8 * C.dyadicNumerator (C.qLog8 x))
         (C.dyadicDenominator (C.qLog8 x))))
-canonical-qLog2Bias8-law x with C.int8Magnitude x
+canonical-qLog2Bias8-law x with C.intCodeMagnitude x
 ... | zero = refl
 ... | succ n = refl
 
@@ -4436,8 +4436,8 @@ record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
     negativeQMunchausenBias :
       ∀ x →
       C.qLog2Bias8 x ＝
-      C.int8Neg
-        (C.int8OfNat
+      C.intCodeNeg
+        (C.intCodeOfNat
           (C.dyadicDivide
             (C.munchausenScale8 * C.dyadicNumerator (C.qLog8 x))
             (C.dyadicDenominator (C.qLog8 x))))
@@ -4445,12 +4445,12 @@ record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
     targetDecomposition :
       ∀ K s →
       canonicalBiasedWatkinsNegativeQMunchausenL2Target K s ＝
-      C.int8Add
-        (C.int8Add
-          (C.int8Add
+      C.intCodeAdd
+        (C.intCodeAdd
+          (C.intCodeAdd
             (C.canonicalReward8 K s)
             (C.canonicalQLogBias K s))
-          (C.int8Mul
+          (C.intCodeMul
             C.canonicalDiscount8
             (C.maxCriticValue8 (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
@@ -4480,15 +4480,15 @@ record CanonicalQMunchausenL2SharedNegationPolarityTheorem : Set₁ where
     qMunchausenBiasNegation :
       ∀ x →
       C.qLog2Bias8 x ＝
-      C.int8Neg
-        (C.int8OfNat
+      C.intCodeNeg
+        (C.intCodeOfNat
           (C.dyadicDivide
             (C.munchausenScale8 * C.dyadicNumerator (C.qLog8 x))
             (C.dyadicDenominator (C.qLog8 x))))
 
     l2CorrectionNegation :
       ∀ x →
-      C.l2Correction x ＝ C.int8Neg x
+      C.l2Correction x ＝ C.intCodeNeg x
 
 open CanonicalQMunchausenL2SharedNegationPolarityTheorem public
 
@@ -4499,12 +4499,12 @@ canonicalWatkinsTarget-endogenous-leftInverse :
   (leftInverse : ∀ t → inverse (observe t) ＝ t) →
   ∀ s →
   C.canonicalWatkinsTarget K s ＝
-    C.int8Add
-      (C.int8Add
-        (C.int8Add
+    C.intCodeAdd
+      (C.intCodeAdd
+        (C.intCodeAdd
           (C.canonicalReward8 K (inverse (observe s)))
           (C.canonicalQLogBias K (inverse (observe s))))
-        (C.int8Mul
+        (C.intCodeMul
           C.canonicalDiscount8
           (C.maxCriticValue8
             (C.critic
@@ -4516,12 +4516,12 @@ canonicalWatkinsTarget-endogenous-leftInverse K observe inverse leftInverse s =
     (C.canonicalWatkinsTarget-law K s)
     (ap
       (λ t →
-        C.int8Add
-          (C.int8Add
-            (C.int8Add
+        C.intCodeAdd
+          (C.intCodeAdd
+            (C.intCodeAdd
               (C.canonicalReward8 K t)
               (C.canonicalQLogBias K t))
-            (C.int8Mul
+            (C.intCodeMul
               C.canonicalDiscount8
               (C.maxCriticValue8
                 (C.critic (C.watkins t)))))
@@ -4841,12 +4841,12 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
       (leftInverse : ∀ t → inverse (observe t) ＝ t) →
       ∀ s →
       C.canonicalWatkinsTarget K s ＝
-      C.int8Add
-        (C.int8Add
-          (C.int8Add
+      C.intCodeAdd
+        (C.intCodeAdd
+          (C.intCodeAdd
             (C.canonicalReward8 K (inverse (observe s)))
             (C.canonicalQLogBias K (inverse (observe s))))
-          (C.int8Mul
+          (C.intCodeMul
             C.canonicalDiscount8
             (C.maxCriticValue8
               (C.critic (C.watkins (inverse (observe s))))))
@@ -6658,20 +6658,20 @@ canonical-token-arbitrary-length-generation-theorem =
     canonicalToken-prefix-monoid-homomorphism
 
 canonicalIntegerHaarCross :
-  C.int8Add C.oneIntCode (C.int8Neg C.oneIntCode) ＝ C.zeroIntCode
+  C.intCodeAdd C.oneIntCode (C.intCodeNeg C.oneIntCode) ＝ C.zeroIntCode
 canonicalIntegerHaarCross = refl
 
 canonicalIntegerHaarEnergy :
-  C.int8Add C.oneIntCode C.oneIntCode ＝ C.int8OfNat 2
+  C.intCodeAdd C.oneIntCode C.oneIntCode ＝ C.intCodeOfNat 2
 canonicalIntegerHaarEnergy = refl
 
 record CanonicalIntegerHaarScaledOrthogonalityTheorem : Set₁ where
   constructor canonicalIntegerHaarScaledOrthogonalityTheorem
   field
     crossOrthogonality :
-      C.int8Add C.oneIntCode (C.int8Neg C.oneIntCode) ＝ C.zeroIntCode
+      C.intCodeAdd C.oneIntCode (C.intCodeNeg C.oneIntCode) ＝ C.zeroIntCode
     integerEnergy :
-      C.int8Add C.oneIntCode C.oneIntCode ＝ C.int8OfNat 2
+      C.intCodeAdd C.oneIntCode C.oneIntCode ＝ C.intCodeOfNat 2
 
 open CanonicalIntegerHaarScaledOrthogonalityTheorem public
 
@@ -6786,7 +6786,7 @@ canonicalHaarFeature-recurrent-step :
   ∀ (s : C.GRUState) (x : C.IntCode) →
   C.gruStep
     s
-    (C.int8Sub
+    (C.intCodeSub
       (pr₁ (C.canonicalCReLU8 x))
       (pr₂ (C.canonicalCReLU8 x)))
   ＝
@@ -6802,7 +6802,7 @@ canonicalHaarFeature-recurrent-prefix :
     C.canonicalGRURecurrentNetwork
     (map
       (λ x →
-        C.int8Sub
+        C.intCodeSub
           (pr₁ (C.canonicalCReLU8 x))
           (pr₂ (C.canonicalCReLU8 x)))
       xs)
@@ -6820,7 +6820,7 @@ canonicalHaarFeature-recurrent-prefix (x ∷ xs) s =
       xs
       (C.gruStep
         s
-        (C.int8Sub
+        (C.intCodeSub
           (pr₁ (C.canonicalCReLU8 x))
           (pr₂ (C.canonicalCReLU8 x)))))
     (ap
@@ -6859,7 +6859,7 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
       ∀ (s : C.GRUState) (x : C.IntCode) →
       C.gruStep
         s
-        (int8Sub
+        (intCodeSub
           (pr₁ (C.canonicalCReLU8 x))
           (pr₂ (C.canonicalCReLU8 x)))
       ＝
@@ -6870,7 +6870,7 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
         C.canonicalGRURecurrentNetwork
         (map
           (λ x →
-            int8Sub
+            intCodeSub
               (pr₁ (C.canonicalCReLU8 x))
               (pr₂ (C.canonicalCReLU8 x)))
           xs)
@@ -7008,8 +7008,8 @@ kla-affine-composition :
     (C.monoidAffine f₁ b₁)
   ＝
   C.monoidAffine
-    (C.int8Mul f₂ f₁)
-    (C.int8Add (C.int8Mul f₂ b₁) b₂)
+    (C.intCodeMul f₂ f₁)
+    (C.intCodeAdd (C.intCodeMul f₂ b₁) b₂)
 kla-affine-composition f₁ b₁ f₂ b₂ = refl
 
 ------------------------------------------------------------------------
@@ -7028,8 +7028,8 @@ klaMobiusTransition :
   C.IntCode → C.IntCode → C.IntCode → KLAMobiusMatrix
 klaMobiusTransition p aSquared phi =
   klaMobiusMatrix
-    (C.int8Add C.oneIntCode (C.int8Mul p phi))
-    (C.int8Mul aSquared phi)
+    (C.intCodeAdd C.oneIntCode (C.intCodeMul p phi))
+    (C.intCodeMul aSquared phi)
     p
     aSquared
 
@@ -7108,8 +7108,8 @@ record CanonicalHaarKLAAffineCompositionTheorem : Set₁ where
         (C.monoidAffine f₁ b₁)
       ＝
       C.monoidAffine
-        (C.int8Mul f₂ f₁)
-        (C.int8Add (C.int8Mul f₂ b₁) b₂)
+        (C.intCodeMul f₂ f₁)
+        (C.intCodeAdd (C.intCodeMul f₂ b₁) b₂)
     klaCanonicalEdge :
       ∀ a →
       interpret klaAffineEGraphSemantics (klaMean a)
@@ -7158,8 +7158,8 @@ record CanonicalFullCompositionGraphTheorem : Set₁ where
         (C.monoidAffine f₁ b₁)
       ＝
       C.monoidAffine
-        (C.int8Mul f₂ f₁)
-        (C.int8Add (C.int8Mul f₂ b₁) b₂)
+        (C.intCodeMul f₂ f₁)
+        (C.intCodeAdd (C.intCodeMul f₂ b₁) b₂)
     klaPrecisionFrontier :
       ¬
       (∀ {s t : KLAFullBeliefState} →
