@@ -1,22 +1,23 @@
 {-# OPTIONS
   --lossy-unification
   --experimental-lazy-instances
-  --guardedness
-  --no-infer-absurd-clauses
+  --sized-types
+  --exact-split
   --no-projection-like
   --erased-matches
   --erase-record-parameters
   --prop
   --confluence-check
-  --no-fast-reduce
+  --two-level
   --rewriting
-  --no-termination-check
-  --type-in-type
-  --no-positivity-check
+  --level-universe
+  --omega-in-omega
+  --cumulativity
+  --polarity
   --flat-split
   --large-indices
   --forced-argument-recursion
-  -v
+  -v=1
 #-}
 
 ------------------------------------------------------------------------
@@ -46,6 +47,22 @@ module FullCoupled.CanonicalLearnerMonolith where
 
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude public
+open import Haskell.Law public
+open import Haskell.Law.Equality public
+open import Haskell.Law.Extensionality public
+open import Haskell.Law.Functor.FromMonad public
+open import Haskell.Law.Semigroup.List public
+open import Haskell.Law.Nat public
+open import Haskell.Law.Monad.List public
+open import Haskell.Law.Monoid.List public
+open import Haskell.Prim.Thunks public
+open import Haskell.Prim.Equality public
+open import Haskell.Prim.Absurd public
+open import Haskell.Prim.Applicative public
+open import Haskell.Extra.Delay public
+open import Haskell.Extra.Erase public
+open import Haskell.Extra.Nat public
+open import Haskell.Control.Exception public
 open import Agda.Builtin.Equality public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Reflection public
