@@ -289,21 +289,6 @@ syntax try-fun t f = try t or-else f
 
 
 
--- BEGIN THEOREM GRAPH COMMAND
--- "$AGDA_COMMAND" --dependency-graph=.ci/discovery/theorems-monolith.dot -i . FullCoupled/TheoremsMonolith.agda
--- END THEOREM GRAPH COMMAND
-
-------------------------------------------------------------------------
--- BEGIN SCRIPTED EXTERNAL AGDA IMPORTS
--- Synced by Mirth; keep this block in the theorem monolith and
--- do not materialize a third Agda source file.
-------------------------------------------------------------------------
-
-------------------------------------------------------------------------
--- END SCRIPTED EXTERNAL AGDA IMPORTS
-------------------------------------------------------------------------
-
-
 -- BEGIN THEOREM-SPECIFIC IMPORTS
 ------------------------------------------------------------------------
 -- Theorem-specific imports: vendored Formal Methods in Agda.

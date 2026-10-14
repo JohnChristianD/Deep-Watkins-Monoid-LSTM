@@ -44,3 +44,4 @@ require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS splitFirst
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS splitFirstCharString #-}	{-# COMPILE AGDA2HS splitFirstCharString #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS topLevelLine #-}	{-# COMPILE AGDA2HS topLevelLine #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS syntaxHead #-}	{-# COMPILE AGDA2HS syntaxHead #-}	1
+require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS CharList #-}	{-# COMPILE AGDA2HS CharList #-}	1

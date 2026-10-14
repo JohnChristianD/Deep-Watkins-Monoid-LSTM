@@ -930,6 +930,7 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS semanticLawDependencies #-}
 {-# COMPILE AGDA2HS countNonreflexive #-}
 {-# COMPILE AGDA2HS countComposite #-}
+{-# COMPILE AGDA2HS CharList #-}
 {-# COMPILE AGDA2HS syntaxHead #-}
 {-# COMPILE AGDA2HS topLevelLine #-}
 {-# COMPILE AGDA2HS splitFirstCharString #-}
