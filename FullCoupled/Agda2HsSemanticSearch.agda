@@ -208,7 +208,7 @@ recNat a z s n = ifDec (n ≟ 0)
   (λ where {{refl}} → z)
   (λ {{n≠0}} →
     case predNat n n≠0 of λ where
-      (m ⟨ refl ⟩) → s m (recNat a z s m)
+      (m ⟨ refl ⟩) → s m (recNat a z s m))
 
 factorial : Nat → Nat
 factorial n =
