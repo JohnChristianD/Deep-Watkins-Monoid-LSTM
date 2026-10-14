@@ -1661,6 +1661,10 @@ main = do
 {-# COMPILE AGDA2HS autonomousGraphSearchReport #-}
 {-# COMPILE AGDA2HS SearchNode #-}
 {-# COMPILE AGDA2HS requiredCapabilities #-}
+{-# COMPILE AGDA2HS repeatBy #-}
+{-# COMPILE AGDA2HS factorialFuel #-}
+{-# COMPILE AGDA2HS searchFuel #-}
+{-# COMPILE AGDA2HS astarWithFuel #-}
 {-# COMPILE AGDA2HS canonicalLaws #-}
 {-# COMPILE AGDA2HS astar #-}
 {-# COMPILE AGDA2HS canonicalSearch #-}
