@@ -13,6 +13,7 @@
   --level-universe
   --omega-in-omega
   --cumulativity
+  --auto-inline
   --polarity
   --flat-split
   --large-indices
