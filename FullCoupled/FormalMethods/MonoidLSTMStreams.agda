@@ -30,7 +30,7 @@ streamTail (mapStream f input) {j} =
   mapStream f (streamTail input {j})
 
 streamPrefix : {i : Size} {A : Set} → Nat → Stream i A → List A
-streamPrefix zero _ = []
+streamPrefix 0 _ = []
 streamPrefix (suc n) input =
   streamHead input ∷ streamPrefix n (streamTail input)
 
@@ -106,7 +106,7 @@ scanStreamPrefix :
   (inputs : Stream i Input) →
   streamPrefix n (scanStream step state inputs) ≡
   scanList step state (streamPrefix n inputs)
-scanStreamPrefix zero step state inputs = refl
+scanStreamPrefix 0 step state inputs = refl
 scanStreamPrefix (suc n) step state inputs =
   cong (λ rest → step state (streamHead inputs) ∷ rest)
     (scanStreamPrefix n step
