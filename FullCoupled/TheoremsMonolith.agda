@@ -306,18 +306,67 @@ syntax try-fun t f = try t or-else f
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_; gruStep)
-import FullCoupled.LearnerLogicalSpec as LearnerLogicalSpec
+open import Agda.Builtin.Size using (Size; Size<_; ∞)
 -- END THEOREM-SPECIFIC IMPORTS
 
--- Bridge the theorem monolith to the independently stated learner trace
--- contract.  This creates a real dependency-graph edge to LearnerLogicalSpec.
+------------------------------------------------------------------------
+-- Guarded trace interface and coinductive stream-fusion proof.
+-- Learner transition semantics stay in CanonicalLearnerMonolith.
+------------------------------------------------------------------------
+
+record GuardedLearnerTrace {A : Set}
+  (K : C.FullLearnerKernel A)
+  (initial : C.FullLearnerState A) : Set where
+  constructor guardedLearnerTrace
+  field
+    learnerTrace : C.LearnerStream ∞ (C.FullLearnerState A)
+    learnerTraceStartsAtInitial :
+      C.learnerStreamHead learnerTrace ＝ initial
+
+open GuardedLearnerTrace public
+
+canonicalLearnerTraceGuarded :
+  ∀ {A : Set}
+    (K : C.FullLearnerKernel A)
+    (initial : C.FullLearnerState A) →
+  GuardedLearnerTrace K initial
+canonicalLearnerTraceGuarded K initial =
+  guardedLearnerTrace (C.canonicalLearnerTrace K initial) refl
+
 learnerSpecGuardedTrace :
   ∀ {A : Set}
     (K : C.FullLearnerKernel A)
     (initial : C.FullLearnerState A) →
-  LearnerLogicalSpec.GuardedLearnerTrace K initial
-learnerSpecGuardedTrace =
-  LearnerLogicalSpec.canonicalLearnerTraceGuarded
+  GuardedLearnerTrace K initial
+learnerSpecGuardedTrace = canonicalLearnerTraceGuarded
+
+record LearnerStreamBisim (i : Size) {A : Set}
+  (left right : C.LearnerStream i A) : Set where
+  coinductive
+  field
+    learnerStreamHeadsAgree :
+      C.learnerStreamHead left ＝ C.learnerStreamHead right
+    learnerStreamTailsBisimilar :
+      ∀ {j : Size< i} →
+      LearnerStreamBisim j
+        (C.learnerStreamTail left {j})
+        (C.learnerStreamTail right {j})
+
+open LearnerStreamBisim public
+
+-- Infinite map fusion: equality of every observable head is preserved
+-- coinductively, with each recursive obligation at a smaller size.
+mapStreamFusionBisim :
+  {i : Size} {A B D : Set} →
+  (f : B → D) →
+  (g : A → B) →
+  (input : C.LearnerStream i A) →
+  LearnerStreamBisim i
+    (C.mapLearnerStream f (C.mapLearnerStream g input))
+    (C.mapLearnerStream (λ value → f (g value)) input)
+mapStreamFusionBisim f g input .learnerStreamHeadsAgree = refl
+mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
+  mapStreamFusionBisim f g (C.learnerStreamTail input {j})
 
 -- TypeTopology's falsity is 𝟘. Keep familiar theorem notation local;
 -- do not import the Agda standard library or alter builtin ownership.
