@@ -1762,6 +1762,7 @@ main = do
 {-# COMPILE AGDA2HS requiredSubcompositionNames #-}
 {-# COMPILE AGDA2HS requiredNames #-}
 {-# COMPILE AGDA2HS requiredPlanForName #-}
+{-# COMPILE AGDA2HS requiredPlanIsValid #-}
 {-# COMPILE AGDA2HS requiredPlans #-}
 {-# COMPILE AGDA2HS requiredPlanCount #-}
 {-# COMPILE AGDA2HS requiredPlanComplete #-}
