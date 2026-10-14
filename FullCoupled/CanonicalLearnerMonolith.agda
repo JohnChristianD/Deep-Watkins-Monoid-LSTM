@@ -2090,6 +2090,21 @@ canonicalLearnerTraceAt K s (succ n) =
     (canonicalLearnerTraceAt K (canonicalFullStep K s) n)
     (iterateCanonical-step-shift K n s)
 
+-- Exact finite observation means every state predicate is invariant under
+-- choosing the productive stream view versus the canonical iterator view.
+-- Instantiating P with a state-indexed beta-optimality predicate transports
+-- that property; it does not prove the predicate holds without reward facts.
+canonicalLearnerTracePredicateAt :
+  ∀ {A}
+  (K : FullLearnerKernel A)
+  (initial : FullLearnerState A)
+  (n : ℕ)
+  (P : FullLearnerState A → Set) →
+  P (learnerStreamAt n (canonicalLearnerTrace K initial)) →
+  P (iterateCanonical K n initial)
+canonicalLearnerTracePredicateAt K initial n P property =
+  transport P (canonicalLearnerTraceAt K initial n) property
+
 
 canonicalFullStep-gru : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → gru (canonicalFullStep K s) ＝ canonicalGRUStep K s
 canonicalFullStep-gru K s = refl
@@ -2362,35 +2377,7 @@ module BetaOptimalityBoundary where
   noUniformBetaOptimalChoice beta rightAction optimal =
     noSuccessorBoundedBySelf beta (optimal leftAction)
 
-  -- Policy optimality is a predicate on learner state. Exact stream/iterator
-  -- equality transports that predicate; it does not assert that every state
-  -- is beta-optimal under an arbitrary reward model.
-  betaOptimalAtState :
-    ∀ {A} →
-    BNat →
-    (FullLearnerState A → Action → BNat) →
-    (FullLearnerState A → Action) →
-    FullLearnerState A →
-    Set
-  betaOptimalAtState beta reward choose state =
-    betaOptimal beta (reward state) (choose state)
 
-  traceBetaOptimalityTransport :
-    ∀ {A}
-    (K : FullLearnerKernel A)
-    (initial : FullLearnerState A)
-    (n : ℕ)
-    (beta : BNat)
-    (reward : FullLearnerState A → Action → BNat)
-    (choose : FullLearnerState A → Action) →
-    betaOptimalAtState beta reward choose
-      (learnerStreamAt n (canonicalLearnerTrace K initial)) →
-    betaOptimalAtState beta reward choose (iterateCanonical K n initial)
-  traceBetaOptimalityTransport K initial n beta reward choose property =
-    transport
-      (betaOptimalAtState beta reward choose)
-      (canonicalLearnerTraceAt K initial n)
-      property
 
 ------------------------------------------------------------------------
 -- Tarski least-fixed-point theorem for an explicit Bellman contract.
