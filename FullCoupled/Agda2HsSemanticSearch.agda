@@ -1693,6 +1693,9 @@ main = do
 {-# COMPILE AGDA2HS GraphAStarNode #-}
 {-# COMPILE AGDA2HS GraphAStarBestCost #-}
 {-# COMPILE AGDA2HS graphCycleIsRejectedRegression #-}
+{-# COMPILE AGDA2HS graphStringPathEqual #-}
+{-# COMPILE AGDA2HS graphPathMember #-}
+{-# COMPILE AGDA2HS graphNodePlanMember #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchCount #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchReport #-}
 {-# COMPILE AGDA2HS SearchNode #-}
