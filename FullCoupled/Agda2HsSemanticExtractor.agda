@@ -930,8 +930,10 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS semanticLawDependencies #-}
 {-# COMPILE AGDA2HS countNonreflexive #-}
 {-# COMPILE AGDA2HS countComposite #-}
+{-# COMPILE AGDA2HS topLevelRecordHeader #-}
 {-# COMPILE AGDA2HS topLevelRecordHeaderRegression #-}
 {-# COMPILE AGDA2HS nestedRecordHeaderRejectedRegression #-}
+{-# COMPILE AGDA2HS bodyClause #-}
 {-# COMPILE AGDA2HS bodyClauseRegression #-}
 {-# COMPILE AGDA2HS bodyClauseRejectsIndentedRegression #-}
 {-# COMPILE AGDA2HS charBetween #-}
