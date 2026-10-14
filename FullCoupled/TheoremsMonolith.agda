@@ -31,10 +31,6 @@ module FullCoupled.TheoremsMonolith where
 
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude
-open import Integers.Type
-open import Integers.Order
-open import Integers.Addition renaming (_+_ to _ℤ+_)
-open import Integers.Multiplication renaming (_*_ to _ℤ*_)
 
 Int : Set
 Int = ℤ
@@ -46,18 +42,6 @@ _+Int_ = _ℤ+_
 infixl 31 _*Int_
 _*Int_ : Int → Int → Int
 _*Int_ = _ℤ*_
-open import Naturals.Addition
-open import Naturals.Exponentiation
-open import Naturals.Division
-open import Naturals.Properties
-open import Naturals.Order
-open import Naturals.Multiplication using (distributivity-mult-over-addition'; mult-commutativity; mult-right-id)
-open import Notation.Order
-open import Rationals.Addition renaming (_+_ to _ℚ+_)
-open import Rationals.Multiplication
-open import Rationals.Negation
-open import Rationals.Order
-open import Rationals.Type
 
 -- Stable Agda 2.8.0.2 reflection compatibility surface.
 -- Reuses TypeTopology's existing BOOL/NATURAL/LIST/SIGMA bindings instead
