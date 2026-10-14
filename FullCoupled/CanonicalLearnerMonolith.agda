@@ -2739,239 +2739,188 @@ module CanonicalBellmanOrderTheory where
 
 
 
+
+
   ------------------------------------------------------------------------
-  -- Kleene fixed point theorem over an omega-CPO.
+  -- Neural-network / MDP instantiation of the omega-Kleene theorem.
   --
-  -- A value-space Bellman operator is supplied with monotonicity and
-  -- Scott-continuity proofs. Its least fixed point is the lub of iterates
-  -- beginning at bottom, and is below every other fixed point.
+  -- State-value functions form the value domain. Reward and expected
+  -- transition value define one-step action returns; the least upper bound
+  -- over actions defines the optimal Bellman backup. A Q network and greedy
+  -- policy are explicit model fields, so neural assumptions remain visible.
+  -- State/action spaces are ordinary types: no Fin or Vec encoding needed.
   ------------------------------------------------------------------------
 
-  infix 4 _⊑ω_
-
-  record OmegaCPO (Value : Set) : Set₁ where
+  record NeuralPolicyMDP : Set₄ where
+    constructor neuralPolicyMDP
     field
-      _⊑ω_ : Value → Value → Set
-      reflω : {x : Value} → _⊑ω_ x x
-      transω :
-        {x y z : Value} → _⊑ω_ x y → _⊑ω_ y z → _⊑ω_ x z
-      antisymω :
-        {x y : Value} → _⊑ω_ x y → _⊑ω_ y x → x ≡ y
-      bottomω : Value
-      bottomLeastω : (x : Value) → _⊑ω_ bottomω x
-      lubω :
-        (xs : BNat → Value) →
-        (∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
-        Value
-      lubUpperω :
-        (xs : BNat → Value) →
-        (chain : ∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
-        (n : BNat) →
-        _⊑ω_ (xs n) (lubω xs chain)
-      lubLeastω :
-        (xs : BNat → Value) →
-        (chain : ∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
-        (z : Value) →
-        (∀ n → _⊑ω_ (xs n) z) →
-        _⊑ω_ (lubω xs chain) z
+      neuralState : Set
+      neuralAction : Set
+      neuralScalar : Set
+      neuralParameters : Set
 
-  open OmegaCPO public
+      mdpScalarDomain : OmegaCPO neuralScalar
+      mdpValueDomain : OmegaCPO (neuralState → neuralScalar)
 
-  record OmegaContinuousEndomap {Value : Set}
-    (O : OmegaCPO Value) : Set₂ where
-    field
-      stepω : Value → Value
-      monotoneω :
-        {x y : Value} →
-        OmegaCPO._⊑ω_ O x y →
-        OmegaCPO._⊑ω_ O (stepω x) (stepω y)
-      omegaContinuous :
-        (xs : BNat → Value) →
-        (chain : ∀ n → OmegaCPO._⊑ω_ O (xs n) (xs (bsuc n))) →
-        stepω (OmegaCPO.lubω O xs chain) ≡
-        OmegaCPO.lubω O
-          (λ n → stepω (xs n))
-          (λ n → monotoneω (chain n))
+      mdpDiscount : neuralScalar
+      mdpAdd : neuralScalar → neuralScalar → neuralScalar
+      mdpMultiply : neuralScalar → neuralScalar → neuralScalar
+      mdpReward : neuralState → neuralAction → neuralScalar
+      mdpTransitionExpectation :
+        neuralState →
+        neuralAction →
+        (neuralState → neuralScalar) →
+        neuralScalar
 
-  module KleeneFixedPoint {Value : Set} (O : OmegaCPO Value) where
-    open OmegaCPO O
+      -- This is the least upper bound over action values.
+      mdpBestActionValue :
+        neuralState → (neuralAction → neuralScalar) → neuralScalar
+      mdpBestActionUpper :
+        (state : neuralState) →
+        (actionValues : neuralAction → neuralScalar) →
+        (action : neuralAction) →
+        OmegaCPO._⊑ω_ mdpScalarDomain
+          (actionValues action)
+          (mdpBestActionValue state actionValues)
+      mdpBestActionLeast :
+        (state : neuralState) →
+        (actionValues : neuralAction → neuralScalar) →
+        (bound : neuralScalar) →
+        (∀ action →
+          OmegaCPO._⊑ω_ mdpScalarDomain (actionValues action) bound) →
+        OmegaCPO._⊑ω_ mdpScalarDomain
+          (mdpBestActionValue state actionValues) bound
 
-    iter : OmegaContinuousEndomap O → BNat → Value
-    iter F bzero = bottomω
-    iter F (bsuc n) =
-      OmegaContinuousEndomap.stepω F (iter F n)
+      -- Neural Q approximation, its selected parameter state, and a greedy policy.
+      nnQ :
+        neuralParameters → neuralState → neuralAction → neuralScalar
+      nnParameters : neuralParameters
+      nnGreedyPolicy : neuralState → neuralAction
+      nnGreedy :
+        (state : neuralState) →
+        (action : neuralAction) →
+        OmegaCPO._⊑ω_ mdpScalarDomain
+          (nnQ nnParameters state action)
+          (nnQ nnParameters state (nnGreedyPolicy state))
 
-    iterChain :
-      (F : OmegaContinuousEndomap O) →
-      (n : BNat) →
-      _⊑ω_ (iter F n) (iter F (bsuc n))
-    iterChain F bzero =
-      bottomLeastω (OmegaContinuousEndomap.stepω F (iter F bzero))
-    iterChain F (bsuc n) =
-      OmegaContinuousEndomap.monotoneω F (iterChain F n)
+      -- The Bellman map preserves suprema of increasing omega-chains. Its
+      -- equation identifies the map with reward + discounted expectation,
+      -- followed by the action supremum.
+      mdpBellmanEndomap : OmegaContinuousEndomap mdpValueDomain
+      mdpBellmanEquation :
+        (values : neuralState → neuralScalar) →
+        (state : neuralState) →
+        OmegaContinuousEndomap.stepω mdpBellmanEndomap values state ≡
+          mdpBestActionValue state
+            (λ action →
+              mdpAdd
+                (mdpReward state action)
+                (mdpMultiply mdpDiscount
+                  (mdpTransitionExpectation state action values)))
 
-    leastFixedPoint :
-      OmegaContinuousEndomap O → Value
-    leastFixedPoint F = lubω (iter F) (iterChain F)
+  open NeuralPolicyMDP public
 
-    shiftUpper :
-      (F : OmegaContinuousEndomap O) →
-      (n : BNat) →
-      _⊑ω_ (iter F n)
-        (lubω
-          (λ k → iter F (bsuc k))
-          (λ k → iterChain F (bsuc k)))
-    shiftUpper F bzero =
-      bottomLeastω
-        (lubω
-          (λ k → iter F (bsuc k))
-          (λ k → iterChain F (bsuc k)))
-    shiftUpper F (bsuc n) =
-      lubUpperω
-        (λ k → iter F (bsuc k))
-        (λ k → iterChain F (bsuc k))
-        n
+  -- Expected discounted one-step return for state, action, and continuation values.
+  neuralActionReturn :
+    (M : NeuralPolicyMDP) →
+    (neuralState M → neuralScalar M) →
+    neuralState M →
+    neuralAction M →
+    neuralScalar M
+  neuralActionReturn M values state action =
+    mdpAdd M
+      (mdpReward M state action)
+      (mdpMultiply M (mdpDiscount M)
+        (mdpTransitionExpectation M state action values))
 
-    shiftLub :
-      (F : OmegaContinuousEndomap O) →
-      lubω (iter F) (iterChain F) ≡
-        lubω
-          (λ n → iter F (bsuc n))
-          (λ n → iterChain F (bsuc n))
-    shiftLub F =
-      antisymω
-        (lubLeastω
-          (iter F)
-          (iterChain F)
-          (lubω
-            (λ n → iter F (bsuc n))
-            (λ n → iterChain F (bsuc n)))
-          (shiftUpper F))
-        (lubLeastω
-          (λ n → iter F (bsuc n))
-          (λ n → iterChain F (bsuc n))
-          (leastFixedPoint F)
-          (λ n → lubUpperω (iter F) (iterChain F) (bsuc n)))
-
-    transEq : {x y z : Value} → x ≡ y → y ≡ z → x ≡ z
-    transEq refl second = second
-
-    symEq : {x y : Value} → x ≡ y → y ≡ x
-    symEq refl = refl
-
-    leastFixedPointIsFixed :
-      (F : OmegaContinuousEndomap O) →
-      OmegaContinuousEndomap.stepω F (leastFixedPoint F) ≡
-        leastFixedPoint F
-    leastFixedPointIsFixed F =
-      transEq
-        (OmegaContinuousEndomap.omegaContinuous F (iter F) (iterChain F))
-        (symEq (shiftLub F))
-
-    equalityToOrder :
-      {x y : Value} → x ≡ y → _⊑ω_ x y
-    equalityToOrder refl = reflω
-
-    iterBelowFixed :
-      (F : OmegaContinuousEndomap O) →
-      (x : Value) →
-      OmegaContinuousEndomap.stepω F x ≡ x →
-      (n : BNat) →
-      _⊑ω_ (iter F n) x
-    iterBelowFixed F x fixed bzero = bottomLeastω x
-    iterBelowFixed F x fixed (bsuc n) =
-      transω
-        (OmegaContinuousEndomap.monotoneω F
-          (iterBelowFixed F x fixed n))
-        (equalityToOrder fixed)
-
-    leastFixedPointIsLeast :
-      (F : OmegaContinuousEndomap O) →
-      (x : Value) →
-      OmegaContinuousEndomap.stepω F x ≡ x →
-      _⊑ω_ (leastFixedPoint F) x
-    leastFixedPointIsLeast F x fixed =
-      lubLeastω
-        (iter F)
-        (iterChain F)
-        x
-        (iterBelowFixed F x fixed)
-
-    leastFixedPointUnique :
-      (F : OmegaContinuousEndomap O) →
-      (x : Value) →
-      (fixed : OmegaContinuousEndomap.stepω F x ≡ x) →
-      (∀ {y : Value} →
-        OmegaContinuousEndomap.stepω F y ≡ y →
-        _⊑ω_ x y) →
-      x ≡ leastFixedPoint F
-    leastFixedPointUnique F x fixed least =
-      antisymω
-        (least {y = leastFixedPoint F}
-          (leastFixedPointIsFixed F))
-        (leastFixedPointIsLeast F x fixed)
-
-  record OmegaContinuousBellmanSemantics (Value : Set) : Set₃ where
-    constructor continuousBellmanSemantics
-    field
-      valueDomain : OmegaCPO Value
-      bellmanOperator : OmegaContinuousEndomap valueDomain
-
-  open OmegaContinuousBellmanSemantics public
-
-  bellmanStreamValue :
-    {Value : Set} →
-    (B : OmegaContinuousBellmanSemantics Value) →
+  -- Value iteration uses index zero for bottom and applies the Bellman map
+  -- once per successor index.
+  neuralBellmanValueIteration :
+    (M : NeuralPolicyMDP) →
     BNat →
-    Value
-  bellmanStreamValue B =
-    KleeneFixedPoint.iter (valueDomain B) (bellmanOperator B)
+    neuralState M →
+    neuralScalar M
+  neuralBellmanValueIteration M n state =
+    OmegaKleeneFixedPoint.iter
+      (mdpValueDomain M)
+      (mdpBellmanEndomap M)
+      n
+      state
 
-  bellmanStreamLeastFixedPoint :
-    {Value : Set} →
-    (B : OmegaContinuousBellmanSemantics Value) →
-    Value
-  bellmanStreamLeastFixedPoint B =
-    KleeneFixedPoint.leastFixedPoint
-      (valueDomain B) (bellmanOperator B)
+  -- Supremum of bottom-starting Bellman iterates: the MDP optimal value function.
+  neuralBellmanOptimalValueFunction :
+    (M : NeuralPolicyMDP) →
+    neuralState M → neuralScalar M
+  neuralBellmanOptimalValueFunction M =
+    OmegaKleeneFixedPoint.leastFixedPoint
+      (mdpValueDomain M)
+      (mdpBellmanEndomap M)
 
-  bellmanStreamLeastFixedPointAtZero :
-    {Value : Set} →
-    (B : OmegaContinuousBellmanSemantics Value) →
-    bellmanStreamValue B bzero =
-      OmegaCPO.bottomω (valueDomain B)
-  bellmanStreamLeastFixedPointAtZero B = refl
+  neuralBellmanAtStepZero :
+    (M : NeuralPolicyMDP) →
+    (state : neuralState M) →
+    neuralBellmanValueIteration M bzero state ≡
+      OmegaCPO.bottomω (mdpValueDomain M) state
+  neuralBellmanAtStepZero M state = refl
 
-  bellmanStreamLeastFixedPointIsFixed :
-    {Value : Set} →
-    (B : OmegaContinuousBellmanSemantics Value) →
-    OmegaContinuousEndomap.stepω (bellmanOperator B)
-      (bellmanStreamLeastFixedPoint B) ≡
-      bellmanStreamLeastFixedPoint B
-  bellmanStreamLeastFixedPointIsFixed B =
-    KleeneFixedPoint.leastFixedPointIsFixed
-      (valueDomain B) (bellmanOperator B)
+  neuralBellmanOptimalValueIsFixed :
+    (M : NeuralPolicyMDP) →
+    OmegaContinuousEndomap.stepω (mdpBellmanEndomap M)
+      (neuralBellmanOptimalValueFunction M) ≡
+      neuralBellmanOptimalValueFunction M
+  neuralBellmanOptimalValueIsFixed M =
+    OmegaKleeneFixedPoint.leastFixedPointIsFixed
+      (mdpValueDomain M)
+      (mdpBellmanEndomap M)
 
-  bellmanStreamLeastFixedPointIsLeast :
-    {Value : Set} →
-    (B : OmegaContinuousBellmanSemantics Value) →
-    (x : Value) →
-    OmegaContinuousEndomap.stepω (bellmanOperator B) x ≡ x →
-    OmegaCPO._⊑ω_ (valueDomain B)
-      (bellmanStreamLeastFixedPoint B) x
-  bellmanStreamLeastFixedPointIsLeast B x fixed =
-    KleeneFixedPoint.leastFixedPointIsLeast
-      (valueDomain B) (bellmanOperator B) x fixed
+  neuralBellmanOptimalValueIsLeast :
+    (M : NeuralPolicyMDP) →
+    (candidate : neuralState M → neuralScalar M) →
+    OmegaContinuousEndomap.stepω (mdpBellmanEndomap M) candidate ≡ candidate →
+    OmegaCPO._⊑ω_ (mdpValueDomain M)
+      (neuralBellmanOptimalValueFunction M) candidate
+  neuralBellmanOptimalValueIsLeast M candidate fixed =
+    OmegaKleeneFixedPoint.leastFixedPointIsLeast
+      (mdpValueDomain M)
+      (mdpBellmanEndomap M)
+      candidate
+      fixed
 
-  bellmanStreamLeastFixedPointUnique :
-    {Value : Set} →
-    (B : OmegaContinuousBellmanSemantics Value) →
-    (x : Value) →
-    (fixed : OmegaContinuousEndomap.stepω (bellmanOperator B) x ≡ x) →
-    (∀ {y : Value} →
-      OmegaContinuousEndomap.stepω (bellmanOperator B) y ≡ y →
-      OmegaCPO._⊑ω_ (valueDomain B) x y) →
-    x ≡ bellmanStreamLeastFixedPoint B
-  bellmanStreamLeastFixedPointUnique B x fixed least =
-    KleeneFixedPoint.leastFixedPointUnique
-      (valueDomain B) (bellmanOperator B) x fixed least
+  -- Equality transports action values into the scalar order.
+  scalarEqualityImpliesOrder :
+    (M : NeuralPolicyMDP) →
+    {left right : neuralScalar M} →
+    left ≡ right →
+    OmegaCPO._⊑ω_ (mdpScalarDomain M) left right
+  scalarEqualityImpliesOrder M refl =
+    OmegaCPO.reflω (mdpScalarDomain M)
+
+  -- With exact Bellman-consistent Q values, a network-greedy action is
+  -- maximal for one-step optimal Bellman return. This is local action
+  -- optimality; global policy optimality additionally needs the policy-value
+  -- evaluation theorem (e.g. discounted contraction/uniqueness assumptions).
+  neuralPolicyGreedyOptimalAtBellmanValue :
+    (M : NeuralPolicyMDP) →
+    (exactQ :
+      (state : neuralState M) →
+      (action : neuralAction M) →
+      nnQ M (nnParameters M) state action ≡
+        neuralActionReturn M
+          (neuralBellmanOptimalValueFunction M)
+          state action) →
+    (state : neuralState M) →
+    (action : neuralAction M) →
+    OmegaCPO._⊑ω_ (mdpScalarDomain M)
+      (neuralActionReturn M
+        (neuralBellmanOptimalValueFunction M) state action)
+      (neuralActionReturn M
+        (neuralBellmanOptimalValueFunction M)
+        state (nnGreedyPolicy M state))
+  neuralPolicyGreedyOptimalAtBellmanValue M exactQ state action =
+    OmegaCPO.transω (mdpScalarDomain M)
+      (scalarEqualityImpliesOrder M
+        (sym (exactQ state action)))
+      (OmegaCPO.transω (mdpScalarDomain M)
+        (nnGreedy M state action)
+        (scalarEqualityImpliesOrder M
+          (exactQ state (nnGreedyPolicy M state))))
