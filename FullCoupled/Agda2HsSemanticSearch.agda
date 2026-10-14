@@ -1003,8 +1003,8 @@ semanticLawCanSeed law =
     False
   else
     case Extractor.semanticLawKind law of λ where
-      Extractor.semantic-record-field → False
-      Extractor.semantic-top-level → True
+      Extractor.SemanticRecordField → False
+      Extractor.SemanticTopLevel → True
 
 semanticLawSeedFilterRegression : Bool
 semanticLawSeedFilterRegression =
@@ -1013,17 +1013,17 @@ semanticLawSeedFilterRegression =
       Extractor.semanticLaw
         "Regression.agda" "top-level-law"
         False False "Set" []
-        Extractor.semantic-top-level ""
+        Extractor.SemanticTopLevel ""
     reflexive =
       Extractor.semanticLaw
         "Regression.agda" "reflexive-law"
         True False "Set" []
-        Extractor.semantic-top-level ""
+        Extractor.SemanticTopLevel ""
     recordField =
       Extractor.semanticLaw
         "Regression.agda" "record-field-law"
         False False "Set" []
-        Extractor.semantic-record-field "RegressionRecord"
+        Extractor.SemanticRecordField "RegressionRecord"
   in
   semanticLawCanSeed topLevel
     && not (semanticLawCanSeed reflexive)
@@ -1143,8 +1143,8 @@ semanticLawIsRecordField :
   Extractor.SemanticLaw ->
   Bool
 semanticLawIsRecordField law with Extractor.semanticLawKind law
-... | Extractor.semantic-record-field = True
-... | Extractor.semantic-top-level = False
+... | Extractor.SemanticRecordField = True
+... | Extractor.SemanticTopLevel = False
 
 semanticLawIsReflexive :
   Extractor.SemanticLaw ->
