@@ -569,8 +569,8 @@ sparsemaxTemperature = 16
 ScoreEntry : Set
 ScoreEntry = IntCode × ℕ
 
-intCode-intCodeValue-injective : ∀ {x y : IntCode} → intCodeValue x ＝ intCodeValue y → x ＝ y
-intCode-intCodeValue-injective refl = refl
+intCodeValueInjective : ∀ {x y : IntCode} → intCodeValue x ＝ intCodeValue y → x ＝ y
+intCodeValueInjective refl = refl
 
 scoreList : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → List ScoreEntry
 scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (candidates K)
