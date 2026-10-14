@@ -4,7 +4,7 @@ module FullCoupled.Agda2HsSurface where
 open import Haskell.Prelude
 
 record Counter : Type where
-  no-eta-equality
+  no-eta-equality; pattern
   constructor MkCounter
   field
     totalCount : Nat
