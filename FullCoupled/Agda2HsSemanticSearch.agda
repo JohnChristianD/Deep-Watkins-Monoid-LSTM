@@ -515,9 +515,15 @@ graphConcatMap _ [] = []
 graphConcatMap f (x ∷ xs) =
   graphAppend (f x) (graphConcatMap f xs)
 
+-- One unit token per law bounds the legacy depth-first enumeration
+-- without matching on Nat constructors in extracted Haskell.
+graphDepthFuel : List GraphLaw -> List ⊤
+graphDepthFuel [] = []
+graphDepthFuel (_ ∷ laws) = tt ∷ graphDepthFuel laws
+
 mutual
   graphSearchChildren :
-    Nat ->
+    List ⊤ ->
     List GraphLaw ->
     List GraphNode ->
     List (List String)
@@ -528,12 +534,12 @@ mutual
       (graphSearchChildren depth laws nodes)
 
   graphSearchDepth :
-    Nat ->
+    List ⊤ ->
     List GraphLaw ->
     GraphNode ->
     List (List String)
-  graphSearchDepth zero _ _ = []
-  graphSearchDepth (suc depth) laws node =
+  graphSearchDepth [] _ _ = []
+  graphSearchDepth (_ ∷ depth) laws node =
     if graphMaximalDependencyChain (graphNodePlan node) laws then
       (graphNodePlan node) ∷ []
     else
@@ -543,7 +549,7 @@ mutual
         (graphExpandNode node laws)
 
 graphSearchSeeds :
-  Nat ->
+  List ⊤ ->
   List GraphLaw ->
   List GraphNode ->
   List (List String)
@@ -582,7 +588,7 @@ autonomousGraphSearch edges =
       seeds = graphLawSeeds laws
       candidates =
         graphSearchSeeds
-          (listLengthNat laws)
+          (graphDepthFuel laws)
           laws
           seeds
   in
@@ -1652,6 +1658,13 @@ main = do
 {-# COMPILE AGDA2HS GraphLaw #-}
 {-# COMPILE AGDA2HS GraphNode #-}
 {-# COMPILE AGDA2HS autonomousGraphSearch #-}
+{-# COMPILE AGDA2HS graphDepthFuel #-}
+{-# COMPILE AGDA2HS graphSearchChildren #-}
+{-# COMPILE AGDA2HS graphSearchDepth #-}
+{-# COMPILE AGDA2HS graphSearchSeeds #-}
+{-# COMPILE AGDA2HS graphPlanScore #-}
+{-# COMPILE AGDA2HS graphInsertPlan #-}
+{-# COMPILE AGDA2HS graphSortPlans #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchRegression #-}
 {-# COMPILE AGDA2HS graphDependencyOrderRegression #-}
 {-# COMPILE AGDA2HS graphTwoLeafBranchesRegression #-}
