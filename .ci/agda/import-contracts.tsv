@@ -10,6 +10,10 @@ sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Has
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS repeatBy #-}	{-# COMPILE AGDA2HS repeatBy #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS factorialFuel #-}	{-# COMPILE AGDA2HS factorialFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS searchFuel #-}	{-# COMPILE AGDA2HS searchFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS astarWithFuel #-}	{-# COMPILE AGDA2HS astarWithFuel #-}	1
 sync	FullCoupled/Agda2HsGraphSearchCheck.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Ord.Ordering	open import Haskell.Law.Ord.Ordering public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Size	open import Agda.Builtin.Size public	1
