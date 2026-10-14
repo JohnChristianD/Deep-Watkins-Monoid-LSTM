@@ -962,3 +962,60 @@ semanticLawContainer = lawContainer
 -- of their parser-only helper closure instead of inlining it into the reader.
 {-# COMPILE AGDA2HS planContains #-}
 {-# COMPILE AGDA2HS planContainsRegression #-}
+
+-- Production readSemanticLaws dependency closure. Parser regression values stay
+-- Agda-only (their Checked proofs are still kernel-checked) to avoid a second
+-- extraction root that bypasses the reader's established helper boundary.
+{-# COMPILE AGDA2HS CharList #-}
+{-# COMPILE AGDA2HS ScanState #-}
+{-# COMPILE AGDA2HS RecordFieldScanState #-}
+{-# COMPILE AGDA2HS dropLeadingSpaces #-}
+{-# COMPILE AGDA2HS dropTrailingSpaces #-}
+{-# COMPILE AGDA2HS trimWhitespace #-}
+{-# COMPILE AGDA2HS firstWord #-}
+{-# COMPILE AGDA2HS secondWord #-}
+{-# COMPILE AGDA2HS containsChar #-}
+{-# COMPILE AGDA2HS lineContainsChar #-}
+{-# COMPILE AGDA2HS splitFirstChar #-}
+{-# COMPILE AGDA2HS splitFirstCharString #-}
+{-# COMPILE AGDA2HS topLevelLine #-}
+{-# COMPILE AGDA2HS syntaxHead #-}
+{-# COMPILE AGDA2HS topLevelHeader #-}
+{-# COMPILE AGDA2HS topLevelRecordHeaderType #-}
+{-# COMPILE AGDA2HS topLevelRecordHeaderName #-}
+{-# COMPILE AGDA2HS topLevelRecordHeaderAtTopLevel #-}
+{-# COMPILE AGDA2HS topLevelRecordHeader #-}
+{-# COMPILE AGDA2HS topLevelDeclarationHeader #-}
+{-# COMPILE AGDA2HS bodyClause #-}
+{-# COMPILE AGDA2HS unwordsString #-}
+{-# COMPILE AGDA2HS finalizeScanState #-}
+{-# COMPILE AGDA2HS scanLines #-}
+{-# COMPILE AGDA2HS parseLines #-}
+{-# COMPILE AGDA2HS leadingSpaceCountChars #-}
+{-# COMPILE AGDA2HS leadingSpaceCount #-}
+{-# COMPILE AGDA2HS recordFieldHeader #-}
+{-# COMPILE AGDA2HS finalizeRecordFieldState #-}
+{-# COMPILE AGDA2HS scanRecordFields #-}
+{-# COMPILE AGDA2HS parseRecordFields #-}
+{-# COMPILE AGDA2HS charListLength #-}
+{-# COMPILE AGDA2HS dropN #-}
+{-# COMPILE AGDA2HS matchesPrefix #-}
+{-# COMPILE AGDA2HS boundaryBefore #-}
+{-# COMPILE AGDA2HS boundaryAfter #-}
+{-# COMPILE AGDA2HS containsIdentifierFrom #-}
+{-# COMPILE AGDA2HS containsIdentifier #-}
+{-# COMPILE AGDA2HS dependencyText #-}
+{-# COMPILE AGDA2HS findDependencies #-}
+{-# COMPILE AGDA2HS semanticSignature #-}
+{-# COMPILE AGDA2HS semanticReflexive #-}
+{-# COMPILE AGDA2HS semanticLawsFromDeclarations #-}
+{-# COMPILE AGDA2HS readSourceDeclarations #-}
+{-# COMPILE AGDA2HS readAllSources #-}
+{-# COMPILE AGDA2HS filterNonEmpty #-}
+{-# COMPILE AGDA2HS isReflexive #-}
+{-# COMPILE AGDA2HS isComposite #-}
+{-# COMPILE AGDA2HS isRecordField #-}
+{-# COMPILE AGDA2HS normalizeSignature #-}
+{-# COMPILE AGDA2HS normalizedSignature #-}
+{-# COMPILE AGDA2HS semanticLawKind #-}
+{-# COMPILE AGDA2HS semanticLawContainer #-}
