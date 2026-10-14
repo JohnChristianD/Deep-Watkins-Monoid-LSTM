@@ -458,9 +458,17 @@
                   /^module BetaOptimalityBoundary where$/ { capture=0 }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/TheoremsMonolith.agda > "$tmp/ScottStracheyDomains.agda"
+                awk '
+                  /^module BetaOptimalityBoundary where$/ { capture=1; print; next }
+                  /^-- Keep natural multiplication explicit:/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/TheoremsMonolith.agda > "$tmp/BetaOptimalityBoundary.agda"
                 test -s "$tmp/ScottStracheyDomains.agda"
+                test -s "$tmp/BetaOptimalityBoundary.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
+                agda2hs-agda -i "$tmp" "$tmp/BetaOptimalityBoundary.agda"
                 echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith)"
+                echo "beta-optimality-impossibility=kernel-checked (reward-independent universal claim)"
               '';
             };
           in {
