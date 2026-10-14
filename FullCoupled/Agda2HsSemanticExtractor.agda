@@ -48,7 +48,8 @@ data SemanticKind : Type where
   semantic-record-field : SemanticKind
 
 record SemanticDecl : Type where
-  constructor semanticDecl
+  no-eta-equality
+  constructor MkSemanticDecl
   field
     sourceFile : String
     declName : String
@@ -60,7 +61,8 @@ record SemanticDecl : Type where
 open SemanticDecl public
 
 record SemanticLaw : Type where
-  constructor semanticLaw
+  no-eta-equality
+  constructor MkSemanticLaw
   field
     lawSource : String
     lawName : String
@@ -74,19 +76,19 @@ record SemanticLaw : Type where
 open SemanticLaw public
 
 data ScanState : Type where
-  idle : ScanState
-  signature-state :
+  ScanIdle : ScanState
+  ScanSignatureState :
     String -> List String -> ScanState
-  body-state :
+  ScanBodyState :
     String -> List String -> List String -> ScanState
 
 data RecordFieldScanState : Type where
-  outside-record : RecordFieldScanState
-  record-waiting :
+  OutsideRecord : RecordFieldScanState
+  RecordWaiting :
     String -> RecordFieldScanState
-  record-fields :
+  RecordFields :
     String -> RecordFieldScanState
-  field-collecting :
+  FieldCollecting :
     String -> String -> List String -> RecordFieldScanState
 
 isIdentifierChar : Char -> Bool
@@ -357,12 +359,12 @@ finalizeScanState :
   ScanState ->
   List SemanticDecl ->
   List SemanticDecl
-finalizeScanState _ idle accumulator =
+finalizeScanState _ ScanIdle accumulator =
   accumulator
 finalizeScanState sourceFile
-  (signature-state name signatureReversed)
+  (ScanSignatureState name signatureReversed)
   accumulator =
-  semanticDecl
+  MkSemanticDecl
     sourceFile
     name
     (unwordsString (reverse signatureReversed))
@@ -371,9 +373,9 @@ finalizeScanState sourceFile
     ""
   ∷ accumulator
 finalizeScanState sourceFile
-  (body-state name signatureReversed bodyReversed)
+  (ScanBodyState name signatureReversed bodyReversed)
   accumulator =
-  semanticDecl
+  MkSemanticDecl
     sourceFile
     name
     (unwordsString (reverse signatureReversed))
@@ -392,13 +394,13 @@ scanLines sourceFile [] state accumulator =
   finalizeScanState sourceFile state accumulator
 scanLines sourceFile (line ∷ rest) state accumulator =
   case state of λ where
-    idle ->
+    ScanIdle ->
       case topLevelRecordHeader line of λ where
         (Just (name , fragment)) ->
           scanLines
             sourceFile
             rest
-            (signature-state name (fragment ∷ []))
+            (ScanSignatureState name (fragment ∷ []))
             accumulator
         Nothing ->
           case topLevelHeader line of λ where
@@ -406,17 +408,17 @@ scanLines sourceFile (line ∷ rest) state accumulator =
               scanLines
                 sourceFile
                 rest
-                (signature-state name (fragment ∷ []))
+                (ScanSignatureState name (fragment ∷ []))
                 accumulator
             Nothing ->
-              scanLines sourceFile rest idle accumulator
-    (signature-state name signatureReversed) ->
+              scanLines sourceFile rest ScanIdle accumulator
+    (ScanSignatureState name signatureReversed) ->
       case bodyClause name line of λ where
         (Just body) ->
           scanLines
             sourceFile
             rest
-            (body-state name signatureReversed (body ∷ []))
+            (ScanBodyState name signatureReversed (body ∷ []))
             accumulator
         Nothing ->
           case topLevelDeclarationHeader line of λ where
@@ -425,7 +427,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
                 scanLines
                   sourceFile
                   rest
-                  (signature-state
+                  (ScanSignatureState
                     name
                     (trimWhitespace line ∷ signatureReversed))
                   accumulator
@@ -435,36 +437,36 @@ scanLines sourceFile (line ∷ rest) state accumulator =
                     scanLines
                       sourceFile
                       rest
-                      idle
+                      ScanIdle
                       (finalizeScanState
                         sourceFile
-                        (signature-state name signatureReversed)
+                        (ScanSignatureState name signatureReversed)
                         accumulator)
                   (Just (nextName , fragment)) ->
                     scanLines
                       sourceFile
                       rest
-                      (signature-state nextName (fragment ∷ []))
+                      (ScanSignatureState nextName (fragment ∷ []))
                       (finalizeScanState
                         sourceFile
-                        (signature-state name signatureReversed)
+                        (ScanSignatureState name signatureReversed)
                         accumulator)
             Nothing ->
               scanLines
                 sourceFile
                 rest
-                (signature-state
+                (ScanSignatureState
                   name
                   (trimWhitespace line ∷ signatureReversed))
                 accumulator
-    (body-state name signatureReversed bodyReversed) ->
+    (ScanBodyState name signatureReversed bodyReversed) ->
       case topLevelDeclarationHeader line of λ where
         (Just nextName) ->
           if nextName == name then
             scanLines
               sourceFile
               rest
-              (body-state
+              (ScanBodyState
                 name
                 signatureReversed
                 (trimWhitespace line ∷ bodyReversed))
@@ -475,25 +477,25 @@ scanLines sourceFile (line ∷ rest) state accumulator =
                 scanLines
                   sourceFile
                   rest
-                  idle
+                  ScanIdle
                   (finalizeScanState
                     sourceFile
-                    (body-state name signatureReversed bodyReversed)
+                    (ScanBodyState name signatureReversed bodyReversed)
                     accumulator)
               (Just (nextName , fragment)) ->
                 scanLines
                   sourceFile
                   rest
-                  (signature-state nextName (fragment ∷ []))
+                  (ScanSignatureState nextName (fragment ∷ []))
                   (finalizeScanState
                     sourceFile
-                    (body-state name signatureReversed bodyReversed)
+                    (ScanBodyState name signatureReversed bodyReversed)
                     accumulator)
         Nothing ->
           scanLines
             sourceFile
             rest
-            (body-state
+            (ScanBodyState
               name
               signatureReversed
               (trimWhitespace line ∷ bodyReversed))
@@ -504,7 +506,7 @@ parseLines :
   List String ->
   List SemanticDecl
 parseLines sourceFile sourceLines =
-  reverse (scanLines sourceFile sourceLines idle [])
+  reverse (scanLines sourceFile sourceLines ScanIdle [])
 
 leadingSpaceCountChars :
   CharList ->
@@ -550,16 +552,16 @@ finalizeRecordFieldState :
   RecordFieldScanState ->
   List SemanticDecl ->
   List SemanticDecl
-finalizeRecordFieldState _ outside-record accumulator =
+finalizeRecordFieldState _ OutsideRecord accumulator =
   accumulator
-finalizeRecordFieldState _ (record-waiting _) accumulator =
+finalizeRecordFieldState _ (RecordWaiting _) accumulator =
   accumulator
-finalizeRecordFieldState _ (record-fields _) accumulator =
+finalizeRecordFieldState _ (RecordFields _) accumulator =
   accumulator
 finalizeRecordFieldState sourceFile
-  (field-collecting recordName fieldName signatureReversed)
+  (FieldCollecting recordName fieldName signatureReversed)
   accumulator =
-  semanticDecl
+  MkSemanticDecl
     sourceFile
     (recordName ++ "." ++ fieldName)
     (unwordsString (reverse signatureReversed))
@@ -585,29 +587,29 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
           scanRecordFields
             sourceFile
             rest
-            (record-waiting recordName)
+            (RecordWaiting recordName)
             (finalizeRecordFieldState sourceFile state accumulator)
         Nothing ->
           scanRecordFields
             sourceFile
             rest
-            outside-record
+            OutsideRecord
             (finalizeRecordFieldState sourceFile state accumulator)
     False ->
       case state of λ where
-        outside-record ->
+        OutsideRecord ->
           scanRecordFields
             sourceFile
             rest
-            outside-record
+            OutsideRecord
             accumulator
-        (record-waiting recordName) ->
+        (RecordWaiting recordName) ->
           case firstWord line of λ where
             Nothing ->
               scanRecordFields
                 sourceFile
                 rest
-                (record-waiting recordName)
+                (RecordWaiting recordName)
                 accumulator
             (Just lineWord) ->
               case lineWord == "field" of λ where
@@ -615,21 +617,21 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
                   scanRecordFields
                     sourceFile
                     rest
-                    (record-fields recordName)
+                    (RecordFields recordName)
                     accumulator
                 False ->
                   scanRecordFields
                     sourceFile
                     rest
-                    (record-waiting recordName)
+                    (RecordWaiting recordName)
                     accumulator
-        (record-fields recordName) ->
+        (RecordFields recordName) ->
           case recordFieldHeader line of λ where
             (Just (fieldName , fragment)) ->
               scanRecordFields
                 sourceFile
                 rest
-                (field-collecting
+                (FieldCollecting
                   recordName
                   fieldName
                   (fragment ∷ []))
@@ -638,21 +640,21 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
               scanRecordFields
                 sourceFile
                 rest
-                (record-fields recordName)
+                (RecordFields recordName)
                 accumulator
-        (field-collecting recordName fieldName signatureReversed) ->
+        (FieldCollecting recordName fieldName signatureReversed) ->
           case recordFieldHeader line of λ where
             (Just (nextFieldName , fragment)) ->
               scanRecordFields
                 sourceFile
                 rest
-                (field-collecting
+                (FieldCollecting
                   recordName
                   nextFieldName
                   (fragment ∷ []))
                 (finalizeRecordFieldState
                   sourceFile
-                  (field-collecting
+                  (FieldCollecting
                     recordName
                     fieldName
                     signatureReversed)
@@ -661,7 +663,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
               scanRecordFields
                 sourceFile
                 rest
-                (field-collecting
+                (FieldCollecting
                   recordName
                   fieldName
                   (trimWhitespace line ∷ signatureReversed))
@@ -676,7 +678,7 @@ parseRecordFields sourceFile sourceLines =
     (scanRecordFields
       sourceFile
       sourceLines
-      outside-record
+      OutsideRecord
       [])
 
 charListLength : CharList -> Nat
@@ -811,7 +813,7 @@ semanticLawsFromDeclarations allDeclarations (decl ∷ rest) =
         hasAtLeastTwoDependencies dependencies &&
         not reflexive
       law =
-        semanticLaw
+        MkSemanticLaw
           (sourceFile decl)
           (declName decl)
           reflexive
