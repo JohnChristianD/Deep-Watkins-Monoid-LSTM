@@ -68,6 +68,7 @@ open import Agda.Builtin.Equality public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Reflection public
 open import Agda.Builtin.Coinduction public
+open import Agda.Builtin.Size public
 
 variable
   ℓ ℓ₁ ℓ₂ ℓ₃ ℓ₄ : Level
