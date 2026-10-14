@@ -1,18 +1,21 @@
 {-# OPTIONS
   --lossy-unification
   --experimental-lazy-instances
-  --guarded
-  --no-infer-absurd-clauses
+  --sized-types
+  --exact-split
   --no-projection-like
   --erased-matches
   --erase-record-parameters
-  --allow-exec
+  --prop
   --confluence-check
-  --no-fast-reduce
+  --two-level
   --rewriting
-  --no-termination-check
-  --type-in-type
-  --no-positivity-check
+  --level-universe
+  --cumulativity
+  --auto-inline
+  --polarity
+  --flat-split
+  -v=1
 #-}
 
 
