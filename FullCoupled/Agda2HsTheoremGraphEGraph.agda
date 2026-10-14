@@ -12,6 +12,7 @@ data Pattern : Type where
   PatternApp : String -> List Pattern -> Pattern
 
 record RewriteRule : Type where
+  no-eta-equality
   constructor MkRewriteRule
   field
     ruleName : String
@@ -21,6 +22,7 @@ record RewriteRule : Type where
 open RewriteRule public
 
 record ENode : Type where
+  no-eta-equality
   constructor MkENode
   field
     symbol : String
@@ -29,6 +31,7 @@ record ENode : Type where
 open ENode public
 
 record Binding : Type where
+  no-eta-equality
   constructor MkBinding
   field
     node : ENode
@@ -53,6 +56,7 @@ bindingCountRegressionChecked : bindingCountRegression ≡ True
 bindingCountRegressionChecked = refl
 
 record EGraph : Type where
+  no-eta-equality
   constructor MkEGraph
   field
     nextId : Nat
@@ -62,6 +66,7 @@ record EGraph : Type where
 open EGraph public
 
 record Substitution : Type where
+  no-eta-equality
   constructor MkSubstitution
   field
     entries : List (String × Nat)
@@ -69,6 +74,7 @@ record Substitution : Type where
 open Substitution public
 
 record ClassAnalysis : Type where
+  no-eta-equality
   constructor MkClassAnalysis
   field
     analysisClass : Nat
@@ -82,6 +88,7 @@ classAnalysisCount [] = zero
 classAnalysisCount (_ ∷ rest) = suc (classAnalysisCount rest)
 
 record SaturationReport : Type where
+  no-eta-equality
   constructor MkSaturationReport
   field
     saturationIterations : Nat
@@ -92,6 +99,7 @@ record SaturationReport : Type where
 open SaturationReport public
 
 record Extraction : Type where
+  no-eta-equality
   constructor MkExtraction
   field
     extractedExpr : Expr
@@ -100,6 +108,7 @@ record Extraction : Type where
 open Extraction public
 
 record ChildExtraction : Type where
+  no-eta-equality
   constructor MkChildExtraction
   field
     extractedChildren : List Expr
@@ -617,6 +626,7 @@ emptyGraph : EGraph
 emptyGraph = MkEGraph zero [] []
 
 record EGraphRegression : Type where
+  no-eta-equality
   constructor MkEGraphRegression
   field
     regressionStableGraph : EGraph

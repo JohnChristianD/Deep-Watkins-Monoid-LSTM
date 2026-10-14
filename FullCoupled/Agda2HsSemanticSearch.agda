@@ -24,6 +24,7 @@ instance
   iEqCapability ._==_ _ _ = False
 
 record SemanticLaw : Type where
+  no-eta-equality
   constructor MkSearchSemanticLaw
   field
     lawName : String
@@ -34,6 +35,7 @@ record SemanticLaw : Type where
 open SemanticLaw public
 
 record SearchNode : Type where
+  no-eta-equality
   constructor MkSearchNode
   field
     plan : List String
@@ -300,6 +302,7 @@ semanticSearchReport =
   ++ " laws; target capabilities covered; A* cost is proof-independent guidance"
 
 record GraphLaw : Type where
+  no-eta-equality
   constructor MkGraphLaw
   field
     graphLawName : String
@@ -308,6 +311,7 @@ record GraphLaw : Type where
 open GraphLaw public
 
 record GraphNode : Type where
+  no-eta-equality
   constructor MkGraphNode
   field
     graphNodePlan : List String
@@ -1164,6 +1168,7 @@ semanticLawNamePresent name (law ∷ laws) =
     semanticLawNamePresent name laws
 
 record DominanceEdge : Type where
+  no-eta-equality
   constructor MkDominanceEdge
   field
     dominanceContainer : String
