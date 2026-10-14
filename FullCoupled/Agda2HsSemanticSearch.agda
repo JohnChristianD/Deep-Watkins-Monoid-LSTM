@@ -1,11 +1,6 @@
 module FullCoupled.Agda2HsSemanticSearch where
 
 open import Haskell.Prelude
-open import Haskell.Extra.Dec
-open import Haskell.Extra.Nat
-open import Haskell.Extra.Refinement
-open import Haskell.Law.Eq
-open import Haskell.Law.Eq.Instances
 
 import FullCoupled.Agda2HsSemanticExtractor as Extractor
 open import FullCoupled.Agda2HsTheoremGraphEGraph using
@@ -198,53 +193,48 @@ insertAll required (node ∷ nodes) frontier =
     nodes
     (insertByScore required node frontier)
 
--- Agda2HS cannot compile direct Nat constructor patterns. Recurse on
--- Nat through ifDec/predNat instead, retaining compact scalar fuel 4 * n!.
-recNat : (a : @0 Nat → Set)
-       → (z : a 0)
-       → (s : (m : Nat) → a m → a (suc m))
-       → (n : Nat) → a n
-recNat a z s n = ifDec (n ≟ 0)
-  (λ where {{refl}} → z)
-  (λ {{n≠0}} →
-    case predNat n n≠0 of λ where
-      (m ⟨ refl ⟩) → s m (recNat a z s m))
-
 factorial : Nat → Nat
-factorial n =
-  recNat (λ _ → Nat) (suc zero) (λ m result → suc m * result) n
+factorial zero = suc zero
+factorial (suc n) = suc n * factorial n
 
-searchFuel : List SemanticLaw → Nat
+-- Agda2HS excludes direct Nat-constructor recursion from the executable
+-- closure. Represent the factorial search budget as a lazy list of unit
+-- tokens: the list spine is consumed only as each search step needs fuel.
+repeatBy : ∀ {A B : Type} → List A → List B → List B
+repeatBy [] values = []
+repeatBy (_ ∷ rest) values = values ++ repeatBy rest values
+
+factorialFuel : ∀ {A : Type} → List A → List ⊤
+factorialFuel [] = tt ∷ []
+factorialFuel (value ∷ rest) =
+  repeatBy (value ∷ rest) (factorialFuel rest)
+
+searchFuel : List SemanticLaw → List ⊤
 searchFuel laws =
-  suc (suc (suc (suc zero))) * factorial (listLengthNat laws)
+  let fuel = factorialFuel laws
+  in fuel ++ fuel ++ fuel ++ fuel
 
 astarWithFuel :
-  Nat →
+  List ⊤ →
   List Capability →
   List SemanticLaw →
   List SearchNode →
   Maybe SearchNode
-astarWithFuel fuel required laws frontier =
-  ifDec (fuel ≟ 0)
-    (λ where {{refl}} → Nothing)
-    (λ {{fuel≠0}} →
-      case predNat fuel fuel≠0 of λ where
-        (fuel' ⟨ refl ⟩) →
-          case frontier of λ where
-            [] → Nothing
-            (node ∷ rest) →
-              if allRequiredCovered required (covered node) then
-                Just node
-              else
-                case firstMissing required (covered node) of λ where
-                  Nothing →
-                    Just node
+astarWithFuel [] required laws frontier = Nothing
+astarWithFuel (_ ∷ fuel) required laws [] = Nothing
+astarWithFuel (_ ∷ fuel) required laws (node ∷ frontier) =
+  if allRequiredCovered required (covered node) then
+    Just node
+  else
+    case firstMissing required (covered node) of λ where
+      Nothing →
+        Just node
 
-                  (Just capability) →
-                    let children = expandForCapability capability laws node
-                        frontier' = insertAll required children rest
-                    in
-                    astarWithFuel fuel' required laws frontier')
+      (Just capability) →
+        let children = expandForCapability capability laws node
+            frontier' = insertAll required children frontier
+        in
+        astarWithFuel fuel required laws frontier'
 
 astar :
   List Capability →
