@@ -2023,6 +2023,39 @@ canonicalFullStep K s =
 canonicalFullStep-watkins : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → watkins (canonicalFullStep K s) ＝ canonicalWatkinsStep K s
 canonicalFullStep-watkins K s = refl
 
+------------------------------------------------------------------------
+-- Productive observation of the canonical learner.
+-- Stream structure is learner semantics; bisimulation laws live in the
+-- theorem monolith. The size index bounds every tail observation.
+------------------------------------------------------------------------
+
+record LearnerStream (i : Size) (A : Set) : Set where
+  coinductive
+  field
+    learnerStreamHead : A
+    learnerStreamTail : ∀ {j : Size< i} → LearnerStream j A
+
+open LearnerStream public
+
+mapLearnerStream :
+  {i : Size} {A B : Set} →
+  (A → B) → LearnerStream i A → LearnerStream i B
+learnerStreamHead (mapLearnerStream f input) = f (learnerStreamHead input)
+learnerStreamTail (mapLearnerStream f input) {j} =
+  mapLearnerStream f (learnerStreamTail input {j})
+
+-- The head is the initial state; each smaller observation reveals one
+-- canonical transition. No fairness or reward-optimality claim is implied.
+canonicalLearnerTrace :
+  {i : Size} {A : Set} →
+  FullLearnerKernel A →
+  FullLearnerState A →
+  LearnerStream i (FullLearnerState A)
+learnerStreamHead (canonicalLearnerTrace K initial) = initial
+learnerStreamTail (canonicalLearnerTrace K initial) {j} =
+  canonicalLearnerTrace K (canonicalFullStep K initial)
+
+
 canonicalFullStep-gru : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → gru (canonicalFullStep K s) ＝ canonicalGRUStep K s
 canonicalFullStep-gru K s = refl
 
