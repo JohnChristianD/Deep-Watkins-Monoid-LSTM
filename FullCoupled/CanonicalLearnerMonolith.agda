@@ -341,72 +341,72 @@ trans refl q = q
 
 
 
-record Int8 : Set where
-  constructor int8
-  field code : Int
-open Int8 public
+record IntCode : Set where
+  constructor intCode
+  field intCodeValue : Int
+open IntCode public
 
 int8StateSpace : Set
 int8StateSpace = Int
 
-zero8 : Int8
-zero8 = int8 (pos 0)
+zeroIntCode : IntCode
+zeroIntCode = intCode (pos 0)
 
-one8 : Int8
-one8 = int8 (pos 1)
+oneIntCode : IntCode
+oneIntCode = intCode (pos 1)
 
-int8OfNat : ℕ → Int8
-int8OfNat n = int8 (pos n)
+int8OfNat : ℕ → IntCode
+int8OfNat n = intCode (pos n)
 
-int8Add : Int8 → Int8 → Int8
-int8Add x y = int8 (code x +Int code y)
+int8Add : IntCode → IntCode → IntCode
+int8Add x y = intCode (intCodeValue x +Int intCodeValue y)
 
-int8Mul : Int8 → Int8 → Int8
-int8Mul x y = int8 (code x *Int code y)
+int8Mul : IntCode → IntCode → IntCode
+int8Mul x y = intCode (intCodeValue x *Int intCodeValue y)
 
 intNeg : Int → Int
 intNeg (pos zero) = pos zero
 intNeg (pos (succ n)) = negsucc n
 intNeg (negsucc n) = pos (succ n)
 
-int8Neg : Int8 → Int8
-int8Neg x = int8 (intNeg (code x))
+int8Neg : IntCode → IntCode
+int8Neg x = intCode (intNeg (intCodeValue x))
 
-int8Sub : Int8 → Int8 → Int8
-int8Sub x y = int8 (code x +Int code (int8Neg y))
+int8Sub : IntCode → IntCode → IntCode
+int8Sub x y = intCode (intCodeValue x +Int intCodeValue (int8Neg y))
 
-int8+-assoc : ∀ a b c → int8Add (int8Add a b) c ＝ int8Add a (int8Add b c)
-int8+-assoc a b c = ap int8 (ℤ+-assoc (code a) (code b) (code c))
+intCode+-assoc : ∀ a b c → int8Add (int8Add a b) c ＝ int8Add a (int8Add b c)
+intCode+-assoc a b c = ap intCode (ℤ+-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
 
-int8*-assoc : ∀ a b c → int8Mul (int8Mul a b) c ＝ int8Mul a (int8Mul b c)
-int8*-assoc a b c = ap int8 (ℤ*-assoc (code a) (code b) (code c))
+intCode*-assoc : ∀ a b c → int8Mul (int8Mul a b) c ＝ int8Mul a (int8Mul b c)
+intCode*-assoc a b c = ap intCode (ℤ*-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
 
 sym : ∀ {A : Set} {x y : A} → x ＝ y → y ＝ x
 sym refl = refl
 
-int8*-distribˡ : ∀ a b c → int8Mul a (int8Add b c) ＝ int8Add (int8Mul a b) (int8Mul a c)
-int8*-distribˡ a b c =
-  ap int8 (distributivity-mult-over-ℤ' (code b) (code c) (code a))
+intCode*-distribˡ : ∀ a b c → int8Mul a (int8Add b c) ＝ int8Add (int8Mul a b) (int8Mul a c)
+intCode*-distribˡ a b c =
+  ap intCode (distributivity-mult-over-ℤ' (intCodeValue b) (intCodeValue c) (intCodeValue a))
 
-int8*-idˡ : ∀ a → int8Mul one8 a ＝ a
-int8*-idˡ a = ap int8 (ℤ-mult-left-id (code a))
+intCode*-idˡ : ∀ a → int8Mul oneIntCode a ＝ a
+intCode*-idˡ a = ap intCode (ℤ-mult-left-id (intCodeValue a))
 
-int8*-idʳ : ∀ a → int8Mul a one8 ＝ a
-int8*-idʳ a = ap int8 (ℤ-mult-right-id (code a))
+intCode*-idʳ : ∀ a → int8Mul a oneIntCode ＝ a
+intCode*-idʳ a = ap intCode (ℤ-mult-right-id (intCodeValue a))
 
-int8*-zeroʳ : ∀ a → int8Mul a zero8 ＝ zero8
-int8*-zeroʳ a = ap int8 (ℤ-zero-right-is-zero (code a))
+intCode*-zeroʳ : ∀ a → int8Mul a zeroIntCode ＝ zeroIntCode
+intCode*-zeroʳ a = ap intCode (ℤ-zero-right-is-zero (intCodeValue a))
 
-int8*-zeroˡ : ∀ a → int8Mul zero8 a ＝ zero8
-int8*-zeroˡ a = ap int8 (ℤ-zero-left-base (code a))
+intCode*-zeroˡ : ∀ a → int8Mul zeroIntCode a ＝ zeroIntCode
+intCode*-zeroˡ a = ap intCode (ℤ-zero-left-base (intCodeValue a))
 
-int8+-idˡ : ∀ a → int8Add zero8 a ＝ a
-int8+-idˡ a = ap int8 (ℤ-zero-left-neutral (code a))
+intCode+-idˡ : ∀ a → int8Add zeroIntCode a ＝ a
+intCode+-idˡ a = ap intCode (ℤ-zero-left-neutral (intCodeValue a))
 
-int8+-idʳ : ∀ a → int8Add a zero8 ＝ a
-int8+-idʳ a = ap int8 (ℤ-zero-right-neutral (code a))
+intCode+-idʳ : ∀ a → int8Add a zeroIntCode ＝ a
+intCode+-idʳ a = ap intCode (ℤ-zero-right-neutral (intCodeValue a))
 
-int8Roundtrip : ∀ n → code (int8OfNat n) ＝ pos n
+int8Roundtrip : ∀ n → intCodeValue (int8OfNat n) ＝ pos n
 int8Roundtrip n = refl
 
 
@@ -448,10 +448,10 @@ data Signed : Set where
   signedZer : Signed
   signedPos : ℕ → Signed
 
-signedCode : Int8 → Signed
-signedCode (int8 (pos 0)) = signedZer
-signedCode (int8 (pos (succ n))) = signedPos (succ n)
-signedCode (int8 (negsucc n)) = signedNeg (succ n)
+signedCode : IntCode → Signed
+signedCode (intCode (pos 0)) = signedZer
+signedCode (intCode (pos (succ n))) = signedPos (succ n)
+signedCode (intCode (negsucc n)) = signedNeg (succ n)
 
 data BoolLike : Set where
   enabled disabled : BoolLike
@@ -464,13 +464,13 @@ record ActionSpace (A : Set) : Set where
 open ActionSpace public
 
 QFunction : ∀ {A : Set} → Set
-QFunction {A} = ℕ → Int8
+QFunction {A} = ℕ → IntCode
 
 CountFunction : ∀ {A : Set} → Set
 CountFunction {A} = ℕ → ℕ
 
 zeroQ : ∀ {A : Set} → QFunction {A}
-zeroQ _ = zero8
+zeroQ _ = zeroIntCode
 
 zeroCounts : ∀ {A : Set} → CountFunction {A}
 zeroCounts _ = zero
@@ -497,7 +497,7 @@ maxNat zero n = n
 maxNat (succ m) zero = succ m
 maxNat (succ m) (succ n) = succ (maxNat m n)
 
-updateAt : ∀ {A : Set} → QFunction {A} → ℕ → Int8 → QFunction {A}
+updateAt : ∀ {A : Set} → QFunction {A} → ℕ → IntCode → QFunction {A}
 updateAt q a r i with natEq i a
 ... | enabled = int8Add (q i) r
 ... | disabled = q i
@@ -515,15 +515,15 @@ open CriticState public
 record WatkinsKernel (A : Set) : Set₁ where
   constructor mkWatkinsKernel
   field
-    updateCritic : CriticState A → Int8 → CriticState A
-    greedy : CriticState A → Int8 → BoolLike
+    updateCritic : CriticState A → IntCode → CriticState A
+    greedy : CriticState A → IntCode → BoolLike
     traceUpdate : BoolLike → BoolLike → BoolLike
 open WatkinsKernel public
 
 record WatkinsState (A : Set) : Set where
   constructor watkinsState
   field critic : CriticState A
-        signal : Int8
+        signal : IntCode
         trace : BoolLike
 open WatkinsState public
 
@@ -541,10 +541,10 @@ open LCBCountState public
 
 record LCBCountKernel : Set₁ where
   constructor lcbCountKernel
-  field bonus : ℕ → Int8
+  field bonus : ℕ → IntCode
 open LCBCountKernel public
 
-finiteLCBBonus8 : ℕ → Int8
+finiteLCBBonus8 : ℕ → IntCode
 finiteLCBBonus8 zero = int8OfNat 127
 finiteLCBBonus8 (succ zero) = int8OfNat 63
 finiteLCBBonus8 (succ (succ zero)) = int8OfNat 31
@@ -552,12 +552,12 @@ finiteLCBBonus8 (succ (succ (succ zero))) = int8OfNat 15
 finiteLCBBonus8 (succ (succ (succ (succ zero)))) = int8OfNat 7
 finiteLCBBonus8 (succ (succ (succ (succ (succ zero))))) = int8OfNat 3
 finiteLCBBonus8 (succ (succ (succ (succ (succ (succ zero)))))) = int8OfNat 1
-finiteLCBBonus8 _ = zero8
+finiteLCBBonus8 _ = zeroIntCode
 
-lcbNegate : Int8 → Int8
+lcbNegate : IntCode → IntCode
 lcbNegate x = int8Neg x
 
-scoreA : ∀ {A : Set} → QFunction {A} → CountFunction {A} → ℕ → Int8
+scoreA : ∀ {A : Set} → QFunction {A} → CountFunction {A} → ℕ → IntCode
 scoreA q c a = int8Add (q a) (lcbNegate (finiteLCBBonus8 (c a)))
 
 lcbScore : ∀ {A : Set} → LCBCountKernel → LCBCountState A → CriticState A → QFunction {A}
@@ -567,10 +567,10 @@ sparsemaxTemperature : ℕ
 sparsemaxTemperature = 16
 
 ScoreEntry : Set
-ScoreEntry = Int8 × ℕ
+ScoreEntry = IntCode × ℕ
 
-int8-code-injective : ∀ {x y : Int8} → code x ＝ code y → x ＝ y
-int8-code-injective refl = refl
+intCode-intCodeValue-injective : ∀ {x y : IntCode} → intCodeValue x ＝ intCodeValue y → x ＝ y
+intCode-intCodeValue-injective refl = refl
 
 scoreList : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → List ScoreEntry
 scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (candidates K)
@@ -578,8 +578,8 @@ scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (candidates K)
 data ComparisonResult : Set where
   less equal greater : ComparisonResult
 
-compareInt8 : Int8 → Int8 → ComparisonResult
-compareInt8 x y with ℤ-trichotomous (code x) (code y)
+compareInt8 : IntCode → IntCode → ComparisonResult
+compareInt8 x y with ℤ-trichotomous (intCodeValue x) (intCodeValue y)
 ... | inl _ = less
 ... | inr (inl _) = equal
 ... | inr (inr _) = greater
@@ -621,28 +621,28 @@ sumList (x ∷ xs) = x + sumList xs
 ------------------------------------------------------------------------
 -- Integer LayerNorm kernel.
 --
--- Int8 is an exact Int wrapper.  The normalization arithmetic therefore
+-- IntCode wraps an unbounded mathematical integer; it is not a machine byte.  The normalization arithmetic therefore
 -- remains integral and the normalized output is represented as an exact
 -- integer ratio.  A certificate supplies the non-zero square root of
 -- the integer radicand; no floating-point approximation enters the
 -- proof surface.
 ------------------------------------------------------------------------
 
-integerCodeSum : List Int8 → Int
+integerCodeSum : List IntCode → Int
 integerCodeSum [] = pos 0
-integerCodeSum (x ∷ xs) = code x +Int integerCodeSum xs
+integerCodeSum (x ∷ xs) = intCodeValue x +Int integerCodeSum xs
 
 integerCodeSumList : List Int → Int
 integerCodeSumList [] = pos 0
 integerCodeSumList (x ∷ xs) = x +Int integerCodeSumList xs
 
 integerLayerNormCenteredNumerator :
-  List Int8 → Int8 → Int
+  List IntCode → IntCode → Int
 integerLayerNormCenteredNumerator xs x =
-  (pos (length xs)) *Int code x +Int intNeg (integerCodeSum xs)
+  (pos (length xs)) *Int intCodeValue x +Int intNeg (integerCodeSum xs)
 
 integerLayerNormCenteredNumerators :
-  List Int8 → List Int
+  List IntCode → List Int
 integerLayerNormCenteredNumerators xs =
   map
     (λ x → integerLayerNormCenteredNumerator xs x)
@@ -652,7 +652,7 @@ integerLayerNormSquare : Int → Int
 integerLayerNormSquare z = z *Int z
 
 integerLayerNormVarianceNumerator :
-  List Int8 → Int
+  List IntCode → Int
 integerLayerNormVarianceNumerator xs =
   integerCodeSumList
     (map
@@ -660,15 +660,15 @@ integerLayerNormVarianceNumerator xs =
       (integerLayerNormCenteredNumerators xs))
 
 integerLayerNormEpsilonContribution :
-  List Int8 → ℕ → Int
+  List IntCode → ℕ → Int
 integerLayerNormEpsilonContribution xs epsilon =
-  code
+  intCodeValue
     (int8Mul
       (int8OfNat epsilon)
       (int8Mul (int8OfNat (length xs)) (int8OfNat (length xs))))
 
 integerLayerNormRadicand :
-  List Int8 → ℕ → Int
+  List IntCode → ℕ → Int
 integerLayerNormRadicand xs epsilon =
   integerLayerNormVarianceNumerator xs
   +Int
@@ -676,17 +676,17 @@ integerLayerNormRadicand xs epsilon =
 
 record IntegerLayerNormConfig : Set where
   constructor integerLayerNormConfig
-  field fixedScale gamma beta : Int8
+  field fixedScale gamma beta : IntCode
 open IntegerLayerNormConfig public
 
 record IntegerLayerNormCertificate
-  (xs : List Int8) : Set where
+  (xs : List IntCode) : Set where
   constructor integerLayerNormCertificate
   field
     epsilon : ℕ
     root : ℕ
     rootSquared :
-      code
+      intCodeValue
         (int8Mul (int8OfNat root) (int8OfNat root)) ＝
       integerLayerNormRadicand xs epsilon
     rootNonZero : root ≠ zero
@@ -701,25 +701,25 @@ record IntegerLayerNormValue : Set where
 open IntegerLayerNormValue public
 
 integerLayerNormValue :
-  ∀ {xs : List Int8} →
+  ∀ {xs : List IntCode} →
   IntegerLayerNormConfig →
   IntegerLayerNormCertificate xs →
-  Int8 →
+  IntCode →
   IntegerLayerNormValue
 integerLayerNormValue {xs} config certificate x =
   mkIntegerLayerNormValue
-    (code (gamma config) *Int
-      (code (fixedScale config) *Int
+    (intCodeValue (gamma config) *Int
+      (intCodeValue (fixedScale config) *Int
         integerLayerNormCenteredNumerator xs x)
      +Int
-     (code (beta config) *Int (pos (root certificate))))
+     (intCodeValue (beta config) *Int (pos (root certificate))))
     (root certificate)
     (rootNonZero certificate)
 
 
-int8Magnitude : Int8 → ℕ
-int8Magnitude (int8 (pos n)) = n
-int8Magnitude (int8 (negsucc n)) = succ n
+int8Magnitude : IntCode → ℕ
+int8Magnitude (intCode (pos n)) = n
+int8Magnitude (intCode (negsucc n)) = succ n
 
 infixl 6 _∸_
 _∸_ : ℕ → ℕ → ℕ
@@ -818,7 +818,7 @@ dyadicDivide : ℕ → Dyadic → ℕ
 dyadicDivide n ((z , d) , _) =
   pr₁ (division n d)
 
-qLog8 : Int8 → Dyadic
+qLog8 : IntCode → Dyadic
 qLog8 x with int8Magnitude x
 ... | zero = fromNatDyadic 1 zero
 ... | succ n = fromNatDyadic (128 ∸ succ n) (succ n)
@@ -826,66 +826,66 @@ qLog8 x with int8Magnitude x
 munchausenScale8 : ℕ
 munchausenScale8 = 16
 
-signedDyadicBias8 : Dyadic → Int8
+signedDyadicBias8 : Dyadic → IntCode
 signedDyadicBias8 q with dyadicNumerator q
-... | zero = zero8
+... | zero = zeroIntCode
 ... | succ n = int8Neg
   (int8OfNat
     (dyadicDivide
       (munchausenScale8 *ℕ succ n)
       q))
 
-qLog2Bias8 : Int8 → Int8
+qLog2Bias8 : IntCode → IntCode
 qLog2Bias8 x =
   signedDyadicBias8 (qLog8 x)
 
-negativeAlpha8 : Int8
+negativeAlpha8 : IntCode
 negativeAlpha8 = int8OfNat 255
 
 record SignedQLogControl : Set where
   constructor signedQLogControl
-  field mode coefficient : Int8
+  field mode coefficient : IntCode
 open SignedQLogControl public
 
 canonicalQLogControl : SignedQLogControl
 canonicalQLogControl =
   signedQLogControl negativeAlpha8 negativeAlpha8
 
-qLogSignal : SignedQLogControl → Int8 → Int8
+qLogSignal : SignedQLogControl → IntCode → IntCode
 qLogSignal c x = int8Add x (coefficient c)
 
 data HardSign : Set where
   negativeSign zeroSign positiveSign : HardSign
 
-hardSignNonnegative : Int8 → HardSign
-hardSignNonnegative (int8 (pos 0)) = zeroSign
-hardSignNonnegative (int8 (pos (succ n))) = positiveSign
-hardSignNonnegative (int8 (negsucc n)) = negativeSign
+hardSignNonnegative : IntCode → HardSign
+hardSignNonnegative (intCode (pos 0)) = zeroSign
+hardSignNonnegative (intCode (pos (succ n))) = positiveSign
+hardSignNonnegative (intCode (negsucc n)) = negativeSign
 
-hardSign : Int8 → HardSign
-hardSign (int8 (pos 0)) = zeroSign
-hardSign (int8 (pos (succ n))) = positiveSign
-hardSign (int8 (negsucc n)) = negativeSign
+hardSign : IntCode → HardSign
+hardSign (intCode (pos 0)) = zeroSign
+hardSign (intCode (pos (succ n))) = positiveSign
+hardSign (intCode (negsucc n)) = negativeSign
 
-hardSignGate : Int8 → Int8
+hardSignGate : IntCode → IntCode
 hardSignGate x with hardSign x
 ... | negativeSign = int8OfNat 255
-... | zeroSign = zero8
-... | positive = one8
+... | zeroSign = zeroIntCode
+... | positive = oneIntCode
 
-two8 : Int8
-two8 = int8Add one8 one8
+two8 : IntCode
+two8 = int8Add oneIntCode oneIntCode
 
-relu8 : Int8 → Int8
+relu8 : IntCode → IntCode
 relu8 x with hardSign x
-... | negativeSign = zero8
-... | zeroSign = zero8
+... | negativeSign = zeroIntCode
+... | zeroSign = zeroIntCode
 ... | positive = x
 
-leaky2 : Int8 → Int8
+leaky2 : IntCode → IntCode
 leaky2 x with hardSign x
 ... | negativeSign = int8Mul two8 x
-... | zeroSign = zero8
+... | zeroSign = zeroIntCode
 ... | positive = x
 
 ------------------------------------------------------------------------
@@ -901,22 +901,22 @@ leaky2 x with hardSign x
 
 record MonoidLSTMMatrices : Set where
   constructor monoidLSTMMatrices
-  field matrixZ matrixR matrixH : Int8
+  field matrixZ matrixR matrixH : IntCode
 open MonoidLSTMMatrices public
 
 record MonoidLSTMNoise : Set where
   constructor monoidLSTMNoise
-  field noiseZ noiseR noiseH : Int8
+  field noiseZ noiseR noiseH : IntCode
 open MonoidLSTMNoise public
 
 record MonoidLSTMControl : Set where
   constructor monoidLSTMControl
-  field optimizerToken l2Token : Int8
+  field optimizerToken l2Token : IntCode
 open MonoidLSTMControl public
 
 record MonoidAffine : Set where
   constructor monoidAffine
-  field slope offset : Int8
+  field slope offset : IntCode
 open MonoidAffine public
 
 _∘ₘ_ : MonoidAffine → MonoidAffine → MonoidAffine
@@ -926,24 +926,24 @@ _∘ₘ_ : MonoidAffine → MonoidAffine → MonoidAffine
     (int8Add (int8Mul a₁ b₂) b₁)
 
 monoidAffine-id : MonoidAffine
-monoidAffine-id = monoidAffine one8 zero8
+monoidAffine-id = monoidAffine oneIntCode zeroIntCode
 
 monoidAffine-assoc : ∀ a b c → (a ∘ₘ b) ∘ₘ c ＝ a ∘ₘ (b ∘ₘ c)
 monoidAffine-assoc (monoidAffine a₁ b₁) (monoidAffine a₂ b₂) (monoidAffine a₃ b₃) =
   cong₂ monoidAffine
-    (int8*-assoc a₁ a₂ a₃)
+    (intCode*-assoc a₁ a₂ a₃)
     (trans
       (cong₂ int8Add
-        (int8*-assoc a₁ a₂ b₃)
+        (intCode*-assoc a₁ a₂ b₃)
         refl)
       (trans
-        (sym (int8+-assoc
+        (sym (intCode+-assoc
           (int8Mul a₁ (int8Mul a₂ b₃))
           (int8Mul a₁ b₂)
           b₁))
         (ap
           (λ z → int8Add z b₁)
-          (sym (int8*-distribˡ
+          (sym (intCode*-distribˡ
             a₁
             (int8Mul a₂ b₃)
             b₂)))))
@@ -951,42 +951,42 @@ monoidAffine-assoc (monoidAffine a₁ b₁) (monoidAffine a₂ b₂) (monoidAffi
 monoidAffine-idˡ : ∀ a → monoidAffine-id ∘ₘ a ＝ a
 monoidAffine-idˡ (monoidAffine a b) =
   cong₂ monoidAffine
-    (int8*-idˡ a)
+    (intCode*-idˡ a)
     (trans
-      (ap (λ z → int8Add z zero8) (int8*-idˡ b))
-      (int8+-idʳ b))
+      (ap (λ z → int8Add z zeroIntCode) (intCode*-idˡ b))
+      (intCode+-idʳ b))
 
 monoidAffine-idʳ : ∀ a → a ∘ₘ monoidAffine-id ＝ a
 monoidAffine-idʳ (monoidAffine a b) =
   cong₂ monoidAffine
-    (int8*-idʳ a)
+    (intCode*-idʳ a)
     (trans
-      (ap (λ z → int8Add z b) (int8*-zeroʳ a))
-      (int8+-idˡ b))
+      (ap (λ z → int8Add z b) (intCode*-zeroʳ a))
+      (intCode+-idˡ b))
 
-applyMonoidAffine : MonoidAffine → Int8 → Int8
+applyMonoidAffine : MonoidAffine → IntCode → IntCode
 applyMonoidAffine (monoidAffine a b) c =
   int8Add (int8Mul a c) b
 
 data MonoidLSTMGate : Set where
   monoidHold monoidWrite monoidReset monoidAccum : MonoidLSTMGate
 
-monoidLSTMGateOf : Int8 → MonoidLSTMGate
-monoidLSTMGateOf (int8 (pos 0)) = monoidHold
-monoidLSTMGateOf (int8 (pos (succ n))) = monoidAccum
-monoidLSTMGateOf (int8 (negsucc n)) = monoidReset
+monoidLSTMGateOf : IntCode → MonoidLSTMGate
+monoidLSTMGateOf (intCode (pos 0)) = monoidHold
+monoidLSTMGateOf (intCode (pos (succ n))) = monoidAccum
+monoidLSTMGateOf (intCode (negsucc n)) = monoidReset
 
-monoidLSTMCellStep : MonoidLSTMGate → Int8 → Int8 → Int8
+monoidLSTMCellStep : MonoidLSTMGate → IntCode → IntCode → IntCode
 monoidLSTMCellStep monoidHold c x = c
 monoidLSTMCellStep monoidWrite c x = leaky2 x
-monoidLSTMCellStep monoidReset c x = zero8
+monoidLSTMCellStep monoidReset c x = zeroIntCode
 monoidLSTMCellStep monoidAccum c x = int8Add c (leaky2 x)
 
-monoidLSTMAffineOf : MonoidLSTMGate → Int8 → MonoidAffine
-monoidLSTMAffineOf monoidHold x = monoidAffine one8 zero8
-monoidLSTMAffineOf monoidWrite x = monoidAffine zero8 (leaky2 x)
-monoidLSTMAffineOf monoidReset x = monoidAffine zero8 zero8
-monoidLSTMAffineOf monoidAccum x = monoidAffine one8 (leaky2 x)
+monoidLSTMAffineOf : MonoidLSTMGate → IntCode → MonoidAffine
+monoidLSTMAffineOf monoidHold x = monoidAffine oneIntCode zeroIntCode
+monoidLSTMAffineOf monoidWrite x = monoidAffine zeroIntCode (leaky2 x)
+monoidLSTMAffineOf monoidReset x = monoidAffine zeroIntCode zeroIntCode
+monoidLSTMAffineOf monoidAccum x = monoidAffine oneIntCode (leaky2 x)
 
 monoidLSTMCellStep-is-affine :
   ∀ g c x →
@@ -994,24 +994,24 @@ monoidLSTMCellStep-is-affine :
   applyMonoidAffine (monoidLSTMAffineOf g x) c
 monoidLSTMCellStep-is-affine monoidHold c x =
   trans
-    (sym (int8*-idˡ c))
-    (sym (int8+-idʳ (int8Mul one8 c)))
+    (sym (intCode*-idˡ c))
+    (sym (intCode+-idʳ (int8Mul oneIntCode c)))
 monoidLSTMCellStep-is-affine monoidWrite c x =
   trans
-    (sym (int8+-idˡ (leaky2 x)))
+    (sym (intCode+-idˡ (leaky2 x)))
     (ap
       (λ z → int8Add z (leaky2 x))
-      (sym (int8*-zeroˡ c)))
+      (sym (intCode*-zeroˡ c)))
 monoidLSTMCellStep-is-affine monoidReset c x =
   trans
-    (sym (int8+-idˡ zero8))
+    (sym (intCode+-idˡ zeroIntCode))
     (ap
-      (λ z → int8Add z zero8)
-      (sym (int8*-zeroˡ c)))
+      (λ z → int8Add z zeroIntCode)
+      (sym (intCode*-zeroˡ c)))
 monoidLSTMCellStep-is-affine monoidAccum c x =
-  ap (λ z → int8Add z (leaky2 x)) (sym (int8*-idˡ c))
+  ap (λ z → int8Add z (leaky2 x)) (sym (intCode*-idˡ c))
 
-scanMonoidAffine : List Int8 → MonoidAffine
+scanMonoidAffine : List IntCode → MonoidAffine
 scanMonoidAffine [] = monoidAffine-id
 scanMonoidAffine (x ∷ xs) =
   scanMonoidAffine xs ∘ₘ monoidLSTMAffineOf (monoidLSTMGateOf x) x
@@ -1022,34 +1022,34 @@ scanMonoidAffine-cons :
   scanMonoidAffine xs ∘ₘ monoidLSTMAffineOf (monoidLSTMGateOf x) x
 scanMonoidAffine-cons x xs = refl
 
-runMonoidLSTMCell : List Int8 → Int8 → Int8
+runMonoidLSTMCell : List IntCode → IntCode → IntCode
 runMonoidLSTMCell xs c₀ =
   applyMonoidAffine (scanMonoidAffine xs) c₀
 
 record MonoidLSTMState : Set where
   constructor monoidLSTMState
   field
-    hiddenState : Int8
-    cellState : Int8
+    hiddenState : IntCode
+    cellState : IntCode
     matrixState : MonoidLSTMMatrices
     noiseState : MonoidLSTMNoise
     controlState : MonoidLSTMControl
 open MonoidLSTMState public
 
 identityMonoidLSTMMatrices : MonoidLSTMMatrices
-identityMonoidLSTMMatrices = monoidLSTMMatrices one8 one8 one8
+identityMonoidLSTMMatrices = monoidLSTMMatrices oneIntCode oneIntCode oneIntCode
 
 zeroMonoidLSTMNoise : MonoidLSTMNoise
-zeroMonoidLSTMNoise = monoidLSTMNoise zero8 zero8 zero8
+zeroMonoidLSTMNoise = monoidLSTMNoise zeroIntCode zeroIntCode zeroIntCode
 
 zeroMonoidLSTMControl : MonoidLSTMControl
-zeroMonoidLSTMControl = monoidLSTMControl zero8 zero8
+zeroMonoidLSTMControl = monoidLSTMControl zeroIntCode zeroIntCode
 
-monoidLSTMHiddenStep : Int8 → Int8 → Int8 → Int8
+monoidLSTMHiddenStep : IntCode → IntCode → IntCode → IntCode
 monoidLSTMHiddenStep h c x =
   int8Add c (leaky2 (int8Add h x))
 
-monoidLSTMStep : MonoidLSTMState → Int8 → MonoidLSTMState
+monoidLSTMStep : MonoidLSTMState → IntCode → MonoidLSTMState
 monoidLSTMStep
   (monoidLSTMState h c m n g)
   x =
@@ -1063,14 +1063,14 @@ persistentMonoidLSTM :
 persistentMonoidLSTM (monoidLSTMState h c m n g) = m , (n , g)
 
 persistentMonoidLSTM-preservation :
-  ∀ (s : MonoidLSTMState) (x : Int8) →
+  ∀ (s : MonoidLSTMState) (x : IntCode) →
   persistentMonoidLSTM (monoidLSTMStep s x) ＝
   persistentMonoidLSTM s
 persistentMonoidLSTM-preservation
   (monoidLSTMState h c m n g) x = refl
 
 monoidLSTMParameterPersistence :
-  ∀ (s : MonoidLSTMState) (x : Int8) →
+  ∀ (s : MonoidLSTMState) (x : IntCode) →
   (matrixState (monoidLSTMStep s x) ＝ matrixState s) ×
   ((noiseState (monoidLSTMStep s x) ＝ noiseState s) ×
    (controlState (monoidLSTMStep s x) ＝ controlState s))
@@ -1083,7 +1083,7 @@ MonoidLSTMEquivalent s t =
   persistentMonoidLSTM s ＝ persistentMonoidLSTM t
 
 monoidLSTMStep-respects-equivalence :
-  ∀ (s t : MonoidLSTMState) (x : Int8) →
+  ∀ (s t : MonoidLSTMState) (x : IntCode) →
   MonoidLSTMEquivalent s t →
   MonoidLSTMEquivalent (monoidLSTMStep s x) (monoidLSTMStep t x)
 monoidLSTMStep-respects-equivalence s t x eq =
@@ -1108,18 +1108,18 @@ GlobalControl = MonoidLSTMControl
 GRUState : Set
 GRUState = MonoidLSTMState
 
-gruMatrices : Int8 → Int8 → Int8 → GRUMatrices
+gruMatrices : IntCode → IntCode → IntCode → GRUMatrices
 gruMatrices a b c = monoidLSTMMatrices a b c
 
-gruNoise : Int8 → Int8 → Int8 → GRUNoise
+gruNoise : IntCode → IntCode → IntCode → GRUNoise
 gruNoise a b c = monoidLSTMNoise a b c
 
-mkGlobalControl : Int8 → Int8 → GlobalControl
+mkGlobalControl : IntCode → IntCode → GlobalControl
 mkGlobalControl a b = monoidLSTMControl a b
 
 gruState :
-  Int8 →
-  Int8 →
+  IntCode →
+  IntCode →
   MonoidLSTMMatrices →
   MonoidLSTMNoise →
   MonoidLSTMControl →
@@ -1135,42 +1135,42 @@ zeroGRUNoise = zeroMonoidLSTMNoise
 zeroGlobalControl : GlobalControl
 zeroGlobalControl = zeroMonoidLSTMControl
 
-dyadicCode : Dyadic → Int8
+dyadicCode : Dyadic → IntCode
 dyadicCode q = int8OfNat (dyadicNumerator q)
 
-identityActivation8 : Int8 → Int8
+identityActivation8 : IntCode → IntCode
 identityActivation8 x = x
 
 identityActivation8-law : ∀ x → identityActivation8 x ＝ x
 identityActivation8-law x = refl
 
-identityActivation8-zero : identityActivation8 zero8 ＝ zero8
+identityActivation8-zero : identityActivation8 zeroIntCode ＝ zeroIntCode
 identityActivation8-zero = refl
 
-gruCandidate8 : Int8 → Int8 → Int8
+gruCandidate8 : IntCode → IntCode → IntCode
 gruCandidate8 h x = int8Add h x
 
-complement128 : Int8 → Int8
-complement128 g = int8Sub one8 g
+complement128 : IntCode → IntCode
+complement128 g = int8Sub oneIntCode g
 
-mix8 : Int8 → Int8 → Int8 → Int8
+mix8 : IntCode → IntCode → IntCode → IntCode
 mix8 g old new =
   int8Add
     (int8Mul (complement128 g) old)
     (int8Mul g new)
 
-gateCode : Signed → Int8
-gateCode (signedNeg n) = zero8
-gateCode signedZer = zero8
-gateCode (signedPos n) = one8
+gateCode : Signed → IntCode
+gateCode (signedNeg n) = zeroIntCode
+gateCode signedZer = zeroIntCode
+gateCode (signedPos n) = oneIntCode
 
-gateFromInput : Int8 → Int8
+gateFromInput : IntCode → IntCode
 gateFromInput x = gateCode (signedCode x)
 
-monoidLSTMRecurrentStep : MonoidLSTMState → Int8 → MonoidLSTMState
+monoidLSTMRecurrentStep : MonoidLSTMState → IntCode → MonoidLSTMState
 monoidLSTMRecurrentStep = monoidLSTMStep
 
-gruStep : GRUState → Int8 → GRUState
+gruStep : GRUState → IntCode → GRUState
 gruStep = monoidLSTMStep
 
 persistentGRU :
@@ -1179,13 +1179,13 @@ persistentGRU :
 persistentGRU = persistentMonoidLSTM
 
 persistent-preservation :
-  ∀ (s : GRUState) (x : Int8) →
+  ∀ (s : GRUState) (x : IntCode) →
   persistentGRU (gruStep s x) ＝ persistentGRU s
 persistent-preservation s x =
   persistentMonoidLSTM-preservation s x
 
 gruParameterPersistence :
-  ∀ (s : GRUState) (x : Int8) →
+  ∀ (s : GRUState) (x : IntCode) →
   (matrixState (gruStep s x) ＝ matrixState s) ×
   ((noiseState (gruStep s x) ＝ noiseState s) ×
    (controlState (gruStep s x) ＝ controlState s))
@@ -1202,7 +1202,7 @@ gruEquivalent-refl = monoidLSTMEquivalent-refl
     monoidLSTMEquivalent-refl s = refl
 
 gruStep-respects-equivalence :
-  ∀ (s t : GRUState) (x : Int8) →
+  ∀ (s t : GRUState) (x : IntCode) →
   GRUEquivalent s t →
   GRUEquivalent (gruStep s x) (gruStep t x)
 gruStep-respects-equivalence =
@@ -1227,7 +1227,7 @@ gruActionAssociativity : ∀ f g h s →
     (composeGRUAction f (composeGRUAction g h)) s
 gruActionAssociativity f g h s = refl
 
-inputGRUAction : Int8 → GRUAction
+inputGRUAction : IntCode → GRUAction
 inputGRUAction x = gruAction (λ s → monoidLSTMStep s x)
 
 record RecurrentNetwork (State Input : Set) : Set₁ where
@@ -1237,22 +1237,22 @@ record RecurrentNetwork (State Input : Set) : Set₁ where
 open RecurrentNetwork public
 
 canonicalMonoidLSTMRecurrentNetwork :
-  RecurrentNetwork MonoidLSTMState Int8
+  RecurrentNetwork MonoidLSTMState IntCode
 canonicalMonoidLSTMRecurrentNetwork =
   recurrentNetwork monoidLSTMStep
 
 canonicalMonoidLSTMNetwork-law :
-  ∀ (s : MonoidLSTMState) (x : Int8) →
+  ∀ (s : MonoidLSTMState) (x : IntCode) →
   runNetwork canonicalMonoidLSTMRecurrentNetwork s x ＝
   monoidLSTMStep s x
 canonicalMonoidLSTMNetwork-law s x = refl
 
-canonicalGRURecurrentNetwork : RecurrentNetwork GRUState Int8
+canonicalGRURecurrentNetwork : RecurrentNetwork GRUState IntCode
 canonicalGRURecurrentNetwork =
   recurrentNetwork gruStep
 
 canonicalGRUNetwork-law :
-  ∀ (s : GRUState) (x : Int8) →
+  ∀ (s : GRUState) (x : IntCode) →
   runNetwork canonicalGRURecurrentNetwork s x ＝
   monoidLSTMStep s x
 canonicalGRUNetwork-law s x = refl
@@ -1378,7 +1378,7 @@ recurrentPrefix-split R xs m (succ n) s =
       (recurrentPrefix-split R xs m n s))
 
 canonicalMonoidLSTM-recurrent-prefix-correct :
-  ∀ (xs : ℕ → Int8) (n : ℕ) (s : MonoidLSTMState) →
+  ∀ (xs : ℕ → IntCode) (n : ℕ) (s : MonoidLSTMState) →
   applyEndomorphism
     (recurrentPrefixEndomorphism
       canonicalMonoidLSTMRecurrentNetwork
@@ -1395,7 +1395,7 @@ canonicalMonoidLSTM-recurrent-prefix-correct =
   recurrentPrefix-correct canonicalMonoidLSTMRecurrentNetwork
 
 canonicalMonoidLSTM-recurrent-prefix-split :
-  ∀ (xs : ℕ → Int8) (m n : ℕ) (s : MonoidLSTMState) →
+  ∀ (xs : ℕ → IntCode) (m n : ℕ) (s : MonoidLSTMState) →
   recurrentPrefixState
     canonicalMonoidLSTMRecurrentNetwork
     xs
@@ -1415,7 +1415,7 @@ canonicalMonoidLSTM-recurrent-prefix-split =
   recurrentPrefix-split canonicalMonoidLSTMRecurrentNetwork
 
 canonicalGRU-recurrent-prefix-correct :
-  ∀ (xs : ℕ → Int8) (n : ℕ) (s : GRUState) →
+  ∀ (xs : ℕ → IntCode) (n : ℕ) (s : GRUState) →
   applyEndomorphism
     (recurrentPrefixEndomorphism
       canonicalGRURecurrentNetwork
@@ -1432,7 +1432,7 @@ canonicalGRU-recurrent-prefix-correct =
   recurrentPrefix-correct canonicalGRURecurrentNetwork
 
 canonicalGRU-recurrent-prefix-split :
-  ∀ (xs : ℕ → Int8) (m n : ℕ) (s : GRUState) →
+  ∀ (xs : ℕ → IntCode) (m n : ℕ) (s : GRUState) →
   recurrentPrefixState
     canonicalGRURecurrentNetwork
     xs
@@ -1488,36 +1488,36 @@ fullLearnerInt8CoordinateCount-law = refl
 
 record F4IntUState : Set where
   constructor f4IntUState
-  field thetaQ rTheta eQ rE rL : Int8
+  field thetaQ rTheta eQ rE rL : IntCode
 open F4IntUState public
 
 record F4IntUKernel : Set₁ where
   constructor f4IntUKernel
-  field globalL2 : Int8
+  field globalL2 : IntCode
 open F4IntUKernel public
 
-f4ThetaFull : F4IntUState → Int8
+f4ThetaFull : F4IntUState → IntCode
 f4ThetaFull s = thetaQ s
 
 f4ThetaFull-law : ∀ s → f4ThetaFull s ＝ thetaQ s
 f4ThetaFull-law s = refl
 
-l2Correction : Int8 → Int8
+l2Correction : IntCode → IntCode
 l2Correction x = lcbNegate x
 
-f4ThetaStep : F4IntUKernel → F4IntUState → Int8 → F4IntUState
+f4ThetaStep : F4IntUKernel → F4IntUState → IntCode → F4IntUState
 f4ThetaStep K s g =
   f4IntUState
     (int8Add (int8Add (thetaQ s) g) (l2Correction (globalL2 K)))
-    zero8 (eQ s) (rE s) (rL s)
+    zeroIntCode (eQ s) (rE s) (rL s)
 
-f4ParameterInvariant : ∀ (K : F4IntUKernel) (s : F4IntUState) (g : Int8) →
+f4ParameterInvariant : ∀ (K : F4IntUKernel) (s : F4IntUState) (g : IntCode) →
   thetaQ (f4ThetaStep K s g) ＝
   int8Add (int8Add (thetaQ s) g) (l2Correction (globalL2 K))
 f4ParameterInvariant K s g = refl
 
 HaarAccumulator : Set
-HaarAccumulator = Int8 × Int8
+HaarAccumulator = IntCode × IntCode
 
 
 ------------------------------------------------------------------------
@@ -1530,9 +1530,9 @@ HaarAccumulator = Int8 × Int8
 ------------------------------------------------------------------------
 
 CanonicalHaarPair : Set
-CanonicalHaarPair = Int8 × Int8
+CanonicalHaarPair = IntCode × IntCode
 
-canonicalHaarMix : Int8 → Int8 → CanonicalHaarPair
+canonicalHaarMix : IntCode → IntCode → CanonicalHaarPair
 canonicalHaarMix x y =
   int8Add x y , int8Sub x y
 
@@ -1550,13 +1550,13 @@ canonicalHaarMix-linear-form :
   (int8Add x y , int8Sub x y)
 canonicalHaarMix-linear-form x y = refl
 
-canonicalReLU8 : Int8 → Int8
+canonicalReLU8 : IntCode → IntCode
 canonicalReLU8 x with hardSign x
-... | negativeSign = zero8
-... | zeroSign = zero8
+... | negativeSign = zeroIntCode
+... | zeroSign = zeroIntCode
 ... | positiveSign = x
 
-canonicalCReLU8 : Int8 → CanonicalHaarPair
+canonicalCReLU8 : IntCode → CanonicalHaarPair
 canonicalCReLU8 x =
   canonicalReLU8 x , canonicalReLU8 (int8Neg x)
 
@@ -1578,7 +1578,7 @@ canonicalCReLU' : ℚ → CanonicalCReLUPrimePair
 canonicalCReLU' x =
   canonicalSignReLU' x , canonicalSignReLU' (- x)
 
-canonicalHaarFeature : Int8 → CanonicalHaarPair
+canonicalHaarFeature : IntCode → CanonicalHaarPair
 canonicalHaarFeature x =
   canonicalHaarMix
     (pr₁ (canonicalCReLU8 x))
@@ -1600,9 +1600,9 @@ canonicalHaarFeature-right x = refl
 
 canonicalHaarOrthogonalCross :
   int8Add
-    (int8Mul one8 one8)
-    (int8Mul one8 (int8Neg one8))
-  ＝ zero8
+    (int8Mul oneIntCode oneIntCode)
+    (int8Mul oneIntCode (int8Neg oneIntCode))
+  ＝ zeroIntCode
 canonicalHaarOrthogonalCross = refl
 
 canonicalHaarFeatureReconstruct :
@@ -1611,11 +1611,11 @@ canonicalHaarFeatureReconstruct :
       n = pr₂ (canonicalCReLU8 x)
   in int8Sub p n ＝ x
 canonicalHaarFeatureReconstruct
-  (int8 (pos 0)) = refl
+  (intCode (pos 0)) = refl
 canonicalHaarFeatureReconstruct
-  (int8 (pos (succ n))) = refl
+  (intCode (pos (succ n))) = refl
 canonicalHaarFeatureReconstruct
-  (int8 (negsucc n)) = int8+-idˡ (int8 (negsucc n))
+  (intCode (negsucc n)) = intCode+-idˡ (intCode (negsucc n))
 
 canonicalHaarFeatureInjective :
   ∀ {x y} →
@@ -1634,11 +1634,11 @@ canonicalHaarFeatureInjective {x} {y} eq =
 record HaarFeaturedLinearTransformer : Set where
   constructor haarFeaturedLinearTransformer
   field
-    qProjection kProjection vProjection : Int8 → Int8
+    qProjection kProjection vProjection : IntCode → IntCode
 open HaarFeaturedLinearTransformer public
 
 haarAccumulator-id : HaarAccumulator
-haarAccumulator-id = zero8 , zero8
+haarAccumulator-id = zeroIntCode , zeroIntCode
 
 haarAccumulator-op :
   HaarAccumulator → HaarAccumulator → HaarAccumulator
@@ -1659,28 +1659,28 @@ haarAccumulator-op-assoc
   (a₂ , b₂)
   (a₃ , b₃) =
   cong₂ _,_
-    (int8+-assoc a₁ a₂ a₃)
-    (int8+-assoc b₁ b₂ b₃)
+    (intCode+-assoc a₁ a₂ a₃)
+    (intCode+-assoc b₁ b₂ b₃)
 
 haarAccumulator-op-idˡ :
   ∀ x →
   haarAccumulator-op haarAccumulator-id x ＝ x
 haarAccumulator-op-idˡ (a , b) =
   cong₂ _,_
-    (int8+-idˡ a)
-    (int8+-idˡ b)
+    (intCode+-idˡ a)
+    (intCode+-idˡ b)
 
 haarAccumulator-op-idʳ :
   ∀ x →
   haarAccumulator-op x haarAccumulator-id ＝ x
 haarAccumulator-op-idʳ (a , b) =
   cong₂ _,_
-    (int8+-idʳ a)
-    (int8+-idʳ b)
+    (intCode+-idʳ a)
+    (intCode+-idʳ b)
 
 haarKeyValueContribution :
   HaarFeaturedLinearTransformer →
-  Int8 →
+  IntCode →
   HaarAccumulator
 haarKeyValueContribution T x =
   let (kp , kn) =
@@ -1692,7 +1692,7 @@ haarKeyValueContribution T x =
 haarAccumulatorStep :
   HaarFeaturedLinearTransformer →
   HaarAccumulator →
-  Int8 →
+  IntCode →
   HaarAccumulator
 haarAccumulatorStep T s x =
   haarAccumulator-op s
@@ -1701,8 +1701,8 @@ haarAccumulatorStep T s x =
 haarQueryRead :
   HaarFeaturedLinearTransformer →
   HaarAccumulator →
-  Int8 →
-  Int8
+  IntCode →
+  IntCode
 haarQueryRead T (sp , sn) x =
   let (qp , qn) =
         canonicalHaarFeature
@@ -1714,8 +1714,8 @@ haarQueryRead T (sp , sn) x =
 haarLinearTransform :
   HaarFeaturedLinearTransformer →
   HaarAccumulator →
-  List Int8 →
-  List Int8
+  List IntCode →
+  List IntCode
 haarLinearTransform T s₀ [] = []
 haarLinearTransform T s₀ (x ∷ xs) =
   let s₁ = haarAccumulatorStep T s₀ x
@@ -1750,8 +1750,8 @@ canonicalHaarFeaturedTransformer =
 
 canonicalHaarFeaturedLinearScan :
   HaarAccumulator →
-  List Int8 →
-  List Int8
+  List IntCode →
+  List IntCode
 canonicalHaarFeaturedLinearScan =
   haarLinearTransform canonicalHaarFeaturedTransformer
 
@@ -1789,7 +1789,7 @@ canonicalPolicy K s = sparsemaxPolicy (actionSpaceK K) (lcbScore (lcbKernel K) (
 canonicalPolicyWeight : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → SparseWeight
 canonicalPolicyWeight K s = sparsemaxWeight (actionSpaceK K) (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s))) (valuesCount (lcbCounts s)) (canonicalPolicy K s)
 
-canonicalPolicyWeightCode : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → Int8
+canonicalPolicyWeightCode : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → IntCode
 
 BehaviorPolicy : Set
 BehaviorPolicy = ℕ → SparseWeight
@@ -1876,41 +1876,41 @@ canonicalPolicy-optimizer-invariant :
   canonicalPolicy K (replaceOptimizer s o) ＝ canonicalPolicy K s
 canonicalPolicy-optimizer-invariant K s o = refl
 
-maxCriticValueList : List Int8 → Int8
-maxCriticValueList [] = zero8
+maxCriticValueList : List IntCode → IntCode
+maxCriticValueList [] = zeroIntCode
 maxCriticValueList (x ∷ xs) with compareInt8 x (maxCriticValueList xs)
 ... | less = maxCriticValueList xs
 ... | equal = maxCriticValueList xs
 ... | greater = x
 
-maxCriticValue8 : ∀ {A : Set} → ActionSpace A → CriticState A → Int8
+maxCriticValue8 : ∀ {A : Set} → ActionSpace A → CriticState A → IntCode
 maxCriticValue8 K q = maxCriticValueList (map (λ a → values q a) (candidates K))
 
-canonicalQLogBias : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Int8
+canonicalQLogBias : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
 canonicalQLogBias K s = qLog2Bias8 (canonicalPolicyWeightCode K s)
 
-canonicalReward8 : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Int8
+canonicalReward8 : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
 canonicalReward8 K s = canonicalPolicyWeightCode K s
 
-canonicalDiscount8 : Int8
-canonicalDiscount8 = one8
+canonicalDiscount8 : IntCode
+canonicalDiscount8 = oneIntCode
 
-canonicalGRUFeedback : ∀ {A} → FullLearnerState A → Int8
+canonicalGRUFeedback : ∀ {A} → FullLearnerState A → IntCode
 canonicalGRUFeedback s = hiddenState (gru s)
 
-canonicalF4L2Feedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Int8
+canonicalF4L2Feedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
 canonicalF4L2Feedback K s =
   int8Add
     (f4ThetaFull (optimizer s))
     (l2Correction (globalL2 (optimizerKernel K)))
 
-canonicalQLogControlFeedback : ∀ {A} → FullLearnerState A → Int8
+canonicalQLogControlFeedback : ∀ {A} → FullLearnerState A → IntCode
 canonicalQLogControlFeedback s = coefficient (qLogControl s)
 
-canonicalQLogValueFeedback : ∀ {A} → FullLearnerState A → Int8
+canonicalQLogValueFeedback : ∀ {A} → FullLearnerState A → IntCode
 canonicalQLogValueFeedback s = dyadicCode (qLogValue s)
 
-canonicalEndogenousFeedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Int8
+canonicalEndogenousFeedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
 canonicalEndogenousFeedback K s =
   int8Add
     (canonicalGRUFeedback s)
@@ -1920,7 +1920,7 @@ canonicalEndogenousFeedback K s =
           (canonicalQLogControlFeedback s)
           (canonicalQLogValueFeedback s)))
 
-canonicalWatkinsTarget : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Int8
+canonicalWatkinsTarget : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
 canonicalWatkinsTarget K s =
   int8Add
     (int8Add
@@ -1941,7 +1941,7 @@ canonicalQLogControlStep : ∀ {A} → FullLearnerKernel A → FullLearnerState 
 canonicalQLogControlStep K s =
   signedQLogControl negativeAlpha8 (canonicalQLogBias K s)
 
-canonicalSignal : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Int8
+canonicalSignal : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
 canonicalSignal = canonicalWatkinsTarget
 
 canonicalSignal-watkins-target : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
@@ -1968,7 +1968,7 @@ canonicalHaarRecurrentInput :
   ∀ {A} →
   FullLearnerKernel A →
   FullLearnerState A →
-  Int8
+  IntCode
 canonicalHaarRecurrentInput K s =
   haarQueryRead
     canonicalHaarFeaturedTransformer
@@ -2159,7 +2159,7 @@ canonicalNoCountedTwoCycle K s cyc = succ-succ-not-self (totalCount (lcbCounts s
 temperatureCodeLaw : sparsemaxTemperature ＝ 16
 temperatureCodeLaw = refl
 
-pessimisticInit : Int8
+pessimisticInit : IntCode
 pessimisticInit = int8OfNat 128
 
 pessimisticCritic : ∀ {A} → CriticState A
@@ -2177,14 +2177,14 @@ CanonicalToken = Int
 CanonicalTokenSequence : Set
 CanonicalTokenSequence = List CanonicalToken
 
-canonicalTokenEncode : CanonicalToken → Int8
-canonicalTokenEncode = int8
+canonicalTokenEncode : CanonicalToken → IntCode
+canonicalTokenEncode = intCode
 
--- Int8 is currently an exact wrapper around unbounded Int. Its code
+-- IntCode is an exact wrapper around the repository's unbounded mathematical Int. Its intCodeValue
 -- projection is a left inverse, hence the token transport is globally
 -- injective (this is not a bounded machine-byte encoding).
 canonicalTokenEncodeLeftInverse :
-  ∀ token → code (canonicalTokenEncode token) ＝ token
+  ∀ token → intCodeValue (canonicalTokenEncode token) ＝ token
 canonicalTokenEncodeLeftInverse token = refl
 
 canonicalTokenEncodeInjective :
@@ -2195,7 +2195,7 @@ canonicalTokenEncodeInjective {left} {right} encodedEquality =
   trans
     (sym (canonicalTokenEncodeLeftInverse left))
     (trans
-      (ap code encodedEquality)
+      (ap intCodeValue encodedEquality)
       (canonicalTokenEncodeLeftInverse right))
 
 -- Any representation with an exact left inverse is globally injective.
@@ -2214,11 +2214,11 @@ leftInverseImpliesInjective observe inverse leftInverse {left} {right} observati
       (ap inverse observationEquality)
       (leftInverse right))
 
-canonicalTokenEncodeList : CanonicalTokenSequence → List Int8
+canonicalTokenEncodeList : CanonicalTokenSequence → List IntCode
 canonicalTokenEncodeList = map canonicalTokenEncode
 
 canonicalTokenEncodeListLeftInverse :
-  ∀ tokens → map code (canonicalTokenEncodeList tokens) ＝ tokens
+  ∀ tokens → map intCodeValue (canonicalTokenEncodeList tokens) ＝ tokens
 canonicalTokenEncodeListLeftInverse [] = refl
 canonicalTokenEncodeListLeftInverse (token ∷ tokens) =
   ap (_∷_ token) (canonicalTokenEncodeListLeftInverse tokens)
@@ -2231,7 +2231,7 @@ canonicalTokenEncodeListInjective {left} {right} encodedEquality =
   trans
     (sym (canonicalTokenEncodeListLeftInverse left))
     (trans
-      (ap (map code) encodedEquality)
+      (ap (map intCodeValue) encodedEquality)
       (canonicalTokenEncodeListLeftInverse right))
 
 canonicalTokenStep : GRUState → CanonicalToken → GRUState
@@ -2261,7 +2261,7 @@ canonicalTokenListState (t ∷ ts) s =
   canonicalTokenListState ts (canonicalTokenStep s t)
 
 CanonicalTokenLogitVector : Set
-CanonicalTokenLogitVector = CanonicalToken → Int8
+CanonicalTokenLogitVector = CanonicalToken → IntCode
 
 record CanonicalTokenLanguageModelKernel : Set₁ where
   constructor canonicalTokenLanguageModelKernel
