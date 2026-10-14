@@ -11,13 +11,10 @@
   --two-level
   --rewriting
   --level-universe
-  --omega-in-omega
   --cumulativity
   --auto-inline
   --polarity
   --flat-split
-  --large-indices
-  --forced-argument-recursion
   -v=1
 #-}
 
