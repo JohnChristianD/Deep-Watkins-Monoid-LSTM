@@ -455,20 +455,27 @@
                 trap 'rm -rf "$tmp"' EXIT
                 awk '
                   /^module ScottStracheyDomains where$/ { capture=1; print; next }
-                  /^module BetaOptimalityBoundary where$/ { capture=0 }
+                  /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/TheoremsMonolith.agda > "$tmp/ScottStracheyDomains.agda"
                 awk '
                   /^module BetaOptimalityBoundary where$/ { capture=1; print; next }
-                  /^-- Keep natural multiplication explicit:/ { capture=0 }
+                  /^module CanonicalBellmanOrderTheory where$/ { capture=0 }
                   capture { sub(/^  /, ""); print }
-                ' FullCoupled/TheoremsMonolith.agda > "$tmp/BetaOptimalityBoundary.agda"
+                ' FullCoupled/CanonicalLearnerMonolith.agda > "$tmp/BetaOptimalityBoundary.agda"
+                awk '
+                  /^module CanonicalBellmanOrderTheory where$/ { capture=1; print; next }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/CanonicalLearnerMonolith.agda > "$tmp/CanonicalBellmanOrderTheory.agda"
                 test -s "$tmp/ScottStracheyDomains.agda"
                 test -s "$tmp/BetaOptimalityBoundary.agda"
+                test -s "$tmp/CanonicalBellmanOrderTheory.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
                 agda2hs-agda -i "$tmp" "$tmp/BetaOptimalityBoundary.agda"
+                agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
                 echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith)"
-                echo "beta-optimality-impossibility=kernel-checked (reward-independent universal claim)"
+                echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
+                echo "bellman-order-theory=kernel-checked (conditional Tarski least-fixed-point theorem)"
               '';
             };
           in {
