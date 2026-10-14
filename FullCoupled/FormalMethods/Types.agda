@@ -1,47 +1,22 @@
-{-# OPTIONS
---lossy-unification
---sized-types
---exact-split
---erasure
---no-projection-like
---erased-matches
---erase-record-parameters
---prop
---confluence-check
---two-level
---rewriting
---level-universe
---cumulativity
---auto-inline
---polarity
---flat-split
---omega-in-omega
---large-indices
---no-forced-argument-recursion
---with-K
---no-guardedness
-#-}
-
-
 ------------------------------------------------------------------------
--- Vendored from iwilare/formal-methods (Types.agda), MIT-licensed upstream.
--- Namespaced locally so theorem-specific imports cannot collide with the
--- existing FullCoupled proof surface.
+-- Restored from iwilare/formal-methods upstream (MIT-licensed).
+-- Local module path and sibling imports are namespaced for this repository.
 ------------------------------------------------------------------------
-
 module FullCoupled.FormalMethods.Types where
 
-
-
-contradiction : ∀ {a} {A : Set a} → A → (A → ⊥) → ⊥
-contradiction p np = np p
-
-_⊎_ = Either
-inj₁ = left
-inj₂ = right
+open import Data.Nat     using (ℕ) renaming (_+_ to _+ᵢ_; _≤?_ to _≤?ᵢ_)
+open import Agda.Builtin.Float renaming (primFloatPlus to _+ᵣ_; primFloatLess to _≤?ᵣ_)
+open import Data.Bool    using (Bool; true; false; not; _∧_)
+open import Data.Sum     using (inj₁; inj₂; _⊎_)
+open import Data.Product using (_×_; _,_; -,_; _-,-_; ∃; ∃-syntax; proj₂)
+open import Data.String  using (String; _≟_)
+open import Relation.Nullary           using (¬_; yes; no)
+open import Relation.Nullary.Decidable using (⌊_⌋)
+open import Relation.Nullary.Negation  using (contradiction)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
 
 vname = String
-int = Nat
+int = ℕ
 real = Float
 bool = Bool
 
@@ -158,7 +133,7 @@ data tbval : bexp → state → bool → Set where
   tbvalLI : ∀{s a₁ a₂ i₁ i₂}
          → taval a₁ s (Iv i₁)
          → taval a₂ s (Iv i₂)
-         → tbval (Less a₁ a₂) s (i₁ ≤?ᵢ i₂)
+         → tbval (Less a₁ a₂) s (⌊ i₁ ≤?ᵢ i₂ ⌋)
   tbvalLR : ∀{s a₁ a₂ r₁ r₂}
          → taval a₁ s (Rv r₁)
          → taval a₂ s (Rv r₂)
