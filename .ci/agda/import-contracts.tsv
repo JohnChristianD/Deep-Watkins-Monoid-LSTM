@@ -30,3 +30,4 @@ sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Extra.Delay p
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Extra.Erase public	open import Haskell.Extra.Erase public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Extra.Nat public	open import Haskell.Extra.Nat public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Control.Exception public	open import Haskell.Control.Exception public	1
+require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS planContains #-}	{-# COMPILE AGDA2HS planContains #-}	1
