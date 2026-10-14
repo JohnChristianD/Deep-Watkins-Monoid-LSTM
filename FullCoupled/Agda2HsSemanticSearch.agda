@@ -1704,8 +1704,6 @@ main = do
 {-# COMPILE AGDA2HS factorialFuel #-}
 {-# COMPILE AGDA2HS searchFuel #-}
 {-# COMPILE AGDA2HS astarWithFuel #-}
-{-# COMPILE AGDA2HS factorial #-}
-{-# COMPILE AGDA2HS recNat #-}
 {-# COMPILE AGDA2HS listLengthNat #-}
 {-# COMPILE AGDA2HS planContains #-}
 {-# COMPILE AGDA2HS capabilityCovered #-}
