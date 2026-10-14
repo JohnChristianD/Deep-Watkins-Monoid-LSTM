@@ -9,16 +9,11 @@
   --guarded
   --flat-split
   --no-infer-absurd-clauses
-  --no-projection-like
   --erased-matches
   --erase-record-parameters
   --allow-exec
   --level-universe
   --rewriting
-#-}
-
-{-# OPTIONS
-  --erasure
 #-}
 
 module FullCoupled.LearnerLogicalSpec where

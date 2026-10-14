@@ -14,3 +14,20 @@ sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open imp
 sync	FullCoupled/Agda2HsGraphSearchCheck.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Ord.Ordering	open import Haskell.Law.Ord.Ordering public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Size	open import Agda.Builtin.Size public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law public	open import Haskell.Law public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Equality public	open import Haskell.Law.Equality public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Extensionality public	open import Haskell.Law.Extensionality public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Functor.FromMonad public	open import Haskell.Law.Functor.FromMonad public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Semigroup.List public	open import Haskell.Law.Semigroup.List public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Nat public	open import Haskell.Law.Nat public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Monad.List public	open import Haskell.Law.Monad.List public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Monoid.List public	open import Haskell.Law.Monoid.List public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prim.Thunks public	open import Haskell.Prim.Thunks public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prim.Equality public	open import Haskell.Prim.Equality public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prim.Absurd public	open import Haskell.Prim.Absurd public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prim.Applicative public	open import Haskell.Prim.Applicative public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Extra.Delay public	open import Haskell.Extra.Delay public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Extra.Erase public	open import Haskell.Extra.Erase public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Extra.Nat public	open import Haskell.Extra.Nat public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Control.Exception public	open import Haskell.Control.Exception public	1
+require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS planContains #-}	{-# COMPILE AGDA2HS planContains #-}	1

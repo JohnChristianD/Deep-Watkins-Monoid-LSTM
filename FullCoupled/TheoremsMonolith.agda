@@ -3,7 +3,6 @@
   --experimental-lazy-instances
   --sized-types
   --exact-split
-  --no-projection-like
   --erased-matches
   --erase-record-parameters
   --prop
@@ -15,11 +14,6 @@
   --auto-inline
   --polarity
   --flat-split
-  -v=1
-#-}
-
-
-{-# OPTIONS
 #-}
 
 ------------------------------------------------------------------------

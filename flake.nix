@@ -185,6 +185,7 @@
           runtimeInputs = [
             (agdaWithPackages system)
             pkgs.coreutils
+            pkgs.findutils
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
@@ -194,7 +195,17 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            exec "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -i "$agda2hs_base_root" -i . "$@"
+            agda2hs_base_work="$(mktemp -d)"
+            trap 'rm -rf "$agda2hs_base_work"' EXIT
+            mkdir -p "$agda2hs_base_work/library"
+            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
+            chmod -R u+rwX "$agda2hs_base_work/library"
+            if "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+              status=0
+            else
+              status=$?
+            fi
+            exit "$status"
           '' ;
         };
 
@@ -207,6 +218,7 @@
           runtimeInputs = [
             (agdaWithPackages system)
             pkgs.coreutils
+            pkgs.findutils
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
@@ -216,7 +228,17 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            exec agda "''${agda_global_options[@]}" -i "$agda2hs_base_root" -i . "$@"
+            agda2hs_base_work="$(mktemp -d)"
+            trap 'rm -rf "$agda2hs_base_work"' EXIT
+            mkdir -p "$agda2hs_base_work/library"
+            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
+            chmod -R u+rwX "$agda2hs_base_work/library"
+            if agda "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+              status=0
+            else
+              status=$?
+            fi
+            exit "$status"
           '' ;
         };
 
@@ -230,6 +252,7 @@
             (agda2hsWithCanonicalGhc system)
             (agdaWithPackages system)
             pkgs.coreutils
+            pkgs.findutils
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
@@ -239,7 +262,17 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            exec agda2hs "''${agda_global_options[@]}" -i "$agda2hs_base_root" -i . "$@"
+            agda2hs_base_work="$(mktemp -d)"
+            trap 'rm -rf "$agda2hs_base_work"' EXIT
+            mkdir -p "$agda2hs_base_work/library"
+            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
+            chmod -R u+rwX "$agda2hs_base_work/library"
+            if agda2hs "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+              status=0
+            else
+              status=$?
+            fi
+            exit "$status"
           '' ;
         };
     in

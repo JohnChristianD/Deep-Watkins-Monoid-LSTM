@@ -68,7 +68,7 @@ The target is a small executable core plus explicitly separated proof sidecars. 
 
 ## Agda command policy
 
-The canonical global CLI flags are one-per-line in `.ci/agda/global-options.txt`. The Nix wrappers pass those flags to both `agda` and `agda2hs`. Keep flags with semantic or safety scope local to an individual file or CI lane; in particular, `--guardedness` must not be added globally because its compatibility differs from `--safe`.
+The canonical global CLI flags are one-per-line in `.ci/agda/global-options.txt`. The Nix wrappers pass those flags to both `agda` and `agda2hs`. Use CLI spellings such as `--verbose=1`; short `-v=1` is source-pragma syntax and must not be passed through the wrapper. Keep flags with semantic or safety scope local to an individual file or CI lane. In particular, `--guardedness`, `--cumulativity`, `--rewriting`, and `--flat-split` stay file-local because passing them globally can make Agda's `--safe` imports reject their own option pragmas.
 
 ## Scott–Strachey and search semantics
 
@@ -94,4 +94,4 @@ Removed `--type-in-type`, `--no-termination-check`, `--no-positivity-check`, and
 
 This hardening does **not** certify either legacy monolith: they still contain TypeTopology-era imports and are excluded from the current kernel-check lane. They remain source inventory until those imports and dependent proofs are ported and a clean kernel check is added. The active pure Agda2HS modules are independently kernel-checked. Do not describe this source change alone as a proof result.
 
-The centralized global option file remains `.ci/agda/global-options.txt` with only the project's established common flags. `--exact-split` is already the default in the pinned Agda 2.8 toolchain. `--polarity`, `--two-level`, `--cumulativity`, and `--auto-inline` are not being forced globally: they affect type checking/elaboration or serve specialized use cases and should be enabled only where a verified module needs them. `--level-universe` remains file-local where already required.
+The shared `.ci/agda/global-options.txt` contains only `--erasure`, `--no-projection-like`, and CLI verbosity. The legacy monoliths retain their own elaboration profile in file-local OPTIONS; forcing those flags onto imports such as `agda2hs-base` changes universe and instance checking and can break Agda's safe-module boundary. The Nix wrappers copy `agda2hs-base` to a temporary writable source tree before checking so Agda can write interfaces without modifying the immutable Nix store.
