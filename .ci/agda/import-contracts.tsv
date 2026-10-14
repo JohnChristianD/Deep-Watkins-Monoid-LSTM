@@ -14,6 +14,8 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS repeatBy #-}	
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS factorialFuel #-}	{-# COMPILE AGDA2HS factorialFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS searchFuel #-}	{-# COMPILE AGDA2HS searchFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS astarWithFuel #-}	{-# COMPILE AGDA2HS astarWithFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS listLengthNat #-}	{-# COMPILE AGDA2HS listLengthNat #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS planContains #-}	{-# COMPILE AGDA2HS planContains #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS capabilityCovered #-}	{-# COMPILE AGDA2HS capabilityCovered #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS addCapability #-}	{-# COMPILE AGDA2HS addCapability #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS allRequiredCovered #-}	{-# COMPILE AGDA2HS allRequiredCovered #-}	1
