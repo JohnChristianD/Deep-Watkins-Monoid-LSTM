@@ -2319,6 +2319,8 @@ module BetaOptimalityBoundary where
 
 module CanonicalBellmanOrderTheory where
   open import Agda.Builtin.Equality using (_≡_; refl)
+  open import Agda.Builtin.Nat
+    renaming (Nat to BNat; zero to bzero; suc to bsuc)
 
   record CompleteMeetOrder (Value : Set) : Set₂ where
     field
@@ -2428,3 +2430,241 @@ module CanonicalBellmanOrderTheory where
       (bellmanMonotone B)
       x
       fixed
+
+
+  ------------------------------------------------------------------------
+  -- Kleene fixed point theorem over an omega-CPO.
+  --
+  -- A value-space Bellman operator is supplied with monotonicity and
+  -- Scott-continuity proofs. Its least fixed point is the lub of iterates
+  -- beginning at bottom, and is below every other fixed point.
+  ------------------------------------------------------------------------
+
+  infix 4 _⊑ω_
+
+  record OmegaCPO (Value : Set) : Set₁ where
+    field
+      _⊑ω_ : Value → Value → Set
+      reflω : {x : Value} → _⊑ω_ x x
+      transω :
+        {x y z : Value} → _⊑ω_ x y → _⊑ω_ y z → _⊑ω_ x z
+      antisymω :
+        {x y : Value} → _⊑ω_ x y → _⊑ω_ y x → x ≡ y
+      bottomω : Value
+      bottomLeastω : (x : Value) → _⊑ω_ bottomω x
+      lubω :
+        (xs : BNat → Value) →
+        (∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
+        Value
+      lubUpperω :
+        (xs : BNat → Value) →
+        (chain : ∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
+        (n : BNat) →
+        _⊑ω_ (xs n) (lubω xs chain)
+      lubLeastω :
+        (xs : BNat → Value) →
+        (chain : ∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
+        (z : Value) →
+        (∀ n → _⊑ω_ (xs n) z) →
+        _⊑ω_ (lubω xs chain) z
+
+  open OmegaCPO public
+
+  record ScottContinuousEndomap {Value : Set}
+    (O : OmegaCPO Value) : Set₂ where
+    field
+      stepω : Value → Value
+      monotoneω :
+        {x y : Value} →
+        OmegaCPO._⊑ω_ O x y →
+        OmegaCPO._⊑ω_ O (stepω x) (stepω y)
+      omegaContinuous :
+        (xs : BNat → Value) →
+        (chain : ∀ n → OmegaCPO._⊑ω_ O (xs n) (xs (bsuc n))) →
+        stepω (OmegaCPO.lubω O xs chain) ≡
+        OmegaCPO.lubω O
+          (λ n → stepω (xs n))
+          (λ n → monotoneω (chain n))
+
+  module KleeneFixedPoint {Value : Set} (O : OmegaCPO Value) where
+    open OmegaCPO O
+
+    iter : ScottContinuousEndomap O → BNat → Value
+    iter F bzero = bottomω
+    iter F (bsuc n) =
+      ScottContinuousEndomap.stepω F (iter F n)
+
+    iterChain :
+      (F : ScottContinuousEndomap O) →
+      (n : BNat) →
+      _⊑ω_ (iter F n) (iter F (bsuc n))
+    iterChain F bzero =
+      bottomLeastω (ScottContinuousEndomap.stepω F (iter F bzero))
+    iterChain F (bsuc n) =
+      ScottContinuousEndomap.monotoneω F (iterChain F n)
+
+    leastFixedPoint :
+      ScottContinuousEndomap O → Value
+    leastFixedPoint F = lubω (iter F) (iterChain F)
+
+    shiftUpper :
+      (F : ScottContinuousEndomap O) →
+      (n : BNat) →
+      _⊑ω_ (iter F n)
+        (lubω
+          (λ k → iter F (bsuc k))
+          (λ k → iterChain F (bsuc k)))
+    shiftUpper F bzero =
+      bottomLeastω
+        (lubω
+          (λ k → iter F (bsuc k))
+          (λ k → iterChain F (bsuc k)))
+    shiftUpper F (bsuc n) =
+      lubUpperω
+        (λ k → iter F (bsuc k))
+        (λ k → iterChain F (bsuc k))
+        n
+
+    shiftLub :
+      (F : ScottContinuousEndomap O) →
+      lubω (iter F) (iterChain F) ≡
+        lubω
+          (λ n → iter F (bsuc n))
+          (λ n → iterChain F (bsuc n))
+    shiftLub F =
+      antisymω
+        (lubLeastω
+          (λ n → iter F (bsuc n))
+          (λ n → iterChain F (bsuc n))
+          (leastFixedPoint F)
+          (λ n → lubUpperω (iter F) (iterChain F) (bsuc n)))
+        (lubLeastω
+          (iter F)
+          (iterChain F)
+          (lubω
+            (λ n → iter F (bsuc n))
+            (λ n → iterChain F (bsuc n)))
+          (shiftUpper F))
+
+    transEq : {x y z : Value} → x ≡ y → y ≡ z → x ≡ z
+    transEq refl second = second
+
+    symEq : {x y : Value} → x ≡ y → y ≡ x
+    symEq refl = refl
+
+    leastFixedPointIsFixed :
+      (F : ScottContinuousEndomap O) →
+      ScottContinuousEndomap.stepω F (leastFixedPoint F) ≡
+        leastFixedPoint F
+    leastFixedPointIsFixed F =
+      transEq
+        (ScottContinuousEndomap.omegaContinuous F (iter F) (iterChain F))
+        (symEq (shiftLub F))
+
+    equalityToOrder :
+      {x y : Value} → x ≡ y → _⊑ω_ x y
+    equalityToOrder refl = reflω
+
+    iterBelowFixed :
+      (F : ScottContinuousEndomap O) →
+      (x : Value) →
+      ScottContinuousEndomap.stepω F x ≡ x →
+      (n : BNat) →
+      _⊑ω_ (iter F n) x
+    iterBelowFixed F x fixed bzero = bottomLeastω x
+    iterBelowFixed F x fixed (bsuc n) =
+      transω
+        (ScottContinuousEndomap.monotoneω F
+          (iterBelowFixed F x fixed n))
+        (equalityToOrder fixed)
+
+    leastFixedPointIsLeast :
+      (F : ScottContinuousEndomap O) →
+      (x : Value) →
+      ScottContinuousEndomap.stepω F x ≡ x →
+      _⊑ω_ (leastFixedPoint F) x
+    leastFixedPointIsLeast F x fixed =
+      lubLeastω
+        (iter F)
+        (iterChain F)
+        x
+        (iterBelowFixed F x fixed)
+
+    leastFixedPointUnique :
+      (F : ScottContinuousEndomap O) →
+      (x : Value) →
+      (fixed : ScottContinuousEndomap.stepω F x ≡ x) →
+      (∀ {y : Value} →
+        ScottContinuousEndomap.stepω F y ≡ y →
+        _⊑ω_ x y) →
+      x ≡ leastFixedPoint F
+    leastFixedPointUnique F x fixed least =
+      antisymω
+        (least {y = leastFixedPoint F}
+          (leastFixedPointIsFixed F))
+        (leastFixedPointIsLeast F x fixed)
+
+  record ContinuousBellmanSemantics (Value : Set) : Set₃ where
+    constructor continuousBellmanSemantics
+    field
+      valueDomain : OmegaCPO Value
+      bellmanOperator : ScottContinuousEndomap valueDomain
+
+  open ContinuousBellmanSemantics public
+
+  bellmanStreamValue :
+    {Value : Set} →
+    (B : ContinuousBellmanSemantics Value) →
+    BNat →
+    Value
+  bellmanStreamValue B =
+    KleeneFixedPoint.iter (valueDomain B) (bellmanOperator B)
+
+  bellmanStreamLeastFixedPoint :
+    {Value : Set} →
+    (B : ContinuousBellmanSemantics Value) →
+    Value
+  bellmanStreamLeastFixedPoint B =
+    KleeneFixedPoint.leastFixedPoint
+      (valueDomain B) (bellmanOperator B)
+
+  bellmanStreamLeastFixedPointAtZero :
+    {Value : Set} →
+    (B : ContinuousBellmanSemantics Value) →
+    bellmanStreamValue B bzero =
+      OmegaCPO.bottomω (valueDomain B)
+  bellmanStreamLeastFixedPointAtZero B = refl
+
+  bellmanStreamLeastFixedPointIsFixed :
+    {Value : Set} →
+    (B : ContinuousBellmanSemantics Value) →
+    ScottContinuousEndomap.stepω (bellmanOperator B)
+      (bellmanStreamLeastFixedPoint B) ≡
+      bellmanStreamLeastFixedPoint B
+  bellmanStreamLeastFixedPointIsFixed B =
+    KleeneFixedPoint.leastFixedPointIsFixed
+      (valueDomain B) (bellmanOperator B)
+
+  bellmanStreamLeastFixedPointIsLeast :
+    {Value : Set} →
+    (B : ContinuousBellmanSemantics Value) →
+    (x : Value) →
+    ScottContinuousEndomap.stepω (bellmanOperator B) x ≡ x →
+    OmegaCPO._⊑ω_ (valueDomain B)
+      (bellmanStreamLeastFixedPoint B) x
+  bellmanStreamLeastFixedPointIsLeast B x fixed =
+    KleeneFixedPoint.leastFixedPointIsLeast
+      (valueDomain B) (bellmanOperator B) x fixed
+
+  bellmanStreamLeastFixedPointUnique :
+    {Value : Set} →
+    (B : ContinuousBellmanSemantics Value) →
+    (x : Value) →
+    (fixed : ScottContinuousEndomap.stepω (bellmanOperator B) x ≡ x) →
+    (∀ {y : Value} →
+      ScottContinuousEndomap.stepω (bellmanOperator B) y ≡ y →
+      OmegaCPO._⊑ω_ (valueDomain B) x y) →
+    x ≡ bellmanStreamLeastFixedPoint B
+  bellmanStreamLeastFixedPointUnique B x fixed least =
+    KleeneFixedPoint.leastFixedPointUnique
+      (valueDomain B) (bellmanOperator B) x fixed least
