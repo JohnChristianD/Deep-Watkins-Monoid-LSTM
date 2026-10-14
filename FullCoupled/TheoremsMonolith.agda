@@ -306,18 +306,67 @@ syntax try-fun t f = try t or-else f
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_; gruStep)
-import FullCoupled.LearnerLogicalSpec as LearnerLogicalSpec
+open import Agda.Builtin.Size using (Size; Size<_; ∞)
 -- END THEOREM-SPECIFIC IMPORTS
 
--- Bridge the theorem monolith to the independently stated learner trace
--- contract.  This creates a real dependency-graph edge to LearnerLogicalSpec.
+------------------------------------------------------------------------
+-- Guarded trace interface and coinductive stream-fusion proof.
+-- Learner transition semantics stay in CanonicalLearnerMonolith.
+------------------------------------------------------------------------
+
+record GuardedLearnerTrace {A : Set}
+  (K : C.FullLearnerKernel A)
+  (initial : C.FullLearnerState A) : Set where
+  constructor guardedLearnerTrace
+  field
+    learnerTrace : C.LearnerStream ∞ (C.FullLearnerState A)
+    learnerTraceStartsAtInitial :
+      C.learnerStreamHead learnerTrace ＝ initial
+
+open GuardedLearnerTrace public
+
+canonicalLearnerTraceGuarded :
+  ∀ {A : Set}
+    (K : C.FullLearnerKernel A)
+    (initial : C.FullLearnerState A) →
+  GuardedLearnerTrace K initial
+canonicalLearnerTraceGuarded K initial =
+  guardedLearnerTrace (C.canonicalLearnerTrace K initial) refl
+
 learnerSpecGuardedTrace :
   ∀ {A : Set}
     (K : C.FullLearnerKernel A)
     (initial : C.FullLearnerState A) →
-  LearnerLogicalSpec.GuardedLearnerTrace K initial
-learnerSpecGuardedTrace =
-  LearnerLogicalSpec.canonicalLearnerTraceGuarded
+  GuardedLearnerTrace K initial
+learnerSpecGuardedTrace = canonicalLearnerTraceGuarded
+
+record LearnerStreamBisim (i : Size) {A : Set}
+  (left right : C.LearnerStream i A) : Set where
+  coinductive
+  field
+    learnerStreamHeadsAgree :
+      C.learnerStreamHead left ＝ C.learnerStreamHead right
+    learnerStreamTailsBisimilar :
+      ∀ {j : Size< i} →
+      LearnerStreamBisim j
+        (C.learnerStreamTail left {j})
+        (C.learnerStreamTail right {j})
+
+open LearnerStreamBisim public
+
+-- Infinite map fusion: equality of every observable head is preserved
+-- coinductively, with each recursive obligation at a smaller size.
+mapStreamFusionBisim :
+  {i : Size} {A B D : Set} →
+  (f : B → D) →
+  (g : A → B) →
+  (input : C.LearnerStream i A) →
+  LearnerStreamBisim i
+    (C.mapLearnerStream f (C.mapLearnerStream g input))
+    (C.mapLearnerStream (λ value → f (g value)) input)
+mapStreamFusionBisim f g input .learnerStreamHeadsAgree = refl
+mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
+  mapStreamFusionBisim f g (C.learnerStreamTail input {j})
 
 -- TypeTopology's falsity is 𝟘. Keep familiar theorem notation local;
 -- do not import the Agda standard library or alter builtin ownership.
@@ -326,6 +375,111 @@ learnerSpecGuardedTrace =
 
 ⊥-elim : ∀ {A : Set} → ⊥ → A
 ⊥-elim = 𝟘-elim
+
+------------------------------------------------------------------------
+-- Scott–Strachey lifted Nat semantics, owned by the theorem monolith.
+-- No --safe pragma is used: this is source consolidation, not a safe-mode
+-- promise for the legacy theorem surface.
+------------------------------------------------------------------------
+
+module ScottStracheyDomains where
+  open import Agda.Builtin.Equality using (_≡_; refl)
+  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+  open import Agda.Builtin.Nat
+    renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_)
+
+  data Lift (A : Set) : Set where
+    bottom : Lift A
+    defined : A → Lift A
+
+  infix 4 _⊑_
+
+  data _⊑_ {A : Set} : Lift A → Lift A → Set where
+    bottomLeast : {value : Lift A} → bottom ⊑ value
+    definedReflexive : {value : A} → defined value ⊑ defined value
+
+  reflexive⊑ : {A : Set} {value : Lift A} → value ⊑ value
+  reflexive⊑ {value = bottom} = bottomLeast
+  reflexive⊑ {value = defined value} = definedReflexive
+
+  bottomIsLeast : {A : Set} (value : Lift A) → bottom ⊑ value
+  bottomIsLeast _ = bottomLeast
+
+  bottomIsNotZero : bottom ≡ defined bzero → Empty
+  bottomIsNotZero ()
+
+  definedZeroIsNotBottom : defined bzero ≡ bottom → Empty
+  definedZeroIsNotBottom ()
+
+  definedZeroIsNotLeast : defined bzero ⊑ bottom → Empty
+  definedZeroIsNotLeast ()
+
+  data NatExpr : Set where
+    numeral : BNat → NatExpr
+    diverges : NatExpr
+    _⊕_ : NatExpr → NatExpr → NatExpr
+
+  infixl 6 _⊕_
+
+  strictNatAdd : Lift BNat → Lift BNat → Lift BNat
+  strictNatAdd bottom _ = bottom
+  strictNatAdd (defined _) bottom = bottom
+  strictNatAdd (defined left) (defined right) = defined (left b+ right)
+
+  denote : NatExpr → Lift BNat
+  denote (numeral n) = defined n
+  denote diverges = bottom
+  denote (left ⊕ right) = strictNatAdd (denote left) (denote right)
+
+  definedAdditionRegression :
+    denote (numeral (bsuc (bsuc bzero)) ⊕ numeral (bsuc (bsuc (bsuc bzero))))
+      ≡ defined (bsuc (bsuc (bsuc (bsuc (bsuc bzero)))))
+  definedAdditionRegression = refl
+
+  divergenceAbsorbsAddition :
+    denote (diverges ⊕ numeral (bsuc (bsuc (bsuc bzero)))) ≡ bottom
+  divergenceAbsorbsAddition = refl
+
+  record AlgebraOperations (A : Set) : Set₁ where
+    field
+      algebraZero : A
+      algebraAdd : A → A → A
+      algebraMultiply : A → A → A
+      algebraNegate : A → A
+
+  open AlgebraOperations public
+
+  module StrictLiftedAlgebra {A : Set} (operations : AlgebraOperations A) where
+    open AlgebraOperations operations
+
+    strictAdd : Lift A → Lift A → Lift A
+    strictAdd bottom _ = bottom
+    strictAdd (defined _) bottom = bottom
+    strictAdd (defined left) (defined right) =
+      defined (algebraAdd left right)
+
+    strictMultiply : Lift A → Lift A → Lift A
+    strictMultiply bottom _ = bottom
+    strictMultiply (defined _) bottom = bottom
+    strictMultiply (defined left) (defined right) =
+      defined (algebraMultiply left right)
+
+    strictNegate : Lift A → Lift A
+    strictNegate bottom = bottom
+    strictNegate (defined value) = defined (algebraNegate value)
+
+    inverseLawFailsAtBottom :
+      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → Empty
+    inverseLawFailsAtBottom ()
+
+    zeroAnnihilatorFailsAtBottom :
+      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → Empty
+    zeroAnnihilatorFailsAtBottom ()
+
+------------------------------------------------------------------------
+-- Re-export policy semantics proved beside the canonical learner transition.
+------------------------------------------------------------------------
+module BetaOptimalityBoundary = C.BetaOptimalityBoundary
 
 -- Keep natural multiplication explicit: the synchronized import surface also
 -- contains rational multiplication, so theorem algebra names TypeTopology's

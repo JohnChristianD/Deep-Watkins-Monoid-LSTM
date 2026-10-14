@@ -1,36 +1,18 @@
-{-# OPTIONS
---lossy-unification
---sized-types
---exact-split
---erasure
---no-projection-like
---erased-matches
---erase-record-parameters
---prop
---confluence-check
---two-level
---rewriting
---level-universe
---cumulativity
---auto-inline
---polarity
---flat-split
---omega-in-omega
---large-indices
---no-forced-argument-recursion
---with-K
---no-guardedness
-#-}
-
-
 ------------------------------------------------------------------------
--- Vendored from iwilare/formal-methods (HoareLogic.agda), MIT-licensed upstream.
--- Namespaced locally so theorem-specific imports cannot collide with the
--- existing FullCoupled proof surface.
+-- Restored from iwilare/formal-methods upstream (MIT-licensed).
+-- Local module path and sibling imports are namespaced for this repository.
 ------------------------------------------------------------------------
-
 module FullCoupled.FormalMethods.HoareLogic where
 
+open import Data.Nat using ()
+open import Data.Bool using (true; false)
+open import Data.Product using (_×_; _,_)
+open import Data.String using (String; _≟_)
+open import Data.Empty using ()
+open import Level using (suc; _⊔_)
+open import Relation.Nullary           using (yes; no)
+open import Relation.Nullary.Decidable using (⌊_⌋)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
 
 open import FullCoupled.FormalMethods.IMP
 open import FullCoupled.FormalMethods.OperationalSemantics

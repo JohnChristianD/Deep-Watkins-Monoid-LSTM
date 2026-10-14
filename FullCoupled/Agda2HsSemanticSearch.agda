@@ -1,6 +1,11 @@
 module FullCoupled.Agda2HsSemanticSearch where
 
 open import Haskell.Prelude
+open import Haskell.Extra.Dec
+open import Haskell.Extra.Nat
+open import Haskell.Extra.Refinement
+open import Haskell.Law.Eq
+open import Haskell.Law.Eq.Instances
 
 import FullCoupled.Agda2HsSemanticExtractor as Extractor
 open import FullCoupled.Agda2HsTheoremGraphEGraph using
@@ -193,9 +198,21 @@ insertAll required (node ∷ nodes) frontier =
     nodes
     (insertByScore required node frontier)
 
+-- Agda2HS cannot compile direct Nat constructor patterns. Recurse on
+-- Nat through ifDec/predNat instead, retaining compact scalar fuel 4 * n!.
+recNat : (a : @0 Nat → Set)
+       → (z : a 0)
+       → (s : (m : Nat) → a m → a (suc m))
+       → (n : Nat) → a n
+recNat a z s n = ifDec (n ≟ 0)
+  (λ where {{refl}} → z)
+  (λ {{n≠0}} →
+    case predNat n n≠0 of λ where
+      (m ⟨ refl ⟩) → s m (recNat a z s m))
+
 factorial : Nat → Nat
-factorial zero = suc zero
-factorial (suc n) = suc n * factorial n
+factorial n =
+  recNat (λ _ → Nat) (suc zero) (λ m result → suc m * result) n
 
 searchFuel : List SemanticLaw → Nat
 searchFuel laws =
@@ -207,21 +224,27 @@ astarWithFuel :
   List SemanticLaw →
   List SearchNode →
   Maybe SearchNode
-astarWithFuel zero required laws frontier = Nothing
-astarWithFuel (suc fuel) required laws [] = Nothing
-astarWithFuel (suc fuel) required laws (node ∷ frontier) =
-  if allRequiredCovered required (covered node) then
-    Just node
-  else
-    case firstMissing required (covered node) of λ where
-      Nothing →
-        Just node
+astarWithFuel fuel required laws frontier =
+  ifDec (fuel ≟ 0)
+    (λ where {{refl}} → Nothing)
+    (λ {{fuel≠0}} →
+      case predNat fuel fuel≠0 of λ where
+        (fuel' ⟨ refl ⟩) →
+          case frontier of λ where
+            [] → Nothing
+            (node ∷ rest) →
+              if allRequiredCovered required (covered node) then
+                Just node
+              else
+                case firstMissing required (covered node) of λ where
+                  Nothing →
+                    Just node
 
-      (Just capability) →
-        let children = expandForCapability capability laws node
-            frontier' = insertAll required children frontier
-        in
-        astarWithFuel fuel required laws frontier'
+                  (Just capability) →
+                    let children = expandForCapability capability laws node
+                        frontier' = insertAll required children rest
+                    in
+                    astarWithFuel fuel' required laws frontier')
 
 astar :
   List Capability →
@@ -502,9 +525,15 @@ graphConcatMap _ [] = []
 graphConcatMap f (x ∷ xs) =
   graphAppend (f x) (graphConcatMap f xs)
 
+-- One unit token per law bounds the legacy depth-first enumeration
+-- without matching on Nat constructors in extracted Haskell.
+graphDepthFuel : List GraphLaw -> List ⊤
+graphDepthFuel [] = []
+graphDepthFuel (_ ∷ laws) = tt ∷ graphDepthFuel laws
+
 mutual
   graphSearchChildren :
-    Nat ->
+    List ⊤ ->
     List GraphLaw ->
     List GraphNode ->
     List (List String)
@@ -515,12 +544,12 @@ mutual
       (graphSearchChildren depth laws nodes)
 
   graphSearchDepth :
-    Nat ->
+    List ⊤ ->
     List GraphLaw ->
     GraphNode ->
     List (List String)
-  graphSearchDepth zero _ _ = []
-  graphSearchDepth (suc depth) laws node =
+  graphSearchDepth [] _ _ = []
+  graphSearchDepth (_ ∷ depth) laws node =
     if graphMaximalDependencyChain (graphNodePlan node) laws then
       (graphNodePlan node) ∷ []
     else
@@ -530,7 +559,7 @@ mutual
         (graphExpandNode node laws)
 
 graphSearchSeeds :
-  Nat ->
+  List ⊤ ->
   List GraphLaw ->
   List GraphNode ->
   List (List String)
@@ -569,7 +598,7 @@ autonomousGraphSearch edges =
       seeds = graphLawSeeds laws
       candidates =
         graphSearchSeeds
-          (listLengthNat laws)
+          (graphDepthFuel laws)
           laws
           seeds
   in
@@ -633,7 +662,7 @@ autonomousGraphSearchFromRoot root edges =
   in
   graphSortPlans
     (graphSearchDepth
-      (listLengthNat laws)
+      (graphDepthFuel laws)
       laws
       (MkGraphNode (root ∷ [])))
 
@@ -1639,15 +1668,70 @@ main = do
 {-# COMPILE AGDA2HS GraphLaw #-}
 {-# COMPILE AGDA2HS GraphNode #-}
 {-# COMPILE AGDA2HS autonomousGraphSearch #-}
+{-# COMPILE AGDA2HS graphLawForName #-}
+{-# COMPILE AGDA2HS graphLawAddDependency #-}
+{-# COMPILE AGDA2HS ensureGraphLaw #-}
+{-# COMPILE AGDA2HS graphLawsFromEdges #-}
+{-# COMPILE AGDA2HS graphLawSeeds #-}
+{-# COMPILE AGDA2HS graphContains #-}
+{-# COMPILE AGDA2HS graphExpandDependencies #-}
+{-# COMPILE AGDA2HS graphExpandNode #-}
+{-# COMPILE AGDA2HS graphNodeScore #-}
+{-# COMPILE AGDA2HS graphInsert #-}
+{-# COMPILE AGDA2HS graphInsertAll #-}
+{-# COMPILE AGDA2HS graphEdgeValid #-}
+{-# COMPILE AGDA2HS graphValidChain #-}
+{-# COMPILE AGDA2HS graphAllUnique #-}
+{-# COMPILE AGDA2HS graphValidPlan #-}
+{-# COMPILE AGDA2HS graphFirst #-}
+{-# COMPILE AGDA2HS graphDependenciesCovered #-}
+{-# COMPILE AGDA2HS graphPlanHeadIsLeaf #-}
+{-# COMPILE AGDA2HS graphMaximalDependencyChain #-}
+{-# COMPILE AGDA2HS graphAppend #-}
+{-# COMPILE AGDA2HS graphConcatMap #-}
+{-# COMPILE AGDA2HS graphDepthFuel #-}
+{-# COMPILE AGDA2HS graphSearchChildren #-}
+{-# COMPILE AGDA2HS graphSearchDepth #-}
+{-# COMPILE AGDA2HS graphSearchSeeds #-}
+{-# COMPILE AGDA2HS graphPlanScore #-}
+{-# COMPILE AGDA2HS graphInsertPlan #-}
+{-# COMPILE AGDA2HS graphSortPlans #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchRegression #-}
 {-# COMPILE AGDA2HS graphDependencyOrderRegression #-}
 {-# COMPILE AGDA2HS graphTwoLeafBranchesRegression #-}
 {-# COMPILE AGDA2HS graphAStarTieBreakRegression #-}
+{-# COMPILE AGDA2HS GraphAStarNode #-}
+{-# COMPILE AGDA2HS GraphAStarBestCost #-}
 {-# COMPILE AGDA2HS graphCycleIsRejectedRegression #-}
+{-# COMPILE AGDA2HS graphStringPathEqual #-}
+{-# COMPILE AGDA2HS graphPathMember #-}
+{-# COMPILE AGDA2HS graphNodePlanMember #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchCount #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchReport #-}
 {-# COMPILE AGDA2HS SearchNode #-}
 {-# COMPILE AGDA2HS requiredCapabilities #-}
+{-# COMPILE AGDA2HS repeatBy #-}
+{-# COMPILE AGDA2HS factorialFuel #-}
+{-# COMPILE AGDA2HS searchFuel #-}
+{-# COMPILE AGDA2HS astarWithFuel #-}
+{-# COMPILE AGDA2HS factorial #-}
+{-# COMPILE AGDA2HS recNat #-}
+{-# COMPILE AGDA2HS listLengthNat #-}
+{-# COMPILE AGDA2HS planContains #-}
+{-# COMPILE AGDA2HS capabilityCovered #-}
+{-# COMPILE AGDA2HS addCapability #-}
+{-# COMPILE AGDA2HS allRequiredCovered #-}
+{-# COMPILE AGDA2HS missingCount #-}
+{-# COMPILE AGDA2HS dependenciesSatisfied #-}
+{-# COMPILE AGDA2HS coversLaw #-}
+{-# COMPILE AGDA2HS firstMissing #-}
+{-# COMPILE AGDA2HS expandForCapability #-}
+{-# COMPILE AGDA2HS nodeCost #-}
+{-# COMPILE AGDA2HS nodeHeuristic #-}
+{-# COMPILE AGDA2HS nodeScore #-}
+{-# COMPILE AGDA2HS higherQ #-}
+{-# COMPILE AGDA2HS insertByScore #-}
+{-# COMPILE AGDA2HS insertAll #-}
 {-# COMPILE AGDA2HS canonicalLaws #-}
 {-# COMPILE AGDA2HS astar #-}
 {-# COMPILE AGDA2HS canonicalSearch #-}
@@ -1659,6 +1743,21 @@ main = do
 {-# COMPILE AGDA2HS semanticSearchReport #-}
 {-# COMPILE AGDA2HS canonicalGraphRoot #-}
 {-# COMPILE AGDA2HS parseDotEdges #-}
+{-# COMPILE AGDA2HS stripDotPrefix #-}
+{-# COMPILE AGDA2HS stripDotSuffixRev #-}
+{-# COMPILE AGDA2HS stripDotSuffix #-}
+{-# COMPILE AGDA2HS stripDotToken #-}
+{-# COMPILE AGDA2HS parseDotLine #-}
+{-# COMPILE AGDA2HS graphAStarKnownCost #-}
+{-# COMPILE AGDA2HS graphAStarRememberCost #-}
+{-# COMPILE AGDA2HS graphAStarCanImprove #-}
+{-# COMPILE AGDA2HS graphAStarHeuristic #-}
+{-# COMPILE AGDA2HS graphAStarScore #-}
+{-# COMPILE AGDA2HS graphAStarInsert #-}
+{-# COMPILE AGDA2HS graphAStarInsertAll #-}
+{-# COMPILE AGDA2HS graphAStarWrapChildren #-}
+{-# COMPILE AGDA2HS graphAStarExpandNode #-}
+{-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchFromRoot #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearch #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearchCount #-}

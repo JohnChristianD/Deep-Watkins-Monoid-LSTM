@@ -1,50 +1,32 @@
-{-# OPTIONS
---lossy-unification
---sized-types
---exact-split
---erasure
---no-projection-like
---erased-matches
---erase-record-parameters
---prop
---confluence-check
---two-level
---rewriting
---level-universe
---cumulativity
---auto-inline
---polarity
---flat-split
---omega-in-omega
---large-indices
---no-forced-argument-recursion
---with-K
---no-guardedness
-#-}
-
-
 ------------------------------------------------------------------------
--- Vendored from iwilare/formal-methods (SeparationLogic.agda), MIT-licensed upstream.
--- Namespaced locally so theorem-specific imports cannot collide with the
--- existing FullCoupled proof surface.
+-- Restored from iwilare/formal-methods upstream (MIT-licensed).
+-- Local module path and sibling imports are namespaced for this repository.
 ------------------------------------------------------------------------
-
 module FullCoupled.FormalMethods.SeparationLogic where
 
-
-module Eq where
-  pattern [_] eq = _ , ingraph eq
+open import Data.Nat    using (ℕ; _+_) renaming (_≤?_ to _≤?ₙ_)
+open import Data.Bool   using (Bool; true; false; not; _∧_)
+open import Data.String using (String)
+open import Data.Sum    using (_⊎_; [_,_]; inj₁; inj₂)
+open import Relation.Binary using (Decidable)
+open import Relation.Nullary           using (yes; no; ¬_)
+open import Relation.Nullary.Negation  using (contradiction)
+open import Data.List                  using (List; []; _∷_)
+open import Relation.Nullary.Decidable using (⌊_⌋)
+open import Data.Empty                 using (⊥-elim)
+open import Data.Product               using (_×_; -,_; _-,-_; ∃; ∃-syntax) renaming (_,_ to _,,_)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym)
+open import Level using (Level; suc; _⊔_)
+open import Agda.Builtin.Sigma hiding (_,_) -- renaming (_,_ to _,,_)
+open import Data.Maybe using (Maybe; just; nothing; Is-just)
+import Relation.Binary.PropositionalEquality as Eq
 
 open import FullCoupled.FormalMethods.IMP hiding (com; state) ---using (aexp; aval; bexp; bval)
 
 postulate
-  _≟_ : Dec ( _≡_ {A = Nat})
+  _≟_ : Decidable {A = ℕ} _≡_
 
-_⊎_ = Either
-inj₁ = left
-inj₂ = right
-
-addr = Nat
+addr = ℕ
 
 heap = addr → Maybe val
 

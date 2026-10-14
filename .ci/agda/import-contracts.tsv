@@ -1,6 +1,5 @@
 # mode<TAB>path<TAB>prefix<TAB>expected-line<TAB>expected-count
 sync	FullCoupled/TheoremsMonolith.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
-sync	FullCoupled/TheoremsMonolith.agda	import FullCoupled.LearnerLogicalSpec	import FullCoupled.LearnerLogicalSpec as LearnerLogicalSpec	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prelude	open import Haskell.Prelude public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Equality	open import Agda.Builtin.Equality public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Equality.Rewrite	open import Agda.Builtin.Equality.Rewrite public	1
@@ -11,6 +10,74 @@ sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Has
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS recNat #-}	{-# COMPILE AGDA2HS recNat #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS factorial #-}	{-# COMPILE AGDA2HS factorial #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphStringPathEqual #-}	{-# COMPILE AGDA2HS graphStringPathEqual #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathMember #-}	{-# COMPILE AGDA2HS graphPathMember #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphNodePlanMember #-}	{-# COMPILE AGDA2HS graphNodePlanMember #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS GraphAStarNode #-}	{-# COMPILE AGDA2HS GraphAStarNode #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS GraphAStarBestCost #-}	{-# COMPILE AGDA2HS GraphAStarBestCost #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS stripDotPrefix #-}	{-# COMPILE AGDA2HS stripDotPrefix #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS stripDotSuffixRev #-}	{-# COMPILE AGDA2HS stripDotSuffixRev #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS stripDotSuffix #-}	{-# COMPILE AGDA2HS stripDotSuffix #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS stripDotToken #-}	{-# COMPILE AGDA2HS stripDotToken #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS parseDotLine #-}	{-# COMPILE AGDA2HS parseDotLine #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarKnownCost #-}	{-# COMPILE AGDA2HS graphAStarKnownCost #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarRememberCost #-}	{-# COMPILE AGDA2HS graphAStarRememberCost #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarCanImprove #-}	{-# COMPILE AGDA2HS graphAStarCanImprove #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarHeuristic #-}	{-# COMPILE AGDA2HS graphAStarHeuristic #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarScore #-}	{-# COMPILE AGDA2HS graphAStarScore #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarInsert #-}	{-# COMPILE AGDA2HS graphAStarInsert #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarInsertAll #-}	{-# COMPILE AGDA2HS graphAStarInsertAll #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarWrapChildren #-}	{-# COMPILE AGDA2HS graphAStarWrapChildren #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarExpandNode #-}	{-# COMPILE AGDA2HS graphAStarExpandNode #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}	{-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS searchFuel #-}	{-# COMPILE AGDA2HS searchFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS astarWithFuel #-}	{-# COMPILE AGDA2HS astarWithFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDepthFuel #-}	{-# COMPILE AGDA2HS graphDepthFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphSearchChildren #-}	{-# COMPILE AGDA2HS graphSearchChildren #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphSearchDepth #-}	{-# COMPILE AGDA2HS graphSearchDepth #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphSearchSeeds #-}	{-# COMPILE AGDA2HS graphSearchSeeds #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPlanScore #-}	{-# COMPILE AGDA2HS graphPlanScore #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphInsertPlan #-}	{-# COMPILE AGDA2HS graphInsertPlan #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphSortPlans #-}	{-# COMPILE AGDA2HS graphSortPlans #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphLawForName #-}	{-# COMPILE AGDA2HS graphLawForName #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphLawAddDependency #-}	{-# COMPILE AGDA2HS graphLawAddDependency #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS ensureGraphLaw #-}	{-# COMPILE AGDA2HS ensureGraphLaw #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphLawsFromEdges #-}	{-# COMPILE AGDA2HS graphLawsFromEdges #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphLawSeeds #-}	{-# COMPILE AGDA2HS graphLawSeeds #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphContains #-}	{-# COMPILE AGDA2HS graphContains #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphExpandDependencies #-}	{-# COMPILE AGDA2HS graphExpandDependencies #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphExpandNode #-}	{-# COMPILE AGDA2HS graphExpandNode #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphNodeScore #-}	{-# COMPILE AGDA2HS graphNodeScore #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphInsert #-}	{-# COMPILE AGDA2HS graphInsert #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphInsertAll #-}	{-# COMPILE AGDA2HS graphInsertAll #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphEdgeValid #-}	{-# COMPILE AGDA2HS graphEdgeValid #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphValidChain #-}	{-# COMPILE AGDA2HS graphValidChain #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAllUnique #-}	{-# COMPILE AGDA2HS graphAllUnique #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphValidPlan #-}	{-# COMPILE AGDA2HS graphValidPlan #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphFirst #-}	{-# COMPILE AGDA2HS graphFirst #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDependenciesCovered #-}	{-# COMPILE AGDA2HS graphDependenciesCovered #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPlanHeadIsLeaf #-}	{-# COMPILE AGDA2HS graphPlanHeadIsLeaf #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphMaximalDependencyChain #-}	{-# COMPILE AGDA2HS graphMaximalDependencyChain #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAppend #-}	{-# COMPILE AGDA2HS graphAppend #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphConcatMap #-}	{-# COMPILE AGDA2HS graphConcatMap #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS listLengthNat #-}	{-# COMPILE AGDA2HS listLengthNat #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS planContains #-}	{-# COMPILE AGDA2HS planContains #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS capabilityCovered #-}	{-# COMPILE AGDA2HS capabilityCovered #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS addCapability #-}	{-# COMPILE AGDA2HS addCapability #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS allRequiredCovered #-}	{-# COMPILE AGDA2HS allRequiredCovered #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS missingCount #-}	{-# COMPILE AGDA2HS missingCount #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS dependenciesSatisfied #-}	{-# COMPILE AGDA2HS dependenciesSatisfied #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS coversLaw #-}	{-# COMPILE AGDA2HS coversLaw #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS firstMissing #-}	{-# COMPILE AGDA2HS firstMissing #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS expandForCapability #-}	{-# COMPILE AGDA2HS expandForCapability #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeCost #-}	{-# COMPILE AGDA2HS nodeCost #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeHeuristic #-}	{-# COMPILE AGDA2HS nodeHeuristic #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeScore #-}	{-# COMPILE AGDA2HS nodeScore #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS higherQ #-}	{-# COMPILE AGDA2HS higherQ #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS insertByScore #-}	{-# COMPILE AGDA2HS insertByScore #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS insertAll #-}	{-# COMPILE AGDA2HS insertAll #-}	1
 sync	FullCoupled/Agda2HsGraphSearchCheck.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Ord.Ordering	open import Haskell.Law.Ord.Ordering public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Size	open import Agda.Builtin.Size public	1
@@ -74,6 +141,7 @@ require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS dependency
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS findDependencies #-}	{-# COMPILE AGDA2HS findDependencies #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS semanticSignature #-}	{-# COMPILE AGDA2HS semanticSignature #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS semanticReflexive #-}	{-# COMPILE AGDA2HS semanticReflexive #-}	1
+require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS hasAtLeastTwoDependencies #-}	{-# COMPILE AGDA2HS hasAtLeastTwoDependencies #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS semanticLawsFromDeclarations #-}	{-# COMPILE AGDA2HS semanticLawsFromDeclarations #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS readSourceDeclarations #-}	{-# COMPILE AGDA2HS readSourceDeclarations #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS readAllSources #-}	{-# COMPILE AGDA2HS readAllSources #-}	1

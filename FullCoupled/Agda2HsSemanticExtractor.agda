@@ -1,6 +1,7 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude
+import Haskell.Prim as Prim
 
 
 CharList : Type
@@ -686,9 +687,11 @@ charListLength [] = zero
 charListLength (_ ∷ rest) = suc (charListLength rest)
 
 dropN : Nat -> CharList -> CharList
-dropN zero chars = chars
-dropN (suc n) [] = []
-dropN (suc n) (_ ∷ rest) = dropN n rest
+dropN _ [] = []
+dropN n (c ∷ rest) =
+  if Prim.eqNat n 0
+  then c ∷ rest
+  else dropN (Prim.monusNat n 1) rest
 
 matchesPrefix :
   CharList ->
@@ -1008,6 +1011,7 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS findDependencies #-}
 {-# COMPILE AGDA2HS semanticSignature #-}
 {-# COMPILE AGDA2HS semanticReflexive #-}
+{-# COMPILE AGDA2HS hasAtLeastTwoDependencies #-}
 {-# COMPILE AGDA2HS semanticLawsFromDeclarations #-}
 {-# COMPILE AGDA2HS readSourceDeclarations #-}
 {-# COMPILE AGDA2HS readAllSources #-}
