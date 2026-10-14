@@ -500,7 +500,7 @@ module BetaOptimalityBoundary where
 
   infixl 6 _+B_
   _+B_ : BNat → BNat → BNat
-  bzero +B n = n
+  0 +B n = n
   bsuc m +B n = bsuc (m +B n)
 
   Not : Set → Set
@@ -519,7 +519,7 @@ module BetaOptimalityBoundary where
   counterReward beta rightAction rightAction = bzero
 
   noSuccessorBoundedBySelf : (n : BNat) → Not (_≤B_ (bsuc n) n)
-  noSuccessorBoundedBySelf bzero ()
+  noSuccessorBoundedBySelf 0 ()
   noSuccessorBoundedBySelf (bsuc n) (succLeB evidence) =
     noSuccessorBoundedBySelf n evidence
 
