@@ -10,6 +10,21 @@ sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Has
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS stripDotPrefix #-}	{-# COMPILE AGDA2HS stripDotPrefix #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS stripDotSuffixRev #-}	{-# COMPILE AGDA2HS stripDotSuffixRev #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS stripDotSuffix #-}	{-# COMPILE AGDA2HS stripDotSuffix #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS stripDotToken #-}	{-# COMPILE AGDA2HS stripDotToken #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS parseDotLine #-}	{-# COMPILE AGDA2HS parseDotLine #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarKnownCost #-}	{-# COMPILE AGDA2HS graphAStarKnownCost #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarRememberCost #-}	{-# COMPILE AGDA2HS graphAStarRememberCost #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarCanImprove #-}	{-# COMPILE AGDA2HS graphAStarCanImprove #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarHeuristic #-}	{-# COMPILE AGDA2HS graphAStarHeuristic #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarScore #-}	{-# COMPILE AGDA2HS graphAStarScore #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarInsert #-}	{-# COMPILE AGDA2HS graphAStarInsert #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarInsertAll #-}	{-# COMPILE AGDA2HS graphAStarInsertAll #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarWrapChildren #-}	{-# COMPILE AGDA2HS graphAStarWrapChildren #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarExpandNode #-}	{-# COMPILE AGDA2HS graphAStarExpandNode #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}	{-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS repeatBy #-}	{-# COMPILE AGDA2HS repeatBy #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS factorialFuel #-}	{-# COMPILE AGDA2HS factorialFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS searchFuel #-}	{-# COMPILE AGDA2HS searchFuel #-}	1
