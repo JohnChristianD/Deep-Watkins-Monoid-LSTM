@@ -188,7 +188,7 @@
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            exec "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
+            exec "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -i . "$@"
           '' ;
         };
 
@@ -204,7 +204,7 @@
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            exec agda "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
+            exec agda "''${agda_global_options[@]}" -i . "$@"
           '' ;
         };
 
@@ -221,7 +221,7 @@
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            exec agda2hs "''${agda_global_options[@]}" -l agda2hs-base -i . "$@"
+            exec agda2hs "''${agda_global_options[@]}" -i . "$@"
           '' ;
         };
     in
