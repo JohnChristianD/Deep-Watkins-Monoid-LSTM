@@ -147,6 +147,7 @@ let script = merge {
     nix run .#xds-agda-check
     nix run .#mini-vehicle-check
     nix run .#scott-strachey-domain-check
+    nix run .#monoid-lstm-stream-check
     echo 'agda-semantic-discovery=pass'
     '',  EconlibCrossrepo = ''
     set -euo pipefail
@@ -522,6 +523,7 @@ DHALL
     nix run .#xds-agda-check
     nix run .#mini-vehicle-check
     nix run .#scott-strachey-domain-check
+    nix run .#monoid-lstm-stream-check
     nix run .#agda2hs-semantic-search
     echo 'agda-all=pass'
   ''} lane
