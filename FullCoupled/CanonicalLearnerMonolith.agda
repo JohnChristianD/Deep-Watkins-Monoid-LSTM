@@ -2180,8 +2180,43 @@ CanonicalTokenSequence = List CanonicalToken
 canonicalTokenEncode : CanonicalToken → Int8
 canonicalTokenEncode = int8
 
+-- Int8 is currently an exact wrapper around unbounded Int. Its code
+-- projection is a left inverse, hence the token transport is globally
+-- injective (this is not a bounded machine-byte encoding).
+canonicalTokenEncodeLeftInverse :
+  ∀ token → code (canonicalTokenEncode token) ＝ token
+canonicalTokenEncodeLeftInverse token = refl
+
+canonicalTokenEncodeInjective :
+  ∀ {left right} →
+  canonicalTokenEncode left ＝ canonicalTokenEncode right →
+  left ＝ right
+canonicalTokenEncodeInjective {left} {right} encodedEquality =
+  trans
+    (sym (canonicalTokenEncodeLeftInverse left))
+    (trans
+      (ap code encodedEquality)
+      (canonicalTokenEncodeLeftInverse right))
+
 canonicalTokenEncodeList : CanonicalTokenSequence → List Int8
 canonicalTokenEncodeList = map canonicalTokenEncode
+
+canonicalTokenEncodeListLeftInverse :
+  ∀ tokens → map code (canonicalTokenEncodeList tokens) ＝ tokens
+canonicalTokenEncodeListLeftInverse [] = refl
+canonicalTokenEncodeListLeftInverse (token ∷ tokens) =
+  ap (_∷_ token) (canonicalTokenEncodeListLeftInverse tokens)
+
+canonicalTokenEncodeListInjective :
+  ∀ {left right} →
+  canonicalTokenEncodeList left ＝ canonicalTokenEncodeList right →
+  left ＝ right
+canonicalTokenEncodeListInjective {left} {right} encodedEquality =
+  trans
+    (sym (canonicalTokenEncodeListLeftInverse left))
+    (trans
+      (ap (map code) encodedEquality)
+      (canonicalTokenEncodeListLeftInverse right))
 
 canonicalTokenStep : GRUState → CanonicalToken → GRUState
 canonicalTokenStep s t = gruStep s (canonicalTokenEncode t)
