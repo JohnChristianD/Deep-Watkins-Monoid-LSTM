@@ -930,6 +930,17 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS semanticLawDependencies #-}
 {-# COMPILE AGDA2HS countNonreflexive #-}
 {-# COMPILE AGDA2HS countComposite #-}
+{-# COMPILE AGDA2HS syntaxHead #-}
+{-# COMPILE AGDA2HS topLevelLine #-}
+{-# COMPILE AGDA2HS splitFirstCharString #-}
+{-# COMPILE AGDA2HS splitFirstChar #-}
+{-# COMPILE AGDA2HS lineContainsChar #-}
+{-# COMPILE AGDA2HS containsChar #-}
+{-# COMPILE AGDA2HS secondWord #-}
+{-# COMPILE AGDA2HS firstWord #-}
+{-# COMPILE AGDA2HS trimWhitespace #-}
+{-# COMPILE AGDA2HS dropTrailingSpaces #-}
+{-# COMPILE AGDA2HS dropLeadingSpaces #-}
 {-# COMPILE AGDA2HS topLevelRecordHeader #-}
 {-# COMPILE AGDA2HS topLevelRecordHeaderRegression #-}
 {-# COMPILE AGDA2HS nestedRecordHeaderRejectedRegression #-}
