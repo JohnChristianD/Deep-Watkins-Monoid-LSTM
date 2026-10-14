@@ -42,6 +42,7 @@ test -f .ci/agda/import-contracts.tsv
 test -f .ci/agda/global-options.txt
 grep -Fxq -- '--erasure' .ci/agda/global-options.txt
 grep -Fxq -- '--no-projection-like' .ci/agda/global-options.txt
+! grep -Fq -- '-l agda2hs-base' flake.nix || { echo "do not require an unregistered Agda library name" >&2; exit 1; }
 
 # The legacy monoliths are source-inventory-only until their stale imports are
 # ported. Even so, do not let an inconsistent/untrusted option set accumulate.
