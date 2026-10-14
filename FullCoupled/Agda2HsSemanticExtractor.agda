@@ -943,4 +943,5 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS isAsciiAlphaRegression #-}
 {-# COMPILE AGDA2HS isAsciiDigitRegression #-}
 {-# COMPILE AGDA2HS isSpaceRegression #-}
+{-# COMPILE AGDA2HS planContains #-}
 {-# COMPILE AGDA2HS planContainsRegression #-}
