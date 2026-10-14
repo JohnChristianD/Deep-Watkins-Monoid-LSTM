@@ -177,6 +177,9 @@
 (assert (= (count-exact-line options "--verbose=1") 1) "global options must use CLI spelling --verbose=1 exactly once")
 (assert (= (count-exact-line options "-v=1") 0) "source-pragma verbosity spelling -v=1 must not be passed through the CLI wrapper")
 (assert (= (count-exact-line options "--no-projection-like") 1) "global options must contain --no-projection-like exactly once")
+(assert (= (count-exact-line options "--cumulativity") 0) "--cumulativity must stay file-local")
+(assert (= (count-exact-line options "--rewriting") 0) "--rewriting must stay file-local")
+(assert (= (count-exact-line options "--flat-split") 0) "--flat-split must stay file-local")
 (assert (not (string.find options "--guardedness" 1 true))
   "--guardedness is module/lane-specific and must not be made global")
 

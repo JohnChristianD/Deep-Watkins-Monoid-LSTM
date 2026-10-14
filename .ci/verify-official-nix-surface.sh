@@ -44,6 +44,12 @@ grep -Fxq -- '--erasure' .ci/agda/global-options.txt
 grep -Fxq -- '--verbose=1' .ci/agda/global-options.txt
 ! grep -Fxq -- '-v=1' .ci/agda/global-options.txt || { echo "use command-line --verbose=1, not pragma -v=1" >&2; exit 1; }
 grep -Fxq -- '--no-projection-like' .ci/agda/global-options.txt
+for option in --cumulativity --rewriting --flat-split; do
+  ! grep -Fxq -- "$option" .ci/agda/global-options.txt || {
+    echo "option must stay file-local: $option" >&2
+    exit 1
+  }
+done
 ! grep -Fq -- '-l agda2hs-base' flake.nix || { echo "do not require an unregistered Agda library name" >&2; exit 1; }
 grep -Fq 'agda2hs_base_root' flake.nix || { echo "Agda2HS base source root must be explicit in wrappers" >&2; exit 1; }
 

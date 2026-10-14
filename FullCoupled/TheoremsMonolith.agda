@@ -1,3 +1,5 @@
+{-# OPTIONS --cumulativity --rewriting --flat-split #-}
+
 ------------------------------------------------------------------------
 -- Canonical theorem semantics and emergence layer.
 -- Baseline reconstruction: current imports/options over the last green body.

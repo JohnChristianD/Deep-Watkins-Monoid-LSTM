@@ -6,6 +6,7 @@
   --guarded
   --no-infer-absurd-clauses
   --allow-exec
+  --rewriting
 #-}
 
 module FullCoupled.LearnerLogicalSpec where

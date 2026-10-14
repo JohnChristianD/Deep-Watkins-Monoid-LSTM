@@ -1,3 +1,5 @@
+{-# OPTIONS --cumulativity --rewriting --flat-split #-}
+
 ------------------------------------------------------------------------
 -- Canonical learner semantics.
 --
