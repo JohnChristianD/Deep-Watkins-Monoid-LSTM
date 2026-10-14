@@ -1,15 +1,3 @@
---lossy-unification
---experimental-lazy-instances
---sized-types
---exact-split
---no-projection-like
---erased-matches
 --erasure
---erase-record-parameters
---prop
---confluence-check
---two-level
---level-universe
---auto-inline
---polarity
+--no-projection-like
 --verbose=1

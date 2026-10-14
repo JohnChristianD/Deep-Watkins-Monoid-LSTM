@@ -44,7 +44,7 @@ grep -Fxq -- '--erasure' .ci/agda/global-options.txt
 grep -Fxq -- '--verbose=1' .ci/agda/global-options.txt
 ! grep -Fxq -- '-v=1' .ci/agda/global-options.txt || { echo "use command-line --verbose=1, not pragma -v=1" >&2; exit 1; }
 grep -Fxq -- '--no-projection-like' .ci/agda/global-options.txt
-for option in --cumulativity --rewriting --flat-split; do
+for option in --lossy-unification --experimental-lazy-instances --sized-types --exact-split --erased-matches --erase-record-parameters --prop --confluence-check --two-level --level-universe --auto-inline --polarity --cumulativity --rewriting --flat-split; do
   ! grep -Fxq -- "$option" .ci/agda/global-options.txt || {
     echo "option must stay file-local: $option" >&2
     exit 1

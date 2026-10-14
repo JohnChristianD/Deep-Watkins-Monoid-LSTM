@@ -1,4 +1,20 @@
-{-# OPTIONS --cumulativity --rewriting --flat-split #-}
+{-# OPTIONS
+  --lossy-unification
+  --experimental-lazy-instances
+  --sized-types
+  --exact-split
+  --erased-matches
+  --erase-record-parameters
+  --prop
+  --confluence-check
+  --two-level
+  --rewriting
+  --level-universe
+  --cumulativity
+  --auto-inline
+  --polarity
+  --flat-split
+#-}
 
 ------------------------------------------------------------------------
 -- Canonical theorem semantics and emergence layer.
