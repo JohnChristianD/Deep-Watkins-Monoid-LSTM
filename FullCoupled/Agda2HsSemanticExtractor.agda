@@ -686,7 +686,7 @@ charListLength [] = zero
 charListLength (_ ∷ rest) = suc (charListLength rest)
 
 dropN : Nat -> CharList -> CharList
-dropN zero chars = chars
+dropN 0 chars = chars
 dropN (suc n) [] = []
 dropN (suc n) (_ ∷ rest) = dropN n rest
 
