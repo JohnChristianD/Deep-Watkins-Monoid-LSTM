@@ -2919,7 +2919,7 @@ module CanonicalBellmanOrderTheory where
   neuralPolicyGreedyOptimalAtBellmanValue M exactQ state action =
     OmegaCPO.transω (mdpScalarDomain M)
       (scalarEqualityImpliesOrder M
-        (sym (exactQ state action)))
+        (OmegaKleeneFixedPoint.symEq (mdpScalarDomain M) (exactQ state action)))
       (OmegaCPO.transω (mdpScalarDomain M)
         (nnGreedy M state action)
         (scalarEqualityImpliesOrder M
