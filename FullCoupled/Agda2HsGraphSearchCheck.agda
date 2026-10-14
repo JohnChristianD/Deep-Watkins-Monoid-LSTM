@@ -11,6 +11,7 @@ graphSearchContractPassed =
   Search.graphDependencyOrderRegression
     && Search.graphTwoLeafBranchesRegression
     && Search.graphAStarTieBreakRegression
+    && Search.graphAStarBestGRegression
     && Search.graphCycleIsRejectedRegression
     && Search.autonomousGraphSearchRegression
 
@@ -25,6 +26,9 @@ main = do
   putStrLn
     ("graph-best-first-tie="
       ++ show Search.graphAStarTieBreakRegression)
+  putStrLn
+    ("graph-best-g-policy="
+      ++ show Search.graphAStarBestGRegression)
   putStrLn
     ("graph-cycle-rejected="
       ++ show Search.graphCycleIsRejectedRegression)

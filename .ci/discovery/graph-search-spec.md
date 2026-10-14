@@ -55,11 +55,21 @@ leaves no further child, that is a dead end, not success.
   is the number of laws. Since accepted paths contain no repeated ID, this
   bound covers every simple path. Its report must say DFS/maximal dependency
   chains, never A*.
-- `graphAStarFirst` is a separate best-first single-plan search. Cost is
-  `g(path) = length(path)`; heuristic is 0 for a leaf (or unknown node) and
-  1 for a node with dependencies. This is an admissible lower bound because
-  every non-leaf needs at least one additional edge to reach a leaf. Insertion
-  uses `<=`, so an incoming equal-score node precedes the existing node.
+- `graphAStarFirst` is a separate best-first single-plan search, with
+  JAxtar's default discrete A* policy preserved. The root has `g=0`, each
+  dependency edge costs one, and the heuristic is 0 for a leaf (or unknown
+  node) and 1 for a node with dependencies. Its weighted score is the exact
+  integer scaling of JAxtar's default `f = (1 - 10^-6)g + h`:
+  `999999*g + 1000000*h`. A non-leaf needs at least one additional edge to
+  reach a leaf, so `h=1` is a lower bound. Queue insertion uses `<=`, so an
+  incoming equal-score node precedes an existing node.
+- As in JAxtar's strict `optimal_mask` policy, a best-g table is keyed by the
+  active law ID. Enqueue only when a candidate has a strictly lower g-cost;
+  equal/worse duplicates are discarded and stale queue entries are skipped.
+  The Agda version is a scalar list-based search, not JAxtar's batched JAX GPU
+  implementation, hash table, or parent-array implementation. Its state,
+  cost, score, deduplication, and tie-breaking policy are specified separately
+  from implementation-level vectorization.
 - Best-first search rejects repeated IDs and uses fuel `3 * factorial(n)`.
   Non-empty simple ordered paths are bounded by
   `sum(n!/(n-k)!, k=1..n) < 3*n!`. Fuel exhaustion returns `Nothing`; alone
@@ -80,6 +90,8 @@ Agda reduces these checks to `True`, and generated Haskell prints the same:
 - `graphCycleIsRejectedRegression`: A → B → A is not a maximal chain.
 - `graphAStarTieBreakRegression`: equal-score insertion follows the
   incoming-first rule.
+- `graphAStarBestGRegression`: only strictly cheaper duplicate states are
+  enqueued, matching JAxtar's best-cost rule.
 - Semantic-law and symbolic e-graph regressions remain separate.
 
 The DOT parser is intentionally narrow: it accepts lines whose first three
