@@ -1755,6 +1755,8 @@ main = do
 {-# COMPILE AGDA2HS autonomousCanonicalGraphReport #-}
 {-# COMPILE AGDA2HS semanticGraphLaw #-}
 {-# COMPILE AGDA2HS semanticGraphLaws #-}
+{-# COMPILE AGDA2HS semanticLawForName #-}
+{-# COMPILE AGDA2HS semanticLawCanSeed #-}
 {-# COMPILE AGDA2HS requiredTheoremNames #-}
 {-# COMPILE AGDA2HS requiredSubcompositionNames #-}
 {-# COMPILE AGDA2HS requiredNames #-}
