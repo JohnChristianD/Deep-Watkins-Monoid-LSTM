@@ -12,3 +12,5 @@ sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open 
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsGraphSearchCheck.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Ord.Ordering	open import Haskell.Law.Ord.Ordering public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Size	open import Agda.Builtin.Size public	1

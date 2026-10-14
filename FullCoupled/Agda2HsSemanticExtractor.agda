@@ -44,8 +44,8 @@ isSourceSpace c =
   else eqChar c '\t'
 
 data SemanticKind : Type where
-  semantic-top-level : SemanticKind
-  semantic-record-field : SemanticKind
+  SemanticTopLevel : SemanticKind
+  SemanticRecordField : SemanticKind
 
 record SemanticDecl : Type where
   no-eta-equality; pattern
@@ -369,7 +369,7 @@ finalizeScanState sourceFile
     name
     (unwordsString (reverse signatureReversed))
     ""
-    semantic-top-level
+    SemanticTopLevel
     ""
   ∷ accumulator
 finalizeScanState sourceFile
@@ -380,7 +380,7 @@ finalizeScanState sourceFile
     name
     (unwordsString (reverse signatureReversed))
     (unwordsString (reverse bodyReversed))
-    semantic-top-level
+    SemanticTopLevel
     ""
   ∷ accumulator
 
@@ -566,7 +566,7 @@ finalizeRecordFieldState sourceFile
     (recordName ++ "." ++ fieldName)
     (unwordsString (reverse signatureReversed))
     ""
-    semantic-record-field
+    SemanticRecordField
     recordName
   ∷ accumulator
 
@@ -882,8 +882,8 @@ isComposite law = lawComposite law
 isRecordField : SemanticLaw -> Bool
 isRecordField law =
   case lawKind law of λ where
-    semantic-record-field -> True
-    semantic-top-level -> False
+    SemanticRecordField -> True
+    SemanticTopLevel -> False
 
 normalizeSignature : String -> String
 normalizeSignature signature =
@@ -934,6 +934,12 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS nestedRecordHeaderRejectedRegression #-}
 {-# COMPILE AGDA2HS bodyClauseRegression #-}
 {-# COMPILE AGDA2HS bodyClauseRejectsIndentedRegression #-}
+{-# COMPILE AGDA2HS charBetween #-}
+{-# COMPILE AGDA2HS isAsciiAlpha #-}
+{-# COMPILE AGDA2HS isAsciiDigit #-}
+{-# COMPILE AGDA2HS isSourceSpace #-}
+{-# COMPILE AGDA2HS isSpace #-}
+{-# COMPILE AGDA2HS isIdentifierChar #-}
 {-# COMPILE AGDA2HS isAsciiAlphaRegression #-}
 {-# COMPILE AGDA2HS isAsciiDigitRegression #-}
 {-# COMPILE AGDA2HS isSpaceRegression #-}
