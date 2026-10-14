@@ -11,12 +11,10 @@
   --two-level
   --rewriting
   --level-universe
-  --omega-in-omega
   --cumulativity
+  --auto-inline
   --polarity
   --flat-split
-  --large-indices
-  --forced-argument-recursion
   -v=1
 #-}
 
@@ -48,6 +46,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude public
 open import Haskell.Law public
+open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public
 open import Haskell.Law.Extensionality public
 open import Haskell.Law.Functor.FromMonad public
@@ -55,6 +54,7 @@ open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
 open import Haskell.Law.Monad.List public
 open import Haskell.Law.Monoid.List public
+open import Haskell.Law.Ord.Ordering public
 open import Haskell.Prim.Thunks public
 open import Haskell.Prim.Equality public
 open import Haskell.Prim.Absurd public
@@ -67,6 +67,7 @@ open import Agda.Builtin.Equality public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Reflection public
 open import Agda.Builtin.Coinduction public
+open import Agda.Builtin.Size public
 
 variable
   ℓ ℓ₁ ℓ₂ ℓ₃ ℓ₄ : Level

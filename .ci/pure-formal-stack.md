@@ -87,3 +87,11 @@ The tracked Agda/Literate Agda sources have no Cubical imports, Cubical option p
 This does not claim complete source-level TypeTopology retirement: the legacy theorem and logical-spec modules still use APIs previously supplied by TypeTopology. Those imports require an explicit symbol-by-symbol port plus proof repair, or a conscious decision to retire the corresponding theorem surface; deleting import lines alone would break their typechecking contract.
 
 The `.#agda` package exposes an executable named `agda` with the centralized common flags, and `.#agda-emacs` puts that wrapper ahead of the Nix-provided Agda mode. The separate `agda2hs-agda` wrapper remains available for CI and explicit Agda2HS-specific workflows.
+
+## Legacy option hardening (2026-10-13)
+
+Removed `--type-in-type`, `--no-termination-check`, `--no-positivity-check`, and `--no-fast-reduce` from the two legacy learner source pragmas. Also removed `--large-indices` together with `--forced-argument-recursion`: the Agda manual documents that pair as inconsistent. `--omega-in-omega` is deliberately prohibited because it enables `Setω : Setω` and makes Agda inconsistent. The CI Nix-surface script now guards against reintroducing these options.
+
+This hardening does **not** certify either legacy monolith: they still contain TypeTopology-era imports and are excluded from the current kernel-check lane. They remain source inventory until those imports and dependent proofs are ported and a clean kernel check is added. The active pure Agda2HS modules are independently kernel-checked. Do not describe this source change alone as a proof result.
+
+The centralized global option file remains `.ci/agda/global-options.txt` with only the project's established common flags. `--exact-split` is already the default in the pinned Agda 2.8 toolchain. `--polarity`, `--two-level`, `--cumulativity`, and `--auto-inline` are not being forced globally: they affect type checking/elaboration or serve specialized use cases and should be enabled only where a verified module needs them. `--level-universe` remains file-local where already required.

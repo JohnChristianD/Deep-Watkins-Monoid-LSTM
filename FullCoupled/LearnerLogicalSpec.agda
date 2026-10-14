@@ -2,7 +2,6 @@
 -- C.Int8 is an unbounded integer wrapper (C.Int = ℤ), not bounded 8-bit
 -- arithmetic.  No descent proof is postulated or claimed by this module.
 {-# OPTIONS
-  --no-fast-reduce
   --lossy-unification
   --backtracking-instance-search
   --experimental-lazy-instances
@@ -16,9 +15,6 @@
   --allow-exec
   --level-universe
   --rewriting
-  --no-termination-check
-  --type-in-type
-  --no-positivity-check
 #-}
 
 {-# OPTIONS
