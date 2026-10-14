@@ -4,15 +4,15 @@ open import Haskell.Prelude
 
 
 data Expr : Type where
-  atom : String -> Expr
-  app : String -> List Expr -> Expr
+  ExprAtom : String -> Expr
+  ExprApp : String -> List Expr -> Expr
 
 data Pattern : Type where
-  pvar : String -> Pattern
-  papp : String -> List Pattern -> Pattern
+  PatternVar : String -> Pattern
+  PatternApp : String -> List Pattern -> Pattern
 
 record RewriteRule : Type where
-  constructor rewriteRule
+  constructor MkRewriteRule
   field
     ruleName : String
     lhs : Pattern
@@ -21,7 +21,7 @@ record RewriteRule : Type where
 open RewriteRule public
 
 record ENode : Type where
-  constructor enode
+  constructor MkENode
   field
     symbol : String
     children : List Nat
@@ -29,7 +29,7 @@ record ENode : Type where
 open ENode public
 
 record Binding : Type where
-  constructor binding
+  constructor MkBinding
   field
     node : ENode
     classId : Nat
@@ -47,13 +47,13 @@ natListCount (_ ∷ rest) = suc (natListCount rest)
 bindingCountRegression : Bool
 bindingCountRegression =
   bindingCount [] == zero
-  && bindingCount (binding (enode "atom" []) zero ∷ []) == suc zero
+  && bindingCount (MkBinding (MkENode "ExprAtom" []) zero ∷ []) == suc zero
 
 bindingCountRegressionChecked : bindingCountRegression ≡ True
 bindingCountRegressionChecked = refl
 
 record EGraph : Type where
-  constructor egraph
+  constructor MkEGraph
   field
     nextId : Nat
     parents : List (Nat × Nat)
@@ -62,14 +62,14 @@ record EGraph : Type where
 open EGraph public
 
 record Substitution : Type where
-  constructor substitution
+  constructor MkSubstitution
   field
     entries : List (String × Nat)
 
 open Substitution public
 
 record ClassAnalysis : Type where
-  constructor classAnalysis
+  constructor MkClassAnalysis
   field
     analysisClass : Nat
     analysisENodeCount : Nat
@@ -82,7 +82,7 @@ classAnalysisCount [] = zero
 classAnalysisCount (_ ∷ rest) = suc (classAnalysisCount rest)
 
 record SaturationReport : Type where
-  constructor saturationReport
+  constructor MkSaturationReport
   field
     saturationIterations : Nat
     saturationRewrites : Nat
@@ -92,7 +92,7 @@ record SaturationReport : Type where
 open SaturationReport public
 
 record Extraction : Type where
-  constructor extraction
+  constructor MkExtraction
   field
     extractedExpr : Expr
     extractedCost : Nat
@@ -100,7 +100,7 @@ record Extraction : Type where
 open Extraction public
 
 record ChildExtraction : Type where
-  constructor childExtraction
+  constructor MkChildExtraction
   field
     extractedChildren : List Expr
     extractedCostSum : Nat
@@ -177,23 +177,23 @@ canonicalChildren graph (x ∷ xs) =
   root graph x ∷ canonicalChildren graph xs
 
 canonicalNode : EGraph -> ENode -> ENode
-canonicalNode graph (enode symbol children) =
-  enode symbol (canonicalChildren graph children)
+canonicalNode graph (MkENode symbol children) =
+  MkENode symbol (canonicalChildren graph children)
 
 sameENode : ENode -> ENode -> Bool
-sameENode (enode sx xs) (enode sy ys) =
+sameENode (MkENode sx xs) (MkENode sy ys) =
   if sx == sy then listEqualNat xs ys else False
 
 findBindingByNode : ENode -> List Binding -> Maybe Nat
 findBindingByNode _ [] = Nothing
-findBindingByNode target (binding candidate id ∷ rest) =
+findBindingByNode target (MkBinding candidate id ∷ rest) =
   if sameENode target candidate then Just id
   else findBindingByNode target rest
 
 freshClass : EGraph -> Nat × EGraph
 freshClass graph =
   let id = nextId graph
-      graph' = egraph (suc id) (setPair id id (parents graph)) (bindings graph)
+      graph' = MkEGraph (suc id) (setPair id id (parents graph)) (bindings graph)
   in id , graph'
 
 hashconsNode : ENode -> EGraph -> Nat × EGraph
@@ -203,19 +203,19 @@ hashconsNode raw graph =
     Nothing ->
       let (id , graph') = freshClass graph in
       id ,
-      egraph
+      MkEGraph
         (nextId graph')
         (parents graph')
-        (binding node id ∷ bindings graph')
+        (MkBinding node id ∷ bindings graph')
     (Just id) -> root graph id , graph
 
 mutual
   addExpr : Expr -> EGraph -> Nat × EGraph
-  addExpr (atom symbol) graph =
-    hashconsNode (enode symbol []) graph
-  addExpr (app symbol children) graph =
+  addExpr (ExprAtom symbol) graph =
+    hashconsNode (MkENode symbol []) graph
+  addExpr (ExprApp symbol children) graph =
     let (childIds , graph') = addExprs children graph in
-    hashconsNode (enode symbol childIds) graph'
+    hashconsNode (MkENode symbol childIds) graph'
 
   addExprs : List Expr -> EGraph -> List Nat × EGraph
   addExprs [] graph = [] , graph
@@ -232,7 +232,7 @@ mergeRoots left right graph =
   if l == r then graph else
     let small = if l < r then l else r
         large = if l < r then r else l
-    in egraph (nextId graph) (setPair large small (parents graph)) (bindings graph)
+    in MkEGraph (nextId graph) (setPair large small (parents graph)) (bindings graph)
 
 equivalent : Nat -> Nat -> EGraph -> Bool
 equivalent left right graph = root graph left == root graph right
@@ -240,7 +240,7 @@ equivalent left right graph = root graph left == root graph right
 findOtherNode :
   ENode -> Nat -> EGraph -> List Binding -> Maybe Nat
 findOtherNode _ _ _ [] = Nothing
-findOtherNode target excluded graph (binding candidate id ∷ rest) =
+findOtherNode target excluded graph (MkBinding candidate id ∷ rest) =
   if id == excluded then findOtherNode target excluded graph rest
   else if sameENode target (canonicalNode graph candidate) then Just id
   else findOtherNode target excluded graph rest
@@ -248,7 +248,7 @@ findOtherNode target excluded graph (binding candidate id ∷ rest) =
 rebuildBindings :
   List Binding -> EGraph -> Bool -> EGraph × Bool
 rebuildBindings [] graph changed = graph , changed
-rebuildBindings (binding node id ∷ rest) graph changed =
+rebuildBindings (MkBinding node id ∷ rest) graph changed =
   let canonical = canonicalNode graph node
   in
   case findOtherNode canonical id graph (bindings graph) of λ where
@@ -276,23 +276,23 @@ merge : Nat -> Nat -> EGraph -> EGraph
 merge left right graph = rebuild (mergeRoots left right graph)
 
 lookupSubstitution : String -> Substitution -> Maybe Nat
-lookupSubstitution name (substitution entries) = lookupStringPair name entries
+lookupSubstitution name (MkSubstitution entries) = lookupStringPair name entries
 
 bindSubstitution : String -> Nat -> Substitution -> Maybe Substitution
-bindSubstitution name id (substitution entries) =
-  case lookupSubstitution name (substitution entries) of λ where
-    Nothing -> Just (substitution ((name , id) ∷ entries))
+bindSubstitution name id (MkSubstitution entries) =
+  case lookupSubstitution name (MkSubstitution entries) of λ where
+    Nothing -> Just (MkSubstitution ((name , id) ∷ entries))
     (Just old) ->
-      if old == id then Just (substitution entries) else Nothing
+      if old == id then Just (MkSubstitution entries) else Nothing
 
 mutual
   matchPattern :
     Pattern -> Nat -> EGraph -> Substitution -> List Substitution
-  matchPattern (pvar name) class graph sub =
+  matchPattern (PatternVar name) class graph sub =
     case bindSubstitution name (root graph class) sub of λ where
       Nothing -> []
       (Just result) -> result ∷ []
-  matchPattern (papp symbol patterns) class graph sub =
+  matchPattern (PatternApp symbol patterns) class graph sub =
     matchNodes symbol patterns (root graph class) graph (bindings graph) sub
 
   matchNodes :
@@ -300,7 +300,7 @@ mutual
     List Binding -> Substitution -> List Substitution
   matchNodes _ _ _ _ [] _ = []
   matchNodes symbol patterns target graph
-    (binding (enode candidate children) class ∷ rest) sub =
+    (MkBinding (MkENode candidate children) class ∷ rest) sub =
     if root graph class == target then
       if candidate == symbol then
         matchChildren patterns children graph sub
@@ -321,19 +321,19 @@ mutual
 
 eMatch : Pattern -> Nat -> EGraph -> List Substitution
 eMatch searchPattern class graph =
-  matchPattern searchPattern class graph (substitution [])
+  matchPattern searchPattern class graph (MkSubstitution [])
 
 mutual
   instantiatePattern :
     Pattern -> Substitution -> EGraph -> Maybe (Nat × EGraph)
-  instantiatePattern (pvar name) sub graph =
+  instantiatePattern (PatternVar name) sub graph =
     case lookupSubstitution name sub of λ where
       Nothing -> Nothing
       (Just id) -> Just (id , graph)
-  instantiatePattern (papp symbol patterns) sub graph =
+  instantiatePattern (PatternApp symbol patterns) sub graph =
     case instantiatePatterns patterns sub graph of λ where
       Nothing -> Nothing
-      (Just (ids , graph')) -> Just (hashconsNode (enode symbol ids) graph')
+      (Just (ids , graph')) -> Just (hashconsNode (MkENode symbol ids) graph')
 
   instantiatePatterns :
     List Pattern -> Substitution -> EGraph ->
@@ -379,7 +379,7 @@ applyRuleToRoot rule rootId graph =
 uniqueRoots :
   List Binding -> EGraph -> List Nat -> List Nat
 uniqueRoots [] _ seen = reverse seen
-uniqueRoots (binding _ id ∷ rest) graph seen =
+uniqueRoots (MkBinding _ id ∷ rest) graph seen =
   let r = root graph id in
   if memberNat r seen then uniqueRoots rest graph seen
   else uniqueRoots rest graph (r ∷ seen)
@@ -434,7 +434,7 @@ saturateUntilStable rules graph =
         saturateWithFuel (suc (enodeCount graph)) rules graph zero zero
       changed = if rewrites == zero then False else True
   in graph' ,
-     saturationReport iterations rewrites changed complete
+     MkSaturationReport iterations rewrites changed complete
 
 stringLength : String -> Nat
 stringLength [] = zero
@@ -448,19 +448,19 @@ stringLengthRegressionChecked : stringLengthRegression ≡ True
 stringLengthRegressionChecked = refl
 
 localCost : ENode -> Nat
-localCost (enode symbol children) =
+localCost (MkENode symbol children) =
   suc (stringLength symbol + natListCount children)
 
 classAnalysisFor :
   Nat -> List Binding -> EGraph -> Maybe ClassAnalysis
 classAnalysisFor target [] _ = Nothing
-classAnalysisFor target (binding node id ∷ rest) graph =
+classAnalysisFor target (MkBinding node id ∷ rest) graph =
   case root graph id == target of λ where
     False -> classAnalysisFor target rest graph
     True ->
       case classAnalysisFor target rest graph of λ where
         Nothing ->
-          Just (classAnalysis target (suc zero) (localCost node))
+          Just (MkClassAnalysis target (suc zero) (localCost node))
         (Just current) ->
           let nextCount = suc (analysisENodeCount current)
               cost = localCost node
@@ -468,7 +468,7 @@ classAnalysisFor target (binding node id ∷ rest) graph =
                 case cost < analysisMinLocalCost current of λ where
                   True -> cost
                   False -> analysisMinLocalCost current
-          in Just (classAnalysis target nextCount nextCost)
+          in Just (MkClassAnalysis target nextCount nextCost)
 
 analyzeRoots : List Nat -> EGraph -> List ClassAnalysis
 analyzeRoots [] _ = []
@@ -508,7 +508,7 @@ mutual
 
   extractChildren :
       Nat -> List Nat -> EGraph -> List Nat -> Maybe ChildExtraction
-  extractChildren _ [] _ _ = Just (childExtraction [] zero)
+  extractChildren _ [] _ _ = Just (MkChildExtraction [] zero)
   extractChildren zero (_ ∷ _) _ _ = Nothing
   extractChildren (suc fuel) (child ∷ children) graph seen =
     case extractBestSeen fuel child graph seen of λ where
@@ -518,7 +518,7 @@ mutual
           Nothing -> Nothing
           (Just rest) ->
             Just
-              (childExtraction
+              (MkChildExtraction
                 (extractedExpr first ∷ extractedChildren rest)
                 (extractedCost first + extractedCostSum rest))
 
@@ -527,7 +527,7 @@ mutual
   bestBindingForRoot _ _ [] _ _ = Nothing
   bestBindingForRoot zero _ (_ ∷ _) _ _ = Nothing
   bestBindingForRoot (suc fuel) target
-    (binding (enode symbol children) id ∷ rest)
+    (MkBinding (MkENode symbol children) id ∷ rest)
     graph
     seen =
     case root graph id == target of λ where
@@ -539,9 +539,9 @@ mutual
                 Nothing -> Nothing
                 (Just children') ->
                   Just
-                    (extraction
-                      (app symbol (extractedChildren children'))
-                      (localCost (enode symbol children) +
+                    (MkExtraction
+                      (ExprApp symbol (extractedChildren children'))
+                      (localCost (MkENode symbol children) +
                        extractedCostSum children'))
         in chooseCheaper candidate
              (bestBindingForRoot fuel target rest graph seen)
@@ -550,36 +550,36 @@ extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
 extractBest class graph fuel = extractBestSeen fuel class graph []
 associativityRule : RewriteRule
 associativityRule =
-  rewriteRule
+  MkRewriteRule
     "proof-compose-associativity"
-    (papp "proof-compose"
-      (pvar "A" ∷
-       papp "proof-compose" (pvar "B" ∷ pvar "C" ∷ []) ∷
+    (PatternApp "proof-compose"
+      (PatternVar "A" ∷
+       PatternApp "proof-compose" (PatternVar "B" ∷ PatternVar "C" ∷ []) ∷
        []))
-    (papp "proof-compose"
-      (papp "proof-compose"
-        (pvar "A" ∷ pvar "B" ∷ []) ∷
-       pvar "C" ∷ []))
+    (PatternApp "proof-compose"
+      (PatternApp "proof-compose"
+        (PatternVar "A" ∷ PatternVar "B" ∷ []) ∷
+       PatternVar "C" ∷ []))
 
 emptyRightRule : RewriteRule
 emptyRightRule =
-  rewriteRule
+  MkRewriteRule
     "proof-compose-empty-right"
-    (papp "proof-compose"
-      (pvar "A" ∷
-       papp "empty-proof-compose" [] ∷
+    (PatternApp "proof-compose"
+      (PatternVar "A" ∷
+       PatternApp "empty-proof-compose" [] ∷
        []))
-    (pvar "A")
+    (PatternVar "A")
 
 emptyLeftRule : RewriteRule
 emptyLeftRule =
-  rewriteRule
+  MkRewriteRule
     "proof-compose-empty-left"
-    (papp "proof-compose"
-      (papp "empty-proof-compose" [] ∷
-       pvar "A" ∷
+    (PatternApp "proof-compose"
+      (PatternApp "empty-proof-compose" [] ∷
+       PatternVar "A" ∷
        []))
-    (pvar "A")
+    (PatternVar "A")
 
 semanticRewriteRules : List RewriteRule
 semanticRewriteRules =
@@ -589,35 +589,35 @@ semanticRewriteRules =
   []
 
 lawExpr : String -> Expr
-lawExpr id = app "semantic-law" (atom id ∷ [])
+lawExpr id = ExprApp "semantic-law" (ExprAtom id ∷ [])
 
 leftAssocExprAcc : Expr -> List String -> Expr
 leftAssocExprAcc acc [] = acc
 leftAssocExprAcc acc (id ∷ rest) =
   leftAssocExprAcc
-    (app "proof-compose" (acc ∷ lawExpr id ∷ []))
+    (ExprApp "proof-compose" (acc ∷ lawExpr id ∷ []))
     rest
 
 leftAssocExpr : List String -> Expr
-leftAssocExpr [] = atom "empty-proof-compose"
+leftAssocExpr [] = ExprAtom "empty-proof-compose"
 leftAssocExpr (id ∷ []) = lawExpr id
 leftAssocExpr (a ∷ b ∷ rest) =
   leftAssocExprAcc
-    (app "proof-compose" (lawExpr a ∷ lawExpr b ∷ []))
+    (ExprApp "proof-compose" (lawExpr a ∷ lawExpr b ∷ []))
     rest
 
 rightAssocExpr : List String -> Expr
-rightAssocExpr [] = atom "empty-proof-compose"
+rightAssocExpr [] = ExprAtom "empty-proof-compose"
 rightAssocExpr (id ∷ []) = lawExpr id
 rightAssocExpr (a ∷ b ∷ rest) =
-  app "proof-compose"
+  ExprApp "proof-compose"
     (lawExpr a ∷ rightAssocExpr (b ∷ rest) ∷ [])
 
 emptyGraph : EGraph
-emptyGraph = egraph zero [] []
+emptyGraph = MkEGraph zero [] []
 
 record EGraphRegression : Type where
-  constructor egraphRegression
+  constructor MkEGraphRegression
   field
     regressionStableGraph : EGraph
     regressionCongruenceOk : Bool
@@ -635,22 +635,22 @@ open EGraphRegression public
 
 regressionGraph : EGraphRegression
 regressionGraph =
-  let (a , g1) = addExpr (atom "a") emptyGraph
-      (b , g2) = addExpr (atom "b") g1
-      (fa , g3) = addExpr (app "f" (atom "a" ∷ [])) g2
-      (fb , g4) = addExpr (app "f" (atom "b" ∷ [])) g3
+  let (a , g1) = addExpr (ExprAtom "a") emptyGraph
+      (b , g2) = addExpr (ExprAtom "b") g1
+      (fa , g3) = addExpr (ExprApp "f" (ExprAtom "a" ∷ [])) g2
+      (fb , g4) = addExpr (ExprApp "f" (ExprAtom "b" ∷ [])) g3
       g5 = merge a b g4
       (nested , g6) =
         addExpr
-          (app "proof-compose"
-            (atom "a" ∷
-             app "proof-compose" (atom "b" ∷ atom "c" ∷ []) ∷ []))
+          (ExprApp "proof-compose"
+            (ExprAtom "a" ∷
+             ExprApp "proof-compose" (ExprAtom "b" ∷ ExprAtom "c" ∷ []) ∷ []))
           g5
       (left , g7) =
         addExpr
-          (app "proof-compose"
-            (app "proof-compose" (atom "a" ∷ atom "b" ∷ []) ∷
-             atom "c" ∷ []))
+          (ExprApp "proof-compose"
+            (ExprApp "proof-compose" (ExprAtom "a" ∷ ExprAtom "b" ∷ []) ∷
+             ExprAtom "c" ∷ []))
           g6
       (stable , report) =
         saturateUntilStable semanticRewriteRules g7
@@ -659,33 +659,33 @@ regressionGraph =
       associativityOk =
         equivalent nested left stable
       rightIdentityExpr =
-        app "proof-compose"
-          (atom "a" ∷ atom "empty-proof-compose" ∷ [])
+        ExprApp "proof-compose"
+          (ExprAtom "a" ∷ ExprAtom "empty-proof-compose" ∷ [])
       (rightIdentity , g8) =
         addExpr rightIdentityExpr stable
       (aAgain , g9) =
-        addExpr (atom "a") g8
+        addExpr (ExprAtom "a") g8
       (rightStable , rightReport) =
         saturateUntilStable semanticRewriteRules g9
       rightIdentityOk =
         equivalent rightIdentity aAgain rightStable
       leftIdentityExpr =
-        app "proof-compose"
-          (atom "empty-proof-compose" ∷ atom "a" ∷ [])
+        ExprApp "proof-compose"
+          (ExprAtom "empty-proof-compose" ∷ ExprAtom "a" ∷ [])
       (leftIdentity , g10) =
         addExpr leftIdentityExpr rightStable
       (aAgainLeft , g11) =
-        addExpr (atom "a") g10
+        addExpr (ExprAtom "a") g10
       (leftStable , leftReport) =
         saturateUntilStable semanticRewriteRules g11
       leftIdentityOk =
         equivalent leftIdentity aAgainLeft leftStable
       matchingOk =
         case eMatch
-          (papp "proof-compose"
-            (pvar "X" ∷
-             papp "proof-compose"
-               (pvar "Y" ∷ pvar "Z" ∷ []) ∷ []))
+          (PatternApp "proof-compose"
+            (PatternVar "X" ∷
+             PatternApp "proof-compose"
+               (PatternVar "Y" ∷ PatternVar "Z" ∷ []) ∷ []))
           nested
           stable of λ where
             [] -> False
@@ -701,7 +701,7 @@ regressionGraph =
         saturationComplete report &&
         saturationComplete rightReport &&
         saturationComplete leftReport
-  in egraphRegression
+  in MkEGraphRegression
        stable
        congruenceOk
        associativityOk

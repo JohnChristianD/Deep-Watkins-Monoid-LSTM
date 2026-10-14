@@ -12,19 +12,19 @@ open import FullCoupled.Agda2HsTheoremGraphEGraph as EGraph
 
 
 data Capability : Type where
-  inversion : Capability
-  exact-search : Capability
-  uniform-continuity : Capability
+  Inversion : Capability
+  ExactSearch : Capability
+  UniformContinuity : Capability
 
 instance
   iEqCapability : Eq Capability
-  iEqCapability ._==_ inversion inversion = True
-  iEqCapability ._==_ exact-search exact-search = True
-  iEqCapability ._==_ uniform-continuity uniform-continuity = True
+  iEqCapability ._==_ Inversion Inversion = True
+  iEqCapability ._==_ ExactSearch ExactSearch = True
+  iEqCapability ._==_ UniformContinuity UniformContinuity = True
   iEqCapability ._==_ _ _ = False
 
 record SemanticLaw : Type where
-  constructor semanticLaw
+  constructor MkSearchSemanticLaw
   field
     lawName : String
     capabilities : List Capability
@@ -34,7 +34,7 @@ record SemanticLaw : Type where
 open SemanticLaw public
 
 record SearchNode : Type where
-  constructor searchNode
+  constructor MkSearchNode
   field
     plan : List String
     covered : List Capability
@@ -50,7 +50,7 @@ listLengthNat (_ ∷ rest) = suc (listLengthNat rest)
 
 requiredCapabilities : List Capability
 requiredCapabilities =
-  inversion ∷ exact-search ∷ uniform-continuity ∷ []
+  Inversion ∷ ExactSearch ∷ UniformContinuity ∷ []
 
 capabilityCovered : Capability → List Capability → Bool
 capabilityCovered c [] = False
@@ -126,7 +126,7 @@ expandForCapability capability (law ∷ laws) node =
       if planContains (lawName law) (plan node) then
         rest
       else
-        searchNode
+        MkSearchNode
           (lawName law ∷ plan node)
           (addCapability capability (covered node))
           (qScore node + qPrior law)
@@ -235,19 +235,19 @@ astar required laws frontier =
 
 canonicalLaws : List SemanticLaw
 canonicalLaws =
-  semanticLaw
+  MkSearchSemanticLaw
     "inverse-correct"
-    (inversion ∷ [])
+    (Inversion ∷ [])
     []
     (suc (suc (suc zero)))
-  ∷ semanticLaw
+  ∷ MkSearchSemanticLaw
       "inverse-csearchable"
-      (exact-search ∷ [])
+      (ExactSearch ∷ [])
       ("inverse-correct" ∷ [])
       (suc (suc zero))
-  ∷ semanticLaw
+  ∷ MkSearchSemanticLaw
       "inverse-preserves-csearchability"
-      (uniform-continuity ∷ [])
+      (UniformContinuity ∷ [])
       ("inverse-csearchable" ∷ [])
       (suc zero)
   ∷ []
@@ -257,7 +257,7 @@ canonicalSearch =
   astar
     requiredCapabilities
     canonicalLaws
-    (searchNode [] [] zero ∷ [])
+    (MkSearchNode [] [] zero ∷ [])
 
 canonicalPlan : List String
 canonicalPlan =
@@ -300,7 +300,7 @@ semanticSearchReport =
   ++ " laws; target capabilities covered; A* cost is proof-independent guidance"
 
 record GraphLaw : Type where
-  constructor graphLaw
+  constructor MkGraphLaw
   field
     graphLawName : String
     graphLawDependencies : List String
@@ -308,7 +308,7 @@ record GraphLaw : Type where
 open GraphLaw public
 
 record GraphNode : Type where
-  constructor graphNode
+  constructor MkGraphNode
   field
     graphNodePlan : List String
 
@@ -334,21 +334,21 @@ removeDuplicateStrings (x ∷ xs) seen =
 graphLawAddDependency :
   String -> String -> List GraphLaw -> List GraphLaw
 graphLawAddDependency name dependency [] =
-  graphLaw name (dependency ∷ []) ∷ []
+  MkGraphLaw name (dependency ∷ []) ∷ []
 graphLawAddDependency name dependency
   (law ∷ laws) =
   case name == graphLawName law of λ where
     True ->
       case planContains dependency (graphLawDependencies law) of λ where
-        True -> graphLaw name (graphLawDependencies law) ∷ laws
+        True -> MkGraphLaw name (graphLawDependencies law) ∷ laws
         False ->
-          graphLaw name
+          MkGraphLaw name
             (dependency ∷ graphLawDependencies law) ∷ laws
     False ->
       law ∷ graphLawAddDependency name dependency laws
 
 ensureGraphLaw : String -> List GraphLaw -> List GraphLaw
-ensureGraphLaw name [] = graphLaw name [] ∷ []
+ensureGraphLaw name [] = MkGraphLaw name [] ∷ []
 ensureGraphLaw name (law ∷ laws) =
   if name == (graphLawName law) then
     law ∷ laws
@@ -367,7 +367,7 @@ graphLawsFromEdges ((source , target) ∷ edges) =
 graphLawSeeds : List GraphLaw -> List GraphNode
 graphLawSeeds [] = []
 graphLawSeeds (law ∷ laws) =
-  graphNode (graphLawName law ∷ [])
+  MkGraphNode (graphLawName law ∷ [])
   ∷ graphLawSeeds laws
 
 graphContains : String -> List String -> Bool
@@ -388,12 +388,12 @@ graphExpandDependencies (dependency ∷ dependencies) plan acc =
     graphExpandDependencies
       dependencies
       plan
-      (graphNode (dependency ∷ plan) ∷ acc)
+      (MkGraphNode (dependency ∷ plan) ∷ acc)
 
 graphExpandNode :
   GraphNode -> List GraphLaw -> List GraphNode
-graphExpandNode (graphNode []) _ = []
-graphExpandNode (graphNode (terminal ∷ rest)) laws =
+graphExpandNode (MkGraphNode []) _ = []
+graphExpandNode (MkGraphNode (terminal ∷ rest)) laws =
   case graphLawForName terminal laws of λ where
     Nothing -> []
     (Just law) ->
@@ -631,7 +631,7 @@ autonomousGraphSearchFromRoot root edges =
     (graphSearchDepth
       (listLengthNat laws)
       laws
-      (graphNode (root ∷ [])))
+      (MkGraphNode (root ∷ [])))
 
 autonomousCanonicalGraphSearch :
   String ->
@@ -674,7 +674,7 @@ semanticGraphLaw :
   Extractor.SemanticLaw ->
   GraphLaw
 semanticGraphLaw law =
-  graphLaw
+  MkGraphLaw
     (Extractor.semanticLawId law)
     (Extractor.semanticLawDependencies law)
 
@@ -791,14 +791,14 @@ graphAStarTieBreakRegression : Bool
 graphAStarTieBreakRegression =
   let
     laws =
-      graphLaw "A" [] ∷
-      graphLaw "B" [] ∷
+      MkGraphLaw "A" [] ∷
+      MkGraphLaw "B" [] ∷
       []
-    existing = graphNode ("A" ∷ [])
-    incoming = graphNode ("B" ∷ [])
+    existing = MkGraphNode ("A" ∷ [])
+    incoming = MkGraphNode ("B" ∷ [])
   in
   case graphAStarInsert laws incoming (existing ∷ []) of λ where
-    (graphNode (firstName ∷ []) ∷ graphNode (secondName ∷ []) ∷ []) ->
+    (MkGraphNode (firstName ∷ []) ∷ MkGraphNode (secondName ∷ []) ∷ []) ->
       firstName == "B" && secondName == "A"
     _ -> False
 
@@ -827,11 +827,11 @@ graphDependencyOrderRegression : Bool
 graphDependencyOrderRegression =
   let
     laws =
-      graphLaw "A" ("B" ∷ "C" ∷ []) ∷
-      graphLaw "B" [] ∷
-      graphLaw "C" [] ∷
+      MkGraphLaw "A" ("B" ∷ "C" ∷ []) ∷
+      MkGraphLaw "B" [] ∷
+      MkGraphLaw "C" [] ∷
       []
-    nodes = graphExpandNode (graphNode ("A" ∷ [])) laws
+    nodes = graphExpandNode (MkGraphNode ("A" ∷ [])) laws
   in
   graphNodePlanMember ("B" ∷ "A" ∷ []) nodes &&
   graphNodePlanMember ("C" ∷ "A" ∷ []) nodes &&
@@ -864,8 +864,8 @@ graphCycleIsRejectedRegression : Bool
 graphCycleIsRejectedRegression =
   let
     laws =
-      graphLaw "A" ("B" ∷ []) ∷
-      graphLaw "B" ("A" ∷ []) ∷
+      MkGraphLaw "A" ("B" ∷ []) ∷
+      MkGraphLaw "B" ("A" ∷ []) ∷
       []
   in
   not (graphMaximalDependencyChain ("B" ∷ "A" ∷ []) laws)
@@ -892,13 +892,13 @@ learnerTracePlan : Maybe (List String)
 learnerTracePlan =
   graphAStarFirst
     learnerObligationGraph
-    (graphNode ("canonicalLearnerTraceGuarded" ∷ []))
+    (MkGraphNode ("canonicalLearnerTraceGuarded" ∷ []))
 
 learnerDescentPlan : Maybe (List String)
 learnerDescentPlan =
   graphAStarFirst
     learnerObligationGraph
-    (graphNode ("canonicalOptimizerDescentObligation" ∷ []))
+    (MkGraphNode ("canonicalOptimizerDescentObligation" ∷ []))
 
 learnerLogicalGraphRegression : Bool
 learnerLogicalGraphRegression =
@@ -1010,17 +1010,17 @@ semanticLawSeedFilterRegression : Bool
 semanticLawSeedFilterRegression =
   let
     topLevel =
-      Extractor.semanticLaw
+      Extractor.MkSemanticLaw
         "Regression.agda" "top-level-law"
         False False "Set" []
         Extractor.SemanticTopLevel ""
     reflexive =
-      Extractor.semanticLaw
+      Extractor.MkSemanticLaw
         "Regression.agda" "reflexive-law"
         True False "Set" []
         Extractor.SemanticTopLevel ""
     recordField =
-      Extractor.semanticLaw
+      Extractor.MkSemanticLaw
         "Regression.agda" "record-field-law"
         False False "Set" []
         Extractor.SemanticRecordField "RegressionRecord"
@@ -1045,7 +1045,7 @@ requiredPlanForName requested semanticLaws =
         True ->
           graphAStarFirst
             (semanticGraphLaws semanticLaws)
-            (graphNode (Extractor.semanticLawId law ∷ []))
+            (MkGraphNode (Extractor.semanticLawId law ∷ []))
         False -> Nothing
 
 requiredPlanIsValid :
@@ -1164,7 +1164,7 @@ semanticLawNamePresent name (law ∷ laws) =
     semanticLawNamePresent name laws
 
 record DominanceEdge : Type where
-  constructor dominanceEdge
+  constructor MkDominanceEdge
   field
     dominanceContainer : String
     dominanceTheorem : String
@@ -1205,7 +1205,7 @@ dominanceEdgeFor :
 dominanceEdgeFor theorem fieldLaw knownLaws =
   if recordFieldDominates theorem fieldLaw knownLaws then
     Just
-      (dominanceEdge
+      (MkDominanceEdge
         (Extractor.semanticLawContainer fieldLaw)
         (Extractor.semanticLawName theorem)
         (Extractor.semanticLawName fieldLaw))
@@ -1413,18 +1413,18 @@ requiredPlanEGraphComplete names laws =
 
 haskellMinusOneTargetCapabilities : List Capability
 haskellMinusOneTargetCapabilities =
-  inversion ∷ exact-search ∷ []
+  Inversion ∷ ExactSearch ∷ []
 
 haskellMinusOneLaws : List SemanticLaw
 haskellMinusOneLaws =
-  semanticLaw
+  MkSearchSemanticLaw
     "inverse-correct"
-    (inversion ∷ [])
+    (Inversion ∷ [])
     []
     (suc (suc (suc zero)))
-  ∷ semanticLaw
+  ∷ MkSearchSemanticLaw
       "inverse-csearchable"
-      (exact-search ∷ [])
+      (ExactSearch ∷ [])
       ("inverse-correct" ∷ [])
       (suc (suc zero))
   ∷ []
@@ -1434,7 +1434,7 @@ haskellMinusOneAStar =
   astar
     haskellMinusOneTargetCapabilities
     haskellMinusOneLaws
-    (searchNode [] [] zero ∷ [])
+    (MkSearchNode [] [] zero ∷ [])
 
 haskellMinusOneAStarPlan : List String
 haskellMinusOneAStarPlan =
