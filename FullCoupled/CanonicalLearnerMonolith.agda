@@ -2505,7 +2505,7 @@ module CanonicalBellmanOrderTheory where
 
   open OmegaCPO public
 
-  record ScottContinuousEndomap {Value : Set}
+  record OmegaContinuousEndomap {Value : Set}
     (O : OmegaCPO Value) : Set₂ where
     field
       stepω : Value → Value
@@ -2524,26 +2524,26 @@ module CanonicalBellmanOrderTheory where
   module KleeneFixedPoint {Value : Set} (O : OmegaCPO Value) where
     open OmegaCPO O
 
-    iter : ScottContinuousEndomap O → BNat → Value
+    iter : OmegaContinuousEndomap O → BNat → Value
     iter F bzero = bottomω
     iter F (bsuc n) =
-      ScottContinuousEndomap.stepω F (iter F n)
+      OmegaContinuousEndomap.stepω F (iter F n)
 
     iterChain :
-      (F : ScottContinuousEndomap O) →
+      (F : OmegaContinuousEndomap O) →
       (n : BNat) →
       _⊑ω_ (iter F n) (iter F (bsuc n))
     iterChain F bzero =
-      bottomLeastω (ScottContinuousEndomap.stepω F (iter F bzero))
+      bottomLeastω (OmegaContinuousEndomap.stepω F (iter F bzero))
     iterChain F (bsuc n) =
-      ScottContinuousEndomap.monotoneω F (iterChain F n)
+      OmegaContinuousEndomap.monotoneω F (iterChain F n)
 
     leastFixedPoint :
-      ScottContinuousEndomap O → Value
+      OmegaContinuousEndomap O → Value
     leastFixedPoint F = lubω (iter F) (iterChain F)
 
     shiftUpper :
-      (F : ScottContinuousEndomap O) →
+      (F : OmegaContinuousEndomap O) →
       (n : BNat) →
       _⊑ω_ (iter F n)
         (lubω
@@ -2561,7 +2561,7 @@ module CanonicalBellmanOrderTheory where
         n
 
     shiftLub :
-      (F : ScottContinuousEndomap O) →
+      (F : OmegaContinuousEndomap O) →
       lubω (iter F) (iterChain F) ≡
         lubω
           (λ n → iter F (bsuc n))
@@ -2588,12 +2588,12 @@ module CanonicalBellmanOrderTheory where
     symEq refl = refl
 
     leastFixedPointIsFixed :
-      (F : ScottContinuousEndomap O) →
-      ScottContinuousEndomap.stepω F (leastFixedPoint F) ≡
+      (F : OmegaContinuousEndomap O) →
+      OmegaContinuousEndomap.stepω F (leastFixedPoint F) ≡
         leastFixedPoint F
     leastFixedPointIsFixed F =
       transEq
-        (ScottContinuousEndomap.omegaContinuous F (iter F) (iterChain F))
+        (OmegaContinuousEndomap.omegaContinuous F (iter F) (iterChain F))
         (symEq (shiftLub F))
 
     equalityToOrder :
@@ -2601,22 +2601,22 @@ module CanonicalBellmanOrderTheory where
     equalityToOrder refl = reflω
 
     iterBelowFixed :
-      (F : ScottContinuousEndomap O) →
+      (F : OmegaContinuousEndomap O) →
       (x : Value) →
-      ScottContinuousEndomap.stepω F x ≡ x →
+      OmegaContinuousEndomap.stepω F x ≡ x →
       (n : BNat) →
       _⊑ω_ (iter F n) x
     iterBelowFixed F x fixed bzero = bottomLeastω x
     iterBelowFixed F x fixed (bsuc n) =
       transω
-        (ScottContinuousEndomap.monotoneω F
+        (OmegaContinuousEndomap.monotoneω F
           (iterBelowFixed F x fixed n))
         (equalityToOrder fixed)
 
     leastFixedPointIsLeast :
-      (F : ScottContinuousEndomap O) →
+      (F : OmegaContinuousEndomap O) →
       (x : Value) →
-      ScottContinuousEndomap.stepω F x ≡ x →
+      OmegaContinuousEndomap.stepω F x ≡ x →
       _⊑ω_ (leastFixedPoint F) x
     leastFixedPointIsLeast F x fixed =
       lubLeastω
@@ -2626,11 +2626,11 @@ module CanonicalBellmanOrderTheory where
         (iterBelowFixed F x fixed)
 
     leastFixedPointUnique :
-      (F : ScottContinuousEndomap O) →
+      (F : OmegaContinuousEndomap O) →
       (x : Value) →
-      (fixed : ScottContinuousEndomap.stepω F x ≡ x) →
+      (fixed : OmegaContinuousEndomap.stepω F x ≡ x) →
       (∀ {y : Value} →
-        ScottContinuousEndomap.stepω F y ≡ y →
+        OmegaContinuousEndomap.stepω F y ≡ y →
         _⊑ω_ x y) →
       x ≡ leastFixedPoint F
     leastFixedPointUnique F x fixed least =
@@ -2639,17 +2639,17 @@ module CanonicalBellmanOrderTheory where
           (leastFixedPointIsFixed F))
         (leastFixedPointIsLeast F x fixed)
 
-  record ContinuousBellmanSemantics (Value : Set) : Set₃ where
+  record OmegaContinuousBellmanSemantics (Value : Set) : Set₃ where
     constructor continuousBellmanSemantics
     field
       valueDomain : OmegaCPO Value
-      bellmanOperator : ScottContinuousEndomap valueDomain
+      bellmanOperator : OmegaContinuousEndomap valueDomain
 
-  open ContinuousBellmanSemantics public
+  open OmegaContinuousBellmanSemantics public
 
   bellmanStreamValue :
     {Value : Set} →
-    (B : ContinuousBellmanSemantics Value) →
+    (B : OmegaContinuousBellmanSemantics Value) →
     BNat →
     Value
   bellmanStreamValue B =
@@ -2657,7 +2657,7 @@ module CanonicalBellmanOrderTheory where
 
   bellmanStreamLeastFixedPoint :
     {Value : Set} →
-    (B : ContinuousBellmanSemantics Value) →
+    (B : OmegaContinuousBellmanSemantics Value) →
     Value
   bellmanStreamLeastFixedPoint B =
     KleeneFixedPoint.leastFixedPoint
@@ -2665,15 +2665,15 @@ module CanonicalBellmanOrderTheory where
 
   bellmanStreamLeastFixedPointAtZero :
     {Value : Set} →
-    (B : ContinuousBellmanSemantics Value) →
+    (B : OmegaContinuousBellmanSemantics Value) →
     bellmanStreamValue B bzero =
       OmegaCPO.bottomω (valueDomain B)
   bellmanStreamLeastFixedPointAtZero B = refl
 
   bellmanStreamLeastFixedPointIsFixed :
     {Value : Set} →
-    (B : ContinuousBellmanSemantics Value) →
-    ScottContinuousEndomap.stepω (bellmanOperator B)
+    (B : OmegaContinuousBellmanSemantics Value) →
+    OmegaContinuousEndomap.stepω (bellmanOperator B)
       (bellmanStreamLeastFixedPoint B) ≡
       bellmanStreamLeastFixedPoint B
   bellmanStreamLeastFixedPointIsFixed B =
@@ -2682,9 +2682,9 @@ module CanonicalBellmanOrderTheory where
 
   bellmanStreamLeastFixedPointIsLeast :
     {Value : Set} →
-    (B : ContinuousBellmanSemantics Value) →
+    (B : OmegaContinuousBellmanSemantics Value) →
     (x : Value) →
-    ScottContinuousEndomap.stepω (bellmanOperator B) x ≡ x →
+    OmegaContinuousEndomap.stepω (bellmanOperator B) x ≡ x →
     OmegaCPO._⊑ω_ (valueDomain B)
       (bellmanStreamLeastFixedPoint B) x
   bellmanStreamLeastFixedPointIsLeast B x fixed =
@@ -2693,11 +2693,11 @@ module CanonicalBellmanOrderTheory where
 
   bellmanStreamLeastFixedPointUnique :
     {Value : Set} →
-    (B : ContinuousBellmanSemantics Value) →
+    (B : OmegaContinuousBellmanSemantics Value) →
     (x : Value) →
-    (fixed : ScottContinuousEndomap.stepω (bellmanOperator B) x ≡ x) →
+    (fixed : OmegaContinuousEndomap.stepω (bellmanOperator B) x ≡ x) →
     (∀ {y : Value} →
-      ScottContinuousEndomap.stepω (bellmanOperator B) y ≡ y →
+      OmegaContinuousEndomap.stepω (bellmanOperator B) y ≡ y →
       OmegaCPO._⊑ω_ (valueDomain B) x y) →
     x ≡ bellmanStreamLeastFixedPoint B
   bellmanStreamLeastFixedPointUnique B x fixed least =
