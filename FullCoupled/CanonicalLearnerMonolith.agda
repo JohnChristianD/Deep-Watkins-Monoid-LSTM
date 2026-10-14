@@ -2534,17 +2534,17 @@ module CanonicalBellmanOrderTheory where
     shiftLub F =
       antisymω
         (lubLeastω
-          (λ n → iter F (bsuc n))
-          (λ n → iterChain F (bsuc n))
-          (leastFixedPoint F)
-          (λ n → lubUpperω (iter F) (iterChain F) (bsuc n)))
-        (lubLeastω
           (iter F)
           (iterChain F)
           (lubω
             (λ n → iter F (bsuc n))
             (λ n → iterChain F (bsuc n)))
           (shiftUpper F))
+        (lubLeastω
+          (λ n → iter F (bsuc n))
+          (λ n → iterChain F (bsuc n))
+          (leastFixedPoint F)
+          (λ n → lubUpperω (iter F) (iterChain F) (bsuc n)))
 
     transEq : {x y z : Value} → x ≡ y → y ≡ z → x ≡ z
     transEq refl second = second
