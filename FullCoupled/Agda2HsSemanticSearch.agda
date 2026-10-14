@@ -215,7 +215,7 @@ astarWithFuel (suc fuel) required laws (node ∷ frontier) =
       Nothing →
         Just node
 
-      Just capability →
+      (Just capability) →
         let children = expandForCapability capability laws node
             frontier' = insertAll required children frontier
         in
@@ -263,7 +263,7 @@ canonicalPlan : List String
 canonicalPlan =
   case canonicalSearch of λ where
     Nothing → []
-    Just node → plan node
+    (Just node) → plan node
 
 canonicalSearchComplete : Bool
 canonicalSearchComplete =
@@ -271,7 +271,7 @@ canonicalSearchComplete =
     requiredCapabilities
     (case canonicalSearch of λ where
       Nothing → []
-      Just node → covered node)
+      (Just node) → covered node)
 
 canonicalSearchIsComplete :
   canonicalSearchComplete ≡ True
@@ -420,18 +420,20 @@ graphInsertAll [] frontier = frontier
 graphInsertAll (node ∷ nodes) frontier =
   graphInsertAll nodes (graphInsert node frontier)
 
+graphEdgeValid : String -> String -> List GraphLaw -> Bool
+graphEdgeValid child parent laws =
+  case graphLawForName parent laws of λ where
+    Nothing -> False
+    (Just law) ->
+      planContains child (graphLawDependencies law)
+
 graphValidChain :
   List String -> List GraphLaw -> Bool
 graphValidChain [] _ = False
 graphValidChain (_ ∷ []) _ = True
 graphValidChain (child ∷ parent ∷ rest) laws =
-  case graphLawForName parent laws of λ where
-    Nothing -> False
-    Just law →
-      if planContains child (graphLawDependencies law) then
-        graphValidChain (parent ∷ rest) laws
-      else
-        False
+  graphEdgeValid child parent laws &&
+  graphValidChain (parent ∷ rest) laws
 
 graphAllUnique :
   List String -> Bool
@@ -796,12 +798,30 @@ graphAStarTieBreakRegression =
     incoming = graphNode ("B" ∷ [])
   in
   case graphAStarInsert laws incoming (existing ∷ []) of λ where
-    (graphNode ("B" ∷ []) ∷ graphNode ("A" ∷ []) ∷ []) → True
-    _ → False
+    (graphNode (firstName ∷ []) ∷ graphNode (secondName ∷ []) ∷ []) ->
+      firstName == "B" && secondName == "A"
+    _ -> False
 
 graphAStarTieBreakRegressionChecked :
   graphAStarTieBreakRegression ≡ True
 graphAStarTieBreakRegressionChecked = refl
+
+graphStringPathEqual : List String -> List String -> Bool
+graphStringPathEqual [] [] = True
+graphStringPathEqual (left ∷ lefts) (right ∷ rights) =
+  left == right && graphStringPathEqual lefts rights
+graphStringPathEqual _ _ = False
+
+graphPathMember : List String -> List (List String) -> Bool
+graphPathMember _ [] = False
+graphPathMember target (candidate ∷ candidates) =
+  graphStringPathEqual target candidate || graphPathMember target candidates
+
+graphNodePlanMember : List String -> List GraphNode -> Bool
+graphNodePlanMember _ [] = False
+graphNodePlanMember target (node ∷ nodes) =
+  graphStringPathEqual target (graphNodePlan node) ||
+  graphNodePlanMember target nodes
 
 graphDependencyOrderRegression : Bool
 graphDependencyOrderRegression =
@@ -811,11 +831,11 @@ graphDependencyOrderRegression =
       graphLaw "B" [] ∷
       graphLaw "C" [] ∷
       []
+    nodes = graphExpandNode (graphNode ("A" ∷ [])) laws
   in
-  case graphExpandNode (graphNode ("A" ∷ [])) laws of λ where
-    (graphNode ("B" ∷ "A" ∷ []) ∷
-     graphNode ("C" ∷ "A" ∷ []) ∷ []) → True
-    _ → False
+  graphNodePlanMember ("B" ∷ "A" ∷ []) nodes &&
+  graphNodePlanMember ("C" ∷ "A" ∷ []) nodes &&
+  listLengthNat nodes == suc (suc zero)
 
 graphDependencyOrderRegressionChecked :
   graphDependencyOrderRegression ≡ True
@@ -830,10 +850,11 @@ graphTwoLeafBranchesRegression =
       ("A" , "B") ∷
       ("A" , "C") ∷
       []
+    plans = autonomousGraphSearchFromRoot "A" edges
   in
-  case autonomousGraphSearchFromRoot "A" edges of λ where
-    (("B" ∷ "A" ∷ []) ∷ ("C" ∷ "A" ∷ []) ∷ []) → True
-    _ → False
+  graphPathMember ("B" ∷ "A" ∷ []) plans &&
+  graphPathMember ("C" ∷ "A" ∷ []) plans &&
+  listLengthNat plans == suc (suc zero)
 
 graphTwoLeafBranchesRegressionChecked :
   graphTwoLeafBranchesRegression ≡ True
@@ -883,10 +904,10 @@ learnerLogicalGraphRegression : Bool
 learnerLogicalGraphRegression =
   case learnerTracePlan of λ where
     Nothing → False
-    Just tracePlan →
+    (Just tracePlan) →
       case learnerDescentPlan of λ where
         Nothing → False
-        Just descentPlan →
+        (Just descentPlan) →
           graphValidPlan tracePlan learnerObligationGraph
             && graphValidPlan descentPlan learnerObligationGraph
             && graphMaximalDependencyChain tracePlan learnerObligationGraph
@@ -1352,8 +1373,8 @@ semanticPlanEGraphExtractable plan =
       (suc (EGraph.enodeCount graph))
   of λ where
     Nothing -> False
-    (Just extraction) ->
-      EGraph.extractedCost extraction > zero
+    (Just bestResult) ->
+      EGraph.extractedCost bestResult > zero
 
 plansEGraphClosed :
   List (List String) ->
@@ -1419,7 +1440,7 @@ haskellMinusOneAStarPlan : List String
 haskellMinusOneAStarPlan =
   case haskellMinusOneAStar of λ where
     Nothing → []
-    Just node → plan node
+    (Just node) → plan node
 
 haskellMinusOneAStarComplete : Bool
 haskellMinusOneAStarComplete =
@@ -1427,7 +1448,7 @@ haskellMinusOneAStarComplete =
     haskellMinusOneTargetCapabilities
     (case haskellMinusOneAStar of λ where
       Nothing → []
-      Just node → covered node)
+      (Just node) → covered node)
 
 haskellMinusOneAStarIsComplete :
   haskellMinusOneAStarComplete ≡ True

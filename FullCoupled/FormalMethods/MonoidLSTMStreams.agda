@@ -62,6 +62,7 @@ mapStreamPrefix (suc n) f (cons value delayed) =
   cong (λ rest → f value ∷ rest)
     (mapStreamPrefix n f (♭ delayed))
 
+
 -- A stateful scan is the basic causal recurrence used by stream-processing
 -- programs. An LSTM transition can instantiate step once its concrete state
 -- and input types are fixed.
@@ -166,6 +167,20 @@ record Bisim {A : Set} (left right : Stream A) : Set where
     tailsBisimilar : ∞ (Bisim (streamTail left) (streamTail right))
 
 open Bisim public
+
+
+-- Map composition is stated with bisimulation on infinite streams, rather
+-- than claiming decidable Leibniz equality for coinductive observations.
+mapStreamComposeBisim :
+  {A B C : Set}
+  (f : B → C)
+  (g : A → B)
+  (input : Stream A) →
+  Bisim (mapStream f (mapStream g input))
+    (mapStream (λ value → f (g value)) input)
+mapStreamComposeBisim f g (cons value delayed) .headsAgree = refl
+mapStreamComposeBisim f g (cons value delayed) .tailsBisimilar =
+  ♯ mapStreamComposeBisim f g (♭ delayed)
 
 bisimReflexive : {A : Set} (input : Stream A) → Bisim input input
 bisimReflexive (cons value delayed) .headsAgree = refl
