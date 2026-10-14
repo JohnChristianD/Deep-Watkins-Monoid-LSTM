@@ -2362,6 +2362,36 @@ module BetaOptimalityBoundary where
   noUniformBetaOptimalChoice beta rightAction optimal =
     noSuccessorBoundedBySelf beta (optimal leftAction)
 
+  -- Policy optimality is a predicate on learner state. Exact stream/iterator
+  -- equality transports that predicate; it does not assert that every state
+  -- is beta-optimal under an arbitrary reward model.
+  betaOptimalAtState :
+    ∀ {A} →
+    BNat →
+    (FullLearnerState A → Action → BNat) →
+    (FullLearnerState A → Action) →
+    FullLearnerState A →
+    Set
+  betaOptimalAtState beta reward choose state =
+    betaOptimal beta (reward state) (choose state)
+
+  traceBetaOptimalityTransport :
+    ∀ {A}
+    (K : FullLearnerKernel A)
+    (initial : FullLearnerState A)
+    (n : ℕ)
+    (beta : BNat)
+    (reward : FullLearnerState A → Action → BNat)
+    (choose : FullLearnerState A → Action) →
+    betaOptimalAtState beta reward choose
+      (learnerStreamAt n (canonicalLearnerTrace K initial)) →
+    betaOptimalAtState beta reward choose (iterateCanonical K n initial)
+  traceBetaOptimalityTransport K initial n beta reward choose property =
+    transport
+      (betaOptimalAtState beta reward choose)
+      (canonicalLearnerTraceAt K initial n)
+      property
+
 ------------------------------------------------------------------------
 -- Tarski least-fixed-point theorem for an explicit Bellman contract.
 -- No Bellman operator or monotonicity proof is postulated: each model must
