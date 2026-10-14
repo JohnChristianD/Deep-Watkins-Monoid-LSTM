@@ -1011,6 +1011,7 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS findDependencies #-}
 {-# COMPILE AGDA2HS semanticSignature #-}
 {-# COMPILE AGDA2HS semanticReflexive #-}
+{-# COMPILE AGDA2HS hasAtLeastTwoDependencies #-}
 {-# COMPILE AGDA2HS semanticLawsFromDeclarations #-}
 {-# COMPILE AGDA2HS readSourceDeclarations #-}
 {-# COMPILE AGDA2HS readAllSources #-}
