@@ -6,7 +6,7 @@ sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Equality
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Equality.Rewrite	open import Agda.Builtin.Equality.Rewrite public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Reflection	open import Agda.Builtin.Reflection public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Coinduction	open import Agda.Builtin.Coinduction public	1
-sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.Coinduction	open import Agda.Builtin.Coinduction using (∞; ♯_; ♭)	1
+sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.Size	open import Agda.Builtin.Size using (Size; Size<_; ∞)	1
 sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1

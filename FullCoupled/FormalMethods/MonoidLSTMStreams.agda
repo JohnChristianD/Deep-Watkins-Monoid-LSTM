@@ -1,35 +1,38 @@
-{-# OPTIONS --guardedness --no-sized-types #-}
+{-# OPTIONS --sized-types --no-guardedness #-}
 
 module FullCoupled.FormalMethods.MonoidLSTMStreams where
 
-open import Agda.Builtin.Coinduction using (∞; ♯_; ♭)
+open import Agda.Builtin.Size using (Size; Size<_; ∞)
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.List using (List; []; _∷_)
 open import Agda.Builtin.Nat using (Nat; zero; suc; _+_)
 
--- A productive stream stores its tail behind Agda's built-in delay.
--- Reflection is deliberately not imported: this semantics does not generate
--- or inspect Agda syntax trees.
-data Stream (A : Set) : Set where
-  cons : A → ∞ (Stream A) → Stream A
+-- A stream carries the size of the observation depth available to its tail.
+-- Each tail is available at a strictly smaller size. This proves productivity
+-- through sized recursion rather than the guardedness checker.
+record Stream (i : Size) (A : Set) : Set where
+  coinductive
+  field
+    streamHead : A
+    streamTail : ∀ {j : Size< i} → Stream j A
 
-streamHead : {A : Set} → Stream A → A
-streamHead (cons value _) = value
+open Stream public
 
-streamTail : {A : Set} → Stream A → Stream A
-streamTail (cons _ delayed) = ♭ delayed
+repeatStream : {i : Size} {A : Set} → A → Stream i A
+streamHead (repeatStream value) = value
+streamTail (repeatStream value) {j} = repeatStream value
 
-repeatStream : {A : Set} → A → Stream A
-repeatStream value = cons value (♯ repeatStream value)
+mapStream :
+  {i : Size} {A B : Set} →
+  (A → B) → Stream i A → Stream i B
+streamHead (mapStream f input) = f (streamHead input)
+streamTail (mapStream f input) {j} =
+  mapStream f (streamTail input {j})
 
-mapStream : {A B : Set} → (A → B) → Stream A → Stream B
-mapStream f (cons value delayed) =
-  cons (f value) (♯ mapStream f (♭ delayed))
-
-streamPrefix : {A : Set} → Nat → Stream A → List A
+streamPrefix : {i : Size} {A : Set} → Nat → Stream i A → List A
 streamPrefix zero _ = []
-streamPrefix (suc n) (cons value delayed) =
-  value ∷ streamPrefix n (♭ delayed)
+streamPrefix (suc n) input =
+  streamHead input ∷ streamPrefix n (streamTail input)
 
 mapList : {A B : Set} → (A → B) → List A → List B
 mapList f [] = []
@@ -54,35 +57,34 @@ mapListCong :
 mapListCong f refl = refl
 
 mapStreamPrefix :
-  {A B : Set} (n : Nat) (f : A → B) (input : Stream A) →
+  {i : Size} {A B : Set}
+  (n : Nat) (f : A → B) (input : Stream i A) →
   streamPrefix n (mapStream f input) ≡
   mapList f (streamPrefix n input)
 mapStreamPrefix zero f input = refl
-mapStreamPrefix (suc n) f (cons value delayed) =
-  cong (λ rest → f value ∷ rest)
-    (mapStreamPrefix n f (♭ delayed))
+mapStreamPrefix (suc n) f input =
+  cong (λ rest → f (streamHead input) ∷ rest)
+    (mapStreamPrefix n f (streamTail input))
 
-
--- A stateful scan is the basic causal recurrence used by stream-processing
--- programs. An LSTM transition can instantiate step once its concrete state
--- and input types are fixed.
+-- A stateful scan is the causal recurrence used by stream-processing
+-- programs. An LSTM transition can instantiate step once state/input types
+-- are fixed.
 scanStream :
-  {State Input : Set} →
+  {i : Size} {State Input : Set} →
   (State → Input → State) →
-  State →
-  Stream Input →
-  Stream State
-scanStream step state (cons input delayed) =
-  cons
-    (step state input)
-    (♯ scanStream step (step state input) (♭ delayed))
+  State → Stream i Input → Stream i State
+streamHead (scanStream step state inputs) =
+  step state (streamHead inputs)
+streamTail (scanStream step state inputs) {j} =
+  scanStream
+    step
+    (step state (streamHead inputs))
+    (streamTail inputs {j})
 
 scanList :
   {State Input : Set} →
   (State → Input → State) →
-  State →
-  List Input →
-  List State
+  State → List Input → List State
 scanList step state [] = []
 scanList step state (input ∷ inputs) =
   step state input ∷ scanList step (step state input) inputs
@@ -97,28 +99,29 @@ scanListCong :
 scanListCong step state refl = refl
 
 scanStreamPrefix :
-  {State Input : Set}
+  {i : Size} {State Input : Set}
   (n : Nat)
   (step : State → Input → State)
   (state : State)
-  (inputs : Stream Input) →
+  (inputs : Stream i Input) →
   streamPrefix n (scanStream step state inputs) ≡
   scanList step state (streamPrefix n inputs)
 scanStreamPrefix zero step state inputs = refl
-scanStreamPrefix (suc n) step state (cons input delayed) =
-  cong (λ rest → step state input ∷ rest)
-    (scanStreamPrefix n step (step state input) (♭ delayed))
+scanStreamPrefix (suc n) step state inputs =
+  cong (λ rest → step state (streamHead inputs) ∷ rest)
+    (scanStreamPrefix n step
+      (step state (streamHead inputs))
+      (streamTail inputs))
 
--- A stream transformer is causal at horizon n if equal first-n input samples
--- force equal first-n output samples. These finite-observation predicates do
--- not assume equality of whole infinite streams.
+-- Equal first-n input samples force equal first-n output samples. This is
+-- finite-observation causality, not decidable equality of infinite streams.
 CausalAt :
   {Input Output : Set} →
   Nat →
-  (Stream Input → Stream Output) →
+  (Stream ∞ Input → Stream ∞ Output) →
   Set
-CausalAt n transformer =
-  (left right : Stream _) →
+CausalAt {Input = Input} n transformer =
+  (left right : Stream ∞ Input) →
   streamPrefix n left ≡ streamPrefix n right →
   streamPrefix n (transformer left) ≡
   streamPrefix n (transformer right)
@@ -135,7 +138,7 @@ mapStreamCausalAt n f left right samePrefix =
       (sym (mapStreamPrefix n f right)))
 
 scanStreamCausalAt :
-  {Input State : Set}
+  {State Input : Set}
   (n : Nat)
   (step : State → Input → State)
   (state : State) →
@@ -147,61 +150,81 @@ scanStreamCausalAt n step state left right samePrefix =
       (scanListCong step state samePrefix)
       (sym (scanStreamPrefix n step state right)))
 
--- The stream comonad exposes each suffix as context. Arbitrary context
--- functions are not automatically zero-lookahead causal; use CausalAt as the
--- explicit admissibility predicate for a causal co-Kleisli arrow.
-duplicate : {A : Set} → Stream A → Stream (Stream A)
-duplicate input@(cons _ delayed) =
-  cons input (♯ duplicate (♭ delayed))
+-- Sized stream contexts represent successive suffixes whose available size
+-- decreases at each tail. A homogeneous same-size stream of streams would be
+-- incorrect: a suffix is available only at a smaller size.
+record StreamContext (i : Size) (A : Set) : Set where
+  coinductive
+  field
+    contextStream : Stream i A
+    contextTail : ∀ {j : Size< i} → StreamContext j A
 
-extract : {A : Set} → Stream A → A
+open StreamContext public
+
+duplicate : {i : Size} {A : Set} → Stream i A → StreamContext i A
+contextStream (duplicate input) = input
+contextTail (duplicate input) {j} =
+  duplicate (streamTail input {j})
+
+extract : {i : Size} {A : Set} → Stream i A → A
 extract = streamHead
 
-extend : {A B : Set} → (Stream A → B) → Stream A → Stream B
-extend context input = mapStream context (duplicate input)
+-- A co-Kleisli arrow is a context observation available at every size.
+-- extend applies that context to each successive suffix.
+extend :
+  {i : Size} {A B : Set} →
+  (∀ {j : Size} → Stream j A → B) →
+  Stream i A → Stream i B
+streamHead (extend context input) =
+  context (contextStream (duplicate input))
+streamTail (extend context input) {j} =
+  extend context (contextStream (contextTail (duplicate input) {j}))
 
-record Bisim {A : Set} (left right : Stream A) : Set where
+record Bisim (i : Size) {A : Set}
+  (left right : Stream i A) : Set where
   coinductive
   field
     headsAgree : streamHead left ≡ streamHead right
-    tailsBisimilar : ∞ (Bisim (streamTail left) (streamTail right))
+    tailsBisimilar :
+      ∀ {j : Size< i} →
+      Bisim j (streamTail left {j}) (streamTail right {j})
 
 open Bisim public
 
-
--- Map composition is stated with bisimulation on infinite streams, rather
--- than claiming decidable Leibniz equality for coinductive observations.
+-- Map composition is proved coinductively by decreasing the observation size.
 mapStreamComposeBisim :
-  {A B C : Set}
+  {i : Size} {A B C : Set}
   (f : B → C)
   (g : A → B)
-  (input : Stream A) →
-  Bisim (mapStream f (mapStream g input))
+  (input : Stream i A) →
+  Bisim i
+    (mapStream f (mapStream g input))
     (mapStream (λ value → f (g value)) input)
-mapStreamComposeBisim f g (cons value delayed) .headsAgree = refl
-mapStreamComposeBisim f g (cons value delayed) .tailsBisimilar =
-  ♯ mapStreamComposeBisim f g (♭ delayed)
+mapStreamComposeBisim f g input .headsAgree = refl
+mapStreamComposeBisim f g input .tailsBisimilar {j} =
+  mapStreamComposeBisim f g (streamTail input {j})
 
-bisimReflexive : {A : Set} (input : Stream A) → Bisim input input
-bisimReflexive (cons value delayed) .headsAgree = refl
-bisimReflexive (cons value delayed) .tailsBisimilar =
-  ♯ bisimReflexive (♭ delayed)
+bisimReflexive :
+  {i : Size} {A : Set} (input : Stream i A) → Bisim i input input
+bisimReflexive input .headsAgree = refl
+bisimReflexive input .tailsBisimilar {j} =
+  bisimReflexive (streamTail input {j})
 
 extractDuplicateHead :
-  {A : Set} (input : Stream A) →
-  streamHead (duplicate input) ≡ input
-extractDuplicateHead (cons value delayed) = refl
+  {A : Set} (input : Stream ∞ A) →
+  streamHead (contextStream (duplicate input)) ≡ streamHead input
+extractDuplicateHead input = refl
 
--- This is a coinductive law: prove it by matching each observation and
--- delaying the recursive bisimulation proof instead of claiming stream =.
+-- extend extract is identity up to bisimulation, not a claim of decidable
+-- Leibniz equality for all infinite observations.
 extendExtractBisimilar :
-  {A : Set} (input : Stream A) →
-  Bisim (extend extract input) input
-extendExtractBisimilar (cons value delayed) .headsAgree = refl
-extendExtractBisimilar (cons value delayed) .tailsBisimilar =
-  ♯ extendExtractBisimilar (♭ delayed)
+  {i : Size} {A : Set} (input : Stream i A) →
+  Bisim i (extend extract input) input
+extendExtractBisimilar input .headsAgree = refl
+extendExtractBisimilar input .tailsBisimilar {j} =
+  extendExtractBisimilar (streamTail input {j})
 
-ones : Stream Nat
+ones : Stream ∞ Nat
 ones = repeatStream (suc zero)
 
 onesPrefixRegression :
@@ -209,7 +232,7 @@ onesPrefixRegression :
     suc zero ∷ suc zero ∷ suc zero ∷ []
 onesPrefixRegression = refl
 
-runningSum : Stream Nat → Stream Nat
+runningSum : Stream ∞ Nat → Stream ∞ Nat
 runningSum = scanStream _+_ zero
 
 runningSumPrefixRegression :
