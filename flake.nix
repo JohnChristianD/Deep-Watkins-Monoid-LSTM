@@ -188,7 +188,13 @@
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            exec "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -i . "$@"
+            agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
+            if [[ -z "$agda2hs_base_lib" ]]; then
+              echo "agda2hs-base .agda-lib not found in Nix package" >&2
+              exit 1
+            fi
+            agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
+            exec "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -i "$agda2hs_base_root" -i . "$@"
           '' ;
         };
 
@@ -204,7 +210,13 @@
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            exec agda "''${agda_global_options[@]}" -i . "$@"
+            agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
+            if [[ -z "$agda2hs_base_lib" ]]; then
+              echo "agda2hs-base .agda-lib not found in Nix package" >&2
+              exit 1
+            fi
+            agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
+            exec agda "''${agda_global_options[@]}" -i "$agda2hs_base_root" -i . "$@"
           '' ;
         };
 
@@ -221,7 +233,13 @@
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            exec agda2hs "''${agda_global_options[@]}" -i . "$@"
+            agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
+            if [[ -z "$agda2hs_base_lib" ]]; then
+              echo "agda2hs-base .agda-lib not found in Nix package" >&2
+              exit 1
+            fi
+            agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
+            exec agda2hs "''${agda_global_options[@]}" -i "$agda2hs_base_root" -i . "$@"
           '' ;
         };
     in
