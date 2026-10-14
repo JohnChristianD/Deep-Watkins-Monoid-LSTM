@@ -64,7 +64,7 @@ open import Haskell.Prim.Absurd public
 open import Haskell.Prim.Applicative public
 open import Haskell.Extra.Delay public
 open import Haskell.Extra.Erase public
-open import Haskell.Extra.Nat public
+open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Builtin.Equality public
 open import Agda.Builtin.Equality.Rewrite public
