@@ -99,6 +99,10 @@
     (local content (read-file path))
     (assert (not (string.find content "MIRTH-SYNC" 1 true))
       (.. path ": legacy Mirth sync marker remains"))
+    (assert (not (string.find content "Mirth" 1 true))
+      (.. path ": stale Mirth reference remains after migration"))
+    (assert (not (string.find content "AGDA_COMMAND" 1 true))
+      (.. path ": per-file command comment remains; use the Nix Agda wrapper"))
     (each [line-number line (ipairs (fun.totable (string.gmatch content "[^\n]+")))]
       (when (and (not (string.match line "^%s*%-%-"))
                  (cubical-marker line))

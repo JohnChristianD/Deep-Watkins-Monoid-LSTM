@@ -15,4 +15,8 @@
 --auto-inline
 --polarity
 --flat-split
---verbose=1
+--omega-in-omega
+--large-indices
+--no-forced-argument-recursion
+--with-K
+--no-guardedness
