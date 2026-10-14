@@ -2198,6 +2198,22 @@ canonicalTokenEncodeInjective {left} {right} encodedEquality =
       (ap code encodedEquality)
       (canonicalTokenEncodeLeftInverse right))
 
+-- Any representation with an exact left inverse is globally injective.
+-- If the inverse is also continuous, this algebraic fact remains true:
+-- continuity is additional structure, not an extra premise needed for injectivity.
+leftInverseImpliesInjective :
+  ∀ {State Feature : Set}
+  (observe : State → Feature)
+  (inverse : Feature → State) →
+  (∀ state → inverse (observe state) ＝ state) →
+  ∀ {left right} → observe left ＝ observe right → left ＝ right
+leftInverseImpliesInjective observe inverse leftInverse {left} {right} observationEquality =
+  trans
+    (sym (leftInverse left))
+    (trans
+      (ap inverse observationEquality)
+      (leftInverse right))
+
 canonicalTokenEncodeList : CanonicalTokenSequence → List Int8
 canonicalTokenEncodeList = map canonicalTokenEncode
 
