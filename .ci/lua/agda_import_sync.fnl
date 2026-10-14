@@ -184,12 +184,14 @@
   "--guardedness is module/lane-specific and must not be made global")
 
 (local flake (read-file "flake.nix"))
+(assert (= (count-substring flake "cp -RL") 3)
+  "Agda wrappers must use writable copies of agda2hs-base for interface files")
 (assert (= (count-substring flake ".ci/agda/global-options.txt") 3)
   "the Agda, Agda2HS-Agda and Agda2HS wrappers must read .ci/agda/global-options.txt")
 (assert (string.find flake "name = \"agda\";" 1 true)
   "missing editor-friendly Agda wrapper")
-(assert (string.find flake "exec agda " 1 true) "missing wrapped Agda command")
-(assert (string.find flake "exec agda2hs " 1 true) "missing wrapped Agda2HS command")
+(assert (string.find flake "agda " 1 true) "missing wrapped Agda command")
+(assert (string.find flake "agda2hs " 1 true) "missing wrapped Agda2HS command")
 
 (check-runtime-closure
   [ "FullCoupled/Agda2HsSurface.agda"

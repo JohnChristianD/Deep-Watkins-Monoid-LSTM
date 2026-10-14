@@ -52,6 +52,10 @@ for option in --cumulativity --rewriting --flat-split; do
 done
 ! grep -Fq -- '-l agda2hs-base' flake.nix || { echo "do not require an unregistered Agda library name" >&2; exit 1; }
 grep -Fq 'agda2hs_base_root' flake.nix || { echo "Agda2HS base source root must be explicit in wrappers" >&2; exit 1; }
+[ "$(grep -Fc 'chmod -R u+rwX "$agda2hs_base_work/library"' flake.nix)" -eq 3 ] || {
+  echo "Agda2HS base interface cache must be writable in all three wrappers" >&2
+  exit 1
+}
 
 # The legacy monoliths are source-inventory-only until their stale imports are
 # ported. Even so, do not let an inconsistent/untrusted option set accumulate.
