@@ -376,6 +376,161 @@ mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
 ⊥-elim : ∀ {A : Set} → ⊥ → A
 ⊥-elim = 𝟘-elim
 
+------------------------------------------------------------------------
+-- Scott–Strachey lifted Nat semantics, owned by the theorem monolith.
+-- No --safe pragma is used: this is source consolidation, not a safe-mode
+-- promise for the legacy theorem surface.
+------------------------------------------------------------------------
+
+module ScottStracheyDomains where
+  open import Agda.Builtin.Equality using (_≡_; refl)
+  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+  open import Agda.Builtin.Nat
+    renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_)
+
+  data Lift (A : Set) : Set where
+    bottom : Lift A
+    defined : A → Lift A
+
+  infix 4 _⊑_
+
+  data _⊑_ {A : Set} : Lift A → Lift A → Set where
+    bottomLeast : {value : Lift A} → bottom ⊑ value
+    definedReflexive : {value : A} → defined value ⊑ defined value
+
+  reflexive⊑ : {A : Set} {value : Lift A} → value ⊑ value
+  reflexive⊑ {value = bottom} = bottomLeast
+  reflexive⊑ {value = defined value} = definedReflexive
+
+  bottomIsLeast : {A : Set} (value : Lift A) → bottom ⊑ value
+  bottomIsLeast _ = bottomLeast
+
+  bottomIsNotZero : bottom ≡ defined bzero → Empty
+  bottomIsNotZero ()
+
+  definedZeroIsNotBottom : defined bzero ≡ bottom → Empty
+  definedZeroIsNotBottom ()
+
+  definedZeroIsNotLeast : defined bzero ⊑ bottom → Empty
+  definedZeroIsNotLeast ()
+
+  data NatExpr : Set where
+    numeral : BNat → NatExpr
+    diverges : NatExpr
+    _⊕_ : NatExpr → NatExpr → NatExpr
+
+  infixl 6 _⊕_
+
+  strictNatAdd : Lift BNat → Lift BNat → Lift BNat
+  strictNatAdd bottom _ = bottom
+  strictNatAdd (defined _) bottom = bottom
+  strictNatAdd (defined left) (defined right) = defined (left b+ right)
+
+  denote : NatExpr → Lift BNat
+  denote (numeral n) = defined n
+  denote diverges = bottom
+  denote (left ⊕ right) = strictNatAdd (denote left) (denote right)
+
+  definedAdditionRegression :
+    denote (numeral (bsuc (bsuc bzero)) ⊕ numeral (bsuc (bsuc (bsuc bzero))))
+      ≡ defined (bsuc (bsuc (bsuc (bsuc (bsuc bzero)))))
+  definedAdditionRegression = refl
+
+  divergenceAbsorbsAddition :
+    denote (diverges ⊕ numeral (bsuc (bsuc (bsuc bzero)))) ≡ bottom
+  divergenceAbsorbsAddition = refl
+
+  record AlgebraOperations (A : Set) : Set₁ where
+    field
+      algebraZero : A
+      algebraAdd : A → A → A
+      algebraMultiply : A → A → A
+      algebraNegate : A → A
+
+  open AlgebraOperations public
+
+  module StrictLiftedAlgebra {A : Set} (operations : AlgebraOperations A) where
+    open AlgebraOperations operations
+
+    strictAdd : Lift A → Lift A → Lift A
+    strictAdd bottom _ = bottom
+    strictAdd (defined _) bottom = bottom
+    strictAdd (defined left) (defined right) =
+      defined (algebraAdd left right)
+
+    strictMultiply : Lift A → Lift A → Lift A
+    strictMultiply bottom _ = bottom
+    strictMultiply (defined _) bottom = bottom
+    strictMultiply (defined left) (defined right) =
+      defined (algebraMultiply left right)
+
+    strictNegate : Lift A → Lift A
+    strictNegate bottom = bottom
+    strictNegate (defined value) = defined (algebraNegate value)
+
+    inverseLawFailsAtBottom :
+      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → Empty
+    inverseLawFailsAtBottom ()
+
+    zeroAnnihilatorFailsAtBottom :
+      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → Empty
+    zeroAnnihilatorFailsAtBottom ()
+
+------------------------------------------------------------------------
+-- Explicit beta-optimality boundary.
+--
+-- Here beta means an additive regret tolerance, not the unrelated layer-norm
+-- offset field C.beta. A reward-independent fixed choice cannot be beta-optimal
+-- for every reward assignment: an adversarial two-action reward separates it
+-- from the other action by beta + 1. This rules out an unconditional universal
+-- guarantee; it does not rule out optimality under a specified learner/model.
+------------------------------------------------------------------------
+
+module BetaOptimalityBoundary where
+  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+  open import Agda.Builtin.Nat
+    renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_)
+
+  data Action : Set where
+    leftAction rightAction : Action
+
+  data _≤B_ : BNat → BNat → Set where
+    zeroLeB : {n : BNat} → _≤B_ bzero n
+    succLeB : {m n : BNat} → _≤B_ m n → _≤B_ (bsuc m) (bsuc n)
+
+  infixl 6 _+B_
+  _+B_ : BNat → BNat → BNat
+  bzero +B n = n
+  bsuc m +B n = bsuc (m +B n)
+
+  Not : Set → Set
+  Not proposition = proposition → Empty
+
+  betaOptimal :
+    BNat → (Action → BNat) → Action → Set
+  betaOptimal beta reward choice =
+    (alternative : Action) →
+    _≤B_ (reward alternative) (reward choice +B beta)
+
+  counterReward : BNat → Action → Action → BNat
+  counterReward beta leftAction leftAction = bzero
+  counterReward beta leftAction rightAction = bsuc beta
+  counterReward beta rightAction leftAction = bsuc beta
+  counterReward beta rightAction rightAction = bzero
+
+  noSuccessorBoundedBySelf : (n : BNat) → Not (_≤B_ (bsuc n) n)
+  noSuccessorBoundedBySelf bzero ()
+  noSuccessorBoundedBySelf (bsuc n) (succLeB evidence) =
+    noSuccessorBoundedBySelf n evidence
+
+  noUniformBetaOptimalChoice :
+    (beta : BNat) (choice : Action) →
+    Not (betaOptimal beta (counterReward beta choice) choice)
+  noUniformBetaOptimalChoice beta leftAction optimal =
+    noSuccessorBoundedBySelf beta (optimal rightAction)
+  noUniformBetaOptimalChoice beta rightAction optimal =
+    noSuccessorBoundedBySelf beta (optimal leftAction)
+
 -- Keep natural multiplication explicit: the synchronized import surface also
 -- contains rational multiplication, so theorem algebra names TypeTopology's
 -- natural operation through this local alias.
