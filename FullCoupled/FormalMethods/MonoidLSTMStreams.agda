@@ -1,26 +1,4 @@
-{-# OPTIONS 
---lossy-unification
---sized-types
---exact-split
---erasure
---no-projection-like
---erased-matches
---erase-record-parameters
---prop
---confluence-check
---two-level
---rewriting
---level-universe
---cumulativity
---auto-inline
---polarity
---flat-split
---omega-in-omega
---large-indices
---no-forced-argument-recursion
---with-K
---no-guardedness
-#-}
+{-# OPTIONS --sized-types --no-guardedness #-}
 
 module FullCoupled.FormalMethods.MonoidLSTMStreams where
 
@@ -225,6 +203,40 @@ mapStreamComposeBisim :
 mapStreamComposeBisim f g input .headsAgree = refl
 mapStreamComposeBisim f g input .tailsBisimilar {j} =
   mapStreamComposeBisim f g (streamTail input {j})
+
+-- Named fusion law: two successive maps agree with their composed map at
+-- every finite observation depth and, by Bisim, over the infinite stream.
+mapStreamFusionBisim :
+  {i : Size} {A B C : Set}
+  (f : B → C)
+  (g : A → B)
+  (input : Stream i A) →
+  Bisim i
+    (mapStream f (mapStream g input))
+    (mapStream (λ value → f (g value)) input)
+mapStreamFusionBisim = mapStreamComposeBisim
+
+mapListCompose :
+  {A B C : Set} (f : B → C) (g : A → B) (values : List A) →
+  mapList f (mapList g values) ≡
+  mapList (λ value → f (g value)) values
+mapListCompose f g [] = refl
+mapListCompose f g (value ∷ values) =
+  cong (λ rest → f (g value) ∷ rest) (mapListCompose f g values)
+
+mapStreamFusionPrefix :
+  {i : Size} {A B C : Set}
+  (n : Nat) (f : B → C) (g : A → B) (input : Stream i A) →
+  streamPrefix n (mapStream f (mapStream g input)) ≡
+  streamPrefix n (mapStream (λ value → f (g value)) input)
+mapStreamFusionPrefix n f g input =
+  trans
+    (mapStreamPrefix n f (mapStream g input))
+    (trans
+      (mapListCong f (mapStreamPrefix n g input))
+      (trans
+        (mapListCompose f g (streamPrefix n input))
+        (sym (mapStreamPrefix n (λ value → f (g value)) input))))
 
 bisimReflexive :
   {i : Size} {A : Set} (input : Stream i A) → Bisim i input input
