@@ -193,27 +193,28 @@ insertAll required (node ∷ nodes) frontier =
     nodes
     (insertByScore required node frontier)
 
-factorial : Nat → Nat
-factorial zero = suc zero
-factorial (suc n) = suc n * factorial n
-
--- Agda2HS excludes direct Nat-constructor recursion from the executable
--- closure. Represent the factorial search budget as a lazy list of unit
--- tokens: the list spine is consumed only as each search step needs fuel.
+-- Repeat a payload once per list cell, keeping the depth parameter structural.
+-- The generated Haskell list is lazy: its tail is produced only as A* consumes
+-- fuel, rather than allocating the full factorial budget before search starts.
 repeatBy : ∀ {A B : Type} → List A → List B → List B
 repeatBy [] values = []
 repeatBy (_ ∷ rest) values = values ++ repeatBy rest values
 
+-- An input of length n produces n! unit cells, by the recurrence
+-- (n+1)! = (n+1) * n!. Recursion follows the finite law list, not Nat.
 factorialFuel : ∀ {A : Type} → List A → List ⊤
 factorialFuel [] = tt ∷ []
 factorialFuel (value ∷ rest) =
   repeatBy (value ∷ rest) (factorialFuel rest)
 
+-- Four copies preserve the repository's bounded A* search contract.
 searchFuel : List SemanticLaw → List ⊤
 searchFuel laws =
   let fuel = factorialFuel laws
   in fuel ++ fuel ++ fuel ++ fuel
 
+-- Consume one token per expanded frontier state. Exhaustion returns Nothing;
+-- it is a resource bound, not proof that the dependency graph has no solution.
 astarWithFuel :
   List ⊤ →
   List Capability →
@@ -1755,10 +1756,13 @@ main = do
 {-# COMPILE AGDA2HS autonomousCanonicalGraphReport #-}
 {-# COMPILE AGDA2HS semanticGraphLaw #-}
 {-# COMPILE AGDA2HS semanticGraphLaws #-}
+{-# COMPILE AGDA2HS semanticLawForName #-}
+{-# COMPILE AGDA2HS semanticLawCanSeed #-}
 {-# COMPILE AGDA2HS requiredTheoremNames #-}
 {-# COMPILE AGDA2HS requiredSubcompositionNames #-}
 {-# COMPILE AGDA2HS requiredNames #-}
 {-# COMPILE AGDA2HS requiredPlanForName #-}
+{-# COMPILE AGDA2HS requiredPlanIsValid #-}
 {-# COMPILE AGDA2HS requiredPlans #-}
 {-# COMPILE AGDA2HS requiredPlanCount #-}
 {-# COMPILE AGDA2HS requiredPlanComplete #-}

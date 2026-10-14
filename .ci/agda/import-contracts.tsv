@@ -185,10 +185,13 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS autonomousCan
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS autonomousCanonicalGraphReport #-}	{-# COMPILE AGDA2HS autonomousCanonicalGraphReport #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticGraphLaw #-}	{-# COMPILE AGDA2HS semanticGraphLaw #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticGraphLaws #-}	{-# COMPILE AGDA2HS semanticGraphLaws #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticLawForName #-}	{-# COMPILE AGDA2HS semanticLawForName #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticLawCanSeed #-}	{-# COMPILE AGDA2HS semanticLawCanSeed #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredTheoremNames #-}	{-# COMPILE AGDA2HS requiredTheoremNames #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredSubcompositionNames #-}	{-# COMPILE AGDA2HS requiredSubcompositionNames #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredNames #-}	{-# COMPILE AGDA2HS requiredNames #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanForName #-}	{-# COMPILE AGDA2HS requiredPlanForName #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanIsValid #-}	{-# COMPILE AGDA2HS requiredPlanIsValid #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlans #-}	{-# COMPILE AGDA2HS requiredPlans #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanCount #-}	{-# COMPILE AGDA2HS requiredPlanCount #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanComplete #-}	{-# COMPILE AGDA2HS requiredPlanComplete #-}	1
