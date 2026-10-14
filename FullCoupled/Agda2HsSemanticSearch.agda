@@ -700,6 +700,67 @@ semanticLawForName requested (law ∷ laws) =
   else
     semanticLawForName requested laws
 
+-- A* state keeps the current law path and its explicit path cost g.
+-- The exhaustive DFS above remains separate and continues to enumerate every
+-- maximal dependency chain.
+record GraphAStarNode : Type where
+  no-eta-equality; pattern
+  constructor MkGraphAStarNode
+  field
+    graphAStarPlan : List String
+    graphAStarPathCost : Nat
+
+open GraphAStarNode public
+
+record GraphAStarBestCost : Type where
+  no-eta-equality; pattern
+  constructor MkGraphAStarBest
+  field
+    graphAStarBestName : String
+    graphAStarBestG : Nat
+
+open GraphAStarBestCost public
+
+graphAStarKnownCost :
+  String -> List GraphAStarBestCost -> Maybe Nat
+graphAStarKnownCost _ [] = Nothing
+graphAStarKnownCost requested (known ∷ remaining) =
+  if requested == graphAStarBestName known then
+    Just (graphAStarBestG known)
+  else
+    graphAStarKnownCost requested remaining
+
+graphAStarRememberCost :
+  String -> Nat -> List GraphAStarBestCost -> List GraphAStarBestCost
+graphAStarRememberCost name cost [] =
+  MkGraphAStarBest name cost ∷ []
+graphAStarRememberCost name cost (known ∷ remaining) =
+  if name == graphAStarBestName known then
+    MkGraphAStarBest name cost ∷ remaining
+  else
+    known ∷ graphAStarRememberCost name cost remaining
+
+-- Like JAxtar's optimal_mask, enqueue only a strictly cheaper g score for a
+-- state; equal- or higher-cost duplicate states are discarded.
+graphAStarCanImprove :
+  String -> Nat -> List GraphAStarBestCost -> Bool
+graphAStarCanImprove name cost known =
+  case graphAStarKnownCost name known of λ where
+    Nothing -> True
+    (Just best) -> cost < best
+
+graphAStarBestGRegression : Bool
+graphAStarBestGRegression =
+  let known = MkGraphAStarBest "A" (suc (suc zero)) ∷ []
+  in
+  graphAStarCanImprove "A" (suc zero) known
+    && not (graphAStarCanImprove "A" (suc (suc zero)) known)
+    && not (graphAStarCanImprove "A" (suc (suc (suc zero))) known)
+
+graphAStarBestGRegressionChecked :
+  graphAStarBestGRegression ≡ True
+graphAStarBestGRegressionChecked = refl
+
 graphAStarHeuristic :
   List GraphLaw ->
   GraphNode ->
@@ -716,18 +777,22 @@ graphAStarHeuristic laws node =
           else
             suc zero
 
+-- JAxtar's default cost_weight is 1 - 1e-6. For Nat costs, scale its
+-- f = cost_weight * g + h by 1,000,000 to compare the equivalent integer
+-- score 999999*g + 1000000*h without floating-point rounding.
 graphAStarScore :
   List GraphLaw ->
-  GraphNode ->
+  GraphAStarNode ->
   Nat
 graphAStarScore laws node =
-  listLengthNat (graphNodePlan node) + graphAStarHeuristic laws node
+  graphAStarPathCost node * 999999
+    + graphAStarHeuristic laws (MkGraphNode (graphAStarPlan node)) * 1000000
 
 graphAStarInsert :
   List GraphLaw ->
-  GraphNode ->
-  List GraphNode ->
-  List GraphNode
+  GraphAStarNode ->
+  List GraphAStarNode ->
+  List GraphAStarNode
 graphAStarInsert laws node [] =
   node ∷ []
 graphAStarInsert laws node (head ∷ tail) =
@@ -738,9 +803,9 @@ graphAStarInsert laws node (head ∷ tail) =
 
 graphAStarInsertAll :
   List GraphLaw ->
-  List GraphNode ->
-  List GraphNode ->
-  List GraphNode
+  List GraphAStarNode ->
+  List GraphAStarNode ->
+  List GraphAStarNode
 graphAStarInsertAll laws [] frontier = frontier
 graphAStarInsertAll laws (node ∷ nodes) frontier =
   graphAStarInsertAll
@@ -748,33 +813,84 @@ graphAStarInsertAll laws (node ∷ nodes) frontier =
     nodes
     (graphAStarInsert laws node frontier)
 
+graphAStarWrapChildren :
+  Nat ->
+  List GraphNode ->
+  List GraphAStarNode
+graphAStarWrapChildren cost [] = []
+graphAStarWrapChildren cost (child ∷ children) =
+  MkGraphAStarNode (graphNodePlan child) cost
+    ∷ graphAStarWrapChildren cost children
+
+graphAStarExpandNode :
+  GraphAStarNode -> List GraphLaw -> List GraphAStarNode
+graphAStarExpandNode node laws =
+  graphAStarWrapChildren
+    (suc (graphAStarPathCost node))
+    (graphExpandNode (MkGraphNode (graphAStarPlan node)) laws)
+
+-- The first component is the g-cost table; the second is the priority queue.
+-- State IDs are law names, the keys used by the dependency graph.
+graphAStarEnqueueImprovements :
+  List GraphLaw ->
+  List GraphAStarNode ->
+  List GraphAStarBestCost ->
+  List GraphAStarNode ->
+  List GraphAStarBestCost × List GraphAStarNode
+graphAStarEnqueueImprovements laws [] known frontier =
+  known , frontier
+graphAStarEnqueueImprovements laws (node ∷ nodes) known frontier =
+  case graphFirst (graphAStarPlan node) of λ where
+    Nothing ->
+      graphAStarEnqueueImprovements laws nodes known frontier
+    (Just name) ->
+      if graphAStarCanImprove name (graphAStarPathCost node) known then
+        graphAStarEnqueueImprovements
+          laws
+          nodes
+          (graphAStarRememberCost name (graphAStarPathCost node) known)
+          (graphAStarInsert laws node frontier)
+      else
+        graphAStarEnqueueImprovements laws nodes known frontier
+
 graphAStarFirstWithFuel :
   Nat ->
   List GraphLaw ->
-  List GraphNode ->
+  List GraphAStarNode ->
+  List GraphAStarBestCost ->
   Maybe (List String)
-graphAStarFirstWithFuel zero laws frontier =
+graphAStarFirstWithFuel zero laws frontier known =
   Nothing
-graphAStarFirstWithFuel (suc fuel) laws [] =
+graphAStarFirstWithFuel (suc fuel) laws [] known =
   Nothing
-graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) =
-  if graphMaximalDependencyChain
-       (graphNodePlan node)
-       laws then
-    Just (graphNodePlan node)
-  else
-    graphAStarFirstWithFuel
-      fuel
-      laws
-      (graphAStarInsertAll
-        laws
-        (graphExpandNode node laws)
-        frontier)
+graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) known =
+  case graphFirst (graphAStarPlan node) of λ where
+    Nothing ->
+      graphAStarFirstWithFuel fuel laws frontier known
+    (Just current) ->
+      case graphAStarKnownCost current known of λ where
+        Nothing ->
+          graphAStarFirstWithFuel fuel laws frontier known
+        (Just bestG) ->
+          if (graphAStarPathCost node == bestG) then
+            if graphMaximalDependencyChain (graphAStarPlan node) laws then
+              Just (graphAStarPlan node)
+            else
+              let (known' , frontier') =
+                    graphAStarEnqueueImprovements
+                      laws
+                      (graphAStarExpandNode node laws)
+                      known
+                      frontier
+              in
+              graphAStarFirstWithFuel fuel laws frontier' known'
+          else
+            -- Skip stale queue entries superseded by a cheaper g score.
+            graphAStarFirstWithFuel fuel laws frontier known
 
--- A plan never repeats a law ID.  For n laws, the search tree
--- therefore has at most sum_{k=0..n} n!/(n-k)! < 3*n! path nodes.
--- This bound lets the best-first search exhaust a finite graph even when
--- no valid maximal chain exists; it avoids a too-small n! cutoff.
+-- Every queued path is simple. Its number is bounded by the number of simple
+-- ordered paths (< 3*n!), including stale entries. Exhausting this operational
+-- fuel returns Nothing; it is not by itself a theorem that no chain exists.
 graphAStarFuelBound : List GraphLaw -> Nat
 graphAStarFuelBound laws =
   factorial (listLengthNat laws)
@@ -786,10 +902,14 @@ graphAStarFirst :
   GraphNode ->
   Maybe (List String)
 graphAStarFirst laws seed =
-  graphAStarFirstWithFuel
-    (graphAStarFuelBound laws)
-    laws
-    (seed ∷ [])
+  case graphFirst (graphNodePlan seed) of λ where
+    Nothing -> Nothing
+    (Just root) ->
+      graphAStarFirstWithFuel
+        (graphAStarFuelBound laws)
+        laws
+        (MkGraphAStarNode (graphNodePlan seed) zero ∷ [])
+        (MkGraphAStarBest root zero ∷ [])
 
 graphAStarTieBreakRegression : Bool
 graphAStarTieBreakRegression =
@@ -798,11 +918,12 @@ graphAStarTieBreakRegression =
       MkGraphLaw "A" [] ∷
       MkGraphLaw "B" [] ∷
       []
-    existing = MkGraphNode ("A" ∷ [])
-    incoming = MkGraphNode ("B" ∷ [])
+    existing = MkGraphAStarNode ("A" ∷ []) zero
+    incoming = MkGraphAStarNode ("B" ∷ []) zero
   in
   case graphAStarInsert laws incoming (existing ∷ []) of λ where
-    (MkGraphNode (firstName ∷ []) ∷ MkGraphNode (secondName ∷ []) ∷ []) ->
+    (MkGraphAStarNode (firstName ∷ []) _ ∷
+     MkGraphAStarNode (secondName ∷ []) _ ∷ []) ->
       firstName == "B" && secondName == "A"
     _ -> False
 
