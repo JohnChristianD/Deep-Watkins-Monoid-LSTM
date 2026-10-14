@@ -462,7 +462,7 @@ DHALL
     count=$(git ls-files '*Monolith.agda' | wc -l)
     [ "$count" -eq 2 ] || { echo "expected exactly two Agda monoliths, found $count"; exit 1; }
     agda_count=$(git ls-files '*.agda' | wc -l)
-    [ "$agda_count" -eq 16 ] || { echo "expected exactly sixteen tracked Agda sources, found $agda_count"; exit 1; }
+    [ "$agda_count" -eq 15 ] || { echo "expected exactly fifteen tracked Agda sources, found $agda_count"; exit 1; }
     [ -f FullCoupled/CanonicalLearnerMonolith.agda ] || { echo "missing canonical learner monolith"; exit 1; }
     [ -f FullCoupled/TheoremsMonolith.agda ] || { echo "missing theorem monolith"; exit 1; }
     imports=$(git ls-files '*.agda' | xargs grep -hE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+' || true)
