@@ -1690,6 +1690,8 @@ main = do
 {-# COMPILE AGDA2HS graphDependencyOrderRegression #-}
 {-# COMPILE AGDA2HS graphTwoLeafBranchesRegression #-}
 {-# COMPILE AGDA2HS graphAStarTieBreakRegression #-}
+{-# COMPILE AGDA2HS GraphAStarNode #-}
+{-# COMPILE AGDA2HS GraphAStarBestCost #-}
 {-# COMPILE AGDA2HS graphCycleIsRejectedRegression #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchCount #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchReport #-}
