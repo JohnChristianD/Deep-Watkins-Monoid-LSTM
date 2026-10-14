@@ -873,16 +873,16 @@ graphAStarEnqueueImprovements laws (node ∷ nodes) known frontier =
         graphAStarEnqueueImprovements laws nodes known frontier
 
 graphAStarFirstWithFuel :
-  Nat ->
+  List ⊤ ->
   List GraphLaw ->
   List GraphAStarNode ->
   List GraphAStarBestCost ->
   Maybe (List String)
-graphAStarFirstWithFuel zero laws frontier known =
+graphAStarFirstWithFuel [] laws frontier known =
   Nothing
-graphAStarFirstWithFuel (suc fuel) laws [] known =
+graphAStarFirstWithFuel (_ ∷ fuel) laws [] known =
   Nothing
-graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) known =
+graphAStarFirstWithFuel (_ ∷ fuel) laws (node ∷ frontier) known =
   case graphFirst (graphAStarPlan node) of λ where
     Nothing ->
       graphAStarFirstWithFuel fuel laws frontier known
@@ -908,14 +908,13 @@ graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) known =
                           frontier
                   in graphAStarFirstWithFuel fuel laws frontier' known'
 
--- Every queued path is simple. Its number is bounded by the number of simple
--- ordered paths (< 3*n!), including stale entries. Exhausting this operational
--- fuel returns Nothing; it is not by itself a theorem that no chain exists.
-graphAStarFuelBound : List GraphLaw -> Nat
+-- Every queued path is simple. The lazy fuel list preserves the previous
+-- operational budget of three copies of n! without Nat-pattern extraction.
+-- Exhausting fuel returns Nothing; it is not by itself a no-path theorem.
+graphAStarFuelBound : List GraphLaw -> List ⊤
 graphAStarFuelBound laws =
-  factorial (listLengthNat laws)
-    + factorial (listLengthNat laws)
-    + factorial (listLengthNat laws)
+  let fuel = factorialFuel laws
+  in fuel ++ fuel ++ fuel
 
 graphAStarFirst :
   List GraphLaw ->
@@ -1746,6 +1745,9 @@ main = do
 {-# COMPILE AGDA2HS graphAStarWrapChildren #-}
 {-# COMPILE AGDA2HS graphAStarExpandNode #-}
 {-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}
+{-# COMPILE AGDA2HS graphAStarFirst #-}
+{-# COMPILE AGDA2HS graphAStarFuelBound #-}
+{-# COMPILE AGDA2HS graphAStarFirstWithFuel #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchFromRoot #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearch #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearchCount #-}
