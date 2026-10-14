@@ -1,52 +1,23 @@
-{-# OPTIONS
---lossy-unification
---sized-types
---exact-split
---erasure
---no-projection-like
---erased-matches
---erase-record-parameters
---prop
---confluence-check
---two-level
---rewriting
---level-universe
---cumulativity
---auto-inline
---polarity
---flat-split
---omega-in-omega
---large-indices
---no-forced-argument-recursion
---with-K
---no-guardedness
-#-}
-
-
 ------------------------------------------------------------------------
--- Vendored from iwilare/formal-methods (Security.agda), MIT-licensed upstream.
--- Namespaced locally so theorem-specific imports cannot collide with the
--- existing FullCoupled proof surface.
+-- Restored from iwilare/formal-methods upstream (MIT-licensed).
+-- Local module path and sibling imports are namespaced for this repository.
 ------------------------------------------------------------------------
-
 module FullCoupled.FormalMethods.Security where
 
-open import Haskell.Prelude
-open import Haskell.Prelude.Nat.Properties
-
-
-
-_⊎_ = Either
-inj₁ = left
-inj₂ = right
-
-
-contradiction : ∀ {a} {A : Set a} → A → (A → ⊥) → ⊥
-contradiction p np = np p
+open import Data.Nat      using (ℕ; suc; zero; _<_; _≤_; z≤n; s≤s; _+_; _⊔_)
+open import Data.Bool     using (Bool; true; false; not; _∧_)
+open import Data.Sum      using (inj₁; inj₂; _⊎_; [_,_])
+open import Data.Product  using (_×_; _,_; -,_; _-,-_; ∃; ∃-syntax; proj₂)
+open import Data.String   using (String; _≟_; length)
+open import Relation.Nullary           using (¬_; yes; no)
+open import Relation.Nullary.Decidable using (⌊_⌋)
+open import Relation.Nullary.Negation using (contradiction)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; cong; trans; cong₂)
+open import Data.Nat.Properties hiding (_≤?_; _≟_)
 
 open import FullCoupled.FormalMethods.IMP
 
-level = Nat
+level = ℕ
 
 sec : vname → level
 -- We can also temporarily use "sec x" to avoid the
