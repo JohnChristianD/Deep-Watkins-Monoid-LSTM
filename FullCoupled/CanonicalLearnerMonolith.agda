@@ -2055,6 +2055,41 @@ learnerStreamHead (canonicalLearnerTrace K initial) = initial
 learnerStreamTail (canonicalLearnerTrace K initial) {j} =
   canonicalLearnerTrace K (canonicalFullStep K initial)
 
+-- Finite observation of the productive stream agrees exactly with the
+-- canonical step iterator, including the initial state at index zero.
+learnerStreamAt :
+  {i : Size} {A : Set} →
+  ℕ →
+  LearnerStream i A →
+  A
+learnerStreamAt zero trace = learnerStreamHead trace
+learnerStreamAt (succ n) trace =
+  learnerStreamAt n (learnerStreamTail trace)
+
+iterateCanonical-step-shift :
+  ∀ {A}
+  (K : FullLearnerKernel A)
+  (n : ℕ)
+  (s : FullLearnerState A) →
+  iterateCanonical K n (canonicalFullStep K s) ＝
+  iterateCanonical K (succ n) s
+iterateCanonical-step-shift K zero s = refl
+iterateCanonical-step-shift K (succ n) s =
+  ap (canonicalFullStep K) (iterateCanonical-step-shift K n s)
+
+canonicalLearnerTraceAt :
+  ∀ {A}
+  (K : FullLearnerKernel A)
+  (s : FullLearnerState A)
+  (n : ℕ) →
+  learnerStreamAt n (canonicalLearnerTrace K s) ＝
+  iterateCanonical K n s
+canonicalLearnerTraceAt K s zero = refl
+canonicalLearnerTraceAt K s (succ n) =
+  trans
+    (canonicalLearnerTraceAt K (canonicalFullStep K s) n)
+    (iterateCanonical-step-shift K n s)
+
 
 canonicalFullStep-gru : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → gru (canonicalFullStep K s) ＝ canonicalGRUStep K s
 canonicalFullStep-gru K s = refl
@@ -2195,3 +2230,201 @@ canonicalTokenLogitTrace K (t ∷ ts) s =
 
 
 
+
+
+------------------------------------------------------------------------
+-- Computationally relevant policy boundary belongs beside the learner.
+-- Beta is additive regret tolerance, not the layer-normalisation offset.
+------------------------------------------------------------------------
+
+module BetaOptimalityBoundary where
+  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+  open import Agda.Builtin.Nat
+    renaming (Nat to BNat; zero to bzero; suc to bsuc)
+
+  data Action : Set where
+    leftAction rightAction : Action
+
+  data _≤B_ : BNat → BNat → Set where
+    zeroLeB : {n : BNat} → _≤B_ bzero n
+    succLeB : {m n : BNat} → _≤B_ m n → _≤B_ (bsuc m) (bsuc n)
+
+  infixl 6 _+B_
+  _+B_ : BNat → BNat → BNat
+  bzero +B n = n
+  bsuc m +B n = bsuc (m +B n)
+
+  leTrans : {a b c : BNat} → _≤B_ a b → _≤B_ b c → _≤B_ a c
+  leTrans zeroLeB _ = zeroLeB
+  leTrans (succLeB first) (succLeB second) =
+    succLeB (leTrans first second)
+
+  leAddRight : (n beta : BNat) → _≤B_ n (n +B beta)
+  leAddRight bzero beta = zeroLeB
+  leAddRight (bsuc n) beta = succLeB (leAddRight n beta)
+
+  betaOptimal :
+    BNat → (Action → BNat) → Action → Set
+  betaOptimal beta reward choice =
+    (alternative : Action) →
+    _≤B_ (reward alternative) (reward choice +B beta)
+
+  record ExactOptimalChoice (reward : Action → BNat) : Set where
+    constructor exactOptimalChoice
+    field
+      selectedAction : Action
+      selectedMaximal :
+        (alternative : Action) →
+        _≤B_ (reward alternative) (reward selectedAction)
+
+  open ExactOptimalChoice public
+
+  exactOptimalImpliesBetaOptimal :
+    (beta : BNat)
+    (reward : Action → BNat)
+    (optimal : ExactOptimalChoice reward) →
+    betaOptimal beta reward (selectedAction optimal)
+  exactOptimalImpliesBetaOptimal beta reward optimal alternative =
+    leTrans
+      (selectedMaximal optimal alternative)
+      (leAddRight (reward (selectedAction optimal)) beta)
+
+  Not : Set → Set
+  Not proposition = proposition → Empty
+
+  counterReward : BNat → Action → Action → BNat
+  counterReward beta leftAction leftAction = bzero
+  counterReward beta leftAction rightAction = bsuc beta
+  counterReward beta rightAction leftAction = bsuc beta
+  counterReward beta rightAction rightAction = bzero
+
+  noSuccessorBoundedBySelf : (n : BNat) → Not (_≤B_ (bsuc n) n)
+  noSuccessorBoundedBySelf bzero ()
+  noSuccessorBoundedBySelf (bsuc n) (succLeB evidence) =
+    noSuccessorBoundedBySelf n evidence
+
+  noUniformBetaOptimalChoice :
+    (beta : BNat) (choice : Action) →
+    Not (betaOptimal beta (counterReward beta choice) choice)
+  noUniformBetaOptimalChoice beta leftAction optimal =
+    noSuccessorBoundedBySelf beta (optimal rightAction)
+  noUniformBetaOptimalChoice beta rightAction optimal =
+    noSuccessorBoundedBySelf beta (optimal leftAction)
+
+------------------------------------------------------------------------
+-- Tarski least-fixed-point theorem for an explicit Bellman contract.
+-- No Bellman operator or monotonicity proof is postulated: each model must
+-- supply its value order, arbitrary infima, and a proof of monotonicity.
+------------------------------------------------------------------------
+
+module CanonicalBellmanOrderTheory where
+  open import Agda.Builtin.Equality using (_≡_; refl)
+
+  record CompleteMeetOrder (Value : Set) : Set₂ where
+    field
+      _⊑_ : Value → Value → Set
+      refl⊑ : {x : Value} → x ⊑ x
+      trans⊑ :
+        {x y z : Value} → x ⊑ y → y ⊑ z → x ⊑ z
+      antisym⊑ :
+        {x y : Value} → x ⊑ y → y ⊑ x → x ≡ y
+      infimum : (Value → Set) → Value
+      infimumBelow :
+        (P : Value → Set) → {x : Value} → P x → infimum P ⊑ x
+      infimumGreatest :
+        (P : Value → Set) → {z : Value} →
+        (∀ {x : Value} → P x → z ⊑ x) → z ⊑ infimum P
+
+  module FixedPoint {Value : Set} (L : CompleteMeetOrder Value) where
+    open CompleteMeetOrder L
+
+    preFixed : (Value → Value) → Value → Set
+    preFixed F x = F x ⊑ x
+
+    leastFixedPoint :
+      (F : Value → Value) →
+      (∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      Value
+    leastFixedPoint F mono = infimum (preFixed F)
+
+    bellmanBelowLeast :
+      (F : Value → Value)
+      (mono : ∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      F (leastFixedPoint F mono) ⊑ leastFixedPoint F mono
+    bellmanBelowLeast F mono =
+      infimumGreatest (preFixed F)
+        (λ {x} px →
+          trans⊑ (mono (infimumBelow (preFixed F) px)) px)
+
+    leastBelowBellman :
+      (F : Value → Value)
+      (mono : ∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      leastFixedPoint F mono ⊑ F (leastFixedPoint F mono)
+    leastBelowBellman F mono =
+      infimumBelow (preFixed F) (mono (bellmanBelowLeast F mono))
+
+    leastFixedPointIsFixed :
+      (F : Value → Value)
+      (mono : ∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      F (leastFixedPoint F mono) ≡ leastFixedPoint F mono
+    leastFixedPointIsFixed F mono =
+      antisym⊑ (bellmanBelowLeast F mono) (leastBelowBellman F mono)
+
+    equalityImpliesOrder :
+      {x y : Value} → x ≡ y → x ⊑ y
+    equalityImpliesOrder refl = refl⊑
+
+    leastFixedPointIsLeast :
+      (F : Value → Value)
+      (mono : ∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      (x : Value) → F x ≡ x → leastFixedPoint F mono ⊑ x
+    leastFixedPointIsLeast F mono x fixed =
+      infimumBelow (preFixed F) (equalityImpliesOrder fixed)
+
+  record BellmanSemantics (Value : Set) : Set₃ where
+    constructor bellmanSemantics
+    field
+      valueOrder : CompleteMeetOrder Value
+      bellmanOperator : Value → Value
+      bellmanMonotone :
+        {x y : Value} →
+        CompleteMeetOrder._⊑_ valueOrder x y →
+        CompleteMeetOrder._⊑_ valueOrder
+          (bellmanOperator x) (bellmanOperator y)
+
+  open BellmanSemantics public
+
+  bellmanLeastFixedPoint :
+    {Value : Set} →
+    (B : BellmanSemantics Value) →
+    Value
+  bellmanLeastFixedPoint B =
+    FixedPoint.leastFixedPoint
+      (valueOrder B)
+      (bellmanOperator B)
+      (bellmanMonotone B)
+
+  bellmanLeastFixedPointIsFixed :
+    {Value : Set} →
+    (B : BellmanSemantics Value) →
+    bellmanOperator B (bellmanLeastFixedPoint B) ≡
+      bellmanLeastFixedPoint B
+  bellmanLeastFixedPointIsFixed B =
+    FixedPoint.leastFixedPointIsFixed
+      (valueOrder B)
+      (bellmanOperator B)
+      (bellmanMonotone B)
+
+  bellmanLeastFixedPointIsLeast :
+    {Value : Set} →
+    (B : BellmanSemantics Value) →
+    (x : Value) →
+    bellmanOperator B x ≡ x →
+    CompleteMeetOrder._⊑_ (valueOrder B) (bellmanLeastFixedPoint B) x
+  bellmanLeastFixedPointIsLeast B x fixed =
+    FixedPoint.leastFixedPointIsLeast
+      (valueOrder B)
+      (bellmanOperator B)
+      (bellmanMonotone B)
+      x
+      fixed
