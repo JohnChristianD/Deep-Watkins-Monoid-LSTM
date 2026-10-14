@@ -197,19 +197,32 @@ factorial : Nat → Nat
 factorial zero = suc zero
 factorial (suc n) = suc n * factorial n
 
-searchFuel : List SemanticLaw → Nat
+-- Build n! fuel cells structurally from the law list. A list token is
+-- used instead of Nat fuel because Agda2HS does not compile Nat constructor
+-- patterns in runtime code. The fuel bound remains 4 * n! cells.
+repeatBy : ∀ {A B : Type} → List A → List B → List B
+repeatBy [] values = []
+repeatBy (_ ∷ rest) values = values ++ repeatBy rest values
+
+factorialFuel : ∀ {A : Type} → List A → List ⊤
+factorialFuel [] = tt ∷ []
+factorialFuel (value ∷ rest) =
+  repeatBy (value ∷ rest) (factorialFuel rest)
+
+searchFuel : List SemanticLaw → List ⊤
 searchFuel laws =
-  suc (suc (suc (suc zero))) * factorial (listLengthNat laws)
+  let fuel = factorialFuel laws
+  in fuel ++ fuel ++ fuel ++ fuel
 
 astarWithFuel :
-  Nat →
+  List ⊤ →
   List Capability →
   List SemanticLaw →
   List SearchNode →
   Maybe SearchNode
-astarWithFuel zero required laws frontier = Nothing
-astarWithFuel (suc fuel) required laws [] = Nothing
-astarWithFuel (suc fuel) required laws (node ∷ frontier) =
+astarWithFuel [] required laws frontier = Nothing
+astarWithFuel (_ ∷ fuel) required laws [] = Nothing
+astarWithFuel (_ ∷ fuel) required laws (node ∷ frontier) =
   if allRequiredCovered required (covered node) then
     Just node
   else
