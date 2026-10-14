@@ -73,6 +73,7 @@ require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS dependency
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS findDependencies #-}	{-# COMPILE AGDA2HS findDependencies #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS semanticSignature #-}	{-# COMPILE AGDA2HS semanticSignature #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS semanticReflexive #-}	{-# COMPILE AGDA2HS semanticReflexive #-}	1
+require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS hasAtLeastTwoDependencies #-}	{-# COMPILE AGDA2HS hasAtLeastTwoDependencies #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS semanticLawsFromDeclarations #-}	{-# COMPILE AGDA2HS semanticLawsFromDeclarations #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS readSourceDeclarations #-}	{-# COMPILE AGDA2HS readSourceDeclarations #-}	1
 require	FullCoupled/Agda2HsSemanticExtractor.agda	{-# COMPILE AGDA2HS readAllSources #-}	{-# COMPILE AGDA2HS readAllSources #-}	1
