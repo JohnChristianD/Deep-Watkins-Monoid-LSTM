@@ -674,11 +674,11 @@ record ListMonoidSolverNormalizationTheorem : Set₁ where
   constructor listMonoidSolverNormalizationTheorem
   field
     normalization :
-      ∀ (xs ys zs : List C.Int8) →
+      ∀ (xs ys zs : List C.IntCode) →
       xs ++ (ys ++ zs) ＝ (xs ++ ys) ++ zs
 
 list-monoid-solver-append-assoc :
-  ∀ (xs ys zs : List C.Int8) →
+  ∀ (xs ys zs : List C.IntCode) →
   xs ++ (ys ++ zs) ＝ (xs ++ ys) ++ zs
 list-monoid-solver-append-assoc xs ys zs =
   sym (++-assoc xs ys zs)
@@ -719,7 +719,7 @@ record CanonicalSafeTacticNormalizationTheorem : Set₁ where
       ∀ (i j k : Int) →
       i + (j + k) ＝ (i + j) + k
     listMonoidNormalization :
-      ∀ (xs ys zs : List C.Int8) →
+      ∀ (xs ys zs : List C.IntCode) →
       xs ++ (ys ++ zs) ＝ (xs ++ ys) ++ zs
 
 canonical-safe-tactic-normalization-theorem :
@@ -784,7 +784,7 @@ _≢_ : ∀ {A : Set} → A → A → Set
 x ≢ y = ¬ (x ＝ y)
 
 CanonicalGRUStatisticalObservation : Set
-CanonicalGRUStatisticalObservation = C.GRUState × (C.CanonicalToken → C.Int8)
+CanonicalGRUStatisticalObservation = C.GRUState × (C.CanonicalToken → C.IntCode)
 canonicalGRUStatisticalEncode : C.GRUState → CanonicalGRUStatisticalObservation
 canonicalGRUStatisticalEncode s = s , (λ _ → C.hiddenState s)
 canonicalGRUStatisticalDecode : CanonicalGRUStatisticalObservation → C.GRUState
@@ -830,11 +830,11 @@ canonical-gru-statistical-injectivity-theorem : CanonicalGRUStatisticalInjectivi
 canonical-gru-statistical-injectivity-theorem = canonicalGRUStatisticalInjectivityTheorem canonicalGRUStatisticalEncode canonicalGRUStatisticalDecode canonicalGRUStatisticalDecodeEncode canonicalGRUStatisticalEncodeInjective
 canonicalGRUStatisticalDistinguishability : ∀ {s t : C.GRUState} → s ≢ t → canonicalGRUStatisticalEncode s ≢ canonicalGRUStatisticalEncode t
 canonicalGRUStatisticalDistinguishability distinct collision = distinct (canonicalGRUStatisticalEncodeInjective collision)
-canonicalGRUStatisticalStepConsequence : ∀ (s : C.GRUState) (x : C.Int8) → canonicalGRUStatisticalEncode (C.gruStep s x) ＝ (C.gruStep s x , (λ _ → C.hiddenState (C.gruStep s x)))
+canonicalGRUStatisticalStepConsequence : ∀ (s : C.GRUState) (x : C.IntCode) → canonicalGRUStatisticalEncode (C.gruStep s x) ＝ (C.gruStep s x , (λ _ → C.hiddenState (C.gruStep s x)))
 canonicalGRUStatisticalStepConsequence s x = refl
 
 identityActivation8-injective :
-  ∀ {x y : C.Int8} →
+  ∀ {x y : C.IntCode} →
   C.identityActivation8 x ＝ C.identityActivation8 y →
   x ＝ y
 identityActivation8-injective eq = eq
@@ -1659,17 +1659,17 @@ eGraphAStarStablePathPersists W {s = s} stableS (succ n) =
 
 data IntegerLayerNormExpression : Set where
   rawIntegerLayerNorm :
-    ℕ → List C.Int8 → IntegerLayerNormExpression
+    ℕ → List C.IntCode → IntegerLayerNormExpression
   centeredIntegerLayerNorm :
-    ℕ → List C.Int8 → IntegerLayerNormExpression
+    ℕ → List C.IntCode → IntegerLayerNormExpression
   radicandIntegerLayerNorm :
-    ℕ → List C.Int8 → IntegerLayerNormExpression
+    ℕ → List C.IntCode → IntegerLayerNormExpression
 
 record IntegerLayerNormSemanticState : Set where
   constructor integerLayerNormSemanticState
   field
     epsilon : ℕ
-    input : List C.Int8
+    input : List C.IntCode
     centered : List Int
     radicand : Int
 open IntegerLayerNormSemanticState public
@@ -1760,7 +1760,7 @@ integerLayerNormAStarClosure =
     integerLayerNormAStarCostModel
 
 integerLayerNorm-raw-centered-edge :
-  ∀ (epsilon : ℕ) (xs : List C.Int8) →
+  ∀ (epsilon : ℕ) (xs : List C.IntCode) →
   CertifiedEGraphEdge
     integerLayerNormEGraphSemantics
     (rawIntegerLayerNorm epsilon xs)
@@ -1779,7 +1779,7 @@ integerLayerNorm-raw-centered-edge epsilon xs =
       (centeredIntegerLayerNorm epsilon xs)))
 
 integerLayerNorm-centered-radicand-edge :
-  ∀ (epsilon : ℕ) (xs : List C.Int8) →
+  ∀ (epsilon : ℕ) (xs : List C.IntCode) →
   CertifiedEGraphEdge
     integerLayerNormEGraphSemantics
     (centeredIntegerLayerNorm epsilon xs)
@@ -1798,7 +1798,7 @@ integerLayerNorm-centered-radicand-edge epsilon xs =
       (radicandIntegerLayerNorm epsilon xs)))
 
 integerLayerNorm-raw-radicand-path :
-  ∀ (epsilon : ℕ) (xs : List C.Int8) →
+  ∀ (epsilon : ℕ) (xs : List C.IntCode) →
   EGraphSemanticPath
     (semantics integerLayerNormAStarClosure)
     (rawIntegerLayerNorm epsilon xs)
@@ -1809,7 +1809,7 @@ integerLayerNorm-raw-radicand-path epsilon xs =
     (path (integerLayerNorm-centered-radicand-edge epsilon xs))
 
 integerLayerNorm-a-star-semantic-closure :
-  ∀ (epsilon : ℕ) (xs : List C.Int8) →
+  ∀ (epsilon : ℕ) (xs : List C.IntCode) →
   interpret (semantics integerLayerNormAStarClosure)
     (rawIntegerLayerNorm epsilon xs)
   ＝
@@ -1831,25 +1831,25 @@ record CanonicalIntegerLayerNormEGraphAStarTheorem : Set₁ where
       AStarPlanMonoidTheorem
         IntegerLayerNormExpression
     rawCentered :
-      ∀ (epsilon : ℕ) (xs : List C.Int8) →
+      ∀ (epsilon : ℕ) (xs : List C.IntCode) →
       CertifiedEGraphEdge
         integerLayerNormEGraphSemantics
         (rawIntegerLayerNorm epsilon xs)
         (centeredIntegerLayerNorm epsilon xs)
     centeredRadicand :
-      ∀ (epsilon : ℕ) (xs : List C.Int8) →
+      ∀ (epsilon : ℕ) (xs : List C.IntCode) →
       CertifiedEGraphEdge
         integerLayerNormEGraphSemantics
         (centeredIntegerLayerNorm epsilon xs)
         (radicandIntegerLayerNorm epsilon xs)
     rawRadicand :
-      ∀ (epsilon : ℕ) (xs : List C.Int8) →
+      ∀ (epsilon : ℕ) (xs : List C.IntCode) →
       EGraphSemanticPath
         (semantics integerLayerNormAStarClosure)
         (rawIntegerLayerNorm epsilon xs)
         (radicandIntegerLayerNorm epsilon xs)
     soundPath :
-      ∀ (epsilon : ℕ) (xs : List C.Int8) →
+      ∀ (epsilon : ℕ) (xs : List C.IntCode) →
       interpret (semantics integerLayerNormAStarClosure)
         (rawIntegerLayerNorm epsilon xs)
       ＝
@@ -1901,7 +1901,7 @@ integerLayerNormAStarStep integerLayerNormRadicandPhase =
   integerLayerNormRadicandPhase
 
 integerLayerNormAStarCandidate :
-  ∀ (epsilon : ℕ) (xs : List C.Int8) →
+  ∀ (epsilon : ℕ) (xs : List C.IntCode) →
   IntegerLayerNormAStarPhase →
   IntegerLayerNormExpression
 integerLayerNormAStarCandidate epsilon xs
@@ -2002,7 +2002,7 @@ integerLayerNormAStarEventualStable
   zero , refl
 
 integerLayerNormAStarStablePath :
-  ∀ {epsilon : ℕ} {xs : List C.Int8} {phase} →
+  ∀ {epsilon : ℕ} {xs : List C.IntCode} {phase} →
   integerLayerNormAStarStable phase →
   EGraphSemanticPath
     (semantics integerLayerNormAStarClosure)
@@ -2021,7 +2021,7 @@ integerLayerNormAStarStablePath
     (radicandIntegerLayerNorm _ _)
 
 integerLayerNorm-egraph-astar-finite-rank-witness :
-  ∀ (epsilon : ℕ) (xs : List C.Int8) →
+  ∀ (epsilon : ℕ) (xs : List C.IntCode) →
   EGraphAStarFiniteRankConvergenceWitness
     IntegerLayerNormExpression
     IntegerLayerNormAStarPhase
@@ -2040,7 +2040,7 @@ integerLayerNorm-egraph-astar-finite-rank-witness epsilon xs =
     integerLayerNormAStarStablePath
 
 integerLayerNorm-egraph-astar-eventual-semantic-closure :
-  ∀ (epsilon : ℕ) (xs : List C.Int8)
+  ∀ (epsilon : ℕ) (xs : List C.IntCode)
   (phase : IntegerLayerNormAStarPhase) →
   Σ ℕ
     (λ n →
@@ -2062,7 +2062,7 @@ integerLayerNorm-egraph-astar-eventual-semantic-closure
     phase
 
 integerLayerNorm-egraph-astar-infinite-stable-tail :
-  ∀ (epsilon : ℕ) (xs : List C.Int8)
+  ∀ (epsilon : ℕ) (xs : List C.IntCode)
   (phase : IntegerLayerNormAStarPhase) →
   Σ ℕ
     (λ n →
@@ -2088,12 +2088,12 @@ record CanonicalIntegerLayerNormEGraphAStarInfiniteHorizonStabilityTheorem : Set
   constructor canonicalIntegerLayerNormEGraphAStarInfiniteHorizonStabilityTheorem
   field
     finiteRankWitness :
-      ∀ (epsilon : ℕ) (xs : List C.Int8) →
+      ∀ (epsilon : ℕ) (xs : List C.IntCode) →
       EGraphAStarFiniteRankConvergenceWitness
         IntegerLayerNormExpression
         IntegerLayerNormAStarPhase
     eventualSemanticClosure :
-      ∀ (epsilon : ℕ) (xs : List C.Int8)
+      ∀ (epsilon : ℕ) (xs : List C.IntCode)
       (phase : IntegerLayerNormAStarPhase) →
       Σ ℕ
         (λ n →
@@ -2109,7 +2109,7 @@ record CanonicalIntegerLayerNormEGraphAStarInfiniteHorizonStabilityTheorem : Set
             (semantics integerLayerNormAStarClosure)
             (radicandIntegerLayerNorm epsilon xs))
     infiniteStableTail :
-      ∀ (epsilon : ℕ) (xs : List C.Int8)
+      ∀ (epsilon : ℕ) (xs : List C.IntCode)
       (phase : IntegerLayerNormAStarPhase) →
       Σ ℕ
         (λ n →
@@ -2146,7 +2146,7 @@ record CanonicalIntegerLayerNormAStarExecutionBridgeTheorem : Set₁ where
   constructor canonicalIntegerLayerNormAStarExecutionBridgeTheorem
   field
     stableSemanticTail :
-      ∀ (epsilon : ℕ) (xs : List C.Int8)
+      ∀ (epsilon : ℕ) (xs : List C.IntCode)
       (phase : IntegerLayerNormAStarPhase) →
       Σ ℕ
         (λ n →
@@ -2179,7 +2179,7 @@ canonical-integer-layernorm-astar-execution-bridge-theorem =
     (aStar-haskell-monad-surface IntegerLayerNormExpression)
   where
   stableSemanticTail :
-    ∀ (epsilon : ℕ) (xs : List C.Int8)
+    ∀ (epsilon : ℕ) (xs : List C.IntCode)
     (phase : IntegerLayerNormAStarPhase) →
     Σ ℕ
       (λ n →
@@ -2220,7 +2220,7 @@ canonical-integer-layernorm-astar-execution-bridge-theorem =
 ------------------------------------------------------------------------
 
 nat-ring-solver-layernorm-contribution :
-  ∀ (xs : List C.Int8) (epsilon : ℕ) →
+  ∀ (xs : List C.IntCode) (epsilon : ℕ) →
   (succ epsilon ℕ* length xs ℕ* length xs)
   ＝
   (epsilon ℕ* length xs ℕ* length xs)
@@ -2242,7 +2242,7 @@ nat-ring-solver-layernorm-contribution xs epsilon =
   (epsilon ℕ* n) ℕ* n + (n ℕ* n) ∎
 
 integerLayerNorm-epsilon-contribution-succ :
-  ∀ (xs : List C.Int8) (epsilon : ℕ) →
+  ∀ (xs : List C.IntCode) (epsilon : ℕ) →
   (succ epsilon * length xs * length xs)
   ＝
   (epsilon * length xs * length xs)
@@ -2251,14 +2251,14 @@ integerLayerNorm-epsilon-contribution-succ =
   nat-ring-solver-layernorm-contribution
 
 integerLayerNorm-radicand-epsilon-zero :
-  ∀ (xs : List C.Int8) →
+  ∀ (xs : List C.IntCode) →
   C.integerLayerNormRadicand xs zero
   ＝
   C.integerLayerNormVarianceNumerator xs
 integerLayerNorm-radicand-epsilon-zero xs = refl
 
 integerLayerNorm-radicand-epsilon-succ :
-  ∀ (xs : List C.Int8) (epsilon : ℕ) →
+  ∀ (xs : List C.IntCode) (epsilon : ℕ) →
   C.integerLayerNormRadicand xs (succ epsilon)
   ＝
   C.integerLayerNormRadicand xs epsilon
@@ -2284,7 +2284,7 @@ record IntegerLayerNormConfigurationStabilityTheorem : Set₁ where
     eGraphAStar :
       CanonicalIntegerLayerNormEGraphAStarTheorem
     centeredStatisticsIndependentOfEpsilon :
-      ∀ (xs : List C.Int8) (epsilon delta : ℕ) →
+      ∀ (xs : List C.IntCode) (epsilon delta : ℕ) →
       centered
         (integerLayerNormSemanticInterpret
           (rawIntegerLayerNorm epsilon xs))
@@ -2293,10 +2293,10 @@ record IntegerLayerNormConfigurationStabilityTheorem : Set₁ where
         (integerLayerNormSemanticInterpret
           (rawIntegerLayerNorm delta xs))
     denominatorConfigurationStable :
-      ∀ (xs : List C.Int8)
+      ∀ (xs : List C.IntCode)
       (config₁ config₂ : C.IntegerLayerNormConfig)
       (certificate : C.IntegerLayerNormCertificate xs)
-      (x : C.Int8) →
+      (x : C.IntCode) →
       C.denominator
         (C.integerLayerNormValue config₁ certificate x)
       ＝
@@ -2306,7 +2306,7 @@ record IntegerLayerNormConfigurationStabilityTheorem : Set₁ where
 open IntegerLayerNormConfigurationStabilityTheorem public
 
 integer-layernorm-centered-statistics-independent-of-epsilon :
-  ∀ (xs : List C.Int8) (epsilon delta : ℕ) →
+  ∀ (xs : List C.IntCode) (epsilon delta : ℕ) →
   centered
     (integerLayerNormSemanticInterpret
       (rawIntegerLayerNorm epsilon xs))
@@ -2317,10 +2317,10 @@ integer-layernorm-centered-statistics-independent-of-epsilon :
 integer-layernorm-centered-statistics-independent-of-epsilon _ _ _ = refl
 
 integer-layernorm-denominator-configuration-stable :
-  ∀ (xs : List C.Int8)
+  ∀ (xs : List C.IntCode)
   (config₁ config₂ : C.IntegerLayerNormConfig)
   (certificate : C.IntegerLayerNormCertificate xs)
-  (x : C.Int8) →
+  (x : C.IntCode) →
   C.denominator
     (C.integerLayerNormValue config₁ certificate x)
   ＝
@@ -2338,7 +2338,7 @@ integer-layernorm-configuration-stability-theorem =
     integer-layernorm-denominator-configuration-stable
 
 integerLayerNorm-radicand-epsilon-linear :
-  ∀ (xs : List C.Int8) (epsilon : ℕ) →
+  ∀ (xs : List C.IntCode) (epsilon : ℕ) →
   C.integerLayerNormRadicand xs epsilon
   ＝
   C.integerLayerNormVarianceNumerator xs
@@ -2379,19 +2379,19 @@ record IntegerLayerNormEpsilonRayGrowthTheorem : Set₁ where
     eGraphAStar :
       CanonicalIntegerLayerNormEGraphAStarTheorem
     zeroRay :
-      ∀ (xs : List C.Int8) →
+      ∀ (xs : List C.IntCode) →
       C.integerLayerNormRadicand xs zero
       ＝
       C.integerLayerNormVarianceNumerator xs
     successorRay :
-      ∀ (xs : List C.Int8) (epsilon : ℕ) →
+      ∀ (xs : List C.IntCode) (epsilon : ℕ) →
       C.integerLayerNormRadicand xs (succ epsilon)
       ＝
       C.integerLayerNormRadicand xs epsilon
       +Int
       (pos (length xs * length xs))
     linearRay :
-      ∀ (xs : List C.Int8) (epsilon : ℕ) →
+      ∀ (xs : List C.IntCode) (epsilon : ℕ) →
       C.integerLayerNormRadicand xs epsilon
       ＝
       C.integerLayerNormVarianceNumerator xs
@@ -2437,7 +2437,7 @@ record CanonicalF4GlobalOptimizerStabilityTheorem : Set₁ where
         (C.l2Correction (C.globalL2 (C.optimizerKernel K)))
     stableNonThetaCoordinates :
       ∀ {A} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
-      (C.rTheta (C.canonicalOptimizerStep K s) ＝ C.zero8) ×
+      (C.rTheta (C.canonicalOptimizerStep K s) ＝ C.zeroIntCode) ×
       (C.eQ (C.canonicalOptimizerStep K s) ＝ C.eQ (C.optimizer s)) ×
       (C.rE (C.canonicalOptimizerStep K s) ＝ C.rE (C.optimizer s)) ×
       (C.rL (C.canonicalOptimizerStep K s) ＝ C.rL (C.optimizer s))
@@ -2700,58 +2700,58 @@ data CanonicalListPermutation {A : Set} : List A -> List A -> Set where
 
 CanonicalLearnerPermutationInvariant : Set₁
 CanonicalLearnerPermutationInvariant =
-  ∀ (xs ys : List C.Int8) →
+  ∀ (xs ys : List C.IntCode) →
   CanonicalListPermutation xs ys →
   ∀ c →
   C.runMonoidLSTMCell xs c ＝
   C.runMonoidLSTMCell ys c
 
-canonicalNegativeOne8 : C.Int8
-canonicalNegativeOne8 = C.int8 (negsucc zero)
+canonicalNegativeOne8 : C.IntCode
+canonicalNegativeOne8 = C.intCode (negsucc zero)
 
 canonicalPermutation-swap :
   CanonicalListPermutation
-    (C.one8 ∷ canonicalNegativeOne8 ∷ [])
-    (canonicalNegativeOne8 ∷ C.one8 ∷ [])
+    (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
+    (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
 canonicalPermutation-swap =
-  canonical-perm-swap C.one8 canonicalNegativeOne8 []
+  canonical-perm-swap C.oneIntCode canonicalNegativeOne8 []
 
 canonicalPermutation-left :
   C.runMonoidLSTMCell
-    (C.one8 ∷ canonicalNegativeOne8 ∷ [])
-    C.zero8
+    (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
+    C.zeroIntCode
   ＝
-  C.zero8
+  C.zeroIntCode
 canonicalPermutation-left = refl
 
 canonicalPermutation-right :
   C.runMonoidLSTMCell
-    (canonicalNegativeOne8 ∷ C.one8 ∷ [])
-    C.zero8
+    (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
+    C.zeroIntCode
   ＝
-  C.one8
+  C.oneIntCode
 canonicalPermutation-right = refl
 
 canonicalZeroInt-not-oneInt :
   ¬ ((pos 0) ＝ (pos 1))
 canonicalZeroInt-not-oneInt ()
 
-canonicalZero8-not-one8 :
-  C.zero8 ≢ C.one8
-canonicalZero8-not-one8 eq =
+canonicalZero8-not-oneIntCode :
+  C.zeroIntCode ≢ C.oneIntCode
+canonicalZero8-not-oneIntCode eq =
   canonicalZeroInt-not-oneInt
-    (C.int8-code-injective eq)
+    (C.intCode-code-injective eq)
 
 canonicalPermutation-results-distinct :
   C.runMonoidLSTMCell
-    (C.one8 ∷ canonicalNegativeOne8 ∷ [])
-    C.zero8
+    (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
+    C.zeroIntCode
   ≢
   C.runMonoidLSTMCell
-    (canonicalNegativeOne8 ∷ C.one8 ∷ [])
-    C.zero8
+    (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
+    C.zeroIntCode
 canonicalPermutation-results-distinct eq =
-  canonicalZero8-not-one8
+  canonicalZero8-not-oneIntCode
     (trans
       (sym canonicalPermutation-left)
       (trans eq canonicalPermutation-right))
@@ -2761,26 +2761,26 @@ canonicalLearnerPermutationInvariant-impossible :
 canonicalLearnerPermutationInvariant-impossible invariant =
   canonicalPermutation-results-distinct
     (invariant
-      (C.one8 ∷ canonicalNegativeOne8 ∷ [])
-      (canonicalNegativeOne8 ∷ C.one8 ∷ [])
+      (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
+      (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
       canonicalPermutation-swap
-      C.zero8)
+      C.zeroIntCode)
 
 record CanonicalLearnerPermutationCompositionImpossibilityTheorem : Set₁ where
   constructor canonicalLearnerPermutationCompositionImpossibilityTheorem
   field
     permutationWitness :
       CanonicalListPermutation
-        (C.one8 ∷ canonicalNegativeOne8 ∷ [])
-        (canonicalNegativeOne8 ∷ C.one8 ∷ [])
+        (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
+        (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
     distinctResults :
       C.runMonoidLSTMCell
-        (C.one8 ∷ canonicalNegativeOne8 ∷ [])
-        C.zero8
+        (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
+        C.zeroIntCode
       ≢
       C.runMonoidLSTMCell
-        (canonicalNegativeOne8 ∷ C.one8 ∷ [])
-        C.zero8
+        (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
+        C.zeroIntCode
     noGlobalPermutationInvariant :
       CanonicalLearnerPermutationInvariant → ⊥
 
@@ -3740,7 +3740,7 @@ record RecurrentAssociativeScanTheorem
         (C.recurrentPrefixState R xs m s)
 
 canonicalGRU-recurrent-associative-scan-theorem :
-  RecurrentAssociativeScanTheorem C.GRUState C.Int8
+  RecurrentAssociativeScanTheorem C.GRUState C.IntCode
 canonicalGRU-recurrent-associative-scan-theorem =
   recurrentAssociativeScanTheorem
     C.endomorphismAssociative
@@ -3855,7 +3855,7 @@ record RecurrentPrefixMonoidHomomorphism
         s
 
 canonical-recurrent-prefix-monoid-homomorphism :
-  RecurrentPrefixMonoidHomomorphism C.GRUState C.Int8
+  RecurrentPrefixMonoidHomomorphism C.GRUState C.IntCode
 canonical-recurrent-prefix-monoid-homomorphism =
   recurrentPrefixMonoidHomomorphism
     (λ R s → prefixListEndomorphism-unit R s)
@@ -3893,7 +3893,7 @@ productEndomorphism-compose f₁ f₂ g₁ g₂ s t = refl
 
 canonicalF4RecurrentNetwork :
   C.CanonicalFullLearnerKernel →
-  C.RecurrentNetwork C.F4IntUState C.Int8
+  C.RecurrentNetwork C.F4IntUState C.IntCode
 canonicalF4RecurrentNetwork K =
   C.recurrentNetwork
     (λ o signal →
@@ -3902,7 +3902,7 @@ canonicalF4RecurrentNetwork K =
 canonicalF4RecurrentNetwork-step-law :
   ∀ (K : C.CanonicalFullLearnerKernel)
   (o : C.F4IntUState)
-  (signal : C.Int8) →
+  (signal : C.IntCode) →
   C.runNetwork
     (canonicalF4RecurrentNetwork K)
     o
@@ -3914,7 +3914,7 @@ canonicalF4RecurrentNetwork-step-law K o signal = refl
 canonicalF4-prefix-monoid-homomorphism :
   RecurrentPrefixMonoidHomomorphism
     C.F4IntUState
-    C.Int8
+    C.IntCode
 canonicalF4-prefix-monoid-homomorphism =
   recurrentPrefixMonoidHomomorphism
     (λ R s → prefixListEndomorphism-unit R s)
@@ -3926,7 +3926,7 @@ CanonicalGRUF4PrefixState =
 
 CanonicalGRUF4PrefixInput : Set
 CanonicalGRUF4PrefixInput =
-  C.Int8 × C.Int8
+  C.IntCode × C.IntCode
 
 canonicalGRUF4PrefixNetwork :
   C.CanonicalFullLearnerKernel →
@@ -3942,7 +3942,7 @@ canonicalGRUF4PrefixNetwork K =
 canonicalGRUF4Prefix-step-law :
   ∀ (K : C.CanonicalFullLearnerKernel)
   (g : C.GRUState) (o : C.F4IntUState)
-  (gruInput optimizerInput : C.Int8) →
+  (gruInput optimizerInput : C.IntCode) →
   C.runNetwork (canonicalGRUF4PrefixNetwork K)
     (g , o) (gruInput , optimizerInput)
   ＝
@@ -3974,7 +3974,7 @@ record CanonicalGRUF4WatkinsPrefixCompositionTheorem : Set₁ where
   constructor canonicalGRUF4WatkinsPrefixCompositionTheorem
   field
     recurrentScan :
-      RecurrentPrefixMonoidHomomorphism C.GRUState C.Int8
+      RecurrentPrefixMonoidHomomorphism C.GRUState C.IntCode
     targetCorrectness :
       ∀ (K : C.CanonicalFullLearnerKernel)
       (s : C.CanonicalFullLearnerState) →
@@ -4159,7 +4159,7 @@ record RecurrentScanConjugacyTheorem
 open RecurrentScanConjugacyTheorem public
 
 canonical-recurrent-scan-conjugacy-theorem :
-  RecurrentScanConjugacyTheorem C.GRUState C.Int8
+  RecurrentScanConjugacyTheorem C.GRUState C.IntCode
 canonical-recurrent-scan-conjugacy-theorem =
   recurrentScanConjugacyTheorem
     (λ replace step h → replace)
@@ -4257,7 +4257,7 @@ record S4PlusS5RecurrentScanTheorem (State Input : Set) : Set₁ where
 open S4PlusS5RecurrentScanTheorem public
 
 canonical-S4S5-recurrent-scan-theorem :
-  S4PlusS5RecurrentScanTheorem C.GRUState C.Int8
+  S4PlusS5RecurrentScanTheorem C.GRUState C.IntCode
 canonical-S4S5-recurrent-scan-theorem =
   s4PlusS5RecurrentScanTheorem
     canonicalGRU-recurrent-associative-scan-theorem
@@ -4413,7 +4413,7 @@ open MinimaxBellmanShapleyOperator public
 open MinimaxBellmanShapleyInclusionTheorem public
 
 canonicalBiasedWatkinsNegativeQMunchausenL2Target :
-  C.CanonicalFullLearnerKernel → C.CanonicalFullLearnerState → C.Int8
+  C.CanonicalFullLearnerKernel → C.CanonicalFullLearnerState → C.IntCode
 canonicalBiasedWatkinsNegativeQMunchausenL2Target =
   C.canonicalWatkinsTarget
 
@@ -4494,8 +4494,8 @@ open CanonicalQMunchausenL2SharedNegationPolarityTheorem public
 
 canonicalWatkinsTarget-endogenous-leftInverse :
   ∀ (K : C.CanonicalFullLearnerKernel)
-  (observe : C.CanonicalFullLearnerState → C.Int8)
-  (inverse : C.Int8 → C.CanonicalFullLearnerState) →
+  (observe : C.CanonicalFullLearnerState → C.IntCode)
+  (inverse : C.IntCode → C.CanonicalFullLearnerState) →
   (leftInverse : ∀ t → inverse (observe t) ＝ t) →
   ∀ s →
   C.canonicalWatkinsTarget K s ＝
@@ -4633,7 +4633,7 @@ canonicalWatkinsTargetSignalStream :
   C.CanonicalFullLearnerKernel →
   C.CanonicalFullLearnerState →
   ℕ →
-  C.Int8
+  C.IntCode
 canonicalWatkinsTargetSignalStream K s n =
   C.canonicalWatkinsTarget K
     (C.iterateCanonical K n s)
@@ -4774,12 +4774,12 @@ open DenseNeighborhoodSeparationTheorem public
 canonicalDenseNeighborhoodSeparation :
   ∀ (K : C.CanonicalFullLearnerKernel)
   (s : C.CanonicalFullLearnerState)
-  (observe : C.CanonicalFullLearnerState → C.Int8)
-  (inverse : C.Int8 → C.CanonicalFullLearnerState) →
+  (observe : C.CanonicalFullLearnerState → C.IntCode)
+  (inverse : C.IntCode → C.CanonicalFullLearnerState) →
   (∀ t → inverse (observe t) ＝ t) →
   DenseNeighborhoodSeparationTheorem
     C.CanonicalFullLearnerState
-    C.Int8
+    C.IntCode
     (λ n → C.iterateCanonical K n s)
     observe
 canonicalDenseNeighborhoodSeparation
@@ -4813,13 +4813,13 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
 
     inclusionClass :
       ∀ (K : C.CanonicalFullLearnerKernel)
-      (_≤_ : C.Int8 → C.Int8 → Set)
+      (_≤_ : C.IntCode → C.IntCode → Set)
       (operator :
         MinimaxBellmanShapleyOperator
           C.CanonicalFullLearnerState
-          C.Int8
+          C.IntCode
           _≤_)
-      (lower upper : C.CanonicalFullLearnerState → C.Int8) →
+      (lower upper : C.CanonicalFullLearnerState → C.IntCode) →
       PointwiseSandwich
         _≤_
         lower
@@ -4827,7 +4827,7 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
         upper →
       MinimaxBellmanShapleyInclusionTheorem
         C.CanonicalFullLearnerState
-        C.Int8
+        C.IntCode
         _≤_
         operator
         lower
@@ -4836,8 +4836,8 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
 
     endogenousFactorization :
       ∀ (K : C.CanonicalFullLearnerKernel)
-      (observe : C.CanonicalFullLearnerState → C.Int8)
-      (inverse : C.Int8 → C.CanonicalFullLearnerState) →
+      (observe : C.CanonicalFullLearnerState → C.IntCode)
+      (inverse : C.IntCode → C.CanonicalFullLearnerState) →
       (leftInverse : ∀ t → inverse (observe t) ＝ t) →
       ∀ s →
       C.canonicalWatkinsTarget K s ＝
@@ -4900,12 +4900,12 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
     denseNeighborhoodSeparation :
       ∀ (K : C.CanonicalFullLearnerKernel)
       (s : C.CanonicalFullLearnerState)
-      (observe : C.CanonicalFullLearnerState → C.Int8)
-      (inverse : C.Int8 → C.CanonicalFullLearnerState) →
+      (observe : C.CanonicalFullLearnerState → C.IntCode)
+      (inverse : C.IntCode → C.CanonicalFullLearnerState) →
       (∀ t → inverse (observe t) ＝ t) →
       DenseNeighborhoodSeparationTheorem
         C.CanonicalFullLearnerState
-        C.Int8
+        C.IntCode
         (λ n → C.iterateCanonical K n s)
         observe
 
@@ -5120,9 +5120,9 @@ record CanonicalPolymorphicSparsemaxCompositionTheorem : Set₁ where
       (s : C.CanonicalFullLearnerState) (o : C.F4IntUState) →
       C.canonicalPolicy K (C.replaceOptimizer s o) ＝ C.canonicalPolicy K s
     recurrentPrefixComposition :
-      RecurrentPrefixMonoidHomomorphism C.GRUState C.Int8
+      RecurrentPrefixMonoidHomomorphism C.GRUState C.IntCode
     s4PlusS5RecurrentScan :
-      S4PlusS5RecurrentScanTheorem C.GRUState C.Int8
+      S4PlusS5RecurrentScanTheorem C.GRUState C.IntCode
     informationPreservingTask :
       ∀ {State Feature Output : Set}
       (observe : State → Feature) (inverse : Feature → State)
@@ -5967,7 +5967,7 @@ jaxSparsemaxPolicyIndex-law :
 jaxSparsemaxPolicyIndex-law K q c = refl
 
 jaxIntegerLayerNormCenteredNumerators :
-  List C.Int8 →
+  List C.IntCode →
   List Int
 jaxIntegerLayerNormCenteredNumerators =
   C.integerLayerNormCenteredNumerators
@@ -5979,7 +5979,7 @@ jaxIntegerLayerNormCenteredNumerators-law :
 jaxIntegerLayerNormCenteredNumerators-law xs = refl
 
 jaxIntegerLayerNormRadicand :
-  List C.Int8 →
+  List C.IntCode →
   ℕ →
   Int
 jaxIntegerLayerNormRadicand =
@@ -5992,7 +5992,7 @@ jaxIntegerLayerNormRadicand-law :
 jaxIntegerLayerNormRadicand-law xs epsilon = refl
 
 jaxBatchedIntegerLayerNormRadicand :
-  List (List C.Int8) →
+  List (List C.IntCode) →
   ℕ →
   List Int
 jaxBatchedIntegerLayerNormRadicand batch epsilon =
@@ -6009,8 +6009,8 @@ jaxBatchedIntegerLayerNormRadicand-law :
 jaxBatchedIntegerLayerNormRadicand-law batch epsilon = refl
 
 jaxSignedGate :
-  C.Int8 →
-  C.Int8
+  C.IntCode →
+  C.IntCode
 jaxSignedGate =
   C.gateFromInput
 
@@ -6022,8 +6022,8 @@ jaxSignedGate-law x = refl
 
 jaxGRUHiddenStep :
   C.GRUState →
-  C.Int8 →
-  C.Int8
+  C.IntCode →
+  C.IntCode
 jaxGRUHiddenStep state x =
   C.hiddenState (C.gruStep state x)
 
@@ -6035,8 +6035,8 @@ jaxGRUHiddenStep-law state x = refl
 
 zipGRUStatesInts :
   List C.GRUState →
-  List C.Int8 →
-  List (C.GRUState × C.Int8)
+  List C.IntCode →
+  List (C.GRUState × C.IntCode)
 zipGRUStatesInts [] ys = []
 zipGRUStatesInts (x ∷ xs) [] = []
 zipGRUStatesInts (x ∷ xs) (y ∷ ys) =
@@ -6044,8 +6044,8 @@ zipGRUStatesInts (x ∷ xs) (y ∷ ys) =
 
 jaxBatchedGRUHiddenStep :
   List C.GRUState →
-  List C.Int8 →
-  List C.Int8
+  List C.IntCode →
+  List C.IntCode
 jaxBatchedGRUHiddenStep states xs =
   map
     (λ stateX → jaxGRUHiddenStep (pr₁ stateX) (pr₂ stateX))
@@ -6658,20 +6658,20 @@ canonical-token-arbitrary-length-generation-theorem =
     canonicalToken-prefix-monoid-homomorphism
 
 canonicalIntegerHaarCross :
-  C.int8Add C.one8 (C.int8Neg C.one8) ＝ C.zero8
+  C.int8Add C.oneIntCode (C.int8Neg C.oneIntCode) ＝ C.zeroIntCode
 canonicalIntegerHaarCross = refl
 
 canonicalIntegerHaarEnergy :
-  C.int8Add C.one8 C.one8 ＝ C.int8OfNat 2
+  C.int8Add C.oneIntCode C.oneIntCode ＝ C.int8OfNat 2
 canonicalIntegerHaarEnergy = refl
 
 record CanonicalIntegerHaarScaledOrthogonalityTheorem : Set₁ where
   constructor canonicalIntegerHaarScaledOrthogonalityTheorem
   field
     crossOrthogonality :
-      C.int8Add C.one8 (C.int8Neg C.one8) ＝ C.zero8
+      C.int8Add C.oneIntCode (C.int8Neg C.oneIntCode) ＝ C.zeroIntCode
     integerEnergy :
-      C.int8Add C.one8 C.one8 ＝ C.int8OfNat 2
+      C.int8Add C.oneIntCode C.oneIntCode ＝ C.int8OfNat 2
 
 open CanonicalIntegerHaarScaledOrthogonalityTheorem public
 
@@ -6693,7 +6693,7 @@ canonical-integer-haar-scaled-orthogonality-theorem =
 
 canonicalHaarAttentionRecurrent :
   C.HaarAccumulator →
-  List C.Int8 →
+  List C.IntCode →
   C.GRUState →
   C.GRUState
 canonicalHaarAttentionRecurrent accumulator xs s =
@@ -6705,7 +6705,7 @@ canonicalHaarAttentionRecurrent accumulator xs s =
 haarAccumulatorScan :
   C.HaarFeaturedLinearTransformer →
   C.HaarAccumulator →
-  List C.Int8 →
+  List C.IntCode →
   C.HaarAccumulator
 haarAccumulatorScan T accumulator [] = accumulator
 haarAccumulatorScan T accumulator (x ∷ xs) =
@@ -6717,7 +6717,7 @@ haarAccumulatorScan T accumulator (x ∷ xs) =
 haarLinearTransform-append :
   ∀ (T : C.HaarFeaturedLinearTransformer)
   (accumulator : C.HaarAccumulator)
-  (xs ys : List C.Int8) →
+  (xs ys : List C.IntCode) →
   C.haarLinearTransform T accumulator (xs ++ ys)
   ＝
   C.haarLinearTransform T accumulator xs ++
@@ -6744,7 +6744,7 @@ haarLinearTransform-append T accumulator (x ∷ xs) ys =
 
 canonicalHaarAttentionRecurrent-append :
   ∀ (accumulator : C.HaarAccumulator)
-  (xs ys : List C.Int8)
+  (xs ys : List C.IntCode)
   (s : C.GRUState) →
   canonicalHaarAttentionRecurrent
     accumulator
@@ -6783,7 +6783,7 @@ canonicalHaarAttentionRecurrent-append accumulator xs ys s =
       s)
 
 canonicalHaarFeature-recurrent-step :
-  ∀ (s : C.GRUState) (x : C.Int8) →
+  ∀ (s : C.GRUState) (x : C.IntCode) →
   C.gruStep
     s
     (C.int8Sub
@@ -6797,7 +6797,7 @@ canonicalHaarFeature-recurrent-step s x =
     (C.canonicalHaarFeatureReconstruct x)
 
 canonicalHaarFeature-recurrent-prefix :
-  ∀ (xs : List C.Int8) (s : C.GRUState) →
+  ∀ (xs : List C.IntCode) (s : C.GRUState) →
   C.recurrentListState
     C.canonicalGRURecurrentNetwork
     (map
@@ -6835,13 +6835,13 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
     haarOrthogonality :
       CanonicalIntegerHaarScaledOrthogonalityTheorem
     cReLUInjective :
-      ∀ {x y : C.Int8} →
+      ∀ {x y : C.IntCode} →
       C.canonicalCReLU8 x ＝
       C.canonicalCReLU8 y →
       x ＝ y
     attentionAppend :
       ∀ (accumulator : C.HaarAccumulator)
-      (xs ys : List C.Int8)
+      (xs ys : List C.IntCode)
       (s : C.GRUState) →
       canonicalHaarAttentionRecurrent
         accumulator
@@ -6856,7 +6856,7 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
         ys
         (canonicalHaarAttentionRecurrent accumulator xs s)
     reconstructedStep :
-      ∀ (s : C.GRUState) (x : C.Int8) →
+      ∀ (s : C.GRUState) (x : C.IntCode) →
       C.gruStep
         s
         (int8Sub
@@ -6865,7 +6865,7 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
       ＝
       C.gruStep s x
     reconstructedPrefix :
-      ∀ (xs : List C.Int8) (s : C.GRUState) →
+      ∀ (xs : List C.IntCode) (s : C.GRUState) →
       C.recurrentListState
         C.canonicalGRURecurrentNetwork
         (map
@@ -6883,7 +6883,7 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
     recurrentComposition :
       RecurrentPrefixMonoidHomomorphism
         C.GRUState
-        C.Int8
+        C.IntCode
 
 ------------------------------------------------------------------------
 -- Executable learner composition regression:
@@ -7021,14 +7021,14 @@ kla-affine-composition f₁ b₁ f₂ b₂ = refl
 record KLAMobiusMatrix : Set where
   constructor klaMobiusMatrix
   field
-    m₁₁ m₁₂ m₂₁ m₂₂ : C.Int8
+    m₁₁ m₁₂ m₂₁ m₂₂ : C.IntCode
 open KLAMobiusMatrix public
 
 klaMobiusTransition :
-  C.Int8 → C.Int8 → C.Int8 → KLAMobiusMatrix
+  C.IntCode → C.IntCode → C.IntCode → KLAMobiusMatrix
 klaMobiusTransition p aSquared phi =
   klaMobiusMatrix
-    (C.int8Add C.one8 (C.int8Mul p phi))
+    (C.int8Add C.oneIntCode (C.int8Mul p phi))
     (C.int8Mul aSquared phi)
     p
     aSquared
@@ -7042,7 +7042,7 @@ record KLAFullBeliefState : Set where
   constructor klaFullBeliefState
   field
     meanTransform : C.MonoidAffine
-    precision : C.Int8
+    precision : C.IntCode
 
 klaAffineProjection :
   KLAFullBeliefState → C.MonoidAffine
@@ -7056,9 +7056,9 @@ klaAffineProjection-not-injective :
     s ＝ t)
 klaAffineProjection-not-injective derive =
   let
-    a = C.monoidAffine C.one8 C.zero8
-    s = klaFullBeliefState a C.zero8
-    t = klaFullBeliefState a C.one8
+    a = C.monoidAffine C.oneIntCode C.zeroIntCode
+    s = klaFullBeliefState a C.zeroIntCode
+    t = klaFullBeliefState a C.oneIntCode
   in
   false-not-true
     (ap KLAFullBeliefState.precision
@@ -7068,7 +7068,7 @@ record KLAPrecisionBridgeWitness : Set₁ where
   constructor klaPrecisionBridgeWitness
   field
     precisionState : Set
-    precisionProjection : precisionState → C.Int8
+    precisionProjection : precisionState → C.IntCode
     precisionStep : precisionState → precisionState
     mobiusStep : KLAMobiusMatrix → precisionState → precisionState
     correspondence :
@@ -8037,21 +8037,21 @@ canonical-operator-composition-theorem =
     C.endomorphismAssociative
 
 f4Orbit :
-  C.F4IntUKernel → C.Int8 → ℕ → C.F4IntUState → C.F4IntUState
+  C.F4IntUKernel → C.IntCode → ℕ → C.F4IntUState → C.F4IntUState
 f4Orbit K g zero s = s
 f4Orbit K g (succ n) s =
   C.f4ThetaStep K (f4Orbit K g n s) g
 
 record F4UpperBoundedTrajectory
   (K : C.F4IntUKernel)
-  (g : C.Int8)
+  (g : C.IntCode)
   (s : C.F4IntUState) : Set₁ where
   constructor f4UpperBoundedTrajectory
   field
     bound : ℕ
     bounded :
       ∀ n →
-      C.code (C.thetaQ (f4Orbit K g n s)) ≤ pos bound
+      C.intCodeValue (C.thetaQ (f4Orbit K g n s)) ≤ pos bound
 
 nat-plus-one :
   ∀ n → n + succ zero ＝ succ n
@@ -8067,52 +8067,52 @@ integer-nat-plus-one n =
 
 f4-zero-L2-unit-step-code :
   ∀ s →
-  C.code
+  C.intCodeValue
     (C.thetaQ
       (C.f4ThetaStep
-        (C.f4IntUKernel C.zero8)
+        (C.f4IntUKernel C.zeroIntCode)
         s
-        C.one8))
+        C.oneIntCode))
   ＝
-  C.code (C.thetaQ s) +Int (pos 1)
+  C.intCodeValue (C.thetaQ s) +Int (pos 1)
 f4-zero-L2-unit-step-code s =
   trans
-    (ap C.code
+    (ap C.intCodeValue
       (C.f4ParameterInvariant
-        (C.f4IntUKernel C.zero8)
+        (C.f4IntUKernel C.zeroIntCode)
         s
-        C.one8))
+        C.oneIntCode))
     (ℤ-zero-right-neutral
-      (C.code (C.thetaQ s) +Int (pos 1)))
+      (C.intCodeValue (C.thetaQ s) +Int (pos 1)))
 
 f4-unit-forcing-linear-growth :
   ∀ n s →
-  C.code
+  C.intCodeValue
     (C.thetaQ
       (f4Orbit
-        (C.f4IntUKernel C.zero8)
-        C.one8
+        (C.f4IntUKernel C.zeroIntCode)
+        C.oneIntCode
         n
         s))
   ＝
-  C.code (C.thetaQ s) +Int (pos n)
+  C.intCodeValue (C.thetaQ s) +Int (pos n)
 f4-unit-forcing-linear-growth zero s =
-  sym (ℤ-zero-right-neutral (C.code (C.thetaQ s)))
+  sym (ℤ-zero-right-neutral (C.intCodeValue (C.thetaQ s)))
 f4-unit-forcing-linear-growth (succ n) s =
   trans
     (f4-zero-L2-unit-step-code
-      (f4Orbit (C.f4IntUKernel C.zero8) C.one8 n s))
+      (f4Orbit (C.f4IntUKernel C.zeroIntCode) C.oneIntCode n s))
     (trans
       (ap
         (λ z → z +Int (pos 1))
         (f4-unit-forcing-linear-growth n s))
       (trans
         (ℤ+-assoc
-          (C.code (C.thetaQ s))
+          (C.intCodeValue (C.thetaQ s))
           (pos n)
           (pos 1))
         (ap
-          (λ z → C.code (C.thetaQ s) +Int z)
+          (λ z → C.intCodeValue (C.thetaQ s) +Int z)
           (integer-nat-plus-one n))))
 
 nat-succ-not-le :
@@ -8123,10 +8123,10 @@ nat-succ-not-le (succ n) h =
 
 f4-unit-forcing-no-upper-bound :
   ∀ {s : C.F4IntUState} →
-  C.thetaQ s ＝ C.zero8 →
+  C.thetaQ s ＝ C.zeroIntCode →
   ¬ F4UpperBoundedTrajectory
-      (C.f4IntUKernel C.zero8)
-      C.one8
+      (C.f4IntUKernel C.zeroIntCode)
+      C.oneIntCode
       s
 f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
   let
@@ -8137,11 +8137,11 @@ f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
         (succ B)
         _
     growthFromZero :
-      C.code
+      C.intCodeValue
         (C.thetaQ
           (f4Orbit
-            (C.f4IntUKernel C.zero8)
-            C.one8
+            (C.f4IntUKernel C.zeroIntCode)
+            C.oneIntCode
             (succ B)
             _))
       ＝
@@ -8152,7 +8152,7 @@ f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
         (trans
           (ap
             (λ z → z +Int (pos (succ B)))
-            (ap C.code thetaZero))
+            (ap C.intCodeValue thetaZero))
           (ℤ-zero-left-neutral (pos (succ B))))
     impossibleOrder :
       pos (succ B) ≤ pos B
@@ -8169,7 +8169,7 @@ record CanonicalPureNonOrangeBypassCompletionTheorem : Set₁ where
   constructor canonicalPureNonOrangeBypassCompletionTheorem
   field
     recurrentPrefix :
-      RecurrentPrefixMonoidHomomorphism C.GRUState C.Int8
+      RecurrentPrefixMonoidHomomorphism C.GRUState C.IntCode
     fullLearnerScanConjugacy :
       CanonicalFullLearnerConnectedScanConjugacyTheorem
     exactTuringBoundary :
@@ -8471,11 +8471,11 @@ record CanonicalMARLLawCompositionTheorem : Set₁ where
   constructor canonicalMARLLawCompositionTheorem
   field
     recurrentPrefixComposition :
-      RecurrentPrefixMonoidHomomorphism C.GRUState C.Int8
+      RecurrentPrefixMonoidHomomorphism C.GRUState C.IntCode
     f4StepLaw :
       ∀ (K : C.CanonicalFullLearnerKernel)
       (o : C.F4IntUState)
-      (signal : C.Int8) →
+      (signal : C.IntCode) →
       C.runNetwork
         (canonicalF4RecurrentNetwork K)
         o
@@ -9218,7 +9218,7 @@ record NLabMaxwellFourLawGRUAlgebraicConsistencyTheorem
       canonicalGRUStatisticalEncode t →
       s ＝ t
     statisticalStep :
-      ∀ (s : C.GRUState) (x : C.Int8) →
+      ∀ (s : C.GRUState) (x : C.IntCode) →
       canonicalGRUStatisticalEncode (C.gruStep s x)
       ＝
       (C.gruStep s x ,
@@ -11493,15 +11493,15 @@ noUnconditionalCanonicalPriceDerivation-twoWorld =
 -- Canonical Integer-GRU token encoding: global left inverse, injectivity,
 -- and exact recurrent conjugacy.
 --
--- CanonicalToken is the unbounded integer carrier Int and Int8 is an exact
+-- CanonicalToken is the unbounded integer carrier Int and IntCode is an exact
 -- Int wrapper. The decoder below is therefore global and total. This proves
 -- global injectivity directly from the left-inverse law; no separate
 -- separation axiom is required. Continuity is only asserted for the
 -- repository's discrete topology, not an analytic topology.
 ------------------------------------------------------------------------
 
-canonicalTokenDecode : C.Int8 → C.CanonicalToken
-canonicalTokenDecode = C.code
+canonicalTokenDecode : C.IntCode → C.CanonicalToken
+canonicalTokenDecode = C.intCodeValue
 
 canonicalTokenDecode-encode :
   ∀ t → canonicalTokenDecode (C.canonicalTokenEncode t) ＝ t
@@ -11575,7 +11575,7 @@ record CanonicalIntegerGRUFractalLimitCompositionTheorem
     limitKernel :
       GRUFractalLimitCompositionKernel
         C.CanonicalToken
-        C.Int8
+        C.IntCode
         LimitObservation
         limitEncode
     limitInjective :
@@ -11590,7 +11590,7 @@ canonical-integer-gru-fractal-limit-composition :
   {limitEncode : C.CanonicalToken → LimitObservation} →
   GRUFractalLimitCompositionKernel
     C.CanonicalToken
-    C.Int8
+    C.IntCode
     LimitObservation
     limitEncode →
   CanonicalIntegerGRUFractalLimitCompositionTheorem
