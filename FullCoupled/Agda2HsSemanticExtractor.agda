@@ -44,8 +44,8 @@ isSourceSpace c =
   else eqChar c '\t'
 
 data SemanticKind : Type where
-  semantic-top-level : SemanticKind
-  semantic-record-field : SemanticKind
+  SemanticTopLevel : SemanticKind
+  SemanticRecordField : SemanticKind
 
 record SemanticDecl : Type where
   constructor semanticDecl
@@ -367,7 +367,7 @@ finalizeScanState sourceFile
     name
     (unwordsString (reverse signatureReversed))
     ""
-    semantic-top-level
+    SemanticTopLevel
     ""
   ∷ accumulator
 finalizeScanState sourceFile
@@ -378,7 +378,7 @@ finalizeScanState sourceFile
     name
     (unwordsString (reverse signatureReversed))
     (unwordsString (reverse bodyReversed))
-    semantic-top-level
+    SemanticTopLevel
     ""
   ∷ accumulator
 
@@ -564,7 +564,7 @@ finalizeRecordFieldState sourceFile
     (recordName ++ "." ++ fieldName)
     (unwordsString (reverse signatureReversed))
     ""
-    semantic-record-field
+    SemanticRecordField
     recordName
   ∷ accumulator
 
@@ -880,8 +880,8 @@ isComposite law = lawComposite law
 isRecordField : SemanticLaw -> Bool
 isRecordField law =
   case lawKind law of λ where
-    semantic-record-field -> True
-    semantic-top-level -> False
+    SemanticRecordField -> True
+    SemanticTopLevel -> False
 
 normalizeSignature : String -> String
 normalizeSignature signature =
