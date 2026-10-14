@@ -27,8 +27,16 @@ reflexive⊑ {value = defined value} = definedReflexive
 bottomIsLeast : {A : Set} (value : Lift A) → bottom ⊑ value
 bottomIsLeast _ = bottomLeast
 
+-- This order fact is not an equality with numeric zero:
+-- bottom ⊑ every value, but defined zero is an ordinary, defined value.
 bottomIsNotZero : bottom ≡ defined zero → ⊥
 bottomIsNotZero ()
+
+definedZeroIsNotBottom : defined zero ≡ bottom → ⊥
+definedZeroIsNotBottom ()
+
+definedZeroIsNotLeast : defined zero ⊑ bottom → ⊥
+definedZeroIsNotLeast ()
 
 -- A tiny Scott–Strachey denotational semantics for numerals, divergence,
 -- and strict addition.

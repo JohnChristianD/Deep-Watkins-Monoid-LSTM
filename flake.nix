@@ -216,6 +216,7 @@
           name = "agda2hs-ci";
           runtimeInputs = [
             (agda2hsWithCanonicalGhc system)
+            (agdaWithPackages system)
             pkgs.coreutils
           ];
           text = ''
