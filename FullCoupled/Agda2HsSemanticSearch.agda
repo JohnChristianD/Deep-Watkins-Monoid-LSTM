@@ -652,7 +652,7 @@ autonomousGraphSearchFromRoot root edges =
   in
   graphSortPlans
     (graphSearchDepth
-      (listLengthNat laws)
+      (graphDepthFuel laws)
       laws
       (MkGraphNode (root ∷ [])))
 
