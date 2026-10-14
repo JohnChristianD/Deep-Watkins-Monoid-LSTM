@@ -1,19 +1,25 @@
 {-# OPTIONS
-  --lossy-unification
-  --experimental-lazy-instances
-  --sized-types
-  --exact-split
-  --erased-matches
-  --erase-record-parameters
-  --prop
-  --confluence-check
-  --two-level
-  --rewriting
-  --level-universe
-  --cumulativity
-  --auto-inline
-  --polarity
-  --flat-split
+--lossy-unification
+--sized-types
+--exact-split
+--erasure
+--no-projection-like
+--erased-matches
+--erase-record-parameters
+--prop
+--confluence-check
+--two-level
+--rewriting
+--level-universe
+--cumulativity
+--auto-inline
+--polarity
+--flat-split
+--omega-in-omega
+--large-indices
+--no-forced-argument-recursion
+--with-K
+--no-guardedness
 #-}
 
 ------------------------------------------------------------------------
