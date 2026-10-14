@@ -930,24 +930,24 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS semanticLawDependencies #-}
 {-# COMPILE AGDA2HS countNonreflexive #-}
 {-# COMPILE AGDA2HS countComposite #-}
-{-# COMPILE AGDA2HS CharList #-}
-{-# COMPILE AGDA2HS syntaxHead #-}
-{-# COMPILE AGDA2HS topLevelLine #-}
-{-# COMPILE AGDA2HS splitFirstCharString #-}
-{-# COMPILE AGDA2HS splitFirstChar #-}
-{-# COMPILE AGDA2HS lineContainsChar #-}
-{-# COMPILE AGDA2HS containsChar #-}
-{-# COMPILE AGDA2HS secondWord #-}
-{-# COMPILE AGDA2HS firstWord #-}
-{-# COMPILE AGDA2HS trimWhitespace #-}
-{-# COMPILE AGDA2HS dropTrailingSpaces #-}
-{-# COMPILE AGDA2HS dropLeadingSpaces #-}
-{-# COMPILE AGDA2HS topLevelRecordHeader #-}
-{-# COMPILE AGDA2HS topLevelRecordHeaderRegression #-}
-{-# COMPILE AGDA2HS nestedRecordHeaderRejectedRegression #-}
-{-# COMPILE AGDA2HS bodyClause #-}
-{-# COMPILE AGDA2HS bodyClauseRegression #-}
-{-# COMPILE AGDA2HS bodyClauseRejectsIndentedRegression #-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 {-# COMPILE AGDA2HS charBetween #-}
 {-# COMPILE AGDA2HS isAsciiAlpha #-}
 {-# COMPILE AGDA2HS isAsciiDigit #-}
@@ -957,5 +957,8 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS isAsciiAlphaRegression #-}
 {-# COMPILE AGDA2HS isAsciiDigitRegression #-}
 {-# COMPILE AGDA2HS isSpaceRegression #-}
+-- Parser regression values remain ordinary Agda definitions with kernel-checked proofs.
+-- Do not COMPILE the regressions as Haskell roots: doing so forces extraction
+-- of their parser-only helper closure instead of inlining it into the reader.
 {-# COMPILE AGDA2HS planContains #-}
 {-# COMPILE AGDA2HS planContainsRegression #-}
