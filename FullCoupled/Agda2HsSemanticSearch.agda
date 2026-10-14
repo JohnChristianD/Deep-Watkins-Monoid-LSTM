@@ -872,22 +872,21 @@ graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) known =
         Nothing ->
           graphAStarFirstWithFuel fuel laws frontier known
         (Just bestG) ->
-          case (graphAStarPathCost node == bestG) of λ where
-            False ->
-              -- Skip stale queue entries superseded by a cheaper g score.
-              graphAStarFirstWithFuel fuel laws frontier known
-            True ->
-              case graphMaximalDependencyChain (graphAStarPlan node) laws of λ where
-                True ->
-                  Just (graphAStarPlan node)
-                False ->
-                  let (known' , frontier') =
-                        graphAStarEnqueueImprovements
-                          laws
-                          (graphAStarExpandNode node laws)
-                          known
-                          frontier
-                  in graphAStarFirstWithFuel fuel laws frontier' known'
+          if (graphAStarPathCost node == bestG) then
+            if graphMaximalDependencyChain (graphAStarPlan node) laws then
+              Just (graphAStarPlan node)
+            else
+              let (known' , frontier') =
+                    graphAStarEnqueueImprovements
+                      laws
+                      (graphAStarExpandNode node laws)
+                      known
+                      frontier
+              in
+              graphAStarFirstWithFuel fuel laws frontier' known'
+          else
+            -- Skip stale queue entries superseded by a cheaper g score.
+            graphAStarFirstWithFuel fuel laws frontier known
 
 -- Every queued path is simple. Its number is bounded by the number of simple
 -- ordered paths (< 3*n!), including stale entries. Exhausting this operational
