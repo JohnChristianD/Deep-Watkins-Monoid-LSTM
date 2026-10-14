@@ -932,6 +932,12 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS nestedRecordHeaderRejectedRegression #-}
 {-# COMPILE AGDA2HS bodyClauseRegression #-}
 {-# COMPILE AGDA2HS bodyClauseRejectsIndentedRegression #-}
+{-# COMPILE AGDA2HS charBetween #-}
+{-# COMPILE AGDA2HS isAsciiAlpha #-}
+{-# COMPILE AGDA2HS isAsciiDigit #-}
+{-# COMPILE AGDA2HS isSourceSpace #-}
+{-# COMPILE AGDA2HS isSpace #-}
+{-# COMPILE AGDA2HS isIdentifierChar #-}
 {-# COMPILE AGDA2HS isAsciiAlphaRegression #-}
 {-# COMPILE AGDA2HS isAsciiDigitRegression #-}
 {-# COMPILE AGDA2HS isSpaceRegression #-}
