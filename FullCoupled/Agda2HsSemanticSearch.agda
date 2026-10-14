@@ -1,11 +1,6 @@
 module FullCoupled.Agda2HsSemanticSearch where
 
 open import Haskell.Prelude
-open import Haskell.Extra.Dec
-open import Haskell.Extra.Nat
-open import Haskell.Extra.Refinement
-open import Haskell.Law.Eq
-open import Haskell.Law.Eq.Instances
 
 import FullCoupled.Agda2HsSemanticExtractor as Extractor
 open import FullCoupled.Agda2HsTheoremGraphEGraph using
@@ -198,53 +193,48 @@ insertAll required (node ∷ nodes) frontier =
     nodes
     (insertByScore required node frontier)
 
--- Agda2HS cannot compile direct Nat constructor patterns. Recurse on
--- Nat through ifDec/predNat instead, retaining compact scalar fuel 4 * n!.
-recNat : (a : @0 Nat → Set)
-       → (z : a 0)
-       → (s : (m : Nat) → a m → a (suc m))
-       → (n : Nat) → a n
-recNat a z s n = ifDec (n ≟ 0)
-  (λ where {{refl}} → z)
-  (λ {{n≠0}} →
-    case predNat n n≠0 of λ where
-      (m ⟨ refl ⟩) → s m (recNat a z s m))
-
 factorial : Nat → Nat
-factorial n =
-  recNat (λ _ → Nat) (suc zero) (λ m result → suc m * result) n
+factorial zero = suc zero
+factorial (suc n) = suc n * factorial n
 
-searchFuel : List SemanticLaw → Nat
+-- Agda2HS excludes direct Nat-constructor recursion from the executable
+-- closure. Represent the factorial search budget as a lazy list of unit
+-- tokens: the list spine is consumed only as each search step needs fuel.
+repeatBy : ∀ {A B : Type} → List A → List B → List B
+repeatBy [] values = []
+repeatBy (_ ∷ rest) values = values ++ repeatBy rest values
+
+factorialFuel : ∀ {A : Type} → List A → List ⊤
+factorialFuel [] = tt ∷ []
+factorialFuel (value ∷ rest) =
+  repeatBy (value ∷ rest) (factorialFuel rest)
+
+searchFuel : List SemanticLaw → List ⊤
 searchFuel laws =
-  suc (suc (suc (suc zero))) * factorial (listLengthNat laws)
+  let fuel = factorialFuel laws
+  in fuel ++ fuel ++ fuel ++ fuel
 
 astarWithFuel :
-  Nat →
+  List ⊤ →
   List Capability →
   List SemanticLaw →
   List SearchNode →
   Maybe SearchNode
-astarWithFuel fuel required laws frontier =
-  ifDec (fuel ≟ 0)
-    (λ where {{refl}} → Nothing)
-    (λ {{fuel≠0}} →
-      case predNat fuel fuel≠0 of λ where
-        (fuel' ⟨ refl ⟩) →
-          case frontier of λ where
-            [] → Nothing
-            (node ∷ rest) →
-              if allRequiredCovered required (covered node) then
-                Just node
-              else
-                case firstMissing required (covered node) of λ where
-                  Nothing →
-                    Just node
+astarWithFuel [] required laws frontier = Nothing
+astarWithFuel (_ ∷ fuel) required laws [] = Nothing
+astarWithFuel (_ ∷ fuel) required laws (node ∷ frontier) =
+  if allRequiredCovered required (covered node) then
+    Just node
+  else
+    case firstMissing required (covered node) of λ where
+      Nothing →
+        Just node
 
-                  (Just capability) →
-                    let children = expandForCapability capability laws node
-                        frontier' = insertAll required children rest
-                    in
-                    astarWithFuel fuel' required laws frontier')
+      (Just capability) →
+        let children = expandForCapability capability laws node
+            frontier' = insertAll required children frontier
+        in
+        astarWithFuel fuel required laws frontier'
 
 astar :
   List Capability →
@@ -883,16 +873,16 @@ graphAStarEnqueueImprovements laws (node ∷ nodes) known frontier =
         graphAStarEnqueueImprovements laws nodes known frontier
 
 graphAStarFirstWithFuel :
-  Nat ->
+  List ⊤ ->
   List GraphLaw ->
   List GraphAStarNode ->
   List GraphAStarBestCost ->
   Maybe (List String)
-graphAStarFirstWithFuel zero laws frontier known =
+graphAStarFirstWithFuel [] laws frontier known =
   Nothing
-graphAStarFirstWithFuel (suc fuel) laws [] known =
+graphAStarFirstWithFuel (_ ∷ fuel) laws [] known =
   Nothing
-graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) known =
+graphAStarFirstWithFuel (_ ∷ fuel) laws (node ∷ frontier) known =
   case graphFirst (graphAStarPlan node) of λ where
     Nothing ->
       graphAStarFirstWithFuel fuel laws frontier known
@@ -918,14 +908,13 @@ graphAStarFirstWithFuel (suc fuel) laws (node ∷ frontier) known =
                           frontier
                   in graphAStarFirstWithFuel fuel laws frontier' known'
 
--- Every queued path is simple. Its number is bounded by the number of simple
--- ordered paths (< 3*n!), including stale entries. Exhausting this operational
--- fuel returns Nothing; it is not by itself a theorem that no chain exists.
-graphAStarFuelBound : List GraphLaw -> Nat
+-- Every queued path is simple. The lazy fuel list preserves the previous
+-- operational budget of three copies of n! without Nat-pattern extraction.
+-- Exhausting fuel returns Nothing; it is not by itself a no-path theorem.
+graphAStarFuelBound : List GraphLaw -> List ⊤
 graphAStarFuelBound laws =
-  factorial (listLengthNat laws)
-    + factorial (listLengthNat laws)
-    + factorial (listLengthNat laws)
+  let fuel = factorialFuel laws
+  in fuel ++ fuel ++ fuel
 
 graphAStarFirst :
   List GraphLaw ->
@@ -1700,6 +1689,7 @@ main = do
 {-# COMPILE AGDA2HS graphDependencyOrderRegression #-}
 {-# COMPILE AGDA2HS graphTwoLeafBranchesRegression #-}
 {-# COMPILE AGDA2HS graphAStarTieBreakRegression #-}
+{-# COMPILE AGDA2HS graphAStarBestGRegression #-}
 {-# COMPILE AGDA2HS GraphAStarNode #-}
 {-# COMPILE AGDA2HS GraphAStarBestCost #-}
 {-# COMPILE AGDA2HS graphCycleIsRejectedRegression #-}
@@ -1714,8 +1704,6 @@ main = do
 {-# COMPILE AGDA2HS factorialFuel #-}
 {-# COMPILE AGDA2HS searchFuel #-}
 {-# COMPILE AGDA2HS astarWithFuel #-}
-{-# COMPILE AGDA2HS factorial #-}
-{-# COMPILE AGDA2HS recNat #-}
 {-# COMPILE AGDA2HS listLengthNat #-}
 {-# COMPILE AGDA2HS planContains #-}
 {-# COMPILE AGDA2HS capabilityCovered #-}
@@ -1758,6 +1746,9 @@ main = do
 {-# COMPILE AGDA2HS graphAStarWrapChildren #-}
 {-# COMPILE AGDA2HS graphAStarExpandNode #-}
 {-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}
+{-# COMPILE AGDA2HS graphAStarFirst #-}
+{-# COMPILE AGDA2HS graphAStarFuelBound #-}
+{-# COMPILE AGDA2HS graphAStarFirstWithFuel #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchFromRoot #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearch #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearchCount #-}
@@ -1776,6 +1767,7 @@ main = do
 {-# COMPILE AGDA2HS semanticSearchExecutableReport #-}
 {-# COMPILE AGDA2HS learnerLogicalRequiredNames #-}
 {-# COMPILE AGDA2HS learnerTracePlan #-}
+{-# COMPILE AGDA2HS learnerObligationGraph #-}
 {-# COMPILE AGDA2HS learnerDescentPlan #-}
 {-# COMPILE AGDA2HS learnerLogicalGraphRegression #-}
 {-# COMPILE AGDA2HS learnerLogicalPlanReport #-}

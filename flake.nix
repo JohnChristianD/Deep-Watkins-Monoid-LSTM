@@ -475,7 +475,7 @@
                 agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
                 echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith)"
                 echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
-                echo "bellman-order-theory=kernel-checked (conditional Tarski least-fixed-point theorem)"
+                echo "bellman-order-theory=kernel-checked (Tarski and omega-continuous Kleene least-fixed-point theorems)"
               '';
             };
           in {
