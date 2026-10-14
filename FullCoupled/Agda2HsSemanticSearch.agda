@@ -24,7 +24,7 @@ instance
   iEqCapability ._==_ _ _ = False
 
 record SemanticLaw : Type where
-  no-eta-equality
+  no-eta-equality; pattern
   constructor MkSearchSemanticLaw
   field
     lawName : String
@@ -35,7 +35,7 @@ record SemanticLaw : Type where
 open SemanticLaw public
 
 record SearchNode : Type where
-  no-eta-equality
+  no-eta-equality; pattern
   constructor MkSearchNode
   field
     plan : List String
@@ -302,7 +302,7 @@ semanticSearchReport =
   ++ " laws; target capabilities covered; A* cost is proof-independent guidance"
 
 record GraphLaw : Type where
-  no-eta-equality
+  no-eta-equality; pattern
   constructor MkGraphLaw
   field
     graphLawName : String
@@ -311,7 +311,7 @@ record GraphLaw : Type where
 open GraphLaw public
 
 record GraphNode : Type where
-  no-eta-equality
+  no-eta-equality; pattern
   constructor MkGraphNode
   field
     graphNodePlan : List String
@@ -704,7 +704,7 @@ semanticLawForName requested (law ∷ laws) =
 -- The exhaustive DFS above remains separate and continues to enumerate every
 -- maximal dependency chain.
 record GraphAStarNode : Type where
-  no-eta-equality
+  no-eta-equality; pattern
   constructor MkGraphAStarNode
   field
     graphAStarPlan : List String
@@ -713,7 +713,7 @@ record GraphAStarNode : Type where
 open GraphAStarNode public
 
 record GraphAStarBestCost : Type where
-  no-eta-equality
+  no-eta-equality; pattern
   constructor MkGraphAStarBest
   field
     graphAStarBestName : String
@@ -1289,7 +1289,7 @@ semanticLawNamePresent name (law ∷ laws) =
     semanticLawNamePresent name laws
 
 record DominanceEdge : Type where
-  no-eta-equality
+  no-eta-equality; pattern
   constructor MkDominanceEdge
   field
     dominanceContainer : String
