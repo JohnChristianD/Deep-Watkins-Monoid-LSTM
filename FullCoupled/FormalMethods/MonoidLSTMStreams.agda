@@ -1,4 +1,26 @@
-{-# OPTIONS --sized-types --no-guardedness #-}
+{-# OPTIONS 
+--lossy-unification
+--sized-types
+--exact-split
+--erasure
+--no-projection-like
+--erased-matches
+--erase-record-parameters
+--prop
+--confluence-check
+--two-level
+--rewriting
+--level-universe
+--cumulativity
+--auto-inline
+--polarity
+--flat-split
+--omega-in-omega
+--large-indices
+--no-forced-argument-recursion
+--with-K
+--no-guardedness
+#-}
 
 module FullCoupled.FormalMethods.MonoidLSTMStreams where
 
