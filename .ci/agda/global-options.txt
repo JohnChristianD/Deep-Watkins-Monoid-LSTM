@@ -1,5 +1,4 @@
 --lossy-unification
---experimental-lazy-instances
 --sized-types
 --exact-split
 --erasure
