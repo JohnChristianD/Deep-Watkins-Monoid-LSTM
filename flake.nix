@@ -451,8 +451,16 @@
               runtimeInputs = [ (agdaCommand system) ];
               text = ''
                 set -euo pipefail
-                agda2hs-agda -i . FullCoupled/FormalMethods/ScottStracheyDomains.agda
-                echo "scott-strachey-domain-check=pass"
+                tmp=$(mktemp -d)
+                trap 'rm -rf "$tmp"' EXIT
+                awk '
+                  /^module ScottStracheyDomains where$/ { capture=1; print; next }
+                  /^module BetaOptimalityBoundary where$/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/TheoremsMonolith.agda > "$tmp/ScottStracheyDomains.agda"
+                test -s "$tmp/ScottStracheyDomains.agda"
+                agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
+                echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith)"
               '';
             };
           in {
