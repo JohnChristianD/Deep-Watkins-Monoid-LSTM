@@ -4,7 +4,7 @@ import Browser
 import Char
 import GeneratedAgdaGraph as Graph
 import GeneratedTheoremSurface as Surface
-import Html exposing (Html, button, div, h1, h2, header, input, li, main_, nav, p, section, span, text, ul)
+import Html exposing (Html, a, button, details, div, h1, h2, header, input, li, main_, nav, p, section, span, summary, text, ul)
 import Html
 import Html.Attributes as HA
 import Html.Events as HE
@@ -307,38 +307,38 @@ styleSheet =
                 , "button:focus-visible,input:focus-visible{outline:2px solid "
                 , perceptualCss accent
                 , ";outline-offset:3px;}"
-                , ".shell{min-height:100vh;display:grid;grid-template-columns:minmax(13rem,18rem) minmax(0,1fr);max-width:92rem;margin:0 auto;}"
-                , ".rail{position:sticky;top:0;height:100vh;overflow:auto;padding:1.5rem 1.25rem;border-right:1px solid color-mix(in srgb,"
+                , ".shell{min-height:100vh;display:block;max-width:76ch;margin:0 auto;padding:0 clamp(1rem,4vw,2rem);}"
+                , ".rail{position:relative;top:auto;height:auto;overflow:visible;padding:1.5rem 0;border-bottom:1px solid color-mix(in srgb,"
                 , perceptualCss ink
                 , " 18%,transparent);}"
                 , ".brand{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-weight:700;letter-spacing:-.04em;font-size:1.05rem;margin-bottom:1.5rem;}"
                 , ".eyebrow{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:"
                 , perceptualCss quiet
                 , ";}"
-                , ".module-list{list-style:none;padding:0;margin:1rem 0;display:grid;gap:.25rem;}"
+                , ".browse{max-width:70ch;margin-top:1rem;}.browse summary{cursor:pointer;text-decoration:underline;text-underline-offset:.18em;}.module-list{list-style:none;padding:0;margin:1rem 0;display:grid;grid-template-columns:minmax(0,1fr);gap:.25rem;max-height:20rem;overflow:auto;}"
                 , ".module-list button{width:100%;min-width:0;text-align:left;padding:.55rem .65rem;border-radius:.2rem;cursor:pointer;overflow-wrap:anywhere;}"
                 , ".module-list button:hover,.module-list button[data-selected='true']{background:"
                 , perceptualCss accent
                 , ";color:"
                 , perceptualCss inkOnAccent
                 , ";}"
-                , ".main{min-width:0;padding:clamp(1.5rem,4vw,4rem);}"
+                , ".main{min-width:0;padding:2rem 0;}"
                 , ".mast{display:block;max-width:70ch;border-bottom:1px solid color-mix(in srgb,"
                 , perceptualCss ink
                 , " 22%,transparent);padding-bottom:1.4rem;margin-bottom:2.5rem;}"
                 , "h1{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:clamp(2.1rem,5vw,4.2rem);line-height:1;letter-spacing:-.055em;margin:.35rem 0 1rem;max-width:18ch;}"
                 , "h2{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:1.1rem;line-height:1.3;letter-spacing:-.025em;margin:0 0 .8rem;}"
                 , ".lede{font-size:1.05rem;line-height:1.45;max-width:68ch;margin:0;}"
-                , ".stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.75rem;max-width:70ch;margin-top:1.5rem;}"
+                , ".stats{display:block;max-width:70ch;margin-top:1.5rem;}"
                 , ".stat{padding:.8rem 0;border-top:2px solid "
                 , perceptualCss accent
                 , ";background:color-mix(in srgb,"
                 , perceptualCss accent
                 , " 8%,transparent);}"
                 , ".stat strong{display:block;font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:1.25rem;line-height:1.2;}"
-                , ".tools{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0 1.5rem;}"
+                , ".tools{display:grid;grid-template-columns:minmax(0,1fr);gap:.5rem;margin:1rem 0 1.5rem;}"
                 , ".tools input,.tools button{padding:.65rem .75rem;border-radius:.2rem;}"
-                , ".tools input{min-width:min(30rem,100%);flex:1;}"
+                , ".tools input{width:100%;min-width:0;}"
                 , ".section{max-width:70ch;margin:3.25rem 0;}"
                 , ".records{display:block;}"
                 , ".record{border-top:1px solid color-mix(in srgb,"
@@ -359,11 +359,11 @@ styleSheet =
                 , perceptualCss ink
                 , " 18%,transparent);background:transparent;padding:1rem 0;overflow:auto;}"
                 , ".map svg{display:block;width:100%;min-width:38rem;height:22rem;}"
-                , ".relation{display:grid;grid-template-columns:minmax(0,1fr) minmax(7rem,9rem) minmax(0,1fr);gap:.75rem;align-items:center;padding:.7rem 0;border-bottom:1px solid color-mix(in srgb,"
+                , ".relation{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;padding:.7rem 0;border-bottom:1px solid color-mix(in srgb,"
                 , perceptualCss ink
                 , " 12%,transparent);font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:.75rem;}"
                 , ".relation-end{min-width:0;overflow-wrap:anywhere;}"
-                , ".relation-middle{min-width:7rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.25rem;overflow-wrap:anywhere;}"
+                , ".relation-middle{min-width:0;text-align:left;display:flex;flex-direction:row;align-items:center;gap:.25rem;overflow-wrap:anywhere;}"
                 , ".relation-kind{font-size:.62rem;line-height:1.2;letter-spacing:.04em;}"
                 , ".arrow{line-height:1;color:"
                 , perceptualCss accentTwo
@@ -487,22 +487,31 @@ nodeOptions model =
     nav [ HA.class "rail" ]
         [ div [ HA.class "brand" ] [ text "Agda / Fennel" ]
         , div [ HA.class "eyebrow" ] [ text "generated surface" ]
-        , p [] [ text "A navigable proof surface, synchronized from the Agda dependency graph." ]
-        , ul [ HA.class "module-list" ]
-            (List.indexedMap
-                (\index node ->
-                    li []
-                        [ button
-                            [ HA.attribute "data-module" node.id
-                            , HA.attribute "data-selected"
-                                (if model.selected == Just node.id then "true" else "false")
-                            , HE.onClick (SelectNode node.id)
+        , p [] [ text "A single-column reading surface synchronized from the Agda dependency graph." ]
+        , details [ HA.class "browse" ]
+            [ summary []
+                [ text
+                    ("Browse modules (first 40 of "
+                        ++ String.fromInt (List.length (visibleNodes model))
+                        ++ ")"
+                    )
+                ]
+            , ul [ HA.class "module-list" ]
+                (List.indexedMap
+                    (\index node ->
+                        li []
+                            [ button
+                                [ HA.attribute "data-module" node.id
+                                , HA.attribute "data-selected"
+                                    (if model.selected == Just node.id then "true" else "false")
+                                , HE.onClick (SelectNode node.id)
+                                ]
+                                [ text (String.fromInt (index + 1) ++ "  " ++ node.label) ]
                             ]
-                            [ text (String.fromInt (index + 1) ++ "  " ++ node.label) ]
-                        ]
+                    )
+                    (List.take 40 (visibleNodes model))
                 )
-                (List.take 40 (visibleNodes model))
-            )
+            ]
         ]
 
 
@@ -618,6 +627,65 @@ relationRecord edge =
         ]
 
 
+type alias Reading =
+    { title : String
+    , url : String
+    , note : String
+    }
+
+
+readingList : List Reading
+readingList =
+    [ { title = "Hack your type theory"
+      , url = "https://jesper.sikanda.be/posts/hack-your-type-theory.html"
+      , note = "Reflection, syntax manipulation, and metaprogramming in Agda."
+      }
+    , { title = "Formalize all the things"
+      , url = "https://jesper.sikanda.be/posts/formalize-all-the-things.html"
+      , note = "Treat formalization as disciplined, executable specification work."
+      }
+    , { title = "Agda2HS erasure"
+      , url = "https://jesper.sikanda.be/posts/agda2hs-erasure.html"
+      , note = "Keep erased proof content distinct from extracted runtime behavior."
+      }
+    , { title = "Rewriting type theory"
+      , url = "https://jesper.sikanda.be/posts/rewriting-type-theory.html"
+      , note = "Understand rewrite rules and their role in definitional equality."
+      }
+    , { title = "Agda Core"
+      , url = "https://jesper.sikanda.be/posts/agda-core.html"
+      , note = "Look beneath surface syntax at Agda's core language."
+      }
+    , { title = "Coinduction, part 1"
+      , url = "https://jesper.sikanda.be/posts/coinduction-part-1.html"
+      , note = "A starting point for reasoning about productive infinite structures."
+      }
+    , { title = "Haskell denotational semantics"
+      , url = "https://en.wikibooks.org/wiki/Haskell/Denotational_semantics"
+      , note = "Relate programs to meanings, including partial values and bottom."
+      }
+    , { title = "QuickCheck reference"
+      , url = "https://hackage.haskell.org/package/QuickCheck-2.14.2/docs/Test-QuickCheck.html"
+      , note = "Use executable property tests to complement, not replace, kernel proofs."
+      }
+    ]
+
+
+readingCard : Reading -> Html Msg
+readingCard item =
+    div [ HA.class "record" ]
+        [ div [ HA.class "kind" ] [ text "reading note" ]
+        , h2 []
+            [ a
+                [ HA.href item.url
+                , HA.target "_blank"
+                , HA.rel "noreferrer"
+                ]
+                [ text item.title ]
+            ]
+        , p [] [ text item.note ]
+        ]
+
 view : Model -> Html Msg
 view model =
     let
@@ -647,12 +715,12 @@ view model =
                     [ div [ HA.class "eyebrow" ] [ text "Type-theoretic dependency atlas" ]
                     , h1 [] [ text titleText ]
                     , p [ HA.class "lede" ]
-                        [ text "A pure Elm reading surface for the synchronized Agda core: modules, imports, theorem edges, and the Mirth-generated projection." ]
+                        [ text "A pure Elm reading surface for the Agda core: definitions, dependency paths, domain semantics, and coinductive streams." ]
                     ]
                 , div [ HA.class "stats" ]
                     [ div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "modules" ], Html.strong [] [ text (String.fromInt (List.length Graph.nodes)) ] ]
                     , div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "relations" ], Html.strong [] [ text (String.fromInt (List.length Graph.edges)) ] ]
-                    , div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "surface" ], Html.strong [] [ text "Mirth" ] ]
+                    , div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "surface" ], Html.strong [] [ text "Fennel / LuaJIT" ] ]
                     , div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "palette" ], Html.strong [] [ text "CAT02LMS" ] ]
                     ]
                 ]
@@ -674,6 +742,11 @@ view model =
                 , button [ HE.onClick (SetFileFilter "all") ] [ text "all" ]
                 , button [ HE.onClick (SetFileFilter "learner") ] [ text "learner" ]
                 , button [ HE.onClick (SetFileFilter "theorem") ] [ text "theorem" ]
+                ]
+            , section [ HA.class "section" ]
+                [ h2 [] [ text "Formal-methods reading trail" ]
+                , p [] [ text "A short route through Agda metaprogramming, extraction, rewriting, denotational semantics, and coinductive reasoning." ]
+                , div [ HA.class "records" ] (List.map readingCard readingList)
                 ]
             , section [ HA.class "section" ]
                 [ h2 [] [ text ("Modules / " ++ String.fromInt (List.length nodes)) ]
