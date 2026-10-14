@@ -14,6 +14,13 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS repeatBy #-}	
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS factorialFuel #-}	{-# COMPILE AGDA2HS factorialFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS searchFuel #-}	{-# COMPILE AGDA2HS searchFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS astarWithFuel #-}	{-# COMPILE AGDA2HS astarWithFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDepthFuel #-}	{-# COMPILE AGDA2HS graphDepthFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphSearchChildren #-}	{-# COMPILE AGDA2HS graphSearchChildren #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphSearchDepth #-}	{-# COMPILE AGDA2HS graphSearchDepth #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphSearchSeeds #-}	{-# COMPILE AGDA2HS graphSearchSeeds #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPlanScore #-}	{-# COMPILE AGDA2HS graphPlanScore #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphInsertPlan #-}	{-# COMPILE AGDA2HS graphInsertPlan #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphSortPlans #-}	{-# COMPILE AGDA2HS graphSortPlans #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS listLengthNat #-}	{-# COMPILE AGDA2HS listLengthNat #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS planContains #-}	{-# COMPILE AGDA2HS planContains #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS capabilityCovered #-}	{-# COMPILE AGDA2HS capabilityCovered #-}	1
