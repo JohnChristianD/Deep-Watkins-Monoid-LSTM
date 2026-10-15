@@ -431,12 +431,25 @@ classCount graph = natListCount (rootClasses graph)
 enodeCount : EGraph -> Nat
 enodeCount graph = bindingCount (bindings graph)
 
+-- One saturation result is represented as a record, not a wide tuple:
+-- Agda2HS supports record extraction consistently across its Haskell targets.
+record SaturationStep : Type where
+  no-eta-equality; pattern
+  constructor MkSaturationStep
+  field
+    stepGraph : EGraph
+    stepTotalRewrites : Nat
+    stepIterations : Nat
+    stepComplete : Bool
+
+open SaturationStep public
+
 -- Saturation has a finite graph-sized iteration budget. Stable means a pass
 -- performed no rewrites and rebuilding left class/enode counts unchanged.
 saturateWithFuel :
-  List ⊤ -> List RewriteRule -> EGraph -> Nat -> Nat -> EGraph × Nat × Nat × Bool
+  List ⊤ -> List RewriteRule -> EGraph -> Nat -> Nat -> SaturationStep
 saturateWithFuel [] _ graph total iterations =
-  graph , total , iterations , False
+  MkSaturationStep graph total iterations False
 saturateWithFuel (_ ∷ fuel) rules graph total iterations =
   let roots = rootClasses graph
       (graph' , rewrites) = saturatePass rules roots graph
@@ -447,15 +460,18 @@ saturateWithFuel (_ ∷ fuel) rules graph total iterations =
         enodeCount graph == enodeCount graph''
       nextIterations = suc iterations
   in if stable then
-       graph'' , total + rewrites , nextIterations , True
+       MkSaturationStep graph'' (total + rewrites) nextIterations True
      else
        saturateWithFuel fuel rules graph'' (total + rewrites) nextIterations
 
 saturateUntilStable :
   List RewriteRule -> EGraph -> EGraph × SaturationReport
 saturateUntilStable rules graph =
-  let (graph' , rewrites , iterations , complete) =
-        saturateWithFuel (graphFuel graph) rules graph zero zero
+  let result = saturateWithFuel (graphFuel graph) rules graph zero zero
+      graph' = stepGraph result
+      rewrites = stepTotalRewrites result
+      iterations = stepIterations result
+      complete = stepComplete result
       changed = if rewrites == zero then False else True
   in graph' ,
      MkSaturationReport iterations rewrites changed complete
@@ -825,6 +841,7 @@ eGraphAssociativityRegression-proof = refl
 {-# COMPILE AGDA2HS Substitution #-}
 {-# COMPILE AGDA2HS ClassAnalysis #-}
 {-# COMPILE AGDA2HS SaturationReport #-}
+{-# COMPILE AGDA2HS SaturationStep #-}
 {-# COMPILE AGDA2HS Extraction #-}
 {-# COMPILE AGDA2HS ChildExtraction #-}
 {-# COMPILE AGDA2HS unitFuel #-}
