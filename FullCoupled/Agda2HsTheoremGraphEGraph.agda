@@ -831,6 +831,13 @@ eGraphAssociativityRegression-proof = refl
 {-# COMPILE AGDA2HS graphFuel #-}
 {-# COMPILE AGDA2HS repeatFuel #-}
 {-# COMPILE AGDA2HS extractFuelFor #-}
+{-# COMPILE AGDA2HS sameENode #-}
+{-# COMPILE AGDA2HS freshClass #-}
+{-# COMPILE AGDA2HS emptyGraph #-}
+{-# COMPILE AGDA2HS lawExpr #-}
+{-# COMPILE AGDA2HS leftAssocExprAcc #-}
+{-# COMPILE AGDA2HS leftAssocExpr #-}
+{-# COMPILE AGDA2HS rightAssocExpr #-}
 {-# COMPILE AGDA2HS EGraphRegression #-}
 {-# COMPILE AGDA2HS saturateUntilStable #-}
 {-# COMPILE AGDA2HS saturateWithFuel #-}
