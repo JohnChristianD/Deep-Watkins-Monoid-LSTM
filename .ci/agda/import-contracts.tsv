@@ -75,7 +75,7 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS expandForCapa
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeCost #-}	{-# COMPILE AGDA2HS nodeCost #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeHeuristic #-}	{-# COMPILE AGDA2HS nodeHeuristic #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeScore #-}	{-# COMPILE AGDA2HS nodeScore #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS higherQ #-}	{-# COMPILE AGDA2HS higherQ #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS higherProposalScore #-}	{-# COMPILE AGDA2HS higherProposalScore #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS insertByScore #-}	{-# COMPILE AGDA2HS insertByScore #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS insertAll #-}	{-# COMPILE AGDA2HS insertAll #-}	1
 sync	FullCoupled/Agda2HsGraphSearchCheck.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
