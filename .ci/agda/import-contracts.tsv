@@ -9,6 +9,13 @@ sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.S
 sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS sameENode #-}	{-# COMPILE AGDA2HS sameENode #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS freshClass #-}	{-# COMPILE AGDA2HS freshClass #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS emptyGraph #-}	{-# COMPILE AGDA2HS emptyGraph #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS lawExpr #-}	{-# COMPILE AGDA2HS lawExpr #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS leftAssocExprAcc #-}	{-# COMPILE AGDA2HS leftAssocExprAcc #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS leftAssocExpr #-}	{-# COMPILE AGDA2HS leftAssocExpr #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS rightAssocExpr #-}	{-# COMPILE AGDA2HS rightAssocExpr #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS unitFuel #-}	{-# COMPILE AGDA2HS unitFuel #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS graphFuel #-}	{-# COMPILE AGDA2HS graphFuel #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS repeatFuel #-}	{-# COMPILE AGDA2HS repeatFuel #-}	1
