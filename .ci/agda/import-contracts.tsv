@@ -9,6 +9,19 @@ sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.S
 sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS EGraphRegression #-}	{-# COMPILE AGDA2HS EGraphRegression #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionStableGraph #-}	{-# COMPILE AGDA2HS regressionStableGraph #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionCongruenceOk #-}	{-# COMPILE AGDA2HS regressionCongruenceOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionAssociativityOk #-}	{-# COMPILE AGDA2HS regressionAssociativityOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionRightIdentityOk #-}	{-# COMPILE AGDA2HS regressionRightIdentityOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionLeftIdentityOk #-}	{-# COMPILE AGDA2HS regressionLeftIdentityOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionMatchingOk #-}	{-# COMPILE AGDA2HS regressionMatchingOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionAnalysisOk #-}	{-# COMPILE AGDA2HS regressionAnalysisOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionExtractOk #-}	{-# COMPILE AGDA2HS regressionExtractOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionQuotientOk #-}	{-# COMPILE AGDA2HS regressionQuotientOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionIterationOk #-}	{-# COMPILE AGDA2HS regressionIterationOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionSaturationOk #-}	{-# COMPILE AGDA2HS regressionSaturationOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionGraph #-}	{-# COMPILE AGDA2HS regressionGraph #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
