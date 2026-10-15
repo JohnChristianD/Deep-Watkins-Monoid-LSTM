@@ -2886,6 +2886,34 @@ module CanonicalBellmanOrderTheory where
       candidate
       fixed
 
+  -- Q* is the exact Bellman return computed from V*: reward plus discounted
+  -- transition expectation. It is a value-domain object, not a graph-search
+  -- heuristic or the capability planner's proposal prior.
+  neuralBellmanQStar :
+    (M : NeuralPolicyMDP) →
+    neuralState M →
+    neuralAction M →
+    neuralScalar M
+  neuralBellmanQStar M state action =
+    neuralActionReturn M
+      (neuralBellmanOptimalValueFunction M)
+      state action
+
+  -- The optimal value at each state is the least upper bound of its Q* action
+  -- values. This is the explicit V*=sup_a Q* bridge for this MDP contract.
+  neuralBellmanValueIsSupremumOfQStar :
+    (M : NeuralPolicyMDP) →
+    (state : neuralState M) →
+    neuralBellmanOptimalValueFunction M state ≡
+      mdpBestActionValue M state (neuralBellmanQStar M state)
+  neuralBellmanValueIsSupremumOfQStar M state =
+    trans
+      (sym (ap (λ values → values state)
+        (neuralBellmanOptimalValueIsFixed M)))
+      (mdpBellmanEquation M
+        (neuralBellmanOptimalValueFunction M)
+        state)
+
   -- Equality transports action values into the scalar order.
   scalarEqualityImpliesOrder :
     (M : NeuralPolicyMDP) →
@@ -2905,9 +2933,7 @@ module CanonicalBellmanOrderTheory where
       (state : neuralState M) →
       (action : neuralAction M) →
       nnQ M (nnParameters M) state action ≡
-        neuralActionReturn M
-          (neuralBellmanOptimalValueFunction M)
-          state action) →
+        neuralBellmanQStar M state action) →
     (state : neuralState M) →
     (action : neuralAction M) →
     OmegaCPO._⊑ω_ (mdpScalarDomain M)

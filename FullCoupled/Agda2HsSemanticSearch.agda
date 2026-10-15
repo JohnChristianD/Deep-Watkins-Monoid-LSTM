@@ -23,6 +23,8 @@ instance
   iEqCapability ._==_ UniformContinuity UniformContinuity = True
   iEqCapability ._==_ _ _ = False
 
+-- A proposal prior is only a deterministic tie-break signal for the
+-- capability planner. It is not an MDP action-value Q function.
 record SemanticLaw : Type where
   no-eta-equality; pattern
   constructor MkSearchSemanticLaw
@@ -30,7 +32,7 @@ record SemanticLaw : Type where
     lawName : String
     capabilities : List Capability
     dependencies : List String
-    qPrior : Nat
+    proposalPrior : Nat
 
 open SemanticLaw public
 
@@ -40,7 +42,7 @@ record SearchNode : Type where
   field
     plan : List String
     covered : List Capability
-    qScore : Nat
+    proposalScore : Nat
 
 open SearchNode public
 
@@ -76,12 +78,6 @@ allRequiredCovered (c ∷ cs) covered =
     allRequiredCovered cs covered
   else
     False
-
-missingCount : List Capability → List Capability → Nat
-missingCount [] covered = zero
-missingCount (c ∷ cs) covered =
-  (if capabilityCovered c covered then zero else suc zero)
-  + missingCount cs covered
 
 planContains : String → List String → Bool
 planContains name [] = False
@@ -131,7 +127,7 @@ expandForCapability capability (law ∷ laws) node =
         MkSearchNode
           (lawName law ∷ plan node)
           (addCapability capability (covered node))
-          (qScore node + qPrior law)
+          (proposalScore node + proposalPrior law)
         ∷ rest
     else
       rest
@@ -141,12 +137,25 @@ nodeCost : SearchNode → Nat
 nodeCost node =
   listLengthNat (plan node)
 
+-- Admissible one-step lower bound: any unfinished node needs at least one
+-- more law insertion, while one law may satisfy several capabilities. Counting
+-- missing capabilities would overestimate in that case and break A* optimality.
 nodeHeuristic :
   List Capability →
   SearchNode →
   Nat
 nodeHeuristic required node =
-  missingCount required (covered node)
+  if allRequiredCovered required (covered node) then zero else suc zero
+
+nodeHeuristicLowerBoundRegression : Bool
+nodeHeuristicLowerBoundRegression =
+  nodeHeuristic [] (MkSearchNode [] [] zero) == zero &&
+  nodeHeuristic (Inversion ∷ [])
+    (MkSearchNode [] [] zero) == suc zero
+
+nodeHeuristicLowerBoundRegressionChecked :
+  nodeHeuristicLowerBoundRegression ≡ True
+nodeHeuristicLowerBoundRegressionChecked = refl
 
 nodeScore :
   List Capability →
@@ -155,12 +164,13 @@ nodeScore :
 nodeScore required node =
   nodeCost node + nodeHeuristic required node
 
-higherQ :
+-- Larger accumulated proposal prior wins only when A* f scores tie.
+higherProposalScore :
   SearchNode →
   SearchNode →
   Bool
-higherQ left right =
-  qScore left >= qScore right
+higherProposalScore left right =
+  proposalScore left >= proposalScore right
 
 insertByScore :
   List Capability →
@@ -174,7 +184,7 @@ insertByScore required node (head ∷ tail) =
     node ∷ head ∷ tail
   else
     if nodeScore required node == nodeScore required head then
-      if higherQ node head then
+      if higherProposalScore node head then
         node ∷ head ∷ tail
       else
         head ∷ insertByScore required node tail
@@ -1516,11 +1526,66 @@ semanticPlanEGraphExtractable plan =
     EGraph.extractBest
       rootId
       graph
-      (suc (EGraph.enodeCount graph))
+      (suc
+        (EGraph.enodeCount graph *
+         EGraph.enodeCount graph *
+         EGraph.enodeCount graph))
   of λ where
     Nothing -> False
     (Just bestResult) ->
       EGraph.extractedCost bestResult > zero
+
+-- End-to-end bridge: run the semantic-law A* planner, saturate its selected
+-- plan in the symbolic e-graph, and require a stable graph plus a costed
+-- extraction. This checks pipeline connectivity, not proof validity of names.
+canonicalSearchPlanEGraphSaturates : Bool
+canonicalSearchPlanEGraphSaturates =
+  case canonicalSearch of λ where
+    Nothing -> False
+    (Just node) -> semanticPlanEGraphComplete (plan node)
+
+canonicalSearchPlanEGraphExtracts : Bool
+canonicalSearchPlanEGraphExtracts =
+  case canonicalSearch of λ where
+    Nothing -> False
+    (Just node) -> semanticPlanEGraphExtractable (plan node)
+
+canonicalSearchPlanEGraphClosed : Bool
+canonicalSearchPlanEGraphClosed =
+  canonicalSearchComplete &&
+  canonicalSearchPlanEGraphSaturates &&
+  canonicalSearchPlanEGraphExtracts
+
+canonicalSearchPlanEGraphSaturatesChecked :
+  canonicalSearchPlanEGraphSaturates ≡ True
+canonicalSearchPlanEGraphSaturatesChecked = refl
+
+canonicalSearchPlanEGraphExtractsChecked :
+  canonicalSearchPlanEGraphExtracts ≡ True
+canonicalSearchPlanEGraphExtractsChecked = refl
+
+canonicalSearchPlanEGraphClosedChecked :
+  canonicalSearchPlanEGraphClosed ≡ True
+canonicalSearchPlanEGraphClosedChecked = refl
+
+-- A separate regression covers JAxtar-style dependency A*, not only the
+-- capability planner: select a maximal leaf and pass that selected path
+-- through the same e-graph saturation and costed extraction boundary.
+graphAStarPlanEGraphClosed : Bool
+graphAStarPlanEGraphClosed =
+  let
+    laws = MkGraphLaw "A" [] ∷ []
+    seed = MkGraphNode ("A" ∷ [])
+  in
+  case graphAStarFirst laws seed of λ where
+    Nothing -> False
+    (Just selectedPlan) ->
+      semanticPlanEGraphComplete selectedPlan &&
+      semanticPlanEGraphExtractable selectedPlan
+
+graphAStarPlanEGraphClosedChecked :
+  graphAStarPlanEGraphClosed ≡ True
+graphAStarPlanEGraphClosedChecked = refl
 
 plansEGraphClosed :
   List (List String) ->
@@ -1650,6 +1715,7 @@ main = do
   putStrLn (semanticSearchExecutableReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
   putStrLn (agdaSemanticPortReport semanticLaws)
+  putStrLn ("canonical-search-egraph-closed=" ++ show canonicalSearchPlanEGraphClosed)
 
 {-# COMPILE AGDA2HS main #-}
 
@@ -1710,15 +1776,15 @@ main = do
 {-# COMPILE AGDA2HS capabilityCovered #-}
 {-# COMPILE AGDA2HS addCapability #-}
 {-# COMPILE AGDA2HS allRequiredCovered #-}
-{-# COMPILE AGDA2HS missingCount #-}
 {-# COMPILE AGDA2HS dependenciesSatisfied #-}
 {-# COMPILE AGDA2HS coversLaw #-}
 {-# COMPILE AGDA2HS firstMissing #-}
 {-# COMPILE AGDA2HS expandForCapability #-}
 {-# COMPILE AGDA2HS nodeCost #-}
 {-# COMPILE AGDA2HS nodeHeuristic #-}
+{-# COMPILE AGDA2HS nodeHeuristicLowerBoundRegression #-}
 {-# COMPILE AGDA2HS nodeScore #-}
-{-# COMPILE AGDA2HS higherQ #-}
+{-# COMPILE AGDA2HS higherProposalScore #-}
 {-# COMPILE AGDA2HS insertByScore #-}
 {-# COMPILE AGDA2HS insertAll #-}
 {-# COMPILE AGDA2HS canonicalLaws #-}
@@ -1782,6 +1848,10 @@ main = do
 {-# COMPILE AGDA2HS prunedPublicTheoremsChecked #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}
+{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}
+{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturates #-}
+{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtracts #-}
+{-# COMPILE AGDA2HS graphAStarPlanEGraphClosed #-}
 {-# COMPILE AGDA2HS requiredPlanEGraphCount #-}
 {-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}

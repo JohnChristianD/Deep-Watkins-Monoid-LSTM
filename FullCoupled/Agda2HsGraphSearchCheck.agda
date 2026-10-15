@@ -12,8 +12,11 @@ graphSearchContractPassed =
     && Search.graphTwoLeafBranchesRegression
     && Search.graphAStarTieBreakRegression
     && Search.graphAStarBestGRegression
+    && Search.nodeHeuristicLowerBoundRegression
     && Search.graphCycleIsRejectedRegression
     && Search.autonomousGraphSearchRegression
+    && Search.canonicalSearchPlanEGraphClosed
+    && Search.graphAStarPlanEGraphClosed
 
 main : IO ⊤
 main = do
@@ -30,11 +33,20 @@ main = do
     ("graph-best-g-policy="
       ++ show Search.graphAStarBestGRegression)
   putStrLn
+    ("graph-admissible-heuristic="
+      ++ show Search.nodeHeuristicLowerBoundRegression)
+  putStrLn
     ("graph-cycle-rejected="
       ++ show Search.graphCycleIsRejectedRegression)
   putStrLn
     ("graph-linear-chain="
       ++ show Search.autonomousGraphSearchRegression)
+  putStrLn
+    ("canonical-search-egraph-closed="
+      ++ show Search.canonicalSearchPlanEGraphClosed)
+  putStrLn
+    ("graph-astar-egraph-closed="
+      ++ show Search.graphAStarPlanEGraphClosed)
   putStrLn
     ("graph-search-contract="
       ++ show graphSearchContractPassed)

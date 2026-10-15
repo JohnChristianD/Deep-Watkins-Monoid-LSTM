@@ -137,6 +137,7 @@ let script = merge {
     grep -E '^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$' "$report"
     grep -E '^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$' "$report"
     grep -Fq 'egraph-regression=True egraph-associativity-regression=True' "$report"
+    grep -Fq 'canonical-search-egraph-closed=True' "$report"
     grep -Fq 'haskell-minus-one-A*=2 proof-backed laws; legacy monolith excluded from pure build' "$report"
     grep -E '^agda2hs-semantic-port=[1-9][0-9]* dominance edges; 5 pruning proofs; [1-9][0-9]*/[1-9][0-9]* required plans e-graph-closed$' "$report"
     grep -Fq 'proofKernel=Agda' "$manifest"

@@ -9,6 +9,8 @@ sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.S
 sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphStringPathEqual #-}	{-# COMPILE AGDA2HS graphStringPathEqual #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathMember #-}	{-# COMPILE AGDA2HS graphPathMember #-}	1
@@ -65,15 +67,15 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS planContains 
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS capabilityCovered #-}	{-# COMPILE AGDA2HS capabilityCovered #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS addCapability #-}	{-# COMPILE AGDA2HS addCapability #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS allRequiredCovered #-}	{-# COMPILE AGDA2HS allRequiredCovered #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS missingCount #-}	{-# COMPILE AGDA2HS missingCount #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS dependenciesSatisfied #-}	{-# COMPILE AGDA2HS dependenciesSatisfied #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS coversLaw #-}	{-# COMPILE AGDA2HS coversLaw #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS firstMissing #-}	{-# COMPILE AGDA2HS firstMissing #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS expandForCapability #-}	{-# COMPILE AGDA2HS expandForCapability #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeCost #-}	{-# COMPILE AGDA2HS nodeCost #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeHeuristic #-}	{-# COMPILE AGDA2HS nodeHeuristic #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeHeuristicLowerBoundRegression #-}	{-# COMPILE AGDA2HS nodeHeuristicLowerBoundRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nodeScore #-}	{-# COMPILE AGDA2HS nodeScore #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS higherQ #-}	{-# COMPILE AGDA2HS higherQ #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS higherProposalScore #-}	{-# COMPILE AGDA2HS higherProposalScore #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS insertByScore #-}	{-# COMPILE AGDA2HS insertByScore #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS insertAll #-}	{-# COMPILE AGDA2HS insertAll #-}	1
 sync	FullCoupled/Agda2HsGraphSearchCheck.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
@@ -210,6 +212,10 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS prunedPublicT
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS prunedPublicTheoremsChecked #-}	{-# COMPILE AGDA2HS prunedPublicTheoremsChecked #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}	{-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}	{-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturates #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturates #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtracts #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtracts #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarPlanEGraphClosed #-}	{-# COMPILE AGDA2HS graphAStarPlanEGraphClosed #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanEGraphCount #-}	{-# COMPILE AGDA2HS requiredPlanEGraphCount #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}	{-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}	{-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}	1
