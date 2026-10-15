@@ -961,6 +961,12 @@ graphAStarTieBreakRegressionChecked :
   graphAStarTieBreakRegression ≡ True
 graphAStarTieBreakRegressionChecked = refl
 
+graphStringPathEqual : List String -> List String -> Bool
+graphStringPathEqual [] [] = True
+graphStringPathEqual (left ∷ lefts) (right ∷ rights) =
+  left == right && graphStringPathEqual lefts rights
+graphStringPathEqual _ _ = False
+
 -- A* must prefer the direct leaf over a longer sibling branch. This checks
 -- shortest-path semantics independently of the exhaustive branch enumerator.
 graphAStarShortestPathRegression : Bool
@@ -983,12 +989,6 @@ graphAStarShortestPathRegression =
 graphAStarShortestPathRegressionChecked :
   graphAStarShortestPathRegression ≡ True
 graphAStarShortestPathRegressionChecked = refl
-
-graphStringPathEqual : List String -> List String -> Bool
-graphStringPathEqual [] [] = True
-graphStringPathEqual (left ∷ lefts) (right ∷ rights) =
-  left == right && graphStringPathEqual lefts rights
-graphStringPathEqual _ _ = False
 
 graphPathMember : List String -> List (List String) -> Bool
 graphPathMember _ [] = False
