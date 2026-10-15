@@ -23,6 +23,8 @@ instance
   iEqCapability ._==_ UniformContinuity UniformContinuity = True
   iEqCapability ._==_ _ _ = False
 
+-- A proposal prior is only a deterministic tie-break signal for the
+-- capability planner. It is not an MDP action-value Q function.
 record SemanticLaw : Type where
   no-eta-equality; pattern
   constructor MkSearchSemanticLaw
@@ -30,7 +32,7 @@ record SemanticLaw : Type where
     lawName : String
     capabilities : List Capability
     dependencies : List String
-    qPrior : Nat
+    proposalPrior : Nat
 
 open SemanticLaw public
 
@@ -40,7 +42,7 @@ record SearchNode : Type where
   field
     plan : List String
     covered : List Capability
-    qScore : Nat
+    proposalScore : Nat
 
 open SearchNode public
 
@@ -131,7 +133,7 @@ expandForCapability capability (law ∷ laws) node =
         MkSearchNode
           (lawName law ∷ plan node)
           (addCapability capability (covered node))
-          (qScore node + qPrior law)
+          (proposalScore node + proposalPrior law)
         ∷ rest
     else
       rest
@@ -155,12 +157,13 @@ nodeScore :
 nodeScore required node =
   nodeCost node + nodeHeuristic required node
 
-higherQ :
+-- Larger accumulated proposal prior wins only when A* f scores tie.
+higherProposalScore :
   SearchNode →
   SearchNode →
   Bool
-higherQ left right =
-  qScore left >= qScore right
+higherProposalScore left right =
+  proposalScore left >= proposalScore right
 
 insertByScore :
   List Capability →
@@ -174,7 +177,7 @@ insertByScore required node (head ∷ tail) =
     node ∷ head ∷ tail
   else
     if nodeScore required node == nodeScore required head then
-      if higherQ node head then
+      if higherProposalScore node head then
         node ∷ head ∷ tail
       else
         head ∷ insertByScore required node tail
@@ -1718,7 +1721,7 @@ main = do
 {-# COMPILE AGDA2HS nodeCost #-}
 {-# COMPILE AGDA2HS nodeHeuristic #-}
 {-# COMPILE AGDA2HS nodeScore #-}
-{-# COMPILE AGDA2HS higherQ #-}
+{-# COMPILE AGDA2HS higherProposalScore #-}
 {-# COMPILE AGDA2HS insertByScore #-}
 {-# COMPILE AGDA2HS insertAll #-}
 {-# COMPILE AGDA2HS canonicalLaws #-}
