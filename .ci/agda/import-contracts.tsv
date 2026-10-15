@@ -9,6 +9,8 @@ sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.S
 sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphStringPathEqual #-}	{-# COMPILE AGDA2HS graphStringPathEqual #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathMember #-}	{-# COMPILE AGDA2HS graphPathMember #-}	1
