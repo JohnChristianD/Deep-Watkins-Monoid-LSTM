@@ -212,6 +212,7 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS prunedPublicT
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS prunedPublicTheoremsChecked #-}	{-# COMPILE AGDA2HS prunedPublicTheoremsChecked #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}	{-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}	{-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanEGraphCount #-}	{-# COMPILE AGDA2HS requiredPlanEGraphCount #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}	{-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}	{-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}	1
