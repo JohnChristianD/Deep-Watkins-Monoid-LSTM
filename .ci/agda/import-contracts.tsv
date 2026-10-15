@@ -67,7 +67,6 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS planContains 
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS capabilityCovered #-}	{-# COMPILE AGDA2HS capabilityCovered #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS addCapability #-}	{-# COMPILE AGDA2HS addCapability #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS allRequiredCovered #-}	{-# COMPILE AGDA2HS allRequiredCovered #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS missingCount #-}	{-# COMPILE AGDA2HS missingCount #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS dependenciesSatisfied #-}	{-# COMPILE AGDA2HS dependenciesSatisfied #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS coversLaw #-}	{-# COMPILE AGDA2HS coversLaw #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS firstMissing #-}	{-# COMPILE AGDA2HS firstMissing #-}	1
