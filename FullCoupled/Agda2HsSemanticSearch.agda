@@ -1526,7 +1526,10 @@ semanticPlanEGraphExtractable plan =
     EGraph.extractBest
       rootId
       graph
-      (suc (EGraph.enodeCount graph))
+      (suc
+        (EGraph.enodeCount graph *
+         EGraph.enodeCount graph *
+         EGraph.enodeCount graph))
   of λ where
     Nothing -> False
     (Just bestResult) ->
@@ -1564,6 +1567,25 @@ canonicalSearchPlanEGraphExtractsChecked = refl
 canonicalSearchPlanEGraphClosedChecked :
   canonicalSearchPlanEGraphClosed ≡ True
 canonicalSearchPlanEGraphClosedChecked = refl
+
+-- A separate regression covers JAxtar-style dependency A*, not only the
+-- capability planner: select a maximal leaf and pass that selected path
+-- through the same e-graph saturation and costed extraction boundary.
+graphAStarPlanEGraphClosed : Bool
+graphAStarPlanEGraphClosed =
+  let
+    laws = MkGraphLaw "A" [] ∷ []
+    seed = MkGraphNode ("A" ∷ [])
+  in
+  case graphAStarFirst laws seed of λ where
+    Nothing -> False
+    (Just selectedPlan) ->
+      semanticPlanEGraphComplete selectedPlan &&
+      semanticPlanEGraphExtractable selectedPlan
+
+graphAStarPlanEGraphClosedChecked :
+  graphAStarPlanEGraphClosed ≡ True
+graphAStarPlanEGraphClosedChecked = refl
 
 plansEGraphClosed :
   List (List String) ->
@@ -1829,6 +1851,7 @@ main = do
 {-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}
 {-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturates #-}
 {-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtracts #-}
+{-# COMPILE AGDA2HS graphAStarPlanEGraphClosed #-}
 {-# COMPILE AGDA2HS requiredPlanEGraphCount #-}
 {-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}
