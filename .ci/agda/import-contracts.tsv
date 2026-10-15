@@ -9,6 +9,7 @@ sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.S
 sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS SaturationStep #-}	{-# COMPILE AGDA2HS SaturationStep #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS sameENode #-}	{-# COMPILE AGDA2HS sameENode #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS freshClass #-}	{-# COMPILE AGDA2HS freshClass #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS emptyGraph #-}	{-# COMPILE AGDA2HS emptyGraph #-}	1
