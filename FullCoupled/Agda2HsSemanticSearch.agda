@@ -79,12 +79,6 @@ allRequiredCovered (c ∷ cs) covered =
   else
     False
 
-missingCount : List Capability → List Capability → Nat
-missingCount [] covered = zero
-missingCount (c ∷ cs) covered =
-  (if capabilityCovered c covered then zero else suc zero)
-  + missingCount cs covered
-
 planContains : String → List String → Bool
 planContains name [] = False
 planContains name (x ∷ xs) =
@@ -143,12 +137,15 @@ nodeCost : SearchNode → Nat
 nodeCost node =
   listLengthNat (plan node)
 
+-- Admissible one-step lower bound: any unfinished node needs at least one
+-- more law insertion, while one law may satisfy several capabilities. Counting
+-- missing capabilities would overestimate in that case and break A* optimality.
 nodeHeuristic :
   List Capability →
   SearchNode →
   Nat
 nodeHeuristic required node =
-  missingCount required (covered node)
+  if allRequiredCovered required (covered node) then zero else suc zero
 
 nodeScore :
   List Capability →
@@ -1730,7 +1727,6 @@ main = do
 {-# COMPILE AGDA2HS capabilityCovered #-}
 {-# COMPILE AGDA2HS addCapability #-}
 {-# COMPILE AGDA2HS allRequiredCovered #-}
-{-# COMPILE AGDA2HS missingCount #-}
 {-# COMPILE AGDA2HS dependenciesSatisfied #-}
 {-# COMPILE AGDA2HS coversLaw #-}
 {-# COMPILE AGDA2HS firstMissing #-}
