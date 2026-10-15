@@ -524,7 +524,7 @@ mutual
   extractFuelFor : EGraph -> List ⊤
   extractFuelFor graph =
     let bindingsFuel = unitFuel (bindings graph)
-    in repeatFuel (bindings graph) (repeatFuel (bindings graph) bindingsFuel)
+    in tt ∷ repeatFuel (bindings graph) (repeatFuel (bindings graph) bindingsFuel)
 
   extractBestSeen :
       List ⊤ -> Nat -> EGraph -> List Nat -> Maybe Extraction
