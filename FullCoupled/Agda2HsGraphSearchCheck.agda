@@ -12,8 +12,13 @@ graphSearchContractPassed =
     && Search.graphTwoLeafBranchesRegression
     && Search.graphAStarTieBreakRegression
     && Search.graphAStarBestGRegression
+    && Search.graphAStarShortestPathRegression
     && Search.nodeHeuristicLowerBoundRegression
     && Search.graphCycleIsRejectedRegression
+    && Search.graphDependencyClosureRegression
+    && Search.graphDependencyClosureRejectsCycleRegression
+    && Search.graphDependencyClosureRejectsMissingRegression
+    && Search.learnerLogicalGraphRegression
     && Search.autonomousGraphSearchRegression
     && Search.canonicalSearchPlanEGraphClosed
     && Search.graphAStarPlanEGraphClosed
@@ -38,6 +43,21 @@ main = do
   putStrLn
     ("graph-cycle-rejected="
       ++ show Search.graphCycleIsRejectedRegression)
+  putStrLn
+    ("graph-closure-diamond="
+      ++ show Search.graphDependencyClosureRegression)
+  putStrLn
+    ("graph-closure-cycle-rejected="
+      ++ show Search.graphDependencyClosureRejectsCycleRegression)
+  putStrLn
+    ("graph-closure-missing-rejected="
+      ++ show Search.graphDependencyClosureRejectsMissingRegression)
+  putStrLn
+    ("graph-astar-shortest-path="
+      ++ show Search.graphAStarShortestPathRegression)
+  putStrLn
+    ("learner-dependency-closure="
+      ++ show Search.learnerLogicalGraphRegression)
   putStrLn
     ("graph-linear-chain="
       ++ show Search.autonomousGraphSearchRegression)

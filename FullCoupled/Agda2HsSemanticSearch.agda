@@ -967,6 +967,29 @@ graphStringPathEqual (left ∷ lefts) (right ∷ rights) =
   left == right && graphStringPathEqual lefts rights
 graphStringPathEqual _ _ = False
 
+-- A* must prefer the direct leaf over a longer sibling branch. This checks
+-- shortest-path semantics independently of the exhaustive branch enumerator.
+graphAStarShortestPathRegression : Bool
+graphAStarShortestPathRegression =
+  let
+    laws =
+      MkGraphLaw "A" ("B" ∷ "C" ∷ []) ∷
+      MkGraphLaw "B" ("D" ∷ []) ∷
+      MkGraphLaw "C" [] ∷
+      MkGraphLaw "D" [] ∷
+      []
+  in
+  case graphAStarFirst laws (MkGraphNode ("A" ∷ [])) of λ where
+    Nothing -> False
+    (Just selected) ->
+      graphValidPlan selected laws
+        && graphStringPathEqual selected ("C" ∷ "A" ∷ [])
+        && listLengthNat selected == suc (suc zero)
+
+graphAStarShortestPathRegressionChecked :
+  graphAStarShortestPathRegression ≡ True
+graphAStarShortestPathRegressionChecked = refl
+
 graphPathMember : List String -> List (List String) -> Bool
 graphPathMember _ [] = False
 graphPathMember target (candidate ∷ candidates) =
@@ -1029,6 +1052,189 @@ graphCycleIsRejectedRegressionChecked :
   graphCycleIsRejectedRegression ≡ True
 graphCycleIsRejectedRegressionChecked = refl
 
+------------------------------------------------------------------------
+-- Complete dependency closure is an AND-dependency problem, not a path.
+-- Reachability gathers every predecessor; a bounded topological pass emits
+-- dependencies before their users. Missing names and cycles return Nothing.
+------------------------------------------------------------------------
+
+graphClosureFuel : List GraphLaw -> List ⊤
+graphClosureFuel laws =
+  repeatBy laws (graphDepthFuel laws ++ (tt ∷ []))
+
+graphReachableNames :
+  List ⊤ ->
+  List String ->
+  List String ->
+  List GraphLaw ->
+  Maybe (List String)
+graphReachableNames [] [] seen laws = Just seen
+graphReachableNames [] (_ ∷ _) seen laws = Nothing
+graphReachableNames (_ ∷ fuel) [] seen laws = Just seen
+graphReachableNames (_ ∷ fuel) (name ∷ pending) seen laws =
+  if graphContains name seen then
+    graphReachableNames fuel pending seen laws
+  else
+    case graphLawForName name laws of λ where
+      Nothing -> Nothing
+      (Just law) ->
+        graphReachableNames
+          fuel
+          (graphAppend (graphLawDependencies law) pending)
+          (name ∷ seen)
+          laws
+
+graphRemoveName : String -> List String -> List String
+graphRemoveName name [] = []
+graphRemoveName name (candidate ∷ rest) =
+  if name == candidate then
+    rest
+  else
+    candidate ∷ graphRemoveName name rest
+
+graphFindReady :
+  List String ->
+  List String ->
+  List GraphLaw ->
+  Maybe String
+graphFindReady [] completed laws = Nothing
+graphFindReady (name ∷ remaining) completed laws =
+  case graphLawForName name laws of λ where
+    Nothing -> Nothing
+    (Just law) ->
+      if graphDependenciesCovered (graphLawDependencies law) completed then
+        Just name
+      else
+        graphFindReady remaining completed laws
+
+graphTopologicalSort :
+  List ⊤ ->
+  List String ->
+  List GraphLaw ->
+  List String ->
+  Maybe (List String)
+graphTopologicalSort [] [] laws completed = Just completed
+graphTopologicalSort [] (_ ∷ _) laws completed = Nothing
+graphTopologicalSort (_ ∷ fuel) [] laws completed = Just completed
+graphTopologicalSort (_ ∷ fuel) remaining laws completed =
+  case graphFindReady remaining completed laws of λ where
+    Nothing -> Nothing
+    (Just ready) ->
+      graphTopologicalSort
+        fuel
+        (graphRemoveName ready remaining)
+        laws
+        (graphAppend completed (ready ∷ []))
+
+graphDependencyClosure :
+  String ->
+  List GraphLaw ->
+  Maybe (List String)
+graphDependencyClosure root laws =
+  case graphReachableNames
+    (graphClosureFuel laws)
+    (root ∷ [])
+    []
+    laws of λ where
+      Nothing -> Nothing
+      (Just reachable) ->
+        graphTopologicalSort
+          (graphDepthFuel laws)
+          reachable
+          laws
+          []
+
+graphPrecedes : String -> String -> List String -> Bool
+graphPrecedes target later [] = False
+graphPrecedes target later (name ∷ rest) =
+  if name == target then
+    graphContains later rest
+  else
+    graphPrecedes target later rest
+
+graphClosureDependenciesValid :
+  List String ->
+  String ->
+  List String ->
+  Bool
+graphClosureDependenciesValid [] owner closure = True
+graphClosureDependenciesValid (dependency ∷ rest) owner closure =
+  graphContains dependency closure
+    && graphPrecedes dependency owner closure
+    && graphClosureDependenciesValid rest owner closure
+
+graphClosureMemberValid :
+  List GraphLaw ->
+  List String ->
+  String ->
+  Bool
+graphClosureMemberValid laws closure name =
+  case graphLawForName name laws of λ where
+    Nothing -> False
+    (Just law) ->
+      graphClosureDependenciesValid
+        (graphLawDependencies law)
+        name
+        closure
+
+graphClosureMembersValid :
+  List String ->
+  List GraphLaw ->
+  List String ->
+  Bool
+graphClosureMembersValid [] laws closure = True
+graphClosureMembersValid (name ∷ rest) laws closure =
+  graphClosureMemberValid laws closure name
+    && graphClosureMembersValid rest laws closure
+
+graphDependencyClosureValid :
+  List GraphLaw ->
+  List String ->
+  Bool
+graphDependencyClosureValid laws [] = False
+graphDependencyClosureValid laws closure =
+  graphAllUnique closure
+    && graphClosureMembersValid closure laws closure
+
+graphDependencyClosureRegression : Bool
+graphDependencyClosureRegression =
+  let
+    laws =
+      MkGraphLaw "A" ("B" ∷ "C" ∷ []) ∷
+      MkGraphLaw "B" ("D" ∷ []) ∷
+      MkGraphLaw "C" ("D" ∷ []) ∷
+      MkGraphLaw "D" [] ∷
+      []
+  in
+  case graphDependencyClosure "A" laws of λ where
+    Nothing -> False
+    (Just closure) ->
+      graphDependencyClosureValid laws closure
+        && graphContains "A" closure
+        && graphContains "B" closure
+        && graphContains "C" closure
+        && graphContains "D" closure
+        && listLengthNat closure == suc (suc (suc (suc zero)))
+
+graphDependencyClosureRejectsCycleRegression : Bool
+graphDependencyClosureRejectsCycleRegression =
+  let
+    laws =
+      MkGraphLaw "A" ("B" ∷ []) ∷
+      MkGraphLaw "B" ("A" ∷ []) ∷
+      []
+  in
+  case graphDependencyClosure "A" laws of λ where
+    Nothing -> True
+    (Just _) -> False
+
+graphDependencyClosureRejectsMissingRegression : Bool
+graphDependencyClosureRejectsMissingRegression =
+  let laws = MkGraphLaw "A" ("Missing" ∷ []) ∷ [] in
+  case graphDependencyClosure "A" laws of λ where
+    Nothing -> True
+    (Just _) -> False
+
 -- A focused obligation graph separate from the inverse/exact-search graph.
 -- Each path is an explicit dependency chain, not itself a proof term.
 learnerObligationGraph : List GraphLaw
@@ -1043,17 +1249,15 @@ learnerObligationGraph =
      ("f4ThetaOneStepDescentObligation" , "optimizerQuadratic") ∷
      [])
 
+-- These are dependency closures, not single root-to-leaf paths: every
+-- transitive prerequisite must be present and ordered before its dependents.
 learnerTracePlan : Maybe (List String)
 learnerTracePlan =
-  graphAStarFirst
-    learnerObligationGraph
-    (MkGraphNode ("canonicalLearnerTraceGuarded" ∷ []))
+  graphDependencyClosure "canonicalLearnerTraceGuarded" learnerObligationGraph
 
 learnerDescentPlan : Maybe (List String)
 learnerDescentPlan =
-  graphAStarFirst
-    learnerObligationGraph
-    (MkGraphNode ("canonicalOptimizerDescentObligation" ∷ []))
+  graphDependencyClosure "canonicalOptimizerDescentObligation" learnerObligationGraph
 
 learnerLogicalGraphRegression : Bool
 learnerLogicalGraphRegression =
@@ -1063,10 +1267,14 @@ learnerLogicalGraphRegression =
       case learnerDescentPlan of λ where
         Nothing → False
         (Just descentPlan) →
-          graphValidPlan tracePlan learnerObligationGraph
-            && graphValidPlan descentPlan learnerObligationGraph
-            && graphMaximalDependencyChain tracePlan learnerObligationGraph
-            && graphMaximalDependencyChain descentPlan learnerObligationGraph
+          graphDependencyClosureValid learnerObligationGraph tracePlan
+            && graphDependencyClosureValid learnerObligationGraph descentPlan
+            && graphContains "canonicalLearnerTraceGuarded" tracePlan
+            && graphContains "canonicalFullStep" tracePlan
+            && graphContains "optimizerQuadratic" tracePlan
+            && graphContains "canonicalOptimizerDescentObligation" descentPlan
+            && graphContains "f4ThetaOneStepDescentObligation" descentPlan
+            && graphContains "optimizerQuadratic" descentPlan
 
 learnerLogicalGraphRegressionChecked :
   learnerLogicalGraphRegression ≡ True
@@ -1198,17 +1406,19 @@ requiredPlanForName requested semanticLaws =
     (Just law) ->
       case semanticLawCanSeed law of λ where
         True ->
-          graphAStarFirst
+          graphDependencyClosure
+            (Extractor.semanticLawId law)
             (semanticGraphLaws semanticLaws)
-            (MkGraphNode (Extractor.semanticLawId law ∷ []))
         False -> Nothing
 
+-- Validate a complete dependency closure, not merely adjacent edges in one
+-- path. Every direct prerequisite must occur earlier; duplicates are rejected.
 requiredPlanIsValid :
   List Extractor.SemanticLaw ->
   List String ->
   Bool
 requiredPlanIsValid semanticLaws plan =
-  graphValidPlan plan (semanticGraphLaws semanticLaws)
+  graphDependencyClosureValid (semanticGraphLaws semanticLaws) plan
 
 requiredPlans :
   List String ->
@@ -1574,14 +1784,21 @@ canonicalSearchPlanEGraphClosedChecked = refl
 graphAStarPlanEGraphClosed : Bool
 graphAStarPlanEGraphClosed =
   let
-    laws = MkGraphLaw "A" [] ∷ []
+    laws =
+      MkGraphLaw "A" ("B" ∷ "C" ∷ []) ∷
+      MkGraphLaw "B" ("D" ∷ []) ∷
+      MkGraphLaw "C" [] ∷
+      MkGraphLaw "D" [] ∷
+      []
     seed = MkGraphNode ("A" ∷ [])
   in
   case graphAStarFirst laws seed of λ where
     Nothing -> False
     (Just selectedPlan) ->
-      semanticPlanEGraphComplete selectedPlan &&
-      semanticPlanEGraphExtractable selectedPlan
+      graphValidPlan selectedPlan laws
+        && graphAStarShortestPathRegression
+        && semanticPlanEGraphComplete selectedPlan
+        && semanticPlanEGraphExtractable selectedPlan
 
 graphAStarPlanEGraphClosedChecked :
   graphAStarPlanEGraphClosed ≡ True
@@ -1756,10 +1973,25 @@ main = do
 {-# COMPILE AGDA2HS graphDependencyOrderRegression #-}
 {-# COMPILE AGDA2HS graphTwoLeafBranchesRegression #-}
 {-# COMPILE AGDA2HS graphAStarTieBreakRegression #-}
+{-# COMPILE AGDA2HS graphAStarShortestPathRegression #-}
 {-# COMPILE AGDA2HS graphAStarBestGRegression #-}
 {-# COMPILE AGDA2HS GraphAStarNode #-}
 {-# COMPILE AGDA2HS GraphAStarBestCost #-}
 {-# COMPILE AGDA2HS graphCycleIsRejectedRegression #-}
+{-# COMPILE AGDA2HS graphClosureFuel #-}
+{-# COMPILE AGDA2HS graphReachableNames #-}
+{-# COMPILE AGDA2HS graphRemoveName #-}
+{-# COMPILE AGDA2HS graphFindReady #-}
+{-# COMPILE AGDA2HS graphTopologicalSort #-}
+{-# COMPILE AGDA2HS graphDependencyClosure #-}
+{-# COMPILE AGDA2HS graphPrecedes #-}
+{-# COMPILE AGDA2HS graphClosureDependenciesValid #-}
+{-# COMPILE AGDA2HS graphClosureMemberValid #-}
+{-# COMPILE AGDA2HS graphClosureMembersValid #-}
+{-# COMPILE AGDA2HS graphDependencyClosureValid #-}
+{-# COMPILE AGDA2HS graphDependencyClosureRegression #-}
+{-# COMPILE AGDA2HS graphDependencyClosureRejectsCycleRegression #-}
+{-# COMPILE AGDA2HS graphDependencyClosureRejectsMissingRegression #-}
 {-# COMPILE AGDA2HS graphStringPathEqual #-}
 {-# COMPILE AGDA2HS graphPathMember #-}
 {-# COMPILE AGDA2HS graphNodePlanMember #-}

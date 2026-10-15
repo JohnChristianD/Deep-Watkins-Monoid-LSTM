@@ -9,9 +9,37 @@ sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.S
 sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS EGraphRegression #-}	{-# COMPILE AGDA2HS EGraphRegression #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionStableGraph #-}	{-# COMPILE AGDA2HS regressionStableGraph #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionCongruenceOk #-}	{-# COMPILE AGDA2HS regressionCongruenceOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionAssociativityOk #-}	{-# COMPILE AGDA2HS regressionAssociativityOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionRightIdentityOk #-}	{-# COMPILE AGDA2HS regressionRightIdentityOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionLeftIdentityOk #-}	{-# COMPILE AGDA2HS regressionLeftIdentityOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionMatchingOk #-}	{-# COMPILE AGDA2HS regressionMatchingOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionAnalysisOk #-}	{-# COMPILE AGDA2HS regressionAnalysisOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionExtractOk #-}	{-# COMPILE AGDA2HS regressionExtractOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionQuotientOk #-}	{-# COMPILE AGDA2HS regressionQuotientOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionIterationOk #-}	{-# COMPILE AGDA2HS regressionIterationOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionSaturationOk #-}	{-# COMPILE AGDA2HS regressionSaturationOk #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionGraph #-}	{-# COMPILE AGDA2HS regressionGraph #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarShortestPathRegression #-}	{-# COMPILE AGDA2HS graphAStarShortestPathRegression #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphClosureFuel #-}	{-# COMPILE AGDA2HS graphClosureFuel #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphReachableNames #-}	{-# COMPILE AGDA2HS graphReachableNames #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphRemoveName #-}	{-# COMPILE AGDA2HS graphRemoveName #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphFindReady #-}	{-# COMPILE AGDA2HS graphFindReady #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphTopologicalSort #-}	{-# COMPILE AGDA2HS graphTopologicalSort #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDependencyClosure #-}	{-# COMPILE AGDA2HS graphDependencyClosure #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPrecedes #-}	{-# COMPILE AGDA2HS graphPrecedes #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphClosureDependenciesValid #-}	{-# COMPILE AGDA2HS graphClosureDependenciesValid #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphClosureMemberValid #-}	{-# COMPILE AGDA2HS graphClosureMemberValid #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphClosureMembersValid #-}	{-# COMPILE AGDA2HS graphClosureMembersValid #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDependencyClosureValid #-}	{-# COMPILE AGDA2HS graphDependencyClosureValid #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDependencyClosureRegression #-}	{-# COMPILE AGDA2HS graphDependencyClosureRegression #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDependencyClosureRejectsCycleRegression #-}	{-# COMPILE AGDA2HS graphDependencyClosureRejectsCycleRegression #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDependencyClosureRejectsMissingRegression #-}	{-# COMPILE AGDA2HS graphDependencyClosureRejectsMissingRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphStringPathEqual #-}	{-# COMPILE AGDA2HS graphStringPathEqual #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathMember #-}	{-# COMPILE AGDA2HS graphPathMember #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphNodePlanMember #-}	{-# COMPILE AGDA2HS graphNodePlanMember #-}	1

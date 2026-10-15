@@ -790,5 +790,19 @@ eGraphAssociativityRegression-proof = refl
 
 
 -- Public extraction roots consumed by the semantic-search executable.
+{-# COMPILE AGDA2HS EGraphRegression #-}
+{-# COMPILE AGDA2HS regressionStableGraph #-}
+{-# COMPILE AGDA2HS regressionCongruenceOk #-}
+{-# COMPILE AGDA2HS regressionAssociativityOk #-}
+{-# COMPILE AGDA2HS regressionRightIdentityOk #-}
+{-# COMPILE AGDA2HS regressionLeftIdentityOk #-}
+{-# COMPILE AGDA2HS regressionMatchingOk #-}
+{-# COMPILE AGDA2HS regressionAnalysisOk #-}
+{-# COMPILE AGDA2HS regressionExtractOk #-}
+{-# COMPILE AGDA2HS regressionQuotientOk #-}
+{-# COMPILE AGDA2HS regressionIterationOk #-}
+{-# COMPILE AGDA2HS regressionSaturationOk #-}
+{-# COMPILE AGDA2HS regressionGraph #-}
+
 {-# COMPILE AGDA2HS symbolicEGraphRegression #-}
 {-# COMPILE AGDA2HS eGraphAssociativityRegression #-}
