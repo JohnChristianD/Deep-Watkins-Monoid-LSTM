@@ -961,6 +961,29 @@ graphAStarTieBreakRegressionChecked :
   graphAStarTieBreakRegression ≡ True
 graphAStarTieBreakRegressionChecked = refl
 
+-- A* must prefer the direct leaf over a longer sibling branch. This checks
+-- shortest-path semantics independently of the exhaustive branch enumerator.
+graphAStarShortestPathRegression : Bool
+graphAStarShortestPathRegression =
+  let
+    laws =
+      MkGraphLaw "A" ("B" ∷ "C" ∷ []) ∷
+      MkGraphLaw "B" ("D" ∷ []) ∷
+      MkGraphLaw "C" [] ∷
+      MkGraphLaw "D" [] ∷
+      []
+  in
+  case graphAStarFirst laws (MkGraphNode ("A" ∷ [])) of λ where
+    Nothing -> False
+    (Just selected) ->
+      graphValidPlan selected laws
+        && graphStringPathEqual selected ("C" ∷ "A" ∷ [])
+        && listLengthNat selected == suc (suc zero)
+
+graphAStarShortestPathRegressionChecked :
+  graphAStarShortestPathRegression ≡ True
+graphAStarShortestPathRegressionChecked = refl
+
 graphStringPathEqual : List String -> List String -> Bool
 graphStringPathEqual [] [] = True
 graphStringPathEqual (left ∷ lefts) (right ∷ rights) =
@@ -1761,14 +1784,21 @@ canonicalSearchPlanEGraphClosedChecked = refl
 graphAStarPlanEGraphClosed : Bool
 graphAStarPlanEGraphClosed =
   let
-    laws = MkGraphLaw "A" [] ∷ []
+    laws =
+      MkGraphLaw "A" ("B" ∷ "C" ∷ []) ∷
+      MkGraphLaw "B" ("D" ∷ []) ∷
+      MkGraphLaw "C" [] ∷
+      MkGraphLaw "D" [] ∷
+      []
     seed = MkGraphNode ("A" ∷ [])
   in
   case graphAStarFirst laws seed of λ where
     Nothing -> False
     (Just selectedPlan) ->
-      semanticPlanEGraphComplete selectedPlan &&
-      semanticPlanEGraphExtractable selectedPlan
+      graphValidPlan selectedPlan laws
+        && graphAStarShortestPathRegression
+        && semanticPlanEGraphComplete selectedPlan
+        && semanticPlanEGraphExtractable selectedPlan
 
 graphAStarPlanEGraphClosedChecked :
   graphAStarPlanEGraphClosed ≡ True
