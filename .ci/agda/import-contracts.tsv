@@ -25,6 +25,7 @@ require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressio
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	{-# COMPILE AGDA2HS symbolicEGraphRegression #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}	1
 sync	FullCoupled/Agda2HsSemanticSearch.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarShortestPathRegression #-}	{-# COMPILE AGDA2HS graphAStarShortestPathRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphClosureFuel #-}	{-# COMPILE AGDA2HS graphClosureFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphReachableNames #-}	{-# COMPILE AGDA2HS graphReachableNames #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphRemoveName #-}	{-# COMPILE AGDA2HS graphRemoveName #-}	1
