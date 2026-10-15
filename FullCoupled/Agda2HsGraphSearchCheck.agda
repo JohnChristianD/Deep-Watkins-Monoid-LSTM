@@ -16,6 +16,7 @@ graphSearchContractPassed =
     && Search.graphCycleIsRejectedRegression
     && Search.autonomousGraphSearchRegression
     && Search.canonicalSearchPlanEGraphClosed
+    && Search.graphAStarPlanEGraphClosed
 
 main : IO ⊤
 main = do
@@ -43,6 +44,9 @@ main = do
   putStrLn
     ("canonical-search-egraph-closed="
       ++ show Search.canonicalSearchPlanEGraphClosed)
+  putStrLn
+    ("graph-astar-egraph-closed="
+      ++ show Search.graphAStarPlanEGraphClosed)
   putStrLn
     ("graph-search-contract="
       ++ show graphSearchContractPassed)
