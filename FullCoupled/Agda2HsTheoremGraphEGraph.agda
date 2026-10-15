@@ -310,20 +310,20 @@ bindSubstitution name id (MkSubstitution entries) =
 mutual
   matchPattern :
     Pattern -> Nat -> EGraph -> Substitution -> List Substitution
-  matchPattern (PatternVar name) class graph sub =
-    case bindSubstitution name (root graph class) sub of λ where
+  matchPattern (PatternVar name) classId graph sub =
+    case bindSubstitution name (root graph classId) sub of λ where
       Nothing -> []
       (Just result) -> result ∷ []
-  matchPattern (PatternApp symbol patterns) class graph sub =
-    matchNodes symbol patterns (root graph class) graph (bindings graph) sub
+  matchPattern (PatternApp symbol patterns) classId graph sub =
+    matchNodes symbol patterns (root graph classId) graph (bindings graph) sub
 
   matchNodes :
     String -> List Pattern -> Nat -> EGraph ->
     List Binding -> Substitution -> List Substitution
   matchNodes _ _ _ _ [] _ = []
   matchNodes symbol patterns target graph
-    (MkBinding (MkENode candidate children) class ∷ rest) sub =
-    if root graph class == target then
+    (MkBinding (MkENode candidate children) bindingId ∷ rest) sub =
+    if root graph bindingId == target then
       if candidate == symbol then
         matchChildren patterns children graph sub
         ++ matchNodes symbol patterns target graph rest sub
@@ -342,8 +342,8 @@ mutual
       (matchPattern childPattern child graph sub)
 
 eMatch : Pattern -> Nat -> EGraph -> List Substitution
-eMatch searchPattern class graph =
-  matchPattern searchPattern class graph (MkSubstitution [])
+eMatch searchPattern classId graph =
+  matchPattern searchPattern classId graph (MkSubstitution [])
 
 mutual
   instantiatePattern :
@@ -529,8 +529,8 @@ mutual
   extractBestSeen :
       List ⊤ -> Nat -> EGraph -> List Nat -> Maybe Extraction
   extractBestSeen [] _ _ _ = Nothing
-  extractBestSeen (_ ∷ fuel) class graph seen =
-    let target = root graph class
+  extractBestSeen (_ ∷ fuel) classId graph seen =
+    let target = root graph classId
     in case memberNat target seen of λ where
       True -> Nothing
       False ->
@@ -582,7 +582,7 @@ mutual
              (bestBindingForRoot fuel target rest graph seen)
 
 extractBest : Nat -> EGraph -> List ⊤ -> Maybe Extraction
-extractBest class graph fuel = extractBestSeen fuel class graph []
+extractBest classId graph fuel = extractBestSeen fuel classId graph []
 associativityRule : RewriteRule
 associativityRule =
   MkRewriteRule
