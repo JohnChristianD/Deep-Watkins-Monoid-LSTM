@@ -82,7 +82,7 @@ The theory now has a neural-network/MDP adapter, `NeuralPolicyMDP`. It exposes s
 
 There are three different search/evaluation layers, not a single “A*/Q* graph search”:
 
-- `astar` is the small semantic-law capability planner. Its A* score is `g+h` (`g)=plan length, `h`=missing capabilities); `proposalPrior` is only a tie-breaker for equal A* scores. It is not a Bellman Q-value, and it is deliberately named separately from the neural Q function.
+- `astar` is the small semantic-law capability planner. Its score is `g+h` (`g` = plan length; `h = 0` at a goal and `h = 1` otherwise). This one-step lower bound is admissible: any unfinished plan needs at least one more unit-cost law insertion, whereas counting all missing capabilities can overestimate when one law covers several. `proposalPrior` only breaks ties between equal A* scores; it is not a Bellman Q-value.
 - `graphAStarFirst` is the theorem-dependency graph's best-first single-chain search. It uses unit dependency costs, JAxtar's integer-scaled score and incoming-first ties, best-`g` deduplication, and stale-entry skipping. `autonomousGraphSearchFromRoot` is a third routine: bounded DFS enumeration, not A*.
 - The capability planner is now composed with the symbolic e-graph: `canonicalSearchPlanEGraphClosed` requires the selected plan to pass e-graph saturation and costed `extractBest`. This is a pipeline regression, not a proof that the named laws are mathematically true. E-graph equivalence/saturation and dependency reachability remain distinct relations.
 
