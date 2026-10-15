@@ -1,6 +1,7 @@
 module FullCoupled.Agda2HsTheoremGraphEGraph where
 
 open import Haskell.Prelude
+import Haskell.Prim as Prim
 
 
 data Expr : Type where
@@ -122,10 +123,7 @@ memberNat x (y ∷ ys) =
   if x == y then True else memberNat x ys
 
 natEqual : Nat -> Nat -> Bool
-natEqual zero zero = True
-natEqual zero (suc _) = False
-natEqual (suc _) zero = False
-natEqual (suc left) (suc right) = natEqual left right
+natEqual left right = Prim.eqNat left right
 
 lookupNatPair : Nat -> List (Nat × Nat) -> Maybe Nat
 lookupNatPair _ [] = Nothing
@@ -171,14 +169,27 @@ parentsLookup key parents =
     Nothing -> key
     (Just parent) -> parent
 
-rootWithFuel : Nat -> Nat -> List (Nat × Nat) -> Nat
-rootWithFuel zero id _ = id
-rootWithFuel (suc fuel) id parents =
+-- Lazy unit-token fuel avoids matching on Agda's built-in Nat in extracted
+-- Haskell. Every parent chain has at most one node per stored binding.
+unitFuel : List Binding -> List ⊤
+unitFuel [] = []
+unitFuel (_ ∷ rest) = tt ∷ unitFuel rest
+
+-- Give union-find, rebuild, and saturation one more step than the number of
+-- interned nodes. Haskell only demands this lazy spine as recursive calls run.
+graphFuel : EGraph -> List ⊤
+graphFuel graph = tt ∷ unitFuel (bindings graph)
+
+-- Resolve parent links with an explicit finite bound; exhausted fuel returns
+-- the current representative rather than recursing indefinitely on bad data.
+rootWithFuel : List ⊤ -> Nat -> List (Nat × Nat) -> Nat
+rootWithFuel [] id _ = id
+rootWithFuel (_ ∷ fuel) id parents =
   let parent = parentsLookup id parents in
   if parent == id then id else rootWithFuel fuel parent parents
 
 root : EGraph -> Nat -> Nat
-root graph id = rootWithFuel (suc (nextId graph)) id (parents graph)
+root graph id = rootWithFuel (graphFuel graph) id (parents graph)
 
 canonicalChildren : EGraph -> List Nat -> List Nat
 canonicalChildren _ [] = []
@@ -272,14 +283,16 @@ rebuildPass : EGraph -> EGraph × Bool
 rebuildPass graph =
   rebuildBindings (bindings graph) graph False
 
-rebuildWithFuel : Nat -> EGraph -> EGraph
-rebuildWithFuel zero graph = graph
-rebuildWithFuel (suc fuel) graph =
+-- Rebuild until congruence stops merging classes or the graph-sized bound
+-- is exhausted. Each successful pass strictly reduces the class partition.
+rebuildWithFuel : List ⊤ -> EGraph -> EGraph
+rebuildWithFuel [] graph = graph
+rebuildWithFuel (_ ∷ fuel) graph =
   let (graph' , changed) = rebuildPass graph in
   if changed then rebuildWithFuel fuel graph' else graph'
 
 rebuild : EGraph -> EGraph
-rebuild graph = rebuildWithFuel (suc (bindingCount (bindings graph))) graph
+rebuild graph = rebuildWithFuel (graphFuel graph) graph
 
 merge : Nat -> Nat -> EGraph -> EGraph
 merge left right graph = rebuild (mergeRoots left right graph)
@@ -418,11 +431,13 @@ classCount graph = natListCount (rootClasses graph)
 enodeCount : EGraph -> Nat
 enodeCount graph = bindingCount (bindings graph)
 
+-- Saturation has a finite graph-sized iteration budget. Stable means a pass
+-- performed no rewrites and rebuilding left class/enode counts unchanged.
 saturateWithFuel :
-  Nat -> List RewriteRule -> EGraph -> Nat -> Nat -> EGraph × Nat × Nat × Bool
-saturateWithFuel zero _ graph total iterations =
+  List ⊤ -> List RewriteRule -> EGraph -> Nat -> Nat -> EGraph × Nat × Nat × Bool
+saturateWithFuel [] _ graph total iterations =
   graph , total , iterations , False
-saturateWithFuel (suc fuel) rules graph total iterations =
+saturateWithFuel (_ ∷ fuel) rules graph total iterations =
   let roots = rootClasses graph
       (graph' , rewrites) = saturatePass rules roots graph
       graph'' = rebuild graph'
@@ -440,7 +455,7 @@ saturateUntilStable :
   List RewriteRule -> EGraph -> EGraph × SaturationReport
 saturateUntilStable rules graph =
   let (graph' , rewrites , iterations , complete) =
-        saturateWithFuel (suc (enodeCount graph)) rules graph zero zero
+        saturateWithFuel (graphFuel graph) rules graph zero zero
       changed = if rewrites == zero then False else True
   in graph' ,
      MkSaturationReport iterations rewrites changed complete
@@ -490,8 +505,7 @@ analyze : EGraph -> List ClassAnalysis
 analyze graph = analyzeRoots (rootClasses graph) graph
 
 predNat : Nat -> Nat
-predNat zero = zero
-predNat (suc n) = n
+predNat n = Prim.monusNat n 1
 
 chooseCheaper : Maybe Extraction -> Maybe Extraction -> Maybe Extraction
 chooseCheaper Nothing other = other
@@ -500,10 +514,22 @@ chooseCheaper (Just left) (Just right) =
   if extractedCost left < extractedCost right then Just left else Just right
 
 mutual
+  -- Extraction fuel is a lazy list of unit tokens. Repeated binding-sized
+  -- spines yield the same cubic upper bound used by the original extractor,
+  -- without pattern matching on built-in Nat in runtime code.
+  repeatFuel : List Binding -> List ⊤ -> List ⊤
+  repeatFuel [] _ = []
+  repeatFuel (_ ∷ rest) values = values ++ repeatFuel rest values
+
+  extractFuelFor : EGraph -> List ⊤
+  extractFuelFor graph =
+    let bindingsFuel = unitFuel (bindings graph)
+    in repeatFuel (bindings graph) (repeatFuel (bindings graph) bindingsFuel)
+
   extractBestSeen :
-      Nat -> Nat -> EGraph -> List Nat -> Maybe Extraction
-  extractBestSeen zero _ _ _ = Nothing
-  extractBestSeen (suc fuel) class graph seen =
+      List ⊤ -> Nat -> EGraph -> List Nat -> Maybe Extraction
+  extractBestSeen [] _ _ _ = Nothing
+  extractBestSeen (_ ∷ fuel) class graph seen =
     let target = root graph class
     in case memberNat target seen of λ where
       True -> Nothing
@@ -516,10 +542,10 @@ mutual
           (target ∷ seen)
 
   extractChildren :
-      Nat -> List Nat -> EGraph -> List Nat -> Maybe ChildExtraction
+      List ⊤ -> List Nat -> EGraph -> List Nat -> Maybe ChildExtraction
   extractChildren _ [] _ _ = Just (MkChildExtraction [] zero)
-  extractChildren zero (_ ∷ _) _ _ = Nothing
-  extractChildren (suc fuel) (child ∷ children) graph seen =
+  extractChildren [] (_ ∷ _) _ _ = Nothing
+  extractChildren (_ ∷ fuel) (child ∷ children) graph seen =
     case extractBestSeen fuel child graph seen of λ where
       Nothing -> Nothing
       (Just first) ->
@@ -532,10 +558,10 @@ mutual
                 (extractedCost first + extractedCostSum rest))
 
   bestBindingForRoot :
-      Nat -> Nat -> List Binding -> EGraph -> List Nat -> Maybe Extraction
+      List ⊤ -> Nat -> List Binding -> EGraph -> List Nat -> Maybe Extraction
   bestBindingForRoot _ _ [] _ _ = Nothing
-  bestBindingForRoot zero _ (_ ∷ _) _ _ = Nothing
-  bestBindingForRoot (suc fuel) target
+  bestBindingForRoot [] _ (_ ∷ _) _ _ = Nothing
+  bestBindingForRoot (_ ∷ fuel) target
     (MkBinding (MkENode symbol children) id ∷ rest)
     graph
     seen =
@@ -555,7 +581,7 @@ mutual
         in chooseCheaper candidate
              (bestBindingForRoot fuel target rest graph seen)
 
-extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
+extractBest : Nat -> EGraph -> List ⊤ -> Maybe Extraction
 extractBest class graph fuel = extractBestSeen fuel class graph []
 associativityRule : RewriteRule
 associativityRule =
@@ -702,7 +728,7 @@ regressionGraph =
             _ -> True
       analysisOk = classAnalysisCount (analyze stable) > zero
       extractOk =
-        case extractBest nested stable (suc (enodeCount stable * enodeCount stable * enodeCount stable)) of λ where
+        case extractBest nested stable (extractFuelFor stable) of λ where
           Nothing -> False
           (Just result) -> extractedCost result > zero
       quotientOk = classCount g5 < enodeCount g5
@@ -801,6 +827,10 @@ eGraphAssociativityRegression-proof = refl
 {-# COMPILE AGDA2HS SaturationReport #-}
 {-# COMPILE AGDA2HS Extraction #-}
 {-# COMPILE AGDA2HS ChildExtraction #-}
+{-# COMPILE AGDA2HS unitFuel #-}
+{-# COMPILE AGDA2HS graphFuel #-}
+{-# COMPILE AGDA2HS repeatFuel #-}
+{-# COMPILE AGDA2HS extractFuelFor #-}
 {-# COMPILE AGDA2HS EGraphRegression #-}
 {-# COMPILE AGDA2HS saturateUntilStable #-}
 {-# COMPILE AGDA2HS saturateWithFuel #-}
