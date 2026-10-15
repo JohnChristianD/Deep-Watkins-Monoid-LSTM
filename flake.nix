@@ -550,6 +550,7 @@
                 grep -Fxq "graph-dependency-order=True" "$out/report.txt"
                 grep -Fxq "graph-best-first-tie=True" "$out/report.txt"
                 grep -Fxq "graph-best-g-policy=True" "$out/report.txt"
+                grep -Fxq "graph-admissible-heuristic=True" "$out/report.txt"
                 grep -Fxq "graph-cycle-rejected=True" "$out/report.txt"
                 grep -Fxq "graph-linear-chain=True" "$out/report.txt"
                 grep -Fxq "graph-search-contract=True" "$out/report.txt"
