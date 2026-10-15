@@ -1648,8 +1648,6 @@ agdaSemanticPortReport laws =
     ++ show (length learnerLogicalRequiredNames)
     ++ "; learner-static-graph="
     ++ show learnerLogicalGraphRegression
-    ++ "; canonical-search-egraph-closed="
-    ++ show canonicalSearchPlanEGraphClosed
 
 main : IO ⊤
 main = do
@@ -1671,6 +1669,7 @@ main = do
   putStrLn (semanticSearchExecutableReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
   putStrLn (agdaSemanticPortReport semanticLaws)
+  putStrLn ("canonical-search-egraph-closed=" ++ show canonicalSearchPlanEGraphClosed)
 
 {-# COMPILE AGDA2HS main #-}
 
