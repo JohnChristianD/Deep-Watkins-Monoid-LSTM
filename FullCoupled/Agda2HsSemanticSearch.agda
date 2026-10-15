@@ -1525,6 +1525,22 @@ semanticPlanEGraphExtractable plan =
     (Just bestResult) ->
       EGraph.extractedCost bestResult > zero
 
+-- End-to-end bridge: run the semantic-law A* planner, saturate its selected
+-- plan in the symbolic e-graph, and require a stable graph plus a costed
+-- extraction. This checks pipeline connectivity, not proof validity of names.
+canonicalSearchPlanEGraphClosed : Bool
+canonicalSearchPlanEGraphClosed =
+  case canonicalSearch of λ where
+    Nothing -> False
+    (Just node) ->
+      canonicalSearchComplete &&
+      semanticPlanEGraphComplete (plan node) &&
+      semanticPlanEGraphExtractable (plan node)
+
+canonicalSearchPlanEGraphClosedChecked :
+  canonicalSearchPlanEGraphClosed ≡ True
+canonicalSearchPlanEGraphClosedChecked = refl
+
 plansEGraphClosed :
   List (List String) ->
   Bool
@@ -1632,6 +1648,8 @@ agdaSemanticPortReport laws =
     ++ show (length learnerLogicalRequiredNames)
     ++ "; learner-static-graph="
     ++ show learnerLogicalGraphRegression
+    ++ "; canonical-search-egraph-closed="
+    ++ show canonicalSearchPlanEGraphClosed
 
 main : IO ⊤
 main = do
@@ -1785,6 +1803,7 @@ main = do
 {-# COMPILE AGDA2HS prunedPublicTheoremsChecked #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}
+{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}
 {-# COMPILE AGDA2HS requiredPlanEGraphCount #-}
 {-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}
