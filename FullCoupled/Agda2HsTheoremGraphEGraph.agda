@@ -787,3 +787,8 @@ eGraphAssociativityRegression = regressionAssociativityOk regressionGraph
 eGraphAssociativityRegression-proof :
   eGraphAssociativityRegression ≡ True
 eGraphAssociativityRegression-proof = refl
+
+
+-- Public extraction roots consumed by the semantic-search executable.
+{-# COMPILE AGDA2HS symbolicEGraphRegression #-}
+{-# COMPILE AGDA2HS eGraphAssociativityRegression #-}
