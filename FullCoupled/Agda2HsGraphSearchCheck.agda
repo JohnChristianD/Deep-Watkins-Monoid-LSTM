@@ -12,6 +12,7 @@ graphSearchContractPassed =
     && Search.graphTwoLeafBranchesRegression
     && Search.graphAStarTieBreakRegression
     && Search.graphAStarBestGRegression
+    && Search.nodeHeuristicLowerBoundRegression
     && Search.graphCycleIsRejectedRegression
     && Search.autonomousGraphSearchRegression
     && Search.canonicalSearchPlanEGraphClosed
@@ -30,6 +31,9 @@ main = do
   putStrLn
     ("graph-best-g-policy="
       ++ show Search.graphAStarBestGRegression)
+  putStrLn
+    ("graph-admissible-heuristic="
+      ++ show Search.nodeHeuristicLowerBoundRegression)
   putStrLn
     ("graph-cycle-rejected="
       ++ show Search.graphCycleIsRejectedRegression)
