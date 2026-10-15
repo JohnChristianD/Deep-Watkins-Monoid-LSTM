@@ -555,6 +555,7 @@
                 grep -Fxq "graph-linear-chain=True" "$out/report.txt"
                 grep -Fxq "graph-search-contract=True" "$out/report.txt"
                 grep -Fxq "canonical-search-egraph-closed=True" "$out/report.txt"
+                grep -Fxq "graph-astar-egraph-closed=True" "$out/report.txt"
 
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
@@ -637,6 +638,7 @@
                 grep -Fq "graphTwoLeafBranchesRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
                 grep -Fq "canonical-search-egraph-closed=True" "$out/report.txt"
+                grep -Fq "graph-astar-egraph-closed=True" "$out/report.txt"
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
                   "compiler=ghc-$compiler_version" \
