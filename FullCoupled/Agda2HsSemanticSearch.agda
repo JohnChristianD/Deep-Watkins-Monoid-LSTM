@@ -1383,17 +1383,19 @@ requiredPlanForName requested semanticLaws =
     (Just law) ->
       case semanticLawCanSeed law of λ where
         True ->
-          graphAStarFirst
+          graphDependencyClosure
+            (Extractor.semanticLawId law)
             (semanticGraphLaws semanticLaws)
-            (MkGraphNode (Extractor.semanticLawId law ∷ []))
         False -> Nothing
 
+-- Validate a complete dependency closure, not merely adjacent edges in one
+-- path. Every direct prerequisite must occur earlier; duplicates are rejected.
 requiredPlanIsValid :
   List Extractor.SemanticLaw ->
   List String ->
   Bool
 requiredPlanIsValid semanticLaws plan =
-  graphValidPlan plan (semanticGraphLaws semanticLaws)
+  graphDependencyClosureValid (semanticGraphLaws semanticLaws) plan
 
 requiredPlans :
   List String ->
