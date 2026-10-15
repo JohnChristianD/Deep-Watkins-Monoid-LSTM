@@ -215,6 +215,7 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticPlanE
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturates #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturates #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtracts #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtracts #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarPlanEGraphClosed #-}	{-# COMPILE AGDA2HS graphAStarPlanEGraphClosed #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanEGraphCount #-}	{-# COMPILE AGDA2HS requiredPlanEGraphCount #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}	{-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}	{-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}	1
