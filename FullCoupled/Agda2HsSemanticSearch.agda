@@ -1736,10 +1736,7 @@ semanticPlanEGraphExtractable plan =
     EGraph.extractBest
       rootId
       graph
-      (suc
-        (EGraph.enodeCount graph *
-         EGraph.enodeCount graph *
-         EGraph.enodeCount graph))
+      (EGraph.extractFuelFor graph)
   of λ where
     Nothing -> False
     (Just bestResult) ->
