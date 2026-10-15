@@ -1535,14 +1535,31 @@ semanticPlanEGraphExtractable plan =
 -- End-to-end bridge: run the semantic-law A* planner, saturate its selected
 -- plan in the symbolic e-graph, and require a stable graph plus a costed
 -- extraction. This checks pipeline connectivity, not proof validity of names.
-canonicalSearchPlanEGraphClosed : Bool
-canonicalSearchPlanEGraphClosed =
+canonicalSearchPlanEGraphSaturates : Bool
+canonicalSearchPlanEGraphSaturates =
   case canonicalSearch of λ where
     Nothing -> False
-    (Just node) ->
-      canonicalSearchComplete &&
-      semanticPlanEGraphComplete (plan node) &&
-      semanticPlanEGraphExtractable (plan node)
+    (Just node) -> semanticPlanEGraphComplete (plan node)
+
+canonicalSearchPlanEGraphExtracts : Bool
+canonicalSearchPlanEGraphExtracts =
+  case canonicalSearch of λ where
+    Nothing -> False
+    (Just node) -> semanticPlanEGraphExtractable (plan node)
+
+canonicalSearchPlanEGraphClosed : Bool
+canonicalSearchPlanEGraphClosed =
+  canonicalSearchComplete &&
+  canonicalSearchPlanEGraphSaturates &&
+  canonicalSearchPlanEGraphExtracts
+
+canonicalSearchPlanEGraphSaturatesChecked :
+  canonicalSearchPlanEGraphSaturates ≡ True
+canonicalSearchPlanEGraphSaturatesChecked = refl
+
+canonicalSearchPlanEGraphExtractsChecked :
+  canonicalSearchPlanEGraphExtracts ≡ True
+canonicalSearchPlanEGraphExtractsChecked = refl
 
 canonicalSearchPlanEGraphClosedChecked :
   canonicalSearchPlanEGraphClosed ≡ True
@@ -1810,6 +1827,8 @@ main = do
 {-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}
 {-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}
+{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturates #-}
+{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtracts #-}
 {-# COMPILE AGDA2HS requiredPlanEGraphCount #-}
 {-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}
