@@ -147,6 +147,16 @@ nodeHeuristic :
 nodeHeuristic required node =
   if allRequiredCovered required (covered node) then zero else suc zero
 
+nodeHeuristicLowerBoundRegression : Bool
+nodeHeuristicLowerBoundRegression =
+  nodeHeuristic [] (MkSearchNode [] [] zero) == zero &&
+  nodeHeuristic (Inversion ∷ [])
+    (MkSearchNode [] [] zero) == suc zero
+
+nodeHeuristicLowerBoundRegressionChecked :
+  nodeHeuristicLowerBoundRegression ≡ True
+nodeHeuristicLowerBoundRegressionChecked = refl
+
 nodeScore :
   List Capability →
   SearchNode →
@@ -1733,6 +1743,7 @@ main = do
 {-# COMPILE AGDA2HS expandForCapability #-}
 {-# COMPILE AGDA2HS nodeCost #-}
 {-# COMPILE AGDA2HS nodeHeuristic #-}
+{-# COMPILE AGDA2HS nodeHeuristicLowerBoundRegression #-}
 {-# COMPILE AGDA2HS nodeScore #-}
 {-# COMPILE AGDA2HS higherProposalScore #-}
 {-# COMPILE AGDA2HS insertByScore #-}
