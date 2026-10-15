@@ -9,6 +9,17 @@ sync	FullCoupled/FormalMethods/MonoidLSTMStreams.agda	open import Agda.Builtin.S
 sync	FullCoupled/Agda2HsSurface.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsSemanticExtractor.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/Agda2HsTheoremGraphEGraph.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS Expr #-}	{-# COMPILE AGDA2HS Expr #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS Pattern #-}	{-# COMPILE AGDA2HS Pattern #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS RewriteRule #-}	{-# COMPILE AGDA2HS RewriteRule #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS ENode #-}	{-# COMPILE AGDA2HS ENode #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS Binding #-}	{-# COMPILE AGDA2HS Binding #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS EGraph #-}	{-# COMPILE AGDA2HS EGraph #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS Substitution #-}	{-# COMPILE AGDA2HS Substitution #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS ClassAnalysis #-}	{-# COMPILE AGDA2HS ClassAnalysis #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS SaturationReport #-}	{-# COMPILE AGDA2HS SaturationReport #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS Extraction #-}	{-# COMPILE AGDA2HS Extraction #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS ChildExtraction #-}	{-# COMPILE AGDA2HS ChildExtraction #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS EGraphRegression #-}	{-# COMPILE AGDA2HS EGraphRegression #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionStableGraph #-}	{-# COMPILE AGDA2HS regressionStableGraph #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS regressionCongruenceOk #-}	{-# COMPILE AGDA2HS regressionCongruenceOk #-}	1
