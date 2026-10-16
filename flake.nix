@@ -596,6 +596,7 @@
                 grep -Fxq "graph-duplicate-edge-normalization=True" "$out/report.txt"
                 grep -Fxq "graph-multi-parent-dag=True" "$out/report.txt"
                 grep -Fxq "graph-self-loop-rejected=True" "$out/report.txt"
+                grep -Fxq "graph-dot-parser-regression=True" "$out/report.txt"
                 grep -Fxq "graph-linear-chain=True" "$out/report.txt"
                 grep -Fxq "graph-search-contract=True" "$out/report.txt"
                 grep -Fxq "canonical-search-egraph-closed=True" "$out/report.txt"
