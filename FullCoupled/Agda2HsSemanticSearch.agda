@@ -48,7 +48,7 @@ open SearchNode public
 
 -- Search costs and fuel are Agda Nat values. The extracted Haskell
 -- Prelude's length has type Int, so keep proof-search arithmetic explicit.
-listLengthNat : {A : Type} -> List A -> Nat
+listLengthNat : {a : Type} -> List a -> Nat
 listLengthNat [] = zero
 listLengthNat (_ ∷ rest) = suc (listLengthNat rest)
 
@@ -214,13 +214,13 @@ insertAll required (node ∷ nodes) frontier =
 -- Repeat a payload once per list cell, keeping the depth parameter structural.
 -- The generated Haskell list is lazy: its tail is produced only as A* consumes
 -- fuel, rather than allocating the full factorial budget before search starts.
-repeatBy : ∀ {A B : Type} → List A → List B → List B
+repeatBy : ∀ {a b : Type} → List a → List b → List b
 repeatBy [] values = []
 repeatBy (_ ∷ rest) values = values ++ repeatBy rest values
 
 -- An input of length n produces n! unit cells, by the recurrence
 -- (n+1)! = (n+1) * n!. Recursion follows the finite law list, not Nat.
-factorialFuel : ∀ {A : Type} → List A → List ⊤
+factorialFuel : ∀ {a : Type} → List a → List ⊤
 factorialFuel [] = tt ∷ []
 factorialFuel (value ∷ rest) =
   repeatBy (value ∷ rest) (factorialFuel rest)
@@ -553,15 +553,15 @@ graphMaximalDependencyChain :
 graphMaximalDependencyChain plan laws =
   graphValidPlan plan laws && graphPlanHeadIsLeaf plan laws
 
-graphAppend : {A : Type} -> List A -> List A -> List A
+graphAppend : {a : Type} -> List a -> List a -> List a
 graphAppend [] ys = ys
 graphAppend (x ∷ xs) ys = x ∷ graphAppend xs ys
 
 graphConcatMap :
-  {A B : Type} ->
-  (A -> List B) ->
-  List A ->
-  List B
+  {a b : Type} ->
+  (a -> List b) ->
+  List a ->
+  List b
 graphConcatMap _ [] = []
 graphConcatMap f (x ∷ xs) =
   graphAppend (f x) (graphConcatMap f xs)
