@@ -100,6 +100,16 @@ The Dubins–Freedman result surfaced by the search concerns invariant probabili
 
 **Integer representation.** The misleading `Int8` / `int8` wrapper is renamed `IntCode` / `intCode`; its projection is `intCodeValue`. It stores the repo’s unbounded mathematical integer, not a bounded machine byte: no overflow, wraparound, or 8-bit range invariant follows from this type name. The token encoding’s exact left inverse proves injectivity for this representation only; it is not injectivity of the GRU hidden-state readout.
 
+## Lawvere fixed points, Cantor embeddings, HIT rewriting, and initiality
+
+The linked `Various.LawvereFPT-Generalized` source in TypeTopology is configured with `--safe --without-K`. Its relational fixed-point theorem replaces identity with an arbitrary relation and changes the section/surjection assumptions accordingly. That is a diagonal/representability theorem: it does not itself show that every recurrent network has an optimal Bellman value. For Bellman least optimality, the Tarski/Kleene contracts above are more directly relevant because they require and expose a value order, completeness, monotonicity, and chain-continuity assumptions.
+
+`Various.CantorTheoremForEmbeddings` is an embedding/cardinality boundary theorem. It does not contradict injectivity of this token transport: `canonicalTokenEncodeInjective` has a concrete left inverse, `intCodeValue`. A global injectivity claim for the GRU hidden-state readout would need its own left inverse or a network-specific separation result.
+
+`SyntheticHomotopyTheory.Circle.WithRewriting` and `Circle.FundamentalGroup` use `--rewriting --without-K`, postulate higher-inductive circle data/eliminators, and derive the recursion and loop-space properties under their stated axioms. The cited HoTT Pushout module likewise develops HIT constructors/eliminators in a `--without-K --rewriting` profile. These are useful examples of explicit higher-inductive assumptions and computation rules; they are not proof shortcuts for a neural stream. Keep them outside the monolith's incompatible `--with-K` profile.
+
+`initiality-uniqueness.agda` proves uniqueness of the structure-preserving morphism from a syntax/category initial object into a target structured model. A meaningful RNN application needs a formal syntax/algebra of learner transitions, a model interpreting that syntax, and a proof that the interpreter preserves each constructor. Stream fusion or Bellman monotonicity alone does not establish initiality. A reasonable candidate result is uniqueness of a semantics-preserving interpreter for a specified learner algebra, not the assertion that the trained network itself is an initial object.
+
 ## Fennel synchronization and Cubical audit (2026-10-13)
 
 The canonical Agda import contract is declared in `.ci/agda/import-contracts.tsv` and checked by `.ci/lua/agda_import_sync.fnl`, packaged by Nix as `.#agda-import-sync`. `--sync` updates only explicitly declared import lines; `--check` is read-only. Both executable wrappers still read the one-per-line `.ci/agda/global-options.txt`. The `.#agda-emacs` package and `.#agda-emacs` development shell expose Emacs with the Nix-provided Agda mode.
