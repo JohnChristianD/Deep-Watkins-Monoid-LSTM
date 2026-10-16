@@ -1367,17 +1367,19 @@ graphMultiParentSearchRegression =
       []
     laws = graphLawsFromEdges edges
     plans = autonomousGraphSearchFromRoot "A" edges
+    astarValid =
+      case graphAStarFirst laws (MkGraphNode ("A" ∷ [])) of λ where
+        Nothing -> False
+        (Just selected) ->
+          graphValidPlan selected laws
+            && listLengthNat selected == incrementSearchNat (incrementSearchNat (incrementSearchNat 0))
+            && (graphStringPathEqual selected ("D" ∷ "B" ∷ "A" ∷ [])
+              || graphStringPathEqual selected ("D" ∷ "C" ∷ "A" ∷ []))
   in
   graphPathMember ("D" ∷ "B" ∷ "A" ∷ []) plans
     && graphPathMember ("D" ∷ "C" ∷ "A" ∷ []) plans
     && listLengthNat plans == incrementSearchNat (incrementSearchNat 0)
-    && case graphAStarFirst laws (MkGraphNode ("A" ∷ [])) of λ where
-      Nothing -> False
-      (Just selected) ->
-        graphValidPlan selected laws
-          && listLengthNat selected == incrementSearchNat (incrementSearchNat (incrementSearchNat 0))
-          && (graphStringPathEqual selected ("D" ∷ "B" ∷ "A" ∷ [])
-            || graphStringPathEqual selected ("D" ∷ "C" ∷ "A" ∷ []))
+    && astarValid
 
 graphSelfLoopRejectedRegression : Bool
 graphSelfLoopRejectedRegression =
@@ -1385,11 +1387,12 @@ graphSelfLoopRejectedRegression =
     edges = ("A" , "A") ∷ []
     laws = graphLawsFromEdges edges
     plans = autonomousGraphSearchFromRoot "A" edges
+    astarRejects =
+      case graphAStarFirst laws (MkGraphNode ("A" ∷ [])) of λ where
+        Nothing -> True
+        (Just _) -> False
   in
-  listLengthNat plans == 0
-    && case graphAStarFirst laws (MkGraphNode ("A" ∷ [])) of λ where
-      Nothing -> True
-      (Just _) -> False
+  listLengthNat plans == 0 && astarRejects
 
 -- A focused obligation graph separate from the inverse/exact-search graph.
 -- Each path is an explicit dependency chain, not itself a proof term.
