@@ -2304,7 +2304,7 @@ canonicalTokenLogitTrace K (t ∷ ts) s =
 ------------------------------------------------------------------------
 
 module BetaOptimalityBoundary where
-  data BetaEmpty : Set where
+  import Haskell.Prelude as HP
   open import Agda.Builtin.Nat
     renaming (Nat to BNat; zero to bzero; suc to bsuc)
 
@@ -2356,7 +2356,7 @@ module BetaOptimalityBoundary where
       (leAddRight (reward (selectedAction optimal)) beta)
 
   Not : Set → Set
-  Not proposition = proposition → BetaEmpty
+  Not proposition = proposition → HP.⊥
 
   counterReward : BNat → Action → Action → BNat
   counterReward beta leftAction leftAction = bzero
