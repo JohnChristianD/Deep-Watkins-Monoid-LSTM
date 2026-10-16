@@ -42,7 +42,7 @@
 
 (local function count-prefix-lines [content prefix]
   (var count 0)
-  (each [line (string.gmatch content "[^\\n]+")]
+  (each [line (string.gmatch content "[^\n]+")]
     (when (has-prefix line prefix)
       (set count (+ count 1))))
   count)
