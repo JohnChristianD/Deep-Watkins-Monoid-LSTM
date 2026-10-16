@@ -2083,6 +2083,7 @@ main = do
     Extractor.readSemanticLaws
       "build/agda2hs-semantic-search/.semantic-source-files"
   putStrLn semanticSearchReport
+  putStrLn (autonomousGraphSearchReport (parseDotEdges source))
   putStrLn (autonomousCanonicalGraphReport source)
   putStrLn ("autonomous-regression=" ++ show autonomousGraphSearchRegression)
   putStrLn ("graph-branch-regression=" ++ show graphDependencyOrderRegression)
