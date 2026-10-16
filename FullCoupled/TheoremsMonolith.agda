@@ -404,10 +404,10 @@ C.learnerStreamTail repeatUnitLearnerStream {j} = repeatUnitLearnerStream
 -- transition: the proof identifies every observable learner state, not just
 -- the first sample or a separately redefined transition function.
 canonicalLearnerTraceScan :
-  {A : Set}
+  {i : Size} {A : Set}
   (K : C.FullLearnerKernel A)
   (initial : C.FullLearnerState A) →
-  LearnerStreamBisim ∞
+  LearnerStreamBisim i
     (C.canonicalLearnerTrace K initial)
     (scanLearnerStream
       (λ state _ → C.canonicalFullStep K state)
