@@ -632,6 +632,8 @@
                 test -s "$out/FullCoupled/Agda2HsTheoremGraphEGraph.hs"
                 grep -Fq "symbolicEGraphRegression" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "eGraphAssociativityRegression" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "canonicalBindingsRegression" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "hashconsAfterUnionRegression" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "requiredTheoremNames" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "requiredPlanComplete" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "inverse-correct" FullCoupled/TheoremsMonolith.agda
@@ -660,6 +662,8 @@
                 grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
                 grep -Fq "graphTwoLeafBranchesRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
+                grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"
+                grep -Fq "egraph-hashcons-after-union=True" "$out/report.txt"
                 grep -Fq "canonical-search-egraph-closed=True" "$out/report.txt"
                 grep -Fq "graph-astar-egraph-closed=True" "$out/report.txt"
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
