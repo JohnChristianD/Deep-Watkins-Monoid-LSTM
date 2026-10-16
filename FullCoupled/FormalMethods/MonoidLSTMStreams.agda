@@ -238,6 +238,57 @@ mapStreamFusionPrefix n f g input =
         (mapListCompose f g (streamPrefix n input))
         (sym (mapStreamPrefix n (λ value → f (g value)) input))))
 
+-- A state encoding fuses with a scan whenever it commutes with one transition.
+-- The proof is coinductive: each tail obligation reduces the commuting square,
+-- then recurses at the strictly smaller stream size.
+scanMapFusionBisim :
+  {i : Size} {State Target Input : Set} →
+  (encode : State → Target) →
+  (step : State → Input → State) →
+  (targetStep : Target → Input → Target) →
+  (stepFusion :
+    (state : State) (input : Input) →
+    encode (step state input) ≡ targetStep (encode state) input) →
+  (state : State) (inputs : Stream i Input) →
+  Bisim i
+    (mapStream encode (scanStream step state inputs))
+    (scanStream targetStep (encode state) inputs)
+scanMapFusionBisim encode step targetStep stepFusion state inputs
+  .headsAgree =
+    stepFusion state (streamHead inputs)
+scanMapFusionBisim encode step targetStep stepFusion state inputs
+  .tailsBisimilar {j}
+  rewrite sym (stepFusion state (streamHead inputs)) =
+    scanMapFusionBisim
+      encode
+      step
+      targetStep
+      stepFusion
+      (step state (streamHead inputs))
+      (streamTail inputs {j})
+
+-- Regression: successor encoding commutes with natural-number addition.
+-- Mapping successor over a running sum agrees with starting the scan
+-- from the successor state, at every finite observation and over the stream.
+scanSuccessorFusionStep :
+  (state input : Nat) →
+  suc (state + input) ≡ suc state + input
+scanSuccessorFusionStep state input = refl
+
+scanSuccessorFusionRegression :
+  (state : Nat) (inputs : Stream ∞ Nat) →
+  Bisim ∞
+    (mapStream suc (scanStream _+_ state inputs))
+    (scanStream _+_ (suc state) inputs)
+scanSuccessorFusionRegression state inputs =
+  scanMapFusionBisim
+    suc
+    _+_
+    _+_
+    scanSuccessorFusionStep
+    state
+    inputs
+
 bisimReflexive :
   {i : Size} {A : Set} (input : Stream i A) → Bisim i input input
 bisimReflexive input .headsAgree = refl
