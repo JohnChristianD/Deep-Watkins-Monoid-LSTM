@@ -471,7 +471,7 @@ module ScottStracheyDomains where
 
 module LawvereDiagonal where
   open import Agda.Builtin.Equality using (_≡_; refl)
-  data Empty : Set where
+  data LawvereEmpty : Set where
 
   record DiagonalPreimage {A B : Set}
     (diagonal : A → A → B)
@@ -509,7 +509,7 @@ module LawvereDiagonal where
   booleanFlip booleanTrue = booleanFalse
 
   noBooleanFlipFixedPoint
-    : (b : Boolean) → booleanFlip b ≡ b → Empty
+    : (b : Boolean) → booleanFlip b ≡ b → LawvereEmpty
   noBooleanFlipFixedPoint booleanFalse ()
   noBooleanFlipFixedPoint booleanTrue ()
 
@@ -517,7 +517,7 @@ module LawvereDiagonal where
     : {A : Set}
       (diagonal : A → A → Boolean)
       → ((target : A → Boolean) → DiagonalPreimage diagonal target)
-      → Empty
+      → LawvereEmpty
   noSurjectiveBooleanDiagonal diagonal surjective
     with lawvereFixedPoint diagonal surjective booleanFlip
   ... | fixedPointWitness value equation =
