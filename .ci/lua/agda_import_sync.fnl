@@ -113,7 +113,7 @@
   (var hits 0)
   (each [_ path (ipairs files)]
     (local content (read-file path))
-    (each [line-number line (ipairs (fun.totable (string.gmatch content "[^\\n]+")))]
+    (each [line-number line (ipairs (fun.totable (string.gmatch content "[^\n]+")))]
       (local imported
         (or
           (string.match line "^%s*open%s+import%s+([^%s]+)")
