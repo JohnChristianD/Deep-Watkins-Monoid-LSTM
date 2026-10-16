@@ -516,6 +516,11 @@
               runtimeInputs = [ (agdaCommand system) ];
               text = ''
                 set -euo pipefail
+                grep -Fq "open import Haskell.Prelude" FullCoupled/FormalMethods/MonoidLSTMStreams.agda
+                if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List)([[:space:]]|$)' FullCoupled/FormalMethods/MonoidLSTMStreams.agda; then
+                  echo "stream calculus must use the Agda2HS Prelude for Nat, equality, and lists" >&2
+                  exit 1
+                fi
                 agda2hs-agda -i . FullCoupled/FormalMethods/MonoidLSTMStreams.agda
                 echo "monoid-lstm-stream-check=pass"
               '';
@@ -542,6 +547,15 @@
 
                 # This lane checks only the Agda2HS runtime module closure.
                 # Historical theorem monoliths are outside this kernel-checked target.
+                for source in \
+                  FullCoupled/Agda2HsSemanticExtractor.agda \
+                  FullCoupled/Agda2HsTheoremGraphEGraph.agda \
+                  FullCoupled/Agda2HsSemanticSearch.agda; do
+                  if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List)([[:space:]]|$)' "$source"; then
+                    echo "Agda2HS runtime module bypasses Haskell.Prelude: $source" >&2
+                    exit 1
+                  fi
+                done
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
