@@ -367,9 +367,24 @@ mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
 ------------------------------------------------------------------------
 
 module ScottStracheyDomains where
-  open import Haskell.Prelude
-    using (Nat; zero; suc; _+_; ⊥; _≡_; refl)
-    renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_; ⊥ to ScottEmpty)
+  open import Haskell.Prelude using (_≡_; refl)
+  import Haskell.Prelude as HP
+
+  BNat : Set
+  BNat = HP.Nat
+
+  bzero : BNat
+  bzero = HP.zero
+
+  bsuc : BNat → BNat
+  bsuc = HP.suc
+
+  infixl 6 _b+_
+  _b+_ : BNat → BNat → BNat
+  _b+_ = HP._+_
+
+  ScottEmpty : Set
+  ScottEmpty = HP.⊥
 
   data Lift (A : Set) : Set where
     bottom : Lift A
@@ -469,9 +484,11 @@ module ScottStracheyDomains where
 ------------------------------------------------------------------------
 
 module LawvereDiagonal where
-  open import Haskell.Prelude
-    using (⊥; _≡_; refl)
-    renaming (⊥ to LawvereEmpty)
+  open import Haskell.Prelude using (_≡_; refl)
+  import Haskell.Prelude as HP
+
+  LawvereEmpty : Set
+  LawvereEmpty = HP.⊥
 
   record DiagonalPreimage {A B : Set}
     (diagonal : A → A → B)
