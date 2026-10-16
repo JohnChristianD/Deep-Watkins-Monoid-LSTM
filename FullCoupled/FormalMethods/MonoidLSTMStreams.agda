@@ -2,10 +2,10 @@
 
 module FullCoupled.FormalMethods.MonoidLSTMStreams where
 
+open import Haskell.Prelude
+  using (Nat; zero; suc; List; []; _∷_; _≡_; refl; _+_)
+-- Sized observations are Agda-kernel metadata, with no Haskell.Prelude alias.
 open import Agda.Builtin.Size using (Size; Size<_; ∞)
-open import Agda.Builtin.Equality using (_≡_; refl)
-open import Agda.Builtin.List using (List; []; _∷_)
-open import Agda.Builtin.Nat using (Nat; zero; suc; _+_)
 
 -- A stream carries the size of the observation depth available to its tail.
 -- Each tail is available at a strictly smaller size. This proves productivity
