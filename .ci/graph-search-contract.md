@@ -73,10 +73,13 @@ All fixtures should be checked by Agda reduction (`...Checked = refl`) before ex
 5. **Cycle policy:** a back-edge into the current path stops expansion. Current tests deliberately treat the simple path as maximal; they do not certify the input graph is acyclic.
 6. **Tie policy:** `graphAStarTieBreakRegressionChecked` locks down equal-score insertion order.
 7. **Fuel exhaustion:** missing goal/invalid graph or exhausted finite budget yields `Nothing`, not an invented result.
-8. **Generated source:** DOT parser regression covers quotes and trailing semicolons/brackets from actual `--dependency-graph` output.
+8. **Generated source:** DOT parser regressions cover qualified quoted names, semicolons, attribute suffixes, and malformed non-edge lines.
+9. **Duplicate-heavy closure:** repeated dependency entries must not exhaust closure fuel before the queue drains.
+10. **Input normalization:** duplicate arrows yield one dependency and one branch; self-loops fail as leaf searches.
+11. **Multi-parent DAG:** both parent branches remain valid; A* returns one shortest, valid branch.
 
 ## 6. Required next hardening
 
-- Add explicit tests for missing referenced nodes, duplicate input edges, self-loops, multi-parent DAGs, and both search modes.
 - Add a stable graph artifact schema containing format version, source commit, node count, edge count, and hash. Keep theorem proof checking separate from graph generation and graph search.
+- Extend the narrow DOT parser only when fixtures cover the new syntax; quoted names containing spaces and multi-line declarations remain unsupported.
 - Compare fixtures against the legacy Mercury search only as a differential compatibility oracle. Do not restore the Mercury runtime or assert behavioral equivalence until selected outputs and budgets are captured and matched.
