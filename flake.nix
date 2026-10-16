@@ -485,7 +485,10 @@
                   "$tmp/BetaOptimalityBoundary.agda" \
                   "$tmp/LawvereDiagonal.agda"; do
                   grep -Fq "open import Haskell.Prelude" "$extracted"
-                  ! grep -Fq "Agda.Builtin." "$extracted"
+                  if grep -Fq "Agda.Builtin." "$extracted"; then
+                    echo "forbidden Agda.Builtin import in $extracted" >&2
+                    exit 1
+                  fi
                 done
                 grep -Fq "lawvereFixedPoint" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
