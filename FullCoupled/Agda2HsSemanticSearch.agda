@@ -2122,9 +2122,6 @@ main = do
 {-# COMPILE AGDA2HS semanticLawIsRecordField #-}
 {-# COMPILE AGDA2HS semanticLawIsReflexive #-}
 {-# COMPILE AGDA2HS semanticLawNamePresent #-}
-{-# COMPILE AGDA2HS dominanceContainer #-}
-{-# COMPILE AGDA2HS dominanceTheorem #-}
-{-# COMPILE AGDA2HS dominanceField #-}
 {-# COMPILE AGDA2HS recordFieldSignatureCandidate #-}
 {-# COMPILE AGDA2HS signatureCandidateEdgeFor #-}
 {-# COMPILE AGDA2HS signatureCandidateEdgesForFields #-}
