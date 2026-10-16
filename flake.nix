@@ -548,6 +548,9 @@
                 # This lane checks only the Agda2HS runtime module closure.
                 # Historical theorem monoliths are outside this kernel-checked target.
                 for source in \
+                  FullCoupled/CanonicalLearnerMonolith.agda \
+                  FullCoupled/TheoremsMonolith.agda \
+                  FullCoupled/FormalMethods/MonoidLSTMStreams.agda \
                   FullCoupled/Agda2HsSemanticExtractor.agda \
                   FullCoupled/Agda2HsTheoremGraphEGraph.agda \
                   FullCoupled/Agda2HsSemanticSearch.agda; do
