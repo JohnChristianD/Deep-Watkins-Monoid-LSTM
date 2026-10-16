@@ -2586,8 +2586,6 @@ module CanonicalBellmanOrderTheory where
 
   module OmegaKleeneFixedPoint
     {Value : Set} (O : OmegaCPO Value) where
-    open OmegaCPO O
-
     iter : OmegaContinuousEndomap O → BNat → Value
     iter F HP.zero = OmegaCPO.bottomω O
     iter F (HP.suc n) =
@@ -2596,30 +2594,30 @@ module CanonicalBellmanOrderTheory where
     iterChain :
       (F : OmegaContinuousEndomap O) →
       (n : BNat) →
-      _⊑ω_ (iter F n) (iter F (bsuc n))
+      OmegaCPO._⊑ω_ O (iter F n) (iter F (bsuc n))
     iterChain F HP.zero =
-      bottomLeastω (OmegaContinuousEndomap.stepω F (iter F bzero))
+      OmegaCPO.bottomLeastω O (OmegaContinuousEndomap.stepω F (iter F bzero))
     iterChain F (HP.suc n) =
       OmegaContinuousEndomap.monotoneω F (iterChain F n)
 
     leastFixedPoint :
       OmegaContinuousEndomap O → Value
-    leastFixedPoint F = lubω (iter F) (iterChain F)
+    leastFixedPoint F = OmegaCPO.lubω O (iter F) (iterChain F)
 
     shiftUpper :
       (F : OmegaContinuousEndomap O) →
       (n : BNat) →
-      _⊑ω_ (iter F n)
-        (lubω
+      OmegaCPO._⊑ω_ O (iter F n)
+        (OmegaCPO.lubω O
           (λ k → iter F (bsuc k))
           (λ k → iterChain F (bsuc k)))
     shiftUpper F HP.zero =
-      bottomLeastω
-        (lubω
+      OmegaCPO.bottomLeastω O
+        (OmegaCPO.lubω O
           (λ k → iter F (bsuc k))
           (λ k → iterChain F (bsuc k)))
     shiftUpper F (HP.suc n) =
-      lubUpperω
+      OmegaCPO.lubUpperω O
         (λ k → iter F (bsuc k))
         (λ k → iterChain F (bsuc k))
         n
@@ -2634,23 +2632,23 @@ module CanonicalBellmanOrderTheory where
     shiftedSupremum :
       (F : OmegaContinuousEndomap O) →
       leastFixedPoint F ≡
-        lubω
+        OmegaCPO.lubω O
           (λ n → iter F (bsuc n))
           (λ n → iterChain F (bsuc n))
     shiftedSupremum F =
-      antisymω
-        (lubLeastω
+      OmegaCPO.antisymω O
+        (OmegaCPO.lubLeastω O
           (iter F)
           (iterChain F)
-          (lubω
+          (OmegaCPO.lubω O
             (λ n → iter F (bsuc n))
             (λ n → iterChain F (bsuc n)))
           (shiftUpper F))
-        (lubLeastω
+        (OmegaCPO.lubLeastω O
           (λ n → iter F (bsuc n))
           (λ n → iterChain F (bsuc n))
           (leastFixedPoint F)
-          (λ n → lubUpperω (iter F) (iterChain F) (bsuc n)))
+          (λ n → OmegaCPO.lubUpperω O (iter F) (iterChain F) (bsuc n)))
 
     leastFixedPointIsFixed :
       (F : OmegaContinuousEndomap O) →
@@ -2662,18 +2660,18 @@ module CanonicalBellmanOrderTheory where
         (symEq (shiftedSupremum F))
 
     equalityToOrder :
-      {x y : Value} → x ≡ y → _⊑ω_ x y
-    equalityToOrder refl = reflω
+      {x y : Value} → x ≡ y → OmegaCPO._⊑ω_ O x y
+    equalityToOrder refl = OmegaCPO.reflω O
 
     iterBelowFixed :
       (F : OmegaContinuousEndomap O) →
       (x : Value) →
       OmegaContinuousEndomap.stepω F x ≡ x →
       (n : BNat) →
-      _⊑ω_ (iter F n) x
-    iterBelowFixed F x fixed HP.zero = bottomLeastω x
+      OmegaCPO._⊑ω_ O (iter F n) x
+    iterBelowFixed F x fixed HP.zero = OmegaCPO.bottomLeastω O x
     iterBelowFixed F x fixed (HP.suc n) =
-      transω
+      OmegaCPO.transω O
         (OmegaContinuousEndomap.monotoneω F
           (iterBelowFixed F x fixed n))
         (equalityToOrder fixed)
@@ -2682,9 +2680,9 @@ module CanonicalBellmanOrderTheory where
       (F : OmegaContinuousEndomap O) →
       (x : Value) →
       OmegaContinuousEndomap.stepω F x ≡ x →
-      _⊑ω_ (leastFixedPoint F) x
+      OmegaCPO._⊑ω_ O (leastFixedPoint F) x
     leastFixedPointIsLeast F x fixed =
-      lubLeastω
+      OmegaCPO.lubLeastω O
         (iter F)
         (iterChain F)
         x
@@ -2696,10 +2694,10 @@ module CanonicalBellmanOrderTheory where
       (fixed : OmegaContinuousEndomap.stepω F x ≡ x) →
       (∀ {y : Value} →
         OmegaContinuousEndomap.stepω F y ≡ y →
-        _⊑ω_ x y) →
+        OmegaCPO._⊑ω_ O x y) →
       x ≡ leastFixedPoint F
     leastFixedPointUnique F x fixed least =
-      antisymω
+      OmegaCPO.antisymω O
         (least {y = leastFixedPoint F}
           (leastFixedPointIsFixed F))
         (leastFixedPointIsLeast F x fixed)
