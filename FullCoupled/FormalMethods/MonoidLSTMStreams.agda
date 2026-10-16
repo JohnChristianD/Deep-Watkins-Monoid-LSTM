@@ -29,7 +29,9 @@ streamHead (mapStream f input) = f (streamHead input)
 streamTail (mapStream f input) {j} =
   mapStream f (streamTail input {j})
 
-streamPrefix : {i : Size} {A : Set} → Nat → Stream i A → List A
+-- Finite prefixes require an indefinitely observable stream. A merely-sized
+-- Stream i may only expose an unknown finite observation depth.
+streamPrefix : {A : Set} → Nat → Stream ∞ A → List A
 streamPrefix 0 _ = []
 streamPrefix (suc n) input =
   streamHead input ∷ streamPrefix n (streamTail input)
@@ -57,8 +59,8 @@ mapListCong :
 mapListCong f refl = refl
 
 mapStreamPrefix :
-  {i : Size} {A B : Set}
-  (n : Nat) (f : A → B) (input : Stream i A) →
+  {A B : Set}
+  (n : Nat) (f : A → B) (input : Stream ∞ A) →
   streamPrefix n (mapStream f input) ≡
   mapList f (streamPrefix n input)
 mapStreamPrefix 0 f input = refl
@@ -99,11 +101,11 @@ scanListCong :
 scanListCong step state refl = refl
 
 scanStreamPrefix :
-  {i : Size} {State Input : Set}
+  {State Input : Set}
   (n : Nat)
   (step : State → Input → State)
   (state : State)
-  (inputs : Stream i Input) →
+  (inputs : Stream ∞ Input) →
   streamPrefix n (scanStream step state inputs) ≡
   scanList step state (streamPrefix n inputs)
 scanStreamPrefix 0 step state inputs = refl
@@ -225,8 +227,8 @@ mapListCompose f g (value ∷ values) =
   cong (λ rest → f (g value) ∷ rest) (mapListCompose f g values)
 
 mapStreamFusionPrefix :
-  {i : Size} {A B C : Set}
-  (n : Nat) (f : B → C) (g : A → B) (input : Stream i A) →
+  {A B C : Set}
+  (n : Nat) (f : B → C) (g : A → B) (input : Stream ∞ A) →
   streamPrefix n (mapStream f (mapStream g input)) ≡
   streamPrefix n (mapStream (λ value → f (g value)) input)
 mapStreamFusionPrefix n f g input =
