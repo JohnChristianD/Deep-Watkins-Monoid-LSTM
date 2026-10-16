@@ -1533,6 +1533,10 @@ semanticSearchExecutableReport laws =
     ++ show symbolicEGraphRegression
     ++ " egraph-associativity-regression="
     ++ show eGraphAssociativityRegression
+    ++ " egraph-canonical-bindings="
+    ++ show EGraph.canonicalBindingsRegression
+    ++ " egraph-hashcons-after-union="
+    ++ show EGraph.hashconsAfterUnionRegression
 
 stringListEqual : List String -> List String -> Bool
 stringListEqual [] [] = True
