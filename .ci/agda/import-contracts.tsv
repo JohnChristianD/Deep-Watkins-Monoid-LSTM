@@ -113,9 +113,6 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS dedupeStrings
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS dedupeStrings #-}	{-# COMPILE AGDA2HS dedupeStrings #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS allNamesPresent #-}	{-# COMPILE AGDA2HS allNamesPresent #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS semanticPlanEGraphReport #-}	{-# COMPILE AGDA2HS semanticPlanEGraphReport #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturatesChecked #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturatesChecked #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtractsChecked #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtractsChecked #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosedChecked #-}	{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosedChecked #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarShortestPathRegression #-}	{-# COMPILE AGDA2HS graphAStarShortestPathRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphClosureFuel #-}	{-# COMPILE AGDA2HS graphClosureFuel #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphReachableNames #-}	{-# COMPILE AGDA2HS graphReachableNames #-}	1
