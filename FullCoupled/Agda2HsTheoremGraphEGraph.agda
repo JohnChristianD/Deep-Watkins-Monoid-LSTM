@@ -1,6 +1,7 @@
 module FullCoupled.Agda2HsTheoremGraphEGraph where
 
 open import Haskell.Prelude
+import Haskell.Prim as Prim
 
 
 data Expr : Type where
@@ -122,10 +123,7 @@ memberNat x (y ∷ ys) =
   if x == y then True else memberNat x ys
 
 natEqual : Nat -> Nat -> Bool
-natEqual zero zero = True
-natEqual zero (suc _) = False
-natEqual (suc _) zero = False
-natEqual (suc left) (suc right) = natEqual left right
+natEqual left right = Prim.eqNat left right
 
 lookupNatPair : Nat -> List (Nat × Nat) -> Maybe Nat
 lookupNatPair _ [] = Nothing
@@ -171,14 +169,27 @@ parentsLookup key parents =
     Nothing -> key
     (Just parent) -> parent
 
-rootWithFuel : Nat -> Nat -> List (Nat × Nat) -> Nat
-rootWithFuel zero id _ = id
-rootWithFuel (suc fuel) id parents =
+-- Lazy unit-token fuel avoids matching on Agda's built-in Nat in extracted
+-- Haskell. Every parent chain has at most one node per stored binding.
+unitFuel : List Binding -> List ⊤
+unitFuel [] = []
+unitFuel (_ ∷ rest) = tt ∷ unitFuel rest
+
+-- Give union-find, rebuild, and saturation one more step than the number of
+-- interned nodes. Haskell only demands this lazy spine as recursive calls run.
+graphFuel : EGraph -> List ⊤
+graphFuel graph = tt ∷ unitFuel (bindings graph)
+
+-- Resolve parent links with an explicit finite bound; exhausted fuel returns
+-- the current representative rather than recursing indefinitely on bad data.
+rootWithFuel : List ⊤ -> Nat -> List (Nat × Nat) -> Nat
+rootWithFuel [] id _ = id
+rootWithFuel (_ ∷ fuel) id parents =
   let parent = parentsLookup id parents in
   if parent == id then id else rootWithFuel fuel parent parents
 
 root : EGraph -> Nat -> Nat
-root graph id = rootWithFuel (suc (nextId graph)) id (parents graph)
+root graph id = rootWithFuel (graphFuel graph) id (parents graph)
 
 canonicalChildren : EGraph -> List Nat -> List Nat
 canonicalChildren _ [] = []
@@ -272,14 +283,16 @@ rebuildPass : EGraph -> EGraph × Bool
 rebuildPass graph =
   rebuildBindings (bindings graph) graph False
 
-rebuildWithFuel : Nat -> EGraph -> EGraph
-rebuildWithFuel zero graph = graph
-rebuildWithFuel (suc fuel) graph =
+-- Rebuild until congruence stops merging classes or the graph-sized bound
+-- is exhausted. Each successful pass strictly reduces the class partition.
+rebuildWithFuel : List ⊤ -> EGraph -> EGraph
+rebuildWithFuel [] graph = graph
+rebuildWithFuel (_ ∷ fuel) graph =
   let (graph' , changed) = rebuildPass graph in
   if changed then rebuildWithFuel fuel graph' else graph'
 
 rebuild : EGraph -> EGraph
-rebuild graph = rebuildWithFuel (suc (bindingCount (bindings graph))) graph
+rebuild graph = rebuildWithFuel (graphFuel graph) graph
 
 merge : Nat -> Nat -> EGraph -> EGraph
 merge left right graph = rebuild (mergeRoots left right graph)
@@ -297,20 +310,20 @@ bindSubstitution name id (MkSubstitution entries) =
 mutual
   matchPattern :
     Pattern -> Nat -> EGraph -> Substitution -> List Substitution
-  matchPattern (PatternVar name) class graph sub =
-    case bindSubstitution name (root graph class) sub of λ where
+  matchPattern (PatternVar name) classId graph sub =
+    case bindSubstitution name (root graph classId) sub of λ where
       Nothing -> []
       (Just result) -> result ∷ []
-  matchPattern (PatternApp symbol patterns) class graph sub =
-    matchNodes symbol patterns (root graph class) graph (bindings graph) sub
+  matchPattern (PatternApp symbol patterns) classId graph sub =
+    matchNodes symbol patterns (root graph classId) graph (bindings graph) sub
 
   matchNodes :
     String -> List Pattern -> Nat -> EGraph ->
     List Binding -> Substitution -> List Substitution
   matchNodes _ _ _ _ [] _ = []
   matchNodes symbol patterns target graph
-    (MkBinding (MkENode candidate children) class ∷ rest) sub =
-    if root graph class == target then
+    (MkBinding (MkENode candidate children) bindingId ∷ rest) sub =
+    if root graph bindingId == target then
       if candidate == symbol then
         matchChildren patterns children graph sub
         ++ matchNodes symbol patterns target graph rest sub
@@ -329,8 +342,8 @@ mutual
       (matchPattern childPattern child graph sub)
 
 eMatch : Pattern -> Nat -> EGraph -> List Substitution
-eMatch searchPattern class graph =
-  matchPattern searchPattern class graph (MkSubstitution [])
+eMatch searchPattern classId graph =
+  matchPattern searchPattern classId graph (MkSubstitution [])
 
 mutual
   instantiatePattern :
@@ -418,11 +431,26 @@ classCount graph = natListCount (rootClasses graph)
 enodeCount : EGraph -> Nat
 enodeCount graph = bindingCount (bindings graph)
 
+-- One saturation result is represented as a record, not a wide tuple:
+-- Agda2HS supports record extraction consistently across its Haskell targets.
+record SaturationStep : Type where
+  no-eta-equality; pattern
+  constructor MkSaturationStep
+  field
+    stepGraph : EGraph
+    stepTotalRewrites : Nat
+    stepIterations : Nat
+    stepComplete : Bool
+
+open SaturationStep public
+
+-- Saturation has a finite graph-sized iteration budget. Stable means a pass
+-- performed no rewrites and rebuilding left class/enode counts unchanged.
 saturateWithFuel :
-  Nat -> List RewriteRule -> EGraph -> Nat -> Nat -> EGraph × Nat × Nat × Bool
-saturateWithFuel zero _ graph total iterations =
-  graph , total , iterations , False
-saturateWithFuel (suc fuel) rules graph total iterations =
+  List ⊤ -> List RewriteRule -> EGraph -> Nat -> Nat -> SaturationStep
+saturateWithFuel [] _ graph total iterations =
+  MkSaturationStep graph total iterations False
+saturateWithFuel (_ ∷ fuel) rules graph total iterations =
   let roots = rootClasses graph
       (graph' , rewrites) = saturatePass rules roots graph
       graph'' = rebuild graph'
@@ -432,15 +460,18 @@ saturateWithFuel (suc fuel) rules graph total iterations =
         enodeCount graph == enodeCount graph''
       nextIterations = suc iterations
   in if stable then
-       graph'' , total + rewrites , nextIterations , True
+       MkSaturationStep graph'' (total + rewrites) nextIterations True
      else
        saturateWithFuel fuel rules graph'' (total + rewrites) nextIterations
 
 saturateUntilStable :
   List RewriteRule -> EGraph -> EGraph × SaturationReport
 saturateUntilStable rules graph =
-  let (graph' , rewrites , iterations , complete) =
-        saturateWithFuel (suc (enodeCount graph)) rules graph zero zero
+  let result = saturateWithFuel (graphFuel graph) rules graph zero zero
+      graph' = stepGraph result
+      rewrites = stepTotalRewrites result
+      iterations = stepIterations result
+      complete = stepComplete result
       changed = if rewrites == zero then False else True
   in graph' ,
      MkSaturationReport iterations rewrites changed complete
@@ -490,8 +521,7 @@ analyze : EGraph -> List ClassAnalysis
 analyze graph = analyzeRoots (rootClasses graph) graph
 
 predNat : Nat -> Nat
-predNat zero = zero
-predNat (suc n) = n
+predNat n = Prim.monusNat n 1
 
 chooseCheaper : Maybe Extraction -> Maybe Extraction -> Maybe Extraction
 chooseCheaper Nothing other = other
@@ -500,11 +530,23 @@ chooseCheaper (Just left) (Just right) =
   if extractedCost left < extractedCost right then Just left else Just right
 
 mutual
+  -- Extraction fuel is a lazy list of unit tokens. Repeated binding-sized
+  -- spines yield the same cubic upper bound used by the original extractor,
+  -- without pattern matching on built-in Nat in runtime code.
+  repeatFuel : List Binding -> List ⊤ -> List ⊤
+  repeatFuel [] _ = []
+  repeatFuel (_ ∷ rest) values = values ++ repeatFuel rest values
+
+  extractFuelFor : EGraph -> List ⊤
+  extractFuelFor graph =
+    let bindingsFuel = unitFuel (bindings graph)
+    in tt ∷ repeatFuel (bindings graph) (repeatFuel (bindings graph) bindingsFuel)
+
   extractBestSeen :
-      Nat -> Nat -> EGraph -> List Nat -> Maybe Extraction
-  extractBestSeen zero _ _ _ = Nothing
-  extractBestSeen (suc fuel) class graph seen =
-    let target = root graph class
+      List ⊤ -> Nat -> EGraph -> List Nat -> Maybe Extraction
+  extractBestSeen [] _ _ _ = Nothing
+  extractBestSeen (_ ∷ fuel) classId graph seen =
+    let target = root graph classId
     in case memberNat target seen of λ where
       True -> Nothing
       False ->
@@ -516,10 +558,10 @@ mutual
           (target ∷ seen)
 
   extractChildren :
-      Nat -> List Nat -> EGraph -> List Nat -> Maybe ChildExtraction
+      List ⊤ -> List Nat -> EGraph -> List Nat -> Maybe ChildExtraction
   extractChildren _ [] _ _ = Just (MkChildExtraction [] zero)
-  extractChildren zero (_ ∷ _) _ _ = Nothing
-  extractChildren (suc fuel) (child ∷ children) graph seen =
+  extractChildren [] (_ ∷ _) _ _ = Nothing
+  extractChildren (_ ∷ fuel) (child ∷ children) graph seen =
     case extractBestSeen fuel child graph seen of λ where
       Nothing -> Nothing
       (Just first) ->
@@ -532,10 +574,10 @@ mutual
                 (extractedCost first + extractedCostSum rest))
 
   bestBindingForRoot :
-      Nat -> Nat -> List Binding -> EGraph -> List Nat -> Maybe Extraction
+      List ⊤ -> Nat -> List Binding -> EGraph -> List Nat -> Maybe Extraction
   bestBindingForRoot _ _ [] _ _ = Nothing
-  bestBindingForRoot zero _ (_ ∷ _) _ _ = Nothing
-  bestBindingForRoot (suc fuel) target
+  bestBindingForRoot [] _ (_ ∷ _) _ _ = Nothing
+  bestBindingForRoot (_ ∷ fuel) target
     (MkBinding (MkENode symbol children) id ∷ rest)
     graph
     seen =
@@ -555,8 +597,8 @@ mutual
         in chooseCheaper candidate
              (bestBindingForRoot fuel target rest graph seen)
 
-extractBest : Nat -> EGraph -> Nat -> Maybe Extraction
-extractBest class graph fuel = extractBestSeen fuel class graph []
+extractBest : Nat -> EGraph -> List ⊤ -> Maybe Extraction
+extractBest classId graph fuel = extractBestSeen fuel classId graph []
 associativityRule : RewriteRule
 associativityRule =
   MkRewriteRule
@@ -702,7 +744,7 @@ regressionGraph =
             _ -> True
       analysisOk = classAnalysisCount (analyze stable) > zero
       extractOk =
-        case extractBest nested stable (suc (enodeCount stable * enodeCount stable * enodeCount stable)) of λ where
+        case extractBest nested stable (extractFuelFor stable) of λ where
           Nothing -> False
           (Just result) -> extractedCost result > zero
       quotientOk = classCount g5 < enodeCount g5
@@ -790,18 +832,90 @@ eGraphAssociativityRegression-proof = refl
 
 
 -- Public extraction roots consumed by the semantic-search executable.
+{-# COMPILE AGDA2HS Expr #-}
+{-# COMPILE AGDA2HS Pattern #-}
+{-# COMPILE AGDA2HS RewriteRule #-}
+{-# COMPILE AGDA2HS ENode #-}
+{-# COMPILE AGDA2HS Binding #-}
+{-# COMPILE AGDA2HS EGraph #-}
+{-# COMPILE AGDA2HS Substitution #-}
+{-# COMPILE AGDA2HS ClassAnalysis #-}
+{-# COMPILE AGDA2HS SaturationReport #-}
+{-# COMPILE AGDA2HS SaturationStep #-}
+{-# COMPILE AGDA2HS Extraction #-}
+{-# COMPILE AGDA2HS ChildExtraction #-}
+{-# COMPILE AGDA2HS unitFuel #-}
+{-# COMPILE AGDA2HS graphFuel #-}
+{-# COMPILE AGDA2HS repeatFuel #-}
+{-# COMPILE AGDA2HS extractFuelFor #-}
+{-# COMPILE AGDA2HS sameENode #-}
+{-# COMPILE AGDA2HS freshClass #-}
+{-# COMPILE AGDA2HS emptyGraph #-}
+{-# COMPILE AGDA2HS lawExpr #-}
+{-# COMPILE AGDA2HS leftAssocExprAcc #-}
+{-# COMPILE AGDA2HS leftAssocExpr #-}
+{-# COMPILE AGDA2HS rightAssocExpr #-}
 {-# COMPILE AGDA2HS EGraphRegression #-}
-{-# COMPILE AGDA2HS regressionStableGraph #-}
-{-# COMPILE AGDA2HS regressionCongruenceOk #-}
-{-# COMPILE AGDA2HS regressionAssociativityOk #-}
-{-# COMPILE AGDA2HS regressionRightIdentityOk #-}
-{-# COMPILE AGDA2HS regressionLeftIdentityOk #-}
-{-# COMPILE AGDA2HS regressionMatchingOk #-}
-{-# COMPILE AGDA2HS regressionAnalysisOk #-}
-{-# COMPILE AGDA2HS regressionExtractOk #-}
-{-# COMPILE AGDA2HS regressionQuotientOk #-}
-{-# COMPILE AGDA2HS regressionIterationOk #-}
-{-# COMPILE AGDA2HS regressionSaturationOk #-}
+{-# COMPILE AGDA2HS saturateUntilStable #-}
+{-# COMPILE AGDA2HS saturateWithFuel #-}
+{-# COMPILE AGDA2HS saturatePass #-}
+{-# COMPILE AGDA2HS applyRulesToRoots #-}
+{-# COMPILE AGDA2HS applyRuleToRoot #-}
+{-# COMPILE AGDA2HS applySubstitutions #-}
+{-# COMPILE AGDA2HS applyMatch #-}
+{-# COMPILE AGDA2HS instantiatePattern #-}
+{-# COMPILE AGDA2HS instantiatePatterns #-}
+{-# COMPILE AGDA2HS eMatch #-}
+{-# COMPILE AGDA2HS rootClasses #-}
+{-# COMPILE AGDA2HS root #-}
+{-# COMPILE AGDA2HS rebuild #-}
+{-# COMPILE AGDA2HS classCount #-}
+{-# COMPILE AGDA2HS enodeCount #-}
+{-# COMPILE AGDA2HS analyze #-}
+{-# COMPILE AGDA2HS extractBest #-}
+{-# COMPILE AGDA2HS rootWithFuel #-}
+{-# COMPILE AGDA2HS rebuildWithFuel #-}
+{-# COMPILE AGDA2HS rebuildPass #-}
+{-# COMPILE AGDA2HS rebuildBindings #-}
+{-# COMPILE AGDA2HS mergeRoots #-}
+{-# COMPILE AGDA2HS addExpr #-}
+{-# COMPILE AGDA2HS addExprs #-}
+{-# COMPILE AGDA2HS hashconsNode #-}
+{-# COMPILE AGDA2HS findBindingByNode #-}
+{-# COMPILE AGDA2HS canonicalNode #-}
+{-# COMPILE AGDA2HS canonicalChildren #-}
+{-# COMPILE AGDA2HS parentsLookup #-}
+{-# COMPILE AGDA2HS uniqueRoots #-}
+{-# COMPILE AGDA2HS memberNat #-}
+{-# COMPILE AGDA2HS natListCount #-}
+{-# COMPILE AGDA2HS bindingCount #-}
+{-# COMPILE AGDA2HS classAnalysisCount #-}
+{-# COMPILE AGDA2HS localCost #-}
+{-# COMPILE AGDA2HS lookupSubstitution #-}
+{-# COMPILE AGDA2HS bindSubstitution #-}
+{-# COMPILE AGDA2HS matchPattern #-}
+{-# COMPILE AGDA2HS matchNodes #-}
+{-# COMPILE AGDA2HS matchChildren #-}
+{-# COMPILE AGDA2HS extractBestSeen #-}
+{-# COMPILE AGDA2HS extractChildren #-}
+{-# COMPILE AGDA2HS bestBindingForRoot #-}
+{-# COMPILE AGDA2HS chooseCheaper #-}
+{-# COMPILE AGDA2HS classAnalysisFor #-}
+{-# COMPILE AGDA2HS analyzeRoots #-}
+{-# COMPILE AGDA2HS predNat #-}
+{-# COMPILE AGDA2HS stringLength #-}
+{-# COMPILE AGDA2HS setPair #-}
+{-# COMPILE AGDA2HS listEqualNat #-}
+{-# COMPILE AGDA2HS natEqual #-}
+{-# COMPILE AGDA2HS lookupNatPair #-}
+{-# COMPILE AGDA2HS lookupStringPair #-}
+{-# COMPILE AGDA2HS findOtherNode #-}
+{-# COMPILE AGDA2HS semanticRewriteRules #-}
+{-# COMPILE AGDA2HS associativityRule #-}
+{-# COMPILE AGDA2HS emptyRightRule #-}
+{-# COMPILE AGDA2HS emptyLeftRule #-}
+{-# COMPILE AGDA2HS equivalent #-}
+{-# COMPILE AGDA2HS merge #-}
 {-# COMPILE AGDA2HS regressionGraph #-}
 
 {-# COMPILE AGDA2HS symbolicEGraphRegression #-}

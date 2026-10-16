@@ -71,6 +71,14 @@ addCapability c cs =
   else
     c ∷ cs
 
+-- Record every capability a law supplies on selection. Otherwise a law that
+-- satisfies several requirements appears incomplete later, yet cannot be
+-- selected again because its name already occurs in the plan.
+addCapabilities : List Capability → List Capability → List Capability
+addCapabilities [] covered = covered
+addCapabilities (capability ∷ rest) covered =
+  addCapabilities rest (addCapability capability covered)
+
 allRequiredCovered : List Capability → List Capability → Bool
 allRequiredCovered [] covered = True
 allRequiredCovered (c ∷ cs) covered =
@@ -126,7 +134,7 @@ expandForCapability capability (law ∷ laws) node =
       else
         MkSearchNode
           (lawName law ∷ plan node)
-          (addCapability capability (covered node))
+          (addCapabilities (capabilities law) (covered node))
           (proposalScore node + proposalPrior law)
         ∷ rest
     else
@@ -302,6 +310,38 @@ canonicalSearchComplete =
 canonicalSearchIsComplete :
   canonicalSearchComplete ≡ True
 canonicalSearchIsComplete = refl
+
+-- One law may cover multiple outstanding requirements. The planner should use
+-- that law once and record its entire contribution, not report a false miss.
+multiCapabilityLaw : List SemanticLaw
+multiCapabilityLaw =
+  MkSearchSemanticLaw
+    "combined-inverse-and-search"
+    (Inversion ∷ ExactSearch ∷ [])
+    []
+    zero
+  ∷ []
+
+multiCapabilitySearch : Maybe SearchNode
+multiCapabilitySearch =
+  astar
+    (Inversion ∷ ExactSearch ∷ [])
+    multiCapabilityLaw
+    (MkSearchNode [] [] zero ∷ [])
+
+multiCapabilityCoverageRegression : Bool
+multiCapabilityCoverageRegression =
+  case multiCapabilitySearch of λ where
+    Nothing → False
+    (Just node) →
+      allRequiredCovered
+        (Inversion ∷ ExactSearch ∷ [])
+        (covered node)
+      && listLengthNat (plan node) == suc zero
+
+multiCapabilityCoverageRegressionChecked :
+  multiCapabilityCoverageRegression ≡ True
+multiCapabilityCoverageRegressionChecked = refl
 
 canonicalPlanNontrivial : Bool
 canonicalPlanNontrivial =
@@ -1507,9 +1547,10 @@ normalizedSignatureEqual left right =
 semanticLawIsRecordField :
   Extractor.SemanticLaw ->
   Bool
-semanticLawIsRecordField law with Extractor.semanticLawKind law
-... | Extractor.SemanticRecordField = True
-... | Extractor.SemanticTopLevel = False
+semanticLawIsRecordField law =
+  case Extractor.semanticLawKind law of λ where
+    Extractor.SemanticRecordField -> True
+    Extractor.SemanticTopLevel -> False
 
 semanticLawIsReflexive :
   Extractor.SemanticLaw ->
@@ -1538,12 +1579,15 @@ record DominanceEdge : Type where
 
 open DominanceEdge public
 
-recordFieldDominates :
+-- Heuristic only: the scanner compares normalized source signature text
+-- and verifies that the named record container exists. Equal text is evidence
+-- for a review candidate, not a proof of logical implication or subsumption.
+recordFieldSignatureCandidate :
   Extractor.SemanticLaw ->
   Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   Bool
-recordFieldDominates theorem fieldLaw knownLaws =
+recordFieldSignatureCandidate theorem fieldLaw knownLaws =
   if semanticLawIsRecordField theorem then
     False
   else if semanticLawIsRecordField fieldLaw then
@@ -1563,13 +1607,13 @@ recordFieldDominates theorem fieldLaw knownLaws =
   else
     False
 
-dominanceEdgeFor :
+signatureCandidateEdgeFor :
   Extractor.SemanticLaw ->
   Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   Maybe DominanceEdge
-dominanceEdgeFor theorem fieldLaw knownLaws =
-  if recordFieldDominates theorem fieldLaw knownLaws then
+signatureCandidateEdgeFor theorem fieldLaw knownLaws =
+  if recordFieldSignatureCandidate theorem fieldLaw knownLaws then
     Just
       (MkDominanceEdge
         (Extractor.semanticLawContainer fieldLaw)
@@ -1578,27 +1622,27 @@ dominanceEdgeFor theorem fieldLaw knownLaws =
   else
     Nothing
 
-dominanceEdgesForFields :
+signatureCandidateEdgesForFields :
   Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   List DominanceEdge
-dominanceEdgesForFields theorem _ [] = []
-dominanceEdgesForFields theorem knownLaws (fieldLaw ∷ remainingFields) =
-  case dominanceEdgeFor theorem fieldLaw knownLaws of λ where
+signatureCandidateEdgesForFields theorem _ [] = []
+signatureCandidateEdgesForFields theorem knownLaws (fieldLaw ∷ remainingFields) =
+  case signatureCandidateEdgeFor theorem fieldLaw knownLaws of λ where
     Nothing ->
-      dominanceEdgesForFields theorem knownLaws remainingFields
+      signatureCandidateEdgesForFields theorem knownLaws remainingFields
     (Just edge) ->
-      edge ∷ dominanceEdgesForFields theorem knownLaws remainingFields
+      edge ∷ signatureCandidateEdgesForFields theorem knownLaws remainingFields
 
-dominanceEdgesForTheorems :
+signatureCandidateEdgesForTheorems :
   List Extractor.SemanticLaw ->
   List Extractor.SemanticLaw ->
   List DominanceEdge
-dominanceEdgesForTheorems _ [] = []
-dominanceEdgesForTheorems knownLaws (law ∷ remainingLaws) =
-  dominanceEdgesForFields law knownLaws knownLaws
-  ++ dominanceEdgesForTheorems knownLaws remainingLaws
+signatureCandidateEdgesForTheorems _ [] = []
+signatureCandidateEdgesForTheorems knownLaws (law ∷ remainingLaws) =
+  signatureCandidateEdgesForFields law knownLaws knownLaws
+  ++ signatureCandidateEdgesForTheorems knownLaws remainingLaws
 
 dominanceEdgeEqual :
   DominanceEdge ->
@@ -1622,23 +1666,23 @@ dominanceEdgeMember edge (candidate ∷ rest) =
   else
     dominanceEdgeMember edge rest
 
-dedupeDominanceEdges :
+dedupeSignatureCandidateEdges :
   List DominanceEdge ->
   List DominanceEdge ->
   List DominanceEdge
-dedupeDominanceEdges [] seen = reverse seen
-dedupeDominanceEdges (edge ∷ edges) seen =
+dedupeSignatureCandidateEdges [] seen = reverse seen
+dedupeSignatureCandidateEdges (edge ∷ edges) seen =
   if dominanceEdgeMember edge seen then
-    dedupeDominanceEdges edges seen
+    dedupeSignatureCandidateEdges edges seen
   else
-    dedupeDominanceEdges edges (edge ∷ seen)
+    dedupeSignatureCandidateEdges edges (edge ∷ seen)
 
-graphDominanceEdges :
+graphSignatureCandidateEdges :
   List Extractor.SemanticLaw ->
   List DominanceEdge
-graphDominanceEdges laws =
-  dedupeDominanceEdges
-    (dominanceEdgesForTheorems laws laws)
+graphSignatureCandidateEdges laws =
+  dedupeSignatureCandidateEdges
+    (signatureCandidateEdgesForTheorems laws laws)
     []
 
 dedupeStringsWithSeen :
@@ -1657,15 +1701,15 @@ dedupeStrings :
   List String
 dedupeStrings values = dedupeStringsWithSeen values []
 
-graphDominatedPublicTheorems :
+signatureMatchedTheoremCandidates :
   List Extractor.SemanticLaw ->
   List String
-graphDominatedPublicTheorems laws =
+signatureMatchedTheoremCandidates laws =
   dedupeStrings
-    (map dominanceTheorem (graphDominanceEdges laws))
+    (map dominanceTheorem (graphSignatureCandidateEdges laws))
 
-prunedPublicTheoremNames : List String
-prunedPublicTheoremNames =
+knownRedundancyCandidateNames : List String
+knownRedundancyCandidateNames =
   "integerLayerNorm-egraph-astar-eventual-semantic-closure" ∷
   "integerLayerNorm-egraph-astar-infinite-stable-tail" ∷
   "eGraphEconomicFixedPoint" ∷
@@ -1684,14 +1728,14 @@ allNamesPresent (name ∷ names) candidates =
   else
     False
 
-prunedPublicTheoremsChecked :
+knownRedundancyCandidatesPresent :
   List Extractor.SemanticLaw ->
   List String
-prunedPublicTheoremsChecked laws =
-  let dominated = graphDominatedPublicTheorems laws
+knownRedundancyCandidatesPresent laws =
+  let dominated = signatureMatchedTheoremCandidates laws
   in
-  if allNamesPresent prunedPublicTheoremNames dominated then
-    prunedPublicTheoremNames
+  if allNamesPresent knownRedundancyCandidateNames dominated then
+    knownRedundancyCandidateNames
   else
     []
 
@@ -1736,10 +1780,7 @@ semanticPlanEGraphExtractable plan =
     EGraph.extractBest
       rootId
       graph
-      (suc
-        (EGraph.enodeCount graph *
-         EGraph.enodeCount graph *
-         EGraph.enodeCount graph))
+      (EGraph.extractFuelFor graph)
   of λ where
     Nothing -> False
     (Just bestResult) ->
@@ -1898,10 +1939,10 @@ agdaSemanticPortReport :
   String
 agdaSemanticPortReport laws =
   "agda2hs-semantic-port="
-    ++ show (length (graphDominanceEdges laws))
-    ++ " dominance edges; "
-    ++ show (length (prunedPublicTheoremsChecked laws))
-    ++ " pruning proofs; "
+    ++ show (length (graphSignatureCandidateEdges laws))
+    ++ " signature-candidate edges; "
+    ++ show (length (knownRedundancyCandidatesPresent laws))
+    ++ " known redundancy candidates; "
     ++ show (requiredPlanEGraphCount requiredNames laws)
     ++ "/"
     ++ show (length requiredNames)
@@ -2074,10 +2115,26 @@ main = do
 {-# COMPILE AGDA2HS learnerLogicalGraphRegression #-}
 {-# COMPILE AGDA2HS learnerLogicalPlanReport #-}
 {-# COMPILE AGDA2HS DominanceEdge #-}
-{-# COMPILE AGDA2HS graphDominanceEdges #-}
-{-# COMPILE AGDA2HS graphDominatedPublicTheorems #-}
-{-# COMPILE AGDA2HS prunedPublicTheoremNames #-}
-{-# COMPILE AGDA2HS prunedPublicTheoremsChecked #-}
+{-# COMPILE AGDA2HS graphSignatureCandidateEdges #-}
+{-# COMPILE AGDA2HS signatureMatchedTheoremCandidates #-}
+{-# COMPILE AGDA2HS stringListEqual #-}
+{-# COMPILE AGDA2HS normalizedSignatureEqual #-}
+{-# COMPILE AGDA2HS semanticLawIsRecordField #-}
+{-# COMPILE AGDA2HS semanticLawIsReflexive #-}
+{-# COMPILE AGDA2HS semanticLawNamePresent #-}
+{-# COMPILE AGDA2HS recordFieldSignatureCandidate #-}
+{-# COMPILE AGDA2HS signatureCandidateEdgeFor #-}
+{-# COMPILE AGDA2HS signatureCandidateEdgesForFields #-}
+{-# COMPILE AGDA2HS signatureCandidateEdgesForTheorems #-}
+{-# COMPILE AGDA2HS dominanceEdgeEqual #-}
+{-# COMPILE AGDA2HS dominanceEdgeMember #-}
+{-# COMPILE AGDA2HS dedupeSignatureCandidateEdges #-}
+{-# COMPILE AGDA2HS dedupeStringsWithSeen #-}
+{-# COMPILE AGDA2HS dedupeStrings #-}
+{-# COMPILE AGDA2HS allNamesPresent #-}
+{-# COMPILE AGDA2HS semanticPlanEGraphReport #-}
+{-# COMPILE AGDA2HS knownRedundancyCandidateNames #-}
+{-# COMPILE AGDA2HS knownRedundancyCandidatesPresent #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}
 {-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}
@@ -2094,3 +2151,8 @@ main = do
 {-# COMPILE AGDA2HS hybridInverseExactRealPlan #-}
 {-# COMPILE AGDA2HS hybridInverseExactRealSearchReport #-}
 {-# COMPILE AGDA2HS agdaSemanticPortReport #-}
+
+{-# COMPILE AGDA2HS addCapabilities #-}
+{-# COMPILE AGDA2HS multiCapabilityLaw #-}
+{-# COMPILE AGDA2HS multiCapabilitySearch #-}
+{-# COMPILE AGDA2HS multiCapabilityCoverageRegression #-}
