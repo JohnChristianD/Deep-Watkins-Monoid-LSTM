@@ -1,9 +1,11 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude hiding (Nat; zero; suc)
-open import Agda.Builtin.Nat using (Nat; zero; suc)
+open import Agda.Builtin.Nat using (Nat)
 open import Haskell.Prim using (eqNat; monusNat)
 
+incrementExtractorNat : Nat → Nat
+incrementExtractorNat n = n + 1
 
 CharList : Type
 CharList = List Char
@@ -517,7 +519,7 @@ leadingSpaceCountChars :
 leadingSpaceCountChars [] count = count
 leadingSpaceCountChars (c ∷ rest) count =
   if isSpace c then
-    leadingSpaceCountChars rest (suc count)
+    leadingSpaceCountChars rest (incrementExtractorNat count)
   else
     count
 
@@ -527,7 +529,7 @@ leadingSpaceCount :
 leadingSpaceCount source =
   leadingSpaceCountChars
     source
-    zero
+    0
 
 recordFieldHeader :
   String ->
@@ -536,7 +538,7 @@ recordFieldHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
     (Just candidate) ->
-      case leadingSpaceCount line >= suc (suc (suc (suc zero))) of λ where
+      case leadingSpaceCount line >= incrementExtractorNat (incrementExtractorNat (incrementExtractorNat (incrementExtractorNat 0))) of λ where
         False -> Nothing
         True ->
           case candidate == "field" || syntaxHead candidate of λ where
@@ -684,8 +686,8 @@ parseRecordFields sourceFile sourceLines =
       [])
 
 charListLength : CharList -> Nat
-charListLength [] = zero
-charListLength (_ ∷ rest) = suc (charListLength rest)
+charListLength [] = 0
+charListLength (_ ∷ rest) = incrementExtractorNat (charListLength rest)
 
 dropN : Nat -> CharList -> CharList
 dropN _ [] = []
@@ -898,15 +900,15 @@ normalizedSignature law =
   normalizeSignature (lawSignature law)
 
 countNonreflexive : List SemanticLaw -> Nat
-countNonreflexive [] = zero
+countNonreflexive [] = 0
 countNonreflexive (law ∷ laws) =
-  (if isReflexive law then zero else suc zero)
+  (if isReflexive law then 0 else incrementExtractorNat 0)
   + countNonreflexive laws
 
 countComposite : List SemanticLaw -> Nat
-countComposite [] = zero
+countComposite [] = 0
 countComposite (law ∷ laws) =
-  (if isComposite law then suc zero else zero)
+  (if isComposite law then incrementExtractorNat 0 else 0)
   + countComposite laws
 
 semanticLawName : SemanticLaw -> String
