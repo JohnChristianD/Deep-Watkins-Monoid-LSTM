@@ -40,6 +40,13 @@
 (local function has-prefix [line prefix]
   (= (string.sub line 1 (# prefix)) prefix))
 
+(local function count-prefix-lines [content prefix]
+  (var count 0)
+  (each [line (string.gmatch content "[^\\n]+")]
+    (when (has-prefix line prefix)
+      (set count (+ count 1))))
+  count)
+
 (local function sync-import [path prefix expected expected-count]
   (local original (read-file path))
   (local lines (fun.totable (string.gmatch original "[^\n]+")))
@@ -168,12 +175,18 @@
   (local path (. fields 2))
   (local expected (. fields 4))
   (local expected-count (tonumber (. fields 5)))
-  (assert (or (= mode-kind "sync") (= mode-kind "require"))
+  (assert (or (= mode-kind "sync") (= mode-kind "require") (= mode-kind "forbid"))
     (.. contract-path ": unsupported mode '" mode-kind "'"))
   (assert expected-count (.. contract-path ": invalid count for " path))
-  (local actual-count (count-exact-line (read-file path) expected))
-  (assert (= actual-count expected-count)
-    (.. path ": expected exact line '" expected "' " expected-count " time(s), found " actual-count)))
+  (local actual-count
+    (if (= mode-kind "forbid")
+        (count-prefix-lines (read-file path) (. fields 3))
+        (count-exact-line (read-file path) expected)))
+  (if (= mode-kind "forbid")
+      (assert (= actual-count 0)
+        (.. path ": forbidden import prefix '" (. fields 3) "' found " actual-count " time(s)"))
+      (assert (= actual-count expected-count)
+        (.. path ": expected exact line '" expected "' " expected-count " time(s), found " actual-count)))
 
 (local options-path ".ci/agda/global-options.txt")
 (local options (read-file options-path))
