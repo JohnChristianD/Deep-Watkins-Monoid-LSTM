@@ -23,6 +23,7 @@ graphSearchContractPassed =
     && Search.graphDuplicateEdgeSearchRegression
     && Search.graphMultiParentSearchRegression
     && Search.graphSelfLoopRejectedRegression
+    && Search.graphDotParserRegression
     && Search.learnerLogicalGraphRegression
     && Search.autonomousGraphSearchRegression
     && Search.canonicalSearchPlanEGraphClosed
@@ -72,6 +73,9 @@ main = do
   putStrLn
     ("graph-self-loop-rejected="
       ++ show Search.graphSelfLoopRejectedRegression)
+  putStrLn
+    ("graph-dot-parser-regression="
+      ++ show Search.graphDotParserRegression)
   putStrLn
     ("graph-astar-shortest-path="
       ++ show Search.graphAStarShortestPathRegression)
