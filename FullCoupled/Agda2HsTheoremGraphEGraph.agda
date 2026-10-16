@@ -1,7 +1,7 @@
 module FullCoupled.Agda2HsTheoremGraphEGraph where
 
 open import Haskell.Prelude
-import Haskell.Prim as Prim
+open import Haskell.Prim using (eqNat; monusNat)
 
 
 data Expr : Type where
@@ -123,7 +123,7 @@ memberNat x (y ∷ ys) =
   if x == y then True else memberNat x ys
 
 natEqual : Nat -> Nat -> Bool
-natEqual left right = Prim.eqNat left right
+natEqual left right = eqNat left right
 
 lookupNatPair : Nat -> List (Nat × Nat) -> Maybe Nat
 lookupNatPair _ [] = Nothing
@@ -521,7 +521,7 @@ analyze : EGraph -> List ClassAnalysis
 analyze graph = analyzeRoots (rootClasses graph) graph
 
 predNat : Nat -> Nat
-predNat n = Prim.monusNat n 1
+predNat n = monusNat n 1
 
 chooseCheaper : Maybe Extraction -> Maybe Extraction -> Maybe Extraction
 chooseCheaper Nothing other = other
