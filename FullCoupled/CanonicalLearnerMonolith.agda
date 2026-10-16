@@ -2327,8 +2327,8 @@ module BetaOptimalityBoundary where
 
   infixl 6 _+B_
   _+B_ : BNat → BNat → BNat
-  bzero +B n = n
-  bsuc m +B n = bsuc (m +B n)
+  HP.zero +B n = n
+  HP.suc m +B n = HP.suc (m +B n)
 
   leTrans : {a b c : BNat} → _≤B_ a b → _≤B_ b c → _≤B_ a c
   leTrans zeroLeB _ = zeroLeB
@@ -2336,8 +2336,8 @@ module BetaOptimalityBoundary where
     succLeB (leTrans first second)
 
   leAddRight : (n beta : BNat) → _≤B_ n (n +B beta)
-  leAddRight bzero beta = zeroLeB
-  leAddRight (bsuc n) beta = succLeB (leAddRight n beta)
+  leAddRight HP.zero beta = zeroLeB
+  leAddRight (HP.suc n) beta = succLeB (leAddRight n beta)
 
   betaOptimal :
     BNat → (Action → BNat) → Action → Set
@@ -2375,8 +2375,8 @@ module BetaOptimalityBoundary where
   counterReward beta rightAction rightAction = bzero
 
   noSuccessorBoundedBySelf : (n : BNat) → Not (_≤B_ (bsuc n) n)
-  noSuccessorBoundedBySelf bzero ()
-  noSuccessorBoundedBySelf (bsuc n) (succLeB evidence) =
+  noSuccessorBoundedBySelf HP.zero ()
+  noSuccessorBoundedBySelf (HP.suc n) (succLeB evidence) =
     noSuccessorBoundedBySelf n evidence
 
   noUniformBetaOptimalChoice :
@@ -2574,17 +2574,17 @@ module CanonicalBellmanOrderTheory where
     open OmegaCPO O
 
     iter : OmegaContinuousEndomap O → BNat → Value
-    iter F bzero = bottomω
-    iter F (bsuc n) =
+    iter F HP.zero = bottomω
+    iter F (HP.suc n) =
       OmegaContinuousEndomap.stepω F (iter F n)
 
     iterChain :
       (F : OmegaContinuousEndomap O) →
       (n : BNat) →
       _⊑ω_ (iter F n) (iter F (bsuc n))
-    iterChain F bzero =
+    iterChain F HP.zero =
       bottomLeastω (OmegaContinuousEndomap.stepω F (iter F bzero))
-    iterChain F (bsuc n) =
+    iterChain F (HP.suc n) =
       OmegaContinuousEndomap.monotoneω F (iterChain F n)
 
     leastFixedPoint :
@@ -2598,12 +2598,12 @@ module CanonicalBellmanOrderTheory where
         (lubω
           (λ k → iter F (bsuc k))
           (λ k → iterChain F (bsuc k)))
-    shiftUpper F bzero =
+    shiftUpper F HP.zero =
       bottomLeastω
         (lubω
           (λ k → iter F (bsuc k))
           (λ k → iterChain F (bsuc k)))
-    shiftUpper F (bsuc n) =
+    shiftUpper F (HP.suc n) =
       lubUpperω
         (λ k → iter F (bsuc k))
         (λ k → iterChain F (bsuc k))
@@ -2656,8 +2656,8 @@ module CanonicalBellmanOrderTheory where
       OmegaContinuousEndomap.stepω F x ≡ x →
       (n : BNat) →
       _⊑ω_ (iter F n) x
-    iterBelowFixed F x fixed bzero = bottomLeastω x
-    iterBelowFixed F x fixed (bsuc n) =
+    iterBelowFixed F x fixed HP.zero = bottomLeastω x
+    iterBelowFixed F x fixed (HP.suc n) =
       transω
         (OmegaContinuousEndomap.monotoneω F
           (iterBelowFixed F x fixed n))
