@@ -2327,8 +2327,8 @@ module BetaOptimalityBoundary where
 
   infixl 6 _+B_
   _+B_ : BNat → BNat → BNat
-  bzero +B n = n
-  bsuc m +B n = bsuc (m +B n)
+  HP.zero +B n = n
+  HP.suc m +B n = HP.suc (m +B n)
 
   leTrans : {a b c : BNat} → _≤B_ a b → _≤B_ b c → _≤B_ a c
   leTrans zeroLeB _ = zeroLeB
@@ -2336,8 +2336,8 @@ module BetaOptimalityBoundary where
     succLeB (leTrans first second)
 
   leAddRight : (n beta : BNat) → _≤B_ n (n +B beta)
-  leAddRight bzero beta = zeroLeB
-  leAddRight (bsuc n) beta = succLeB (leAddRight n beta)
+  leAddRight HP.zero beta = zeroLeB
+  leAddRight (HP.suc n) beta = succLeB (leAddRight n beta)
 
   betaOptimal :
     BNat → (Action → BNat) → Action → Set
@@ -2375,8 +2375,8 @@ module BetaOptimalityBoundary where
   counterReward beta rightAction rightAction = bzero
 
   noSuccessorBoundedBySelf : (n : BNat) → Not (_≤B_ (bsuc n) n)
-  noSuccessorBoundedBySelf bzero ()
-  noSuccessorBoundedBySelf (bsuc n) (succLeB evidence) =
+  noSuccessorBoundedBySelf HP.zero ()
+  noSuccessorBoundedBySelf (HP.suc n) (succLeB evidence) =
     noSuccessorBoundedBySelf n evidence
 
   noUniformBetaOptimalChoice :
@@ -2407,6 +2407,21 @@ module CanonicalBellmanOrderTheory where
 
   bsuc : BNat → BNat
   bsuc = HP.suc
+
+  -- Keep the extracted proof target self-contained: these helpers use
+  -- Prelude equality, not the monolith's separate Haskell equality aliases.
+  equalityTrans :
+    {A : Set} {x y z : A} → x ≡ y → y ≡ z → x ≡ z
+  equalityTrans refl second = second
+
+  equalitySym :
+    {A : Set} {x y : A} → x ≡ y → y ≡ x
+  equalitySym refl = refl
+
+  equalityCong :
+    {A B : Set} (f : A → B) {x y : A} →
+    x ≡ y → f x ≡ f y
+  equalityCong f refl = refl
 
   record CompleteMeetOrder (Value : Set) : Set₂ where
     field
@@ -2571,40 +2586,38 @@ module CanonicalBellmanOrderTheory where
 
   module OmegaKleeneFixedPoint
     {Value : Set} (O : OmegaCPO Value) where
-    open OmegaCPO O
-
     iter : OmegaContinuousEndomap O → BNat → Value
-    iter F bzero = bottomω
-    iter F (bsuc n) =
+    iter F HP.zero = OmegaCPO.bottomω O
+    iter F (HP.suc n) =
       OmegaContinuousEndomap.stepω F (iter F n)
 
     iterChain :
       (F : OmegaContinuousEndomap O) →
       (n : BNat) →
-      _⊑ω_ (iter F n) (iter F (bsuc n))
-    iterChain F bzero =
-      bottomLeastω (OmegaContinuousEndomap.stepω F (iter F bzero))
-    iterChain F (bsuc n) =
+      OmegaCPO._⊑ω_ O (iter F n) (iter F (bsuc n))
+    iterChain F HP.zero =
+      OmegaCPO.bottomLeastω O (OmegaContinuousEndomap.stepω F (iter F bzero))
+    iterChain F (HP.suc n) =
       OmegaContinuousEndomap.monotoneω F (iterChain F n)
 
     leastFixedPoint :
       OmegaContinuousEndomap O → Value
-    leastFixedPoint F = lubω (iter F) (iterChain F)
+    leastFixedPoint F = OmegaCPO.lubω O (iter F) (iterChain F)
 
     shiftUpper :
       (F : OmegaContinuousEndomap O) →
       (n : BNat) →
-      _⊑ω_ (iter F n)
-        (lubω
+      OmegaCPO._⊑ω_ O (iter F n)
+        (OmegaCPO.lubω O
           (λ k → iter F (bsuc k))
           (λ k → iterChain F (bsuc k)))
-    shiftUpper F bzero =
-      bottomLeastω
-        (lubω
+    shiftUpper F HP.zero =
+      OmegaCPO.bottomLeastω O
+        (OmegaCPO.lubω O
           (λ k → iter F (bsuc k))
           (λ k → iterChain F (bsuc k)))
-    shiftUpper F (bsuc n) =
-      lubUpperω
+    shiftUpper F (HP.suc n) =
+      OmegaCPO.lubUpperω O
         (λ k → iter F (bsuc k))
         (λ k → iterChain F (bsuc k))
         n
@@ -2619,23 +2632,23 @@ module CanonicalBellmanOrderTheory where
     shiftedSupremum :
       (F : OmegaContinuousEndomap O) →
       leastFixedPoint F ≡
-        lubω
+        OmegaCPO.lubω O
           (λ n → iter F (bsuc n))
           (λ n → iterChain F (bsuc n))
     shiftedSupremum F =
-      antisymω
-        (lubLeastω
+      OmegaCPO.antisymω O
+        (OmegaCPO.lubLeastω O
           (iter F)
           (iterChain F)
-          (lubω
+          (OmegaCPO.lubω O
             (λ n → iter F (bsuc n))
             (λ n → iterChain F (bsuc n)))
           (shiftUpper F))
-        (lubLeastω
+        (OmegaCPO.lubLeastω O
           (λ n → iter F (bsuc n))
           (λ n → iterChain F (bsuc n))
           (leastFixedPoint F)
-          (λ n → lubUpperω (iter F) (iterChain F) (bsuc n)))
+          (λ n → OmegaCPO.lubUpperω O (iter F) (iterChain F) (bsuc n)))
 
     leastFixedPointIsFixed :
       (F : OmegaContinuousEndomap O) →
@@ -2647,18 +2660,18 @@ module CanonicalBellmanOrderTheory where
         (symEq (shiftedSupremum F))
 
     equalityToOrder :
-      {x y : Value} → x ≡ y → _⊑ω_ x y
-    equalityToOrder refl = reflω
+      {x y : Value} → x ≡ y → OmegaCPO._⊑ω_ O x y
+    equalityToOrder refl = OmegaCPO.reflω O
 
     iterBelowFixed :
       (F : OmegaContinuousEndomap O) →
       (x : Value) →
       OmegaContinuousEndomap.stepω F x ≡ x →
       (n : BNat) →
-      _⊑ω_ (iter F n) x
-    iterBelowFixed F x fixed bzero = bottomLeastω x
-    iterBelowFixed F x fixed (bsuc n) =
-      transω
+      OmegaCPO._⊑ω_ O (iter F n) x
+    iterBelowFixed F x fixed HP.zero = OmegaCPO.bottomLeastω O x
+    iterBelowFixed F x fixed (HP.suc n) =
+      OmegaCPO.transω O
         (OmegaContinuousEndomap.monotoneω F
           (iterBelowFixed F x fixed n))
         (equalityToOrder fixed)
@@ -2667,9 +2680,9 @@ module CanonicalBellmanOrderTheory where
       (F : OmegaContinuousEndomap O) →
       (x : Value) →
       OmegaContinuousEndomap.stepω F x ≡ x →
-      _⊑ω_ (leastFixedPoint F) x
+      OmegaCPO._⊑ω_ O (leastFixedPoint F) x
     leastFixedPointIsLeast F x fixed =
-      lubLeastω
+      OmegaCPO.lubLeastω O
         (iter F)
         (iterChain F)
         x
@@ -2681,10 +2694,10 @@ module CanonicalBellmanOrderTheory where
       (fixed : OmegaContinuousEndomap.stepω F x ≡ x) →
       (∀ {y : Value} →
         OmegaContinuousEndomap.stepω F y ≡ y →
-        _⊑ω_ x y) →
+        OmegaCPO._⊑ω_ O x y) →
       x ≡ leastFixedPoint F
     leastFixedPointUnique F x fixed least =
-      antisymω
+      OmegaCPO.antisymω O
         (least {y = leastFixedPoint F}
           (leastFixedPointIsFixed F))
         (leastFixedPointIsLeast F x fixed)
@@ -2717,7 +2730,7 @@ module CanonicalBellmanOrderTheory where
   bellmanStreamLeastFixedPointAtZero :
     {Value : Set} →
     (B : OmegaContinuousBellmanSemantics Value) →
-    bellmanStreamValue B bzero =
+    bellmanStreamValue B bzero ≡
       OmegaCPO.bottomω (valueDomain B)
   bellmanStreamLeastFixedPointAtZero B = refl
 
@@ -2925,8 +2938,8 @@ module CanonicalBellmanOrderTheory where
     neuralBellmanOptimalValueFunction M state ≡
       mdpBestActionValue M state (neuralBellmanQStar M state)
   neuralBellmanValueIsSupremumOfQStar M state =
-    trans
-      (sym (ap (λ values → values state)
+    equalityTrans
+      (equalitySym (equalityCong (λ values → values state)
         (neuralBellmanOptimalValueIsFixed M)))
       (mdpBellmanEquation M
         (neuralBellmanOptimalValueFunction M)

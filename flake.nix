@@ -151,9 +151,8 @@
         in
         pkgs.haskellPackages.ghcWithPackages (p: [
           p.streamly
+          p.streamly-bytestring
           p.streamly-core
-          p.streamly-shell
-          p.streamly-coreutils
           p.streamly-process
         ]);
 
@@ -388,7 +387,8 @@
                 set -euo pipefail
                 ghc --numeric-version
                 packages="$(ghc-pkg list)"
-                for package in streamly streamly-core streamly-shell streamly-coreutils streamly-process; do
+                # Use packages present in the pinned nixpkgs Stackage set.
+                for package in streamly streamly-bytestring streamly-core streamly-process; do
                   grep -Fq -- "$package-" <<< "$packages" || {
                     echo "missing Nix-provided Haskell package: $package" >&2
                     exit 1

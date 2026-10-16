@@ -513,30 +513,34 @@ module ScottStracheyDomains where
   open AlgebraOperations public
 
   module StrictLiftedAlgebra {A : Set} (operations : AlgebraOperations A) where
-    open AlgebraOperations operations
-
+    -- Use qualified record projections rather than opening them as shorthand.
+    -- This avoids ambiguity between the local field names and the record
+    -- projections exported into the surrounding scope.
     strictAdd : Lift A → Lift A → Lift A
     strictAdd bottom _ = bottom
     strictAdd (defined _) bottom = bottom
     strictAdd (defined left) (defined right) =
-      defined (algebraAdd left right)
+      defined (AlgebraOperations.algebraAdd operations left right)
 
     strictMultiply : Lift A → Lift A → Lift A
     strictMultiply bottom _ = bottom
     strictMultiply (defined _) bottom = bottom
     strictMultiply (defined left) (defined right) =
-      defined (algebraMultiply left right)
+      defined (AlgebraOperations.algebraMultiply operations left right)
 
     strictNegate : Lift A → Lift A
     strictNegate bottom = bottom
-    strictNegate (defined value) = defined (algebraNegate value)
+    strictNegate (defined value) =
+      defined (AlgebraOperations.algebraNegate operations value)
 
     inverseLawFailsAtBottom :
-      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → ScottEmpty
+      strictAdd bottom (strictNegate bottom) ≡
+        defined (AlgebraOperations.algebraZero operations) → ScottEmpty
     inverseLawFailsAtBottom ()
 
     zeroAnnihilatorFailsAtBottom :
-      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → ScottEmpty
+      strictMultiply (defined (AlgebraOperations.algebraZero operations)) bottom ≡
+        defined (AlgebraOperations.algebraZero operations) → ScottEmpty
     zeroAnnihilatorFailsAtBottom ()
 
 ------------------------------------------------------------------------
