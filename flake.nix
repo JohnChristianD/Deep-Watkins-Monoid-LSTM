@@ -468,12 +468,20 @@
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda > "$tmp/BetaOptimalityBoundary.agda"
                 awk '
+                  /^module LawvereDiagonal where$/ { capture=1; print; next }
+                  /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/TheoremsMonolith.agda > "$tmp/LawvereDiagonal.agda"
+                awk '
                   /^module CanonicalBellmanOrderTheory where$/ { capture=1; print; next }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda > "$tmp/CanonicalBellmanOrderTheory.agda"
                 test -s "$tmp/ScottStracheyDomains.agda"
                 test -s "$tmp/BetaOptimalityBoundary.agda"
                 test -s "$tmp/CanonicalBellmanOrderTheory.agda"
+                test -s "$tmp/LawvereDiagonal.agda"
+                grep -Fq "lawvereFixedPoint" "$tmp/LawvereDiagonal.agda"
+                grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "NeuralPolicyMDP" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
@@ -481,7 +489,8 @@
                 agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
                 agda2hs-agda -i "$tmp" "$tmp/BetaOptimalityBoundary.agda"
                 agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
-                echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith)"
+                agda2hs-agda -i "$tmp" "$tmp/LawvereDiagonal.agda"
+                echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith; Lawvere fixed-point boundary kernel-checked)"
                 echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
                 echo "bellman-order-theory=kernel-checked (Tarski, omega-Kleene, neural MDP Bellman, exact-Q greedy optimality)"
               '';
