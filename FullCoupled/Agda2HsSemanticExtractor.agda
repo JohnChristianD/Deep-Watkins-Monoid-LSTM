@@ -1004,6 +1004,7 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS scanRecordFields #-}
 {-# COMPILE AGDA2HS parseRecordFields #-}
 {-# COMPILE AGDA2HS charListLength #-}
+{-# COMPILE AGDA2HS incrementExtractorNat #-}
 {-# COMPILE AGDA2HS dropN #-}
 {-# COMPILE AGDA2HS matchesPrefix #-}
 {-# COMPILE AGDA2HS boundaryBefore #-}
