@@ -1,6 +1,7 @@
 module FullCoupled.Agda2HsTheoremGraphEGraph where
 
-open import Haskell.Prelude
+open import Haskell.Prelude hiding (Nat; zero; suc)
+open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Haskell.Prim using (eqNat; monusNat)
 
 
