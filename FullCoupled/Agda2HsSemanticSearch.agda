@@ -1,7 +1,6 @@
 module FullCoupled.Agda2HsSemanticSearch where
 
-open import Haskell.Prelude hiding (Nat; zero; suc)
-open import Agda.Builtin.Nat using (Nat)
+open import Haskell.Prelude public
 
 import FullCoupled.Agda2HsSemanticExtractor as Extractor
 open import FullCoupled.Agda2HsTheoremGraphEGraph using
