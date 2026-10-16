@@ -153,7 +153,7 @@ lookupStringPairRegression =
 lookupStringPairRegressionChecked : lookupStringPairRegression ≡ True
 lookupStringPairRegressionChecked = refl
 
-setPair : {A B : Type} -> A -> B -> List (A × B) -> List (A × B)
+setPair : {a b : Type} -> a -> b -> List (a × b) -> List (a × b)
 setPair key value pairs = (key , value) ∷ pairs
 
 listEqualNat : List Nat -> List Nat -> Bool
