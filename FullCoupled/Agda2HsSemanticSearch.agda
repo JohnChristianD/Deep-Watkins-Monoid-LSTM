@@ -695,6 +695,31 @@ parseDotEdges : String -> List (String × String)
 parseDotEdges source =
   concatMap parseDotLine (lines source)
 
+parseDotQuotedEdgeRegression : Bool
+parseDotQuotedEdgeRegression =
+  case parseDotLine "\"A.Module\" -> \"B.Module\";" of λ where
+    ((source , target) ∷ []) ->
+      source == "A.Module" && target == "B.Module"
+    _ -> False
+
+parseDotAttributeEdgeRegression : Bool
+parseDotAttributeEdgeRegression =
+  case parseDotLine "\"A\" -> \"B\" [style=solid];" of λ where
+    ((source , target) ∷ []) ->
+      source == "A" && target == "B"
+    _ -> False
+
+parseDotMalformedLineRegression : Bool
+parseDotMalformedLineRegression =
+  listLengthNat (parseDotLine "digraph theorem {") == 0
+    && listLengthNat (parseDotLine "// no dependency edge") == 0
+
+graphDotParserRegression : Bool
+graphDotParserRegression =
+  parseDotQuotedEdgeRegression
+    && parseDotAttributeEdgeRegression
+    && parseDotMalformedLineRegression
+
 canonicalGraphRoot : String
 canonicalGraphRoot = "FullCoupled.Agda2HsSemanticSearch"
 
@@ -2128,6 +2153,15 @@ main = do
 {-# COMPILE AGDA2HS graphDependencyClosureRegression #-}
 {-# COMPILE AGDA2HS graphDependencyClosureRejectsCycleRegression #-}
 {-# COMPILE AGDA2HS graphDependencyClosureRejectsMissingRegression #-}
+{-# COMPILE AGDA2HS graphClosureDependencyFuel #-}
+{-# COMPILE AGDA2HS graphDependencyClosureRepeatedDependenciesRegression #-}
+{-# COMPILE AGDA2HS graphDuplicateEdgeSearchRegression #-}
+{-# COMPILE AGDA2HS graphMultiParentSearchRegression #-}
+{-# COMPILE AGDA2HS graphSelfLoopRejectedRegression #-}
+{-# COMPILE AGDA2HS parseDotQuotedEdgeRegression #-}
+{-# COMPILE AGDA2HS parseDotAttributeEdgeRegression #-}
+{-# COMPILE AGDA2HS parseDotMalformedLineRegression #-}
+{-# COMPILE AGDA2HS graphDotParserRegression #-}
 {-# COMPILE AGDA2HS graphStringPathEqual #-}
 {-# COMPILE AGDA2HS graphPathMember #-}
 {-# COMPILE AGDA2HS graphNodePlanMember #-}
