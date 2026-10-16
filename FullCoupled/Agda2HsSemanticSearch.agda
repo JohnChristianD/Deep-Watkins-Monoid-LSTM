@@ -1439,6 +1439,132 @@ learnerLogicalGraphRegressionChecked :
   learnerLogicalGraphRegression ≡ True
 learnerLogicalGraphRegressionChecked = refl
 
+
+------------------------------------------------------------------------
+-- Coverage/dependency graph for the learner's connected semantics.
+-- These edges are search/verification obligations, not claims of theorem
+-- entailment. Missing semantic bridges are named explicitly instead of being
+-- silently promoted to established optimality results.
+------------------------------------------------------------------------
+
+learnerSemanticBridgeGraph : List GraphLaw
+learnerSemanticBridgeGraph =
+  graphLawsFromEdges
+    (("LearnerSemanticCoverageSuite" , "canonicalLearnerTraceGuarded") ∷
+     ("LearnerSemanticCoverageSuite" , "canonicalLearnerTraceScan") ∷
+     ("LearnerSemanticCoverageSuite" , "rewardDependentBetaOptimalityBridge-obligation") ∷
+     ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.denote") ∷
+     ("LearnerSemanticCoverageSuite" , "OmegaKleeneFixedPoint.leastFixedPointIsFixed") ∷
+     ("LearnerSemanticCoverageSuite" , "neuralBellmanInstantiation-obligation") ∷
+     ("canonicalLearnerTraceGuarded" , "canonicalLearnerTrace") ∷
+     ("canonicalLearnerTrace" , "canonicalLearnerTracePrefix") ∷
+     ("canonicalLearnerTrace" , "iterateStream") ∷
+     ("canonicalLearnerTracePrefix" , "iterateStreamPrefix") ∷
+     ("canonicalLearnerTracePrefix" , "canonicalFullStep") ∷
+     ("iterateStreamPrefix" , "iterateStream") ∷
+     ("iterateStreamPrefix" , "iterateList") ∷
+     ("iterateStream" , "canonicalFullStep") ∷
+     ("canonicalLearnerTraceScan" , "canonicalLearnerTrace") ∷
+     ("canonicalLearnerTraceScan" , "scanLearnerStream") ∷
+     ("scanLearnerStream" , "MonoidLSTMStreams.scanSeededStream") ∷
+     ("MonoidLSTMStreams.scanSeededStream" , "MonoidLSTMStreams.Stream") ∷
+     ("canonicalFullStep" , "canonicalWatkinsStep") ∷
+     ("canonicalFullStep" , "canonicalGRUStep") ∷
+     ("canonicalFullStep" , "canonicalOptimizerStep") ∷
+     ("canonicalFullStep" , "canonicalCountStep") ∷
+     ("canonicalFullStep" , "canonicalQLogControlStep") ∷
+     ("canonicalFullStep" , "canonicalQLogStep") ∷
+     ("canonicalFullStep" , "canonicalHaarAccumulatorStep") ∷
+     ("canonicalWatkinsStep" , "canonicalSignal") ∷
+     ("canonicalSignal" , "canonicalWatkinsTarget") ∷
+     ("canonicalWatkinsTarget" , "canonicalReward8") ∷
+     ("canonicalWatkinsTarget" , "canonicalQLogBias") ∷
+     ("canonicalWatkinsTarget" , "maxCriticValue8") ∷
+     ("canonicalWatkinsTarget" , "canonicalEndogenousFeedback") ∷
+     ("canonicalEndogenousFeedback" , "canonicalGRUFeedback") ∷
+     ("canonicalEndogenousFeedback" , "canonicalF4L2Feedback") ∷
+     ("canonicalEndogenousFeedback" , "canonicalQLogControlFeedback") ∷
+     ("canonicalEndogenousFeedback" , "canonicalQLogValueFeedback") ∷
+     ("canonicalOptimizerStep" , "f4ThetaStep") ∷
+     ("canonicalCountStep" , "updateLCBCount") ∷
+     ("canonicalReward8" , "canonicalPolicyWeightCode") ∷
+     ("canonicalPolicyWeightCode" , "canonicalPolicyWeight") ∷
+     ("canonicalPolicyWeight" , "canonicalPolicy") ∷
+     ("canonicalPolicy" , "sparsemaxPolicy") ∷
+     ("canonicalPolicy" , "lcbScore") ∷
+     ("rewardDependentBetaOptimalityBridge-obligation" , "canonicalPolicy") ∷
+     ("rewardDependentBetaOptimalityBridge-obligation" , "canonicalReward8") ∷
+     ("rewardDependentBetaOptimalityBridge-obligation" , "exactOptimalImpliesBetaOptimal") ∷
+     ("rewardDependentBetaOptimalityBridge-obligation" , "noUniformBetaOptimalChoice") ∷
+     ("rewardDependentBetaOptimalityBridge-obligation" , "canonicalPolicyExactMaximality-not-established") ∷
+     ("exactOptimalImpliesBetaOptimal" , "ExactOptimalChoice.selectedMaximal") ∷
+     ("exactOptimalImpliesBetaOptimal" , "leAddRight") ∷
+     ("exactOptimalImpliesBetaOptimal" , "leTrans") ∷
+     ("noUniformBetaOptimalChoice" , "counterReward") ∷
+     ("noUniformBetaOptimalChoice" , "noSuccessorBoundedBySelf") ∷
+     ("ScottStracheyDomains.denote" , "ScottStracheyDomains.Lift") ∷
+     ("ScottStracheyDomains.denote" , "ScottStracheyDomains.strictNatAdd") ∷
+     ("ScottStracheyDomains.strictNatAdd" , "ScottStracheyDomains.bottom") ∷
+     ("ScottStracheyDomains.strictNatAdd" , "ScottStracheyDomains.defined") ∷
+     ("OmegaKleeneFixedPoint.leastFixedPointIsFixed" , "OmegaKleeneFixedPoint.leastFixedPoint") ∷
+     ("OmegaKleeneFixedPoint.leastFixedPointIsFixed" , "OmegaContinuousEndomap.preservesOmegaSuprema") ∷
+     ("OmegaKleeneFixedPoint.leastFixedPointIsFixed" , "OmegaKleeneFixedPoint.shiftedSupremum") ∷
+     ("OmegaKleeneFixedPoint.shiftedSupremum" , "OmegaKleeneFixedPoint.iter") ∷
+     ("OmegaKleeneFixedPoint.leastFixedPoint" , "OmegaKleeneFixedPoint.iter") ∷
+     ("OmegaKleeneFixedPoint.leastFixedPoint" , "OmegaKleeneFixedPoint.iterChain") ∷
+     ("OmegaKleeneFixedPoint.iterChain" , "OmegaContinuousEndomap.monotoneω") ∷
+     ("neuralBellmanInstantiation-obligation" , "neuralBellmanOptimalValueIsFixed") ∷
+     ("neuralBellmanInstantiation-obligation" , "neuralBellmanOptimalValueIsLeast") ∷
+     ("neuralBellmanInstantiation-obligation" , "neuralBellmanValueIsSupremumOfQStar") ∷
+     ("neuralBellmanInstantiation-obligation" , "neuralPolicyGreedyOptimalAtBellmanValue") ∷
+     ("neuralBellmanInstantiation-obligation" , "exactQ-premise") ∷
+     ("neuralBellmanInstantiation-obligation" , "learnerTransitionExpectationBridge-not-established") ∷
+     ("neuralBellmanInstantiation-obligation" , "canonicalPolicy") ∷
+     ("neuralBellmanInstantiation-obligation" , "canonicalWatkinsTarget") ∷
+     ("neuralBellmanValueIsSupremumOfQStar" , "neuralBellmanOptimalValueIsFixed") ∷
+     ("neuralBellmanValueIsSupremumOfQStar" , "NeuralPolicyMDP.mdpBellmanEquation") ∷
+     ("neuralBellmanValueIsSupremumOfQStar" , "neuralBellmanQStar") ∷
+     ("neuralBellmanQStar" , "neuralBellmanOptimalValueFunction") ∷
+     ("neuralBellmanOptimalValueFunction" , "OmegaKleeneFixedPoint.leastFixedPoint") ∷
+     ("neuralBellmanOptimalValueIsFixed" , "OmegaKleeneFixedPoint.leastFixedPointIsFixed") ∷
+     ("neuralPolicyGreedyOptimalAtBellmanValue" , "exactQ-premise") ∷
+     ("neuralPolicyGreedyOptimalAtBellmanValue" , "nnGreedy") ∷
+     ("neuralPolicyGreedyOptimalAtBellmanValue" , "neuralBellmanQStar") ∷
+     [])
+
+learnerSemanticBridgePlan : Maybe (List String)
+learnerSemanticBridgePlan =
+  graphDependencyClosure "LearnerSemanticCoverageSuite" learnerSemanticBridgeGraph
+
+learnerSemanticBridgeRegression : Bool
+learnerSemanticBridgeRegression =
+  case learnerSemanticBridgePlan of λ where
+    Nothing → False
+    (Just plan) →
+      graphDependencyClosureValid learnerSemanticBridgeGraph plan
+        && graphContains "canonicalLearnerTracePrefix" plan
+        && graphContains "iterateStreamPrefix" plan
+        && graphContains "canonicalWatkinsTarget" plan
+        && graphContains "canonicalPolicy" plan
+        && graphContains "exactOptimalImpliesBetaOptimal" plan
+        && graphContains "noUniformBetaOptimalChoice" plan
+        && graphContains "ScottStracheyDomains.denote" plan
+        && graphContains "OmegaKleeneFixedPoint.leastFixedPointIsFixed" plan
+        && graphContains "neuralBellmanValueIsSupremumOfQStar" plan
+        && graphContains "neuralPolicyGreedyOptimalAtBellmanValue" plan
+        && graphContains "exactQ-premise" plan
+        && graphContains "canonicalPolicyExactMaximality-not-established" plan
+        && graphContains "learnerTransitionExpectationBridge-not-established" plan
+
+learnerSemanticBridgeRegressionChecked :
+  learnerSemanticBridgeRegression ≡ True
+learnerSemanticBridgeRegressionChecked = refl
+
+learnerSemanticBridgeReport : String
+learnerSemanticBridgeReport =
+  "learner-semantic-bridge-closure=" ++ show learnerSemanticBridgeRegression
+
+
 requiredTheoremNames : List String
 requiredTheoremNames =
   "CanonicalAQLoopTheorem" ∷
@@ -1519,14 +1645,13 @@ learnerLogicalRequiredNames =
   "canonicalLearnerTraceGuarded" ∷
   []
 
+-- Reflexive top-level laws are still valid declarations and valid graph
+-- roots. Only record fields are excluded as independent theorem targets.
 semanticLawCanSeed : Extractor.SemanticLaw -> Bool
 semanticLawCanSeed law =
-  if Extractor.lawReflexive law then
-    False
-  else
-    case Extractor.semanticLawKind law of λ where
-      Extractor.SemanticRecordField → False
-      Extractor.SemanticTopLevel → True
+  case Extractor.semanticLawKind law of λ where
+    Extractor.SemanticRecordField → False
+    Extractor.SemanticTopLevel → True
 
 semanticLawSeedFilterRegression : Bool
 semanticLawSeedFilterRegression =
@@ -1548,7 +1673,7 @@ semanticLawSeedFilterRegression =
         Extractor.SemanticRecordField "RegressionRecord"
   in
   semanticLawCanSeed topLevel
-    && not (semanticLawCanSeed reflexive)
+    && semanticLawCanSeed reflexive
     && not (semanticLawCanSeed recordField)
 
 semanticLawSeedFilterRegressionChecked :
@@ -2094,6 +2219,7 @@ main = do
   putStrLn (semanticLawExtractionReport semanticLaws)
   putStrLn (requiredPlanReport requiredNames semanticLaws)
   putStrLn (learnerLogicalPlanReport semanticLaws)
+  putStrLn learnerSemanticBridgeReport
   putStrLn (semanticSearchExecutableReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
   putStrLn (agdaSemanticPortReport semanticLaws)
@@ -2248,6 +2374,11 @@ main = do
 {-# COMPILE AGDA2HS learnerDescentPlan #-}
 {-# COMPILE AGDA2HS learnerLogicalGraphRegression #-}
 {-# COMPILE AGDA2HS learnerLogicalPlanReport #-}
+{-# COMPILE AGDA2HS semanticLawSeedFilterRegression #-}
+{-# COMPILE AGDA2HS learnerSemanticBridgeGraph #-}
+{-# COMPILE AGDA2HS learnerSemanticBridgePlan #-}
+{-# COMPILE AGDA2HS learnerSemanticBridgeRegression #-}
+{-# COMPILE AGDA2HS learnerSemanticBridgeReport #-}
 {-# COMPILE AGDA2HS DominanceEdge #-}
 {-# COMPILE AGDA2HS graphSignatureCandidateEdges #-}
 {-# COMPILE AGDA2HS signatureMatchedTheoremCandidates #-}
