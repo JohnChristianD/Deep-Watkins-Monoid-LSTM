@@ -2162,4 +2162,3 @@ main = do
 {-# COMPILE AGDA2HS multiCapabilityLaw #-}
 {-# COMPILE AGDA2HS multiCapabilitySearch #-}
 {-# COMPILE AGDA2HS multiCapabilityCoverageRegression #-}
-{-# COMPILE AGDA2HS multiCapabilityCoverageRegressionChecked #-}
