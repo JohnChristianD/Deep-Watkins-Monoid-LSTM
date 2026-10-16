@@ -56,10 +56,7 @@ leaves no further child, that is a dead end, not success.
   bound covers every simple path. Its report must say DFS/maximal dependency
   chains, never A*.
 - `graphAStarFirst` is a separate best-first single-plan search, with
-  JAxtar's default discrete A* policy preserved. The root has `g=0`, each
-  dependency edge costs one, and the heuristic is 0 for a leaf (or unknown
-  node) and 1 for a node with dependencies. Its weighted score is the exact
-  integer scaling of JAxtar's default `f = (1 - 10^-6)g + h`:
+  JAxtar's default discrete A* policy preserved. Path cost is `g = length(path)`: a singleton seed starts at one, and each dependency edge adds one. Relative ordering matches edge-count g-cost from a fixed seed because its prefix contribution is constant. The heuristic is 0 for a leaf (or unknown node) and 1 for a node with dependencies. Its weighted score is the exact integer scaling of JAxtar's default `f = (1 - 10^-6)g + h`:
   `999999*g + 1000000*h`. A non-leaf needs at least one additional edge to
   reach a leaf, so `h=1` is a lower bound. Queue insertion uses `<=`, so an
   incoming equal-score node precedes an existing node.
