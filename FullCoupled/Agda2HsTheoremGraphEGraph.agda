@@ -906,6 +906,7 @@ eGraphAssociativityRegression-proof = refl
 {-# COMPILE AGDA2HS classAnalysisFor #-}
 {-# COMPILE AGDA2HS analyzeRoots #-}
 {-# COMPILE AGDA2HS predNat #-}
+{-# COMPILE AGDA2HS incrementEGraphNat #-}
 {-# COMPILE AGDA2HS stringLength #-}
 {-# COMPILE AGDA2HS setPair #-}
 {-# COMPILE AGDA2HS listEqualNat #-}
