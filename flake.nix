@@ -312,7 +312,7 @@
                 trap 'rm -rf "$tmp"' EXIT
                 printf '%s\n' \
                   '(local fun (require :fun))' \
-                  '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) (ipairs [1 2 3])))' \
+                  '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) (ipairs [1 2 3]))))' \
                   '(assert (= (table.concat mapped ",") "2,4,6"))' \
                   '(print "fennel-luafun=pass")' > "$tmp/smoke.fnl"
                 test "$(fennel "$tmp/smoke.fnl")" = "fennel-luafun=pass"
