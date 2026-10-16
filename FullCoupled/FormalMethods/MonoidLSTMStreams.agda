@@ -4,63 +4,82 @@ module FullCoupled.FormalMethods.MonoidLSTMStreams where
 
 open import Haskell.Prelude
   using (Nat; zero; suc; List; []; _∷_; _≡_; refl; _+_)
--- Sized observations are Agda-kernel metadata, with no Haskell.Prelude alias.
+open import Agda.Primitive using (Level; _⊔_)
 open import Agda.Builtin.Size using (Size; Size<_; ∞)
+-- Agda2HS compiles recursive streams through this erased-size lazy tail.
+open import Haskell.Prim.Thunk using (Thunk; force)
 
 -- A stream carries the size of the observation depth available to its tail.
 -- Each tail is available at a strictly smaller size. This proves productivity
 -- through sized recursion rather than the guardedness checker.
-record Stream (i : Size) (A : Set) : Set where
-  coinductive
-  field
-    streamHead : A
-    streamTail : ∀ {j : Size< i} → Stream j A
+-- Agda2HS's supported coinduction encoding: a delayed, sized recursive tail.
+data Stream {ℓ : Level} (A : Set ℓ) (@0 i : Size) : Set ℓ where
+  streamCons : A → Thunk (Stream A) i → Stream A i
 
-open Stream public
+streamHead : {ℓ : Level} {A : Set ℓ} {i : Size} → Stream A i → A
+streamHead (streamCons value _) = value
 
-repeatStream : {i : Size} {A : Set} → A → Stream i A
-streamHead (repeatStream value) = value
-streamTail (repeatStream value) {j} = repeatStream value
+streamTail :
+  {ℓ : Level} {A : Set ℓ} {i : Size}
+  (input : Stream A i) → {j : Size< i} → Stream A j
+streamTail (streamCons _ delayed) {j} = force delayed {j}
+
+{-# COMPILE AGDA2HS Stream #-}
+{-# COMPILE AGDA2HS streamHead #-}
+{-# COMPILE AGDA2HS streamTail #-}
+
+repeatStream :
+  {ℓ : Level} {i : Size} {A : Set ℓ} → A → Stream A i
+repeatStream value =
+  streamCons value λ where
+    .force → repeatStream value
+
+{-# COMPILE AGDA2HS repeatStream #-}
 
 mapStream :
-  {i : Size} {A B : Set} →
-  (A → B) → Stream i A → Stream i B
-streamHead (mapStream f input) = f (streamHead input)
-streamTail (mapStream f input) {j} =
-  mapStream f (streamTail input {j})
+  {ℓA ℓB : Level} {i : Size}
+  {A : Set ℓA} {B : Set ℓB} →
+  (A → B) → Stream A i → Stream B i
+mapStream f input =
+  streamCons (f (streamHead input)) λ where
+    .force → mapStream f (streamTail input)
+
+{-# COMPILE AGDA2HS mapStream #-}
 
 -- Finite prefixes require an indefinitely observable stream. A merely-sized
 -- Stream i may only expose an unknown finite observation depth.
-streamPrefix : {A : Set} → Nat → Stream ∞ A → List A
+streamPrefix : {ℓ : Level} {A : Set ℓ} → Nat → Stream A ∞ → List A
 streamPrefix 0 _ = []
 streamPrefix (suc n) input =
   streamHead input ∷ streamPrefix n (streamTail input)
 
-mapList : {A B : Set} → (A → B) → List A → List B
+mapList : {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB} → (A → B) → List A → List B
 mapList f [] = []
 mapList f (value ∷ values) = f value ∷ mapList f values
 
 cong :
-  {A B : Set} (f : A → B) {left right : A} →
+  {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB}
+  (f : A → B) {left right : A} →
   left ≡ right → f left ≡ f right
 cong f refl = refl
 
 trans :
-  {A : Set} {left middle right : A} →
+  {ℓ : Level} {A : Set ℓ} {left middle right : A} →
   left ≡ middle → middle ≡ right → left ≡ right
 trans refl second = second
 
-sym : {A : Set} {left right : A} → left ≡ right → right ≡ left
+sym : {ℓ : Level} {A : Set ℓ} {left right : A} → left ≡ right → right ≡ left
 sym refl = refl
 
 mapListCong :
-  {A B : Set} (f : A → B) {left right : List A} →
+  {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB}
+  (f : A → B) {left right : List A} →
   left ≡ right → mapList f left ≡ mapList f right
 mapListCong f refl = refl
 
 mapStreamPrefix :
   {A B : Set}
-  (n : Nat) (f : A → B) (input : Stream ∞ A) →
+  (n : Nat) (f : A → B) (input : Stream A ∞) →
   streamPrefix n (mapStream f input) ≡
   mapList f (streamPrefix n input)
 mapStreamPrefix 0 f input = refl
@@ -72,19 +91,56 @@ mapStreamPrefix (suc n) f input =
 -- programs. An LSTM transition can instantiate step once state/input types
 -- are fixed.
 scanStream :
-  {i : Size} {State Input : Set} →
+  {ℓS ℓI : Level} {i : Size}
+  {State : Set ℓS} {Input : Set ℓI} →
   (State → Input → State) →
-  State → Stream i Input → Stream i State
-streamHead (scanStream step state inputs) =
-  step state (streamHead inputs)
-streamTail (scanStream step state inputs) {j} =
-  scanStream
-    step
-    (step state (streamHead inputs))
-    (streamTail inputs {j})
+  State → Stream Input i → Stream State i
+scanStream step state inputs =
+  streamCons (step state (streamHead inputs)) λ where
+    .force →
+      scanStream
+        step
+        (step state (streamHead inputs))
+        (streamTail inputs)
+
+{-# COMPILE AGDA2HS scanStream #-}
+
+-- The learner trace convention includes the initial state at observation zero.
+scanSeededStream :
+  {ℓS ℓI : Level} {i : Size}
+  {State : Set ℓS} {Input : Set ℓI} →
+  (State → Input → State) →
+  State → Stream Input i → Stream State i
+scanSeededStream step state inputs =
+  streamCons state λ where
+    .force →
+      scanSeededStream
+        step
+        (step state (streamHead inputs))
+        (streamTail inputs)
+
+{-# COMPILE AGDA2HS scanSeededStream #-}
+
+iterateStream :
+  {ℓ : Level} {i : Size} {A : Set ℓ} →
+  (A → A) → A → Stream A i
+iterateStream step state =
+  streamCons state λ where
+    .force → iterateStream step (step state)
+
+{-# COMPILE AGDA2HS iterateStream #-}
+
+iterateList :
+  {ℓ : Level} {A : Set ℓ} →
+  Nat → (A → A) → A → List A
+iterateList zero step state = []
+iterateList (suc n) step state =
+  state ∷ iterateList n step (step state)
+
+{-# COMPILE AGDA2HS iterateList #-}
 
 scanList :
-  {State Input : Set} →
+  {ℓS ℓI : Level} {State : Set ℓS} {Input : Set ℓI} →
   (State → Input → State) →
   State → List Input → List State
 scanList step state [] = []
@@ -92,7 +148,7 @@ scanList step state (input ∷ inputs) =
   step state input ∷ scanList step (step state input) inputs
 
 scanListCong :
-  {State Input : Set}
+  {ℓS ℓI : Level} {State : Set ℓS} {Input : Set ℓI}
   (step : State → Input → State)
   (state : State)
   {left right : List Input} →
@@ -101,11 +157,11 @@ scanListCong :
 scanListCong step state refl = refl
 
 scanStreamPrefix :
-  {State Input : Set}
+  {ℓS ℓI : Level} {State : Set ℓS} {Input : Set ℓI}
   (n : Nat)
   (step : State → Input → State)
   (state : State)
-  (inputs : Stream ∞ Input) →
+  (inputs : Stream Input ∞) →
   streamPrefix n (scanStream step state inputs) ≡
   scanList step state (streamPrefix n inputs)
 scanStreamPrefix 0 step state inputs = refl
@@ -117,19 +173,29 @@ scanStreamPrefix (suc n) step state inputs =
 
 -- Equal first-n input samples force equal first-n output samples. This is
 -- finite-observation causality, not decidable equality of infinite streams.
+iterateStreamPrefix :
+  {ℓ : Level} {A : Set ℓ} →
+  (n : Nat) (step : A → A) (initial : A) →
+  streamPrefix n (iterateStream step initial) ≡
+    iterateList n step initial
+iterateStreamPrefix zero step initial = refl
+iterateStreamPrefix (suc n) step initial =
+  cong (λ rest → initial ∷ rest)
+    (iterateStreamPrefix n step (step initial))
+
 CausalAt :
-  {Input Output : Set} →
+  {ℓI ℓO : Level} {Input : Set ℓI} {Output : Set ℓO} →
   Nat →
-  (Stream ∞ Input → Stream ∞ Output) →
-  Set
+  (Stream Input ∞ → Stream Output ∞) →
+  Set (ℓI ⊔ ℓO)
 CausalAt {Input = Input} n transformer =
-  (left right : Stream ∞ Input) →
+  (left right : Stream Input ∞) →
   streamPrefix n left ≡ streamPrefix n right →
   streamPrefix n (transformer left) ≡
   streamPrefix n (transformer right)
 
 mapStreamCausalAt :
-  {Input Output : Set}
+  {ℓI ℓO : Level} {Input : Set ℓI} {Output : Set ℓO}
   (n : Nat) (f : Input → Output) →
   CausalAt n (mapStream f)
 mapStreamCausalAt n f left right samePrefix =
@@ -140,7 +206,7 @@ mapStreamCausalAt n f left right samePrefix =
       (sym (mapStreamPrefix n f right)))
 
 scanStreamCausalAt :
-  {State Input : Set}
+  {ℓS ℓI : Level} {State : Set ℓS} {Input : Set ℓI}
   (n : Nat)
   (step : State → Input → State)
   (state : State) →
@@ -155,35 +221,37 @@ scanStreamCausalAt n step state left right samePrefix =
 -- Sized stream contexts represent successive suffixes whose available size
 -- decreases at each tail. A homogeneous same-size stream of streams would be
 -- incorrect: a suffix is available only at a smaller size.
-record StreamContext (i : Size) (A : Set) : Set where
+record StreamContext (i : Size) {ℓ : Level} (A : Set ℓ) : Set ℓ where
   coinductive
   field
-    contextStream : Stream i A
+    contextStream : Stream A i
     contextTail : ∀ {j : Size< i} → StreamContext j A
 
 open StreamContext public
 
-duplicate : {i : Size} {A : Set} → Stream i A → StreamContext i A
+duplicate : {ℓ : Level} {i : Size} {A : Set ℓ} → Stream A i → StreamContext i A
 contextStream (duplicate input) = input
 contextTail (duplicate input) {j} =
   duplicate (streamTail input {j})
 
-extract : {i : Size} {A : Set} → Stream i A → A
+extract : {ℓ : Level} {i : Size} {A : Set ℓ} → Stream A i → A
 extract = streamHead
 
 -- A co-Kleisli arrow is a context observation available at every size.
 -- extend applies that context to each successive suffix.
 extend :
-  {i : Size} {A B : Set} →
-  (∀ {j : Size} → Stream j A → B) →
-  Stream i A → Stream i B
-streamHead (extend context input) =
-  context (contextStream (duplicate input))
-streamTail (extend context input) {j} =
-  extend context (contextStream (contextTail (duplicate input) {j}))
+  {ℓA ℓB : Level} {i : Size}
+  {A : Set ℓA} {B : Set ℓB} →
+  (∀ {j : Size} → Stream A j → B) →
+  Stream A i → Stream B i
+extend context input =
+  streamCons (context (contextStream (duplicate input))) λ where
+    .force →
+      extend context (contextStream (contextTail (duplicate input)))
 
-record Bisim (i : Size) {A : Set}
-  (left right : Stream i A) : Set where
+
+record Bisim (i : Size) {ℓ : Level} {A : Set ℓ}
+  (left right : Stream A i) : Set ℓ where
   coinductive
   field
     headsAgree : streamHead left ≡ streamHead right
@@ -195,10 +263,10 @@ open Bisim public
 
 -- Map composition is proved coinductively by decreasing the observation size.
 mapStreamComposeBisim :
-  {i : Size} {A B C : Set}
+  {ℓ : Level} {i : Size} {A B C : Set ℓ}
   (f : B → C)
   (g : A → B)
-  (input : Stream i A) →
+  (input : Stream A i) →
   Bisim i
     (mapStream f (mapStream g input))
     (mapStream (λ value → f (g value)) input)
@@ -209,17 +277,17 @@ mapStreamComposeBisim f g input .tailsBisimilar {j} =
 -- Named fusion law: two successive maps agree with their composed map at
 -- every finite observation depth and, by Bisim, over the infinite stream.
 mapStreamFusionBisim :
-  {i : Size} {A B C : Set}
+  {ℓ : Level} {i : Size} {A B C : Set ℓ}
   (f : B → C)
   (g : A → B)
-  (input : Stream i A) →
+  (input : Stream A i) →
   Bisim i
     (mapStream f (mapStream g input))
     (mapStream (λ value → f (g value)) input)
 mapStreamFusionBisim = mapStreamComposeBisim
 
 mapListCompose :
-  {A B C : Set} (f : B → C) (g : A → B) (values : List A) →
+  {ℓ : Level} {A B C : Set ℓ} (f : B → C) (g : A → B) (values : List A) →
   mapList f (mapList g values) ≡
   mapList (λ value → f (g value)) values
 mapListCompose f g [] = refl
@@ -227,8 +295,8 @@ mapListCompose f g (value ∷ values) =
   cong (λ rest → f (g value) ∷ rest) (mapListCompose f g values)
 
 mapStreamFusionPrefix :
-  {A B C : Set}
-  (n : Nat) (f : B → C) (g : A → B) (input : Stream ∞ A) →
+  {ℓ : Level} {A B C : Set ℓ}
+  (n : Nat) (f : B → C) (g : A → B) (input : Stream A ∞) →
   streamPrefix n (mapStream f (mapStream g input)) ≡
   streamPrefix n (mapStream (λ value → f (g value)) input)
 mapStreamFusionPrefix n f g input =
@@ -244,14 +312,15 @@ mapStreamFusionPrefix n f g input =
 -- The proof is coinductive: each tail obligation reduces the commuting square,
 -- then recurses at the strictly smaller stream size.
 scanMapFusionBisim :
-  {i : Size} {State Target Input : Set} →
+  {ℓS ℓT ℓI : Level} {i : Size}
+  {State : Set ℓS} {Target : Set ℓT} {Input : Set ℓI} →
   (encode : State → Target) →
   (step : State → Input → State) →
   (targetStep : Target → Input → Target) →
   (stepFusion :
     (state : State) (input : Input) →
     encode (step state input) ≡ targetStep (encode state) input) →
-  (state : State) (inputs : Stream i Input) →
+  (state : State) (inputs : Stream Input i) →
   Bisim i
     (mapStream encode (scanStream step state inputs))
     (scanStream targetStep (encode state) inputs)
@@ -278,7 +347,7 @@ scanSuccessorFusionStep :
 scanSuccessorFusionStep state input = refl
 
 scanSuccessorFusionRegression :
-  (state : Nat) (inputs : Stream ∞ Nat) →
+  (state : Nat) (inputs : Stream Nat ∞) →
   Bisim ∞
     (mapStream suc (scanStream _+_ state inputs))
     (scanStream _+_ (suc state) inputs)
@@ -292,26 +361,26 @@ scanSuccessorFusionRegression state inputs =
     inputs
 
 bisimReflexive :
-  {i : Size} {A : Set} (input : Stream i A) → Bisim i input input
+  {ℓ : Level} {i : Size} {A : Set ℓ} (input : Stream A i) → Bisim i input input
 bisimReflexive input .headsAgree = refl
 bisimReflexive input .tailsBisimilar {j} =
   bisimReflexive (streamTail input {j})
 
 extractDuplicateHead :
-  {A : Set} (input : Stream ∞ A) →
+  {ℓ : Level} {A : Set ℓ} (input : Stream A ∞) →
   streamHead (contextStream (duplicate input)) ≡ streamHead input
 extractDuplicateHead input = refl
 
 -- extend extract is identity up to bisimulation, not a claim of decidable
 -- Leibniz equality for all infinite observations.
 extendExtractBisimilar :
-  {i : Size} {A : Set} (input : Stream i A) →
+  {ℓ : Level} {i : Size} {A : Set ℓ} (input : Stream A i) →
   Bisim i (extend extract input) input
 extendExtractBisimilar input .headsAgree = refl
 extendExtractBisimilar input .tailsBisimilar {j} =
   extendExtractBisimilar (streamTail input {j})
 
-ones : Stream ∞ Nat
+ones : Stream Nat ∞
 ones = repeatStream (suc zero)
 
 onesPrefixRegression :
@@ -319,7 +388,7 @@ onesPrefixRegression :
     suc zero ∷ suc zero ∷ suc zero ∷ []
 onesPrefixRegression = refl
 
-runningSum : Stream ∞ Nat → Stream ∞ Nat
+runningSum : Stream Nat ∞ → Stream Nat ∞
 runningSum = scanStream _+_ zero
 
 runningSumPrefixRegression :
