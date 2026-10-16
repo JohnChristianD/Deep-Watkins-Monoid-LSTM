@@ -513,16 +513,23 @@
           monoid-lstm-stream-check = let
             script = pkgs.writeShellApplication {
               name = "monoid-lstm-stream-check";
-              runtimeInputs = [ (agdaCommand system) ];
+              runtimeInputs = [ (agdaCommand system) (agda2hsCommand system) (canonicalGhc system) pkgs.coreutils ];
               text = ''
                 set -euo pipefail
+                out="build/monoid-lstm-stream-check"
+                rm -rf "$out"
+                mkdir -p "$out"
                 grep -Fq "open import Haskell.Prelude" FullCoupled/FormalMethods/MonoidLSTMStreams.agda
                 if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List)([[:space:]]|$)' FullCoupled/FormalMethods/MonoidLSTMStreams.agda; then
                   echo "stream calculus must use the Agda2HS Prelude for Nat, equality, and lists" >&2
                   exit 1
                 fi
                 agda2hs-agda -i . FullCoupled/FormalMethods/MonoidLSTMStreams.agda
-                echo "monoid-lstm-stream-check=pass"
+                agda2hs-ci FullCoupled/FormalMethods/MonoidLSTMStreams.agda -o "$out"
+                test -s "$out/FullCoupled/FormalMethods/MonoidLSTMStreams.hs"
+                mkdir -p "$out/ghc"
+                ghc -fno-code -i"$out" -odir "$out/ghc" -hidir "$out/ghc" "$out/FullCoupled/FormalMethods/MonoidLSTMStreams.hs"
+                echo "monoid-lstm-stream-check=pass (Agda and Agda2HS/GHC)"
               '';
             };
           in {
