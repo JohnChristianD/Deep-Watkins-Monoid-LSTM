@@ -1454,16 +1454,17 @@ learnerSemanticBridgeGraph =
      ("LearnerSemanticCoverageSuite" , "canonicalLearnerTraceScan") ∷
      ("LearnerSemanticCoverageSuite" , "rewardDependentBetaOptimalityBridge-obligation") ∷
      ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.denote") ∷
+     ("LearnerSemanticCoverageSuite" , "LawvereDiagonal.noSurjectiveBooleanDiagonal") ∷
      ("LearnerSemanticCoverageSuite" , "OmegaKleeneFixedPoint.leastFixedPointIsFixed") ∷
      ("LearnerSemanticCoverageSuite" , "neuralBellmanInstantiation-obligation") ∷
      ("canonicalLearnerTraceGuarded" , "canonicalLearnerTrace") ∷
      ("canonicalLearnerTrace" , "canonicalLearnerTracePrefix") ∷
-     ("canonicalLearnerTrace" , "iterateStream") ∷
-     ("canonicalLearnerTracePrefix" , "iterateStreamPrefix") ∷
+     ("canonicalLearnerTrace" , "MonoidLSTMStreams.iterateStream") ∷
+     ("canonicalLearnerTracePrefix" , "MonoidLSTMStreams.iterateStreamPrefix") ∷
      ("canonicalLearnerTracePrefix" , "canonicalFullStep") ∷
-     ("iterateStreamPrefix" , "iterateStream") ∷
-     ("iterateStreamPrefix" , "iterateList") ∷
-     ("iterateStream" , "canonicalFullStep") ∷
+     ("MonoidLSTMStreams.iterateStreamPrefix" , "MonoidLSTMStreams.iterateStream") ∷
+     ("MonoidLSTMStreams.iterateStreamPrefix" , "MonoidLSTMStreams.iterateList") ∷
+     ("MonoidLSTMStreams.iterateStream" , "canonicalFullStep") ∷
      ("canonicalLearnerTraceScan" , "canonicalLearnerTrace") ∷
      ("canonicalLearnerTraceScan" , "scanLearnerStream") ∷
      ("scanLearnerStream" , "MonoidLSTMStreams.scanSeededStream") ∷
@@ -1502,6 +1503,9 @@ learnerSemanticBridgeGraph =
      ("exactOptimalImpliesBetaOptimal" , "leTrans") ∷
      ("noUniformBetaOptimalChoice" , "counterReward") ∷
      ("noUniformBetaOptimalChoice" , "noSuccessorBoundedBySelf") ∷
+     ("LawvereDiagonal.noSurjectiveBooleanDiagonal" , "LawvereDiagonal.lawvereFixedPoint") ∷
+     ("LawvereDiagonal.noSurjectiveBooleanDiagonal" , "LawvereDiagonal.noBooleanFlipFixedPoint") ∷
+     ("LawvereDiagonal.noBooleanFlipFixedPoint" , "LawvereDiagonal.booleanFlip") ∷
      ("ScottStracheyDomains.denote" , "ScottStracheyDomains.Lift") ∷
      ("ScottStracheyDomains.denote" , "ScottStracheyDomains.strictNatAdd") ∷
      ("ScottStracheyDomains.strictNatAdd" , "ScottStracheyDomains.bottom") ∷
@@ -1543,7 +1547,8 @@ learnerSemanticBridgeRegression =
     (Just plan) →
       graphDependencyClosureValid learnerSemanticBridgeGraph plan
         && graphContains "canonicalLearnerTracePrefix" plan
-        && graphContains "iterateStreamPrefix" plan
+        && graphContains "MonoidLSTMStreams.iterateStreamPrefix" plan
+        && graphContains "LawvereDiagonal.noSurjectiveBooleanDiagonal" plan
         && graphContains "canonicalWatkinsTarget" plan
         && graphContains "canonicalPolicy" plan
         && graphContains "exactOptimalImpliesBetaOptimal" plan

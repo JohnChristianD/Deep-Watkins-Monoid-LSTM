@@ -78,7 +78,7 @@ mapListCong :
 mapListCong f refl = refl
 
 mapStreamPrefix :
-  {A B : Set}
+  {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB}
   (n : Nat) (f : A → B) (input : Stream A ∞) →
   streamPrefix n (mapStream f input) ≡
   mapList f (streamPrefix n input)
