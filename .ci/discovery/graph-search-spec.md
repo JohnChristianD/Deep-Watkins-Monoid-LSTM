@@ -89,6 +89,13 @@ Agda reduces these checks to `True`, and generated Haskell prints the same:
   incoming-first rule.
 - `graphAStarBestGRegression`: only strictly cheaper duplicate states are
   enqueued, matching JAxtar's best-cost rule.
+- `graphDependencyClosureRepeatedDependenciesRegression`: repeated dependency
+  entries do not prematurely exhaust closure fuel.
+- `graphDuplicateEdgeSearchRegression`, `graphMultiParentSearchRegression`,
+  and `graphSelfLoopRejectedRegression`: input normalization, both diamond
+  branches, and self-loop rejection.
+- `graphDotParserRegression`: quoted qualified names, semicolon/attribute
+  suffixes, and malformed non-edge lines.
 - Semantic-law and symbolic e-graph regressions remain separate.
 
 The DOT parser is intentionally narrow: it accepts lines whose first three
