@@ -71,6 +71,14 @@ addCapability c cs =
   else
     c ∷ cs
 
+-- Record every capability a law supplies on selection. Otherwise a law that
+-- satisfies several requirements appears incomplete later, yet cannot be
+-- selected again because its name already occurs in the plan.
+addCapabilities : List Capability → List Capability → List Capability
+addCapabilities [] covered = covered
+addCapabilities (capability ∷ rest) covered =
+  addCapabilities rest (addCapability capability covered)
+
 allRequiredCovered : List Capability → List Capability → Bool
 allRequiredCovered [] covered = True
 allRequiredCovered (c ∷ cs) covered =
@@ -126,7 +134,7 @@ expandForCapability capability (law ∷ laws) node =
       else
         MkSearchNode
           (lawName law ∷ plan node)
-          (addCapability capability (covered node))
+          (addCapabilities (capabilities law) (covered node))
           (proposalScore node + proposalPrior law)
         ∷ rest
     else
@@ -302,6 +310,38 @@ canonicalSearchComplete =
 canonicalSearchIsComplete :
   canonicalSearchComplete ≡ True
 canonicalSearchIsComplete = refl
+
+-- One law may cover multiple outstanding requirements. The planner should use
+-- that law once and record its entire contribution, not report a false miss.
+multiCapabilityLaw : List SemanticLaw
+multiCapabilityLaw =
+  MkSearchSemanticLaw
+    "combined-inverse-and-search"
+    (Inversion ∷ ExactSearch ∷ [])
+    []
+    zero
+  ∷ []
+
+multiCapabilitySearch : Maybe SearchNode
+multiCapabilitySearch =
+  astar
+    (Inversion ∷ ExactSearch ∷ [])
+    multiCapabilityLaw
+    (MkSearchNode [] [] zero ∷ [])
+
+multiCapabilityCoverageRegression : Bool
+multiCapabilityCoverageRegression =
+  case multiCapabilitySearch of λ where
+    Nothing → False
+    (Just node) →
+      allRequiredCovered
+        (Inversion ∷ ExactSearch ∷ [])
+        (covered node)
+      && listLengthNat (plan node) == suc zero
+
+multiCapabilityCoverageRegressionChecked :
+  multiCapabilityCoverageRegression ≡ True
+multiCapabilityCoverageRegressionChecked = refl
 
 canonicalPlanNontrivial : Bool
 canonicalPlanNontrivial =
@@ -2114,3 +2154,9 @@ main = do
 {-# COMPILE AGDA2HS hybridInverseExactRealPlan #-}
 {-# COMPILE AGDA2HS hybridInverseExactRealSearchReport #-}
 {-# COMPILE AGDA2HS agdaSemanticPortReport #-}
+
+{-# COMPILE AGDA2HS addCapabilities #-}
+{-# COMPILE AGDA2HS multiCapabilityLaw #-}
+{-# COMPILE AGDA2HS multiCapabilitySearch #-}
+{-# COMPILE AGDA2HS multiCapabilityCoverageRegression #-}
+{-# COMPILE AGDA2HS multiCapabilityCoverageRegressionChecked #-}
