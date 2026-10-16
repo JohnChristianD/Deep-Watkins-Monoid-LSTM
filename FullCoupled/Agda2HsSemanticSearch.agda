@@ -1,6 +1,7 @@
 module FullCoupled.Agda2HsSemanticSearch where
 
-open import Haskell.Prelude
+open import Haskell.Prelude hiding (Nat; zero; suc)
+open import Agda.Builtin.Nat using (Nat)
 
 import FullCoupled.Agda2HsSemanticExtractor as Extractor
 open import FullCoupled.Agda2HsTheoremGraphEGraph using
@@ -10,6 +11,8 @@ open import FullCoupled.Agda2HsTheoremGraphEGraph using
 
 open import FullCoupled.Agda2HsTheoremGraphEGraph as EGraph
 
+incrementSearchNat : Nat → Nat
+incrementSearchNat n = n + 1
 
 data Capability : Type where
   Inversion : Capability
@@ -22,6 +25,8 @@ instance
   iEqCapability ._==_ ExactSearch ExactSearch = True
   iEqCapability ._==_ UniformContinuity UniformContinuity = True
   iEqCapability ._==_ _ _ = False
+
+{-# COMPILE AGDA2HS iEqCapability #-}
 
 -- A proposal prior is only a deterministic tie-break signal for the
 -- capability planner. It is not an MDP action-value Q function.
@@ -48,9 +53,9 @@ open SearchNode public
 
 -- Search costs and fuel are Agda Nat values. The extracted Haskell
 -- Prelude's length has type Int, so keep proof-search arithmetic explicit.
-listLengthNat : {A : Type} -> List A -> Nat
-listLengthNat [] = zero
-listLengthNat (_ ∷ rest) = suc (listLengthNat rest)
+listLengthNat : {a : Type} -> List a -> Nat
+listLengthNat [] = 0
+listLengthNat (_ ∷ rest) = incrementSearchNat (listLengthNat rest)
 
 requiredCapabilities : List Capability
 requiredCapabilities =
@@ -153,13 +158,13 @@ nodeHeuristic :
   SearchNode →
   Nat
 nodeHeuristic required node =
-  if allRequiredCovered required (covered node) then zero else suc zero
+  if allRequiredCovered required (covered node) then 0 else incrementSearchNat 0
 
 nodeHeuristicLowerBoundRegression : Bool
 nodeHeuristicLowerBoundRegression =
-  nodeHeuristic [] (MkSearchNode [] [] zero) == zero &&
+  nodeHeuristic [] (MkSearchNode [] [] 0) == 0 &&
   nodeHeuristic (Inversion ∷ [])
-    (MkSearchNode [] [] zero) == suc zero
+    (MkSearchNode [] [] 0) == incrementSearchNat 0
 
 nodeHeuristicLowerBoundRegressionChecked :
   nodeHeuristicLowerBoundRegression ≡ True
@@ -214,13 +219,13 @@ insertAll required (node ∷ nodes) frontier =
 -- Repeat a payload once per list cell, keeping the depth parameter structural.
 -- The generated Haskell list is lazy: its tail is produced only as A* consumes
 -- fuel, rather than allocating the full factorial budget before search starts.
-repeatBy : ∀ {A B : Type} → List A → List B → List B
+repeatBy : ∀ {a b : Type} → List a → List b → List b
 repeatBy [] values = []
 repeatBy (_ ∷ rest) values = values ++ repeatBy rest values
 
 -- An input of length n produces n! unit cells, by the recurrence
 -- (n+1)! = (n+1) * n!. Recursion follows the finite law list, not Nat.
-factorialFuel : ∀ {A : Type} → List A → List ⊤
+factorialFuel : ∀ {a : Type} → List a → List ⊤
 factorialFuel [] = tt ∷ []
 factorialFuel (value ∷ rest) =
   repeatBy (value ∷ rest) (factorialFuel rest)
@@ -273,17 +278,17 @@ canonicalLaws =
     "inverse-correct"
     (Inversion ∷ [])
     []
-    (suc (suc (suc zero)))
+    (incrementSearchNat (incrementSearchNat (incrementSearchNat 0)))
   ∷ MkSearchSemanticLaw
       "inverse-csearchable"
       (ExactSearch ∷ [])
       ("inverse-correct" ∷ [])
-      (suc (suc zero))
+      (incrementSearchNat (incrementSearchNat 0))
   ∷ MkSearchSemanticLaw
       "inverse-preserves-csearchability"
       (UniformContinuity ∷ [])
       ("inverse-csearchable" ∷ [])
-      (suc zero)
+      (incrementSearchNat 0)
   ∷ []
 
 canonicalSearch : Maybe SearchNode
@@ -291,7 +296,7 @@ canonicalSearch =
   astar
     requiredCapabilities
     canonicalLaws
-    (MkSearchNode [] [] zero ∷ [])
+    (MkSearchNode [] [] 0 ∷ [])
 
 canonicalPlan : List String
 canonicalPlan =
@@ -319,7 +324,7 @@ multiCapabilityLaw =
     "combined-inverse-and-search"
     (Inversion ∷ ExactSearch ∷ [])
     []
-    zero
+    0
   ∷ []
 
 multiCapabilitySearch : Maybe SearchNode
@@ -327,7 +332,7 @@ multiCapabilitySearch =
   astar
     (Inversion ∷ ExactSearch ∷ [])
     multiCapabilityLaw
-    (MkSearchNode [] [] zero ∷ [])
+    (MkSearchNode [] [] 0 ∷ [])
 
 multiCapabilityCoverageRegression : Bool
 multiCapabilityCoverageRegression =
@@ -337,7 +342,7 @@ multiCapabilityCoverageRegression =
       allRequiredCovered
         (Inversion ∷ ExactSearch ∷ [])
         (covered node)
-      && listLengthNat (plan node) == suc zero
+      && listLengthNat (plan node) == incrementSearchNat 0
 
 multiCapabilityCoverageRegressionChecked :
   multiCapabilityCoverageRegression ≡ True
@@ -345,7 +350,7 @@ multiCapabilityCoverageRegressionChecked = refl
 
 canonicalPlanNontrivial : Bool
 canonicalPlanNontrivial =
-  listLengthNat canonicalPlan == suc (suc (suc zero))
+  listLengthNat canonicalPlan == incrementSearchNat (incrementSearchNat (incrementSearchNat 0))
 
 canonicalPlanIsNontrivial :
   canonicalPlanNontrivial ≡ True
@@ -553,15 +558,15 @@ graphMaximalDependencyChain :
 graphMaximalDependencyChain plan laws =
   graphValidPlan plan laws && graphPlanHeadIsLeaf plan laws
 
-graphAppend : {A : Type} -> List A -> List A -> List A
+graphAppend : {a : Type} -> List a -> List a -> List a
 graphAppend [] ys = ys
 graphAppend (x ∷ xs) ys = x ∷ graphAppend xs ys
 
 graphConcatMap :
-  {A B : Type} ->
-  (A -> List B) ->
-  List A ->
-  List B
+  {a b : Type} ->
+  (a -> List b) ->
+  List a ->
+  List b
 graphConcatMap _ [] = []
 graphConcatMap f (x ∷ xs) =
   graphAppend (f x) (graphConcatMap f xs)
@@ -821,11 +826,11 @@ graphAStarCanImprove name cost known =
 
 graphAStarBestGRegression : Bool
 graphAStarBestGRegression =
-  let known = MkGraphAStarBest "A" (suc (suc zero)) ∷ []
+  let known = MkGraphAStarBest "A" (incrementSearchNat (incrementSearchNat 0)) ∷ []
   in
-  graphAStarCanImprove "A" (suc zero) known
-    && not (graphAStarCanImprove "A" (suc (suc zero)) known)
-    && not (graphAStarCanImprove "A" (suc (suc (suc zero))) known)
+  graphAStarCanImprove "A" (incrementSearchNat 0) known
+    && not (graphAStarCanImprove "A" (incrementSearchNat (incrementSearchNat 0)) known)
+    && not (graphAStarCanImprove "A" (incrementSearchNat (incrementSearchNat (incrementSearchNat 0))) known)
 
 graphAStarBestGRegressionChecked :
   graphAStarBestGRegression ≡ True
@@ -837,15 +842,15 @@ graphAStarHeuristic :
   Nat
 graphAStarHeuristic laws node =
   case graphFirst (graphNodePlan node) of λ where
-    Nothing -> zero
+    Nothing -> 0
     (Just terminal) ->
       case graphLawForName terminal laws of λ where
-        Nothing -> zero
+        Nothing -> 0
         (Just law) ->
           if graphLawDependencies law == [] then
-            zero
+            0
           else
-            suc zero
+            incrementSearchNat 0
 
 -- JAxtar's default cost_weight is 1 - 1e-6. For Nat costs, scale its
 -- f = cost_weight * g + h by 1,000,000 to compare the equivalent integer
@@ -896,7 +901,7 @@ graphAStarExpandNode :
   GraphAStarNode -> List GraphLaw -> List GraphAStarNode
 graphAStarExpandNode node laws =
   graphAStarWrapChildren
-    (suc (graphAStarPathCost node))
+    (incrementSearchNat (graphAStarPathCost node))
     (graphExpandNode (MkGraphNode (graphAStarPlan node)) laws)
 
 -- The first component is the g-cost table; the second is the priority queue.
@@ -978,8 +983,8 @@ graphAStarFirst laws seed =
       graphAStarFirstWithFuel
         (graphAStarFuelBound laws)
         laws
-        (MkGraphAStarNode (graphNodePlan seed) zero ∷ [])
-        (MkGraphAStarBest root zero ∷ [])
+        (MkGraphAStarNode (graphNodePlan seed) 0 ∷ [])
+        (MkGraphAStarBest root 0 ∷ [])
 
 graphAStarTieBreakRegression : Bool
 graphAStarTieBreakRegression =
@@ -988,8 +993,8 @@ graphAStarTieBreakRegression =
       MkGraphLaw "A" [] ∷
       MkGraphLaw "B" [] ∷
       []
-    existing = MkGraphAStarNode ("A" ∷ []) zero
-    incoming = MkGraphAStarNode ("B" ∷ []) zero
+    existing = MkGraphAStarNode ("A" ∷ []) 0
+    incoming = MkGraphAStarNode ("B" ∷ []) 0
   in
   case graphAStarInsert laws incoming (existing ∷ []) of λ where
     (MkGraphAStarNode (firstName ∷ []) _ ∷
@@ -1024,7 +1029,7 @@ graphAStarShortestPathRegression =
     (Just selected) ->
       graphValidPlan selected laws
         && graphStringPathEqual selected ("C" ∷ "A" ∷ [])
-        && listLengthNat selected == suc (suc zero)
+        && listLengthNat selected == incrementSearchNat (incrementSearchNat 0)
 
 graphAStarShortestPathRegressionChecked :
   graphAStarShortestPathRegression ≡ True
@@ -1053,7 +1058,7 @@ graphDependencyOrderRegression =
   in
   graphNodePlanMember ("B" ∷ "A" ∷ []) nodes &&
   graphNodePlanMember ("C" ∷ "A" ∷ []) nodes &&
-  listLengthNat nodes == suc (suc zero)
+  listLengthNat nodes == incrementSearchNat (incrementSearchNat 0)
 
 graphDependencyOrderRegressionChecked :
   graphDependencyOrderRegression ≡ True
@@ -1072,7 +1077,7 @@ graphTwoLeafBranchesRegression =
   in
   graphPathMember ("B" ∷ "A" ∷ []) plans &&
   graphPathMember ("C" ∷ "A" ∷ []) plans &&
-  listLengthNat plans == suc (suc zero)
+  listLengthNat plans == incrementSearchNat (incrementSearchNat 0)
 
 graphTwoLeafBranchesRegressionChecked :
   graphTwoLeafBranchesRegression ≡ True
@@ -1254,7 +1259,7 @@ graphDependencyClosureRegression =
         && graphContains "B" closure
         && graphContains "C" closure
         && graphContains "D" closure
-        && listLengthNat closure == suc (suc (suc (suc zero)))
+        && listLengthNat closure == incrementSearchNat (incrementSearchNat (incrementSearchNat (incrementSearchNat 0)))
 
 graphDependencyClosureRejectsCycleRegression : Bool
 graphDependencyClosureRejectsCycleRegression =
@@ -1784,7 +1789,7 @@ semanticPlanEGraphExtractable plan =
   of λ where
     Nothing -> False
     (Just bestResult) ->
-      EGraph.extractedCost bestResult > zero
+      EGraph.extractedCost bestResult > 0
 
 -- End-to-end bridge: run the semantic-law A* planner, saturate its selected
 -- plan in the symbolic e-graph, and require a stable graph plus a costed
@@ -1860,7 +1865,7 @@ requiredPlanEGraphCount :
   List String ->
   List Extractor.SemanticLaw ->
   Nat
-requiredPlanEGraphCount [] _ = zero
+requiredPlanEGraphCount [] _ = 0
 requiredPlanEGraphCount (name ∷ names) laws =
   case requiredPlanForName name laws of λ where
     Nothing ->
@@ -1869,7 +1874,7 @@ requiredPlanEGraphCount (name ∷ names) laws =
       let tail = requiredPlanEGraphCount names laws in
       if semanticPlanEGraphComplete plan &&
          semanticPlanEGraphExtractable plan then
-        suc tail
+        incrementSearchNat tail
       else
         tail
 
@@ -1890,12 +1895,12 @@ haskellMinusOneLaws =
     "inverse-correct"
     (Inversion ∷ [])
     []
-    (suc (suc (suc zero)))
+    (incrementSearchNat (incrementSearchNat (incrementSearchNat 0)))
   ∷ MkSearchSemanticLaw
       "inverse-csearchable"
       (ExactSearch ∷ [])
       ("inverse-correct" ∷ [])
-      (suc (suc zero))
+      (incrementSearchNat (incrementSearchNat 0))
   ∷ []
 
 haskellMinusOneAStar : Maybe SearchNode
@@ -1903,7 +1908,7 @@ haskellMinusOneAStar =
   astar
     haskellMinusOneTargetCapabilities
     haskellMinusOneLaws
-    (MkSearchNode [] [] zero ∷ [])
+    (MkSearchNode [] [] 0 ∷ [])
 
 haskellMinusOneAStarPlan : List String
 haskellMinusOneAStarPlan =
@@ -2045,6 +2050,7 @@ main = do
 {-# COMPILE AGDA2HS searchFuel #-}
 {-# COMPILE AGDA2HS astarWithFuel #-}
 {-# COMPILE AGDA2HS listLengthNat #-}
+{-# COMPILE AGDA2HS incrementSearchNat #-}
 {-# COMPILE AGDA2HS planContains #-}
 {-# COMPILE AGDA2HS capabilityCovered #-}
 {-# COMPILE AGDA2HS addCapability #-}

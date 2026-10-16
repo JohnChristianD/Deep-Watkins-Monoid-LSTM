@@ -267,7 +267,7 @@
             mkdir -p "$agda2hs_base_work/library"
             cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
             chmod -R u+rwX "$agda2hs_base_work/library"
-            if agda2hs "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            if agda2hs "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_work/library" -i . "$@"; then
               status=0
             else
               status=$?
@@ -310,9 +310,13 @@
                 fennel --version
                 tmp=$(mktemp -d)
                 trap 'rm -rf "$tmp"' EXIT
-                printf '%s\n' '(print "fennel-luajit=pass")' > "$tmp/smoke.fnl"
-                test "$(fennel "$tmp/smoke.fnl")" = "fennel-luajit=pass"
-                echo "fennel-luajit-smoke=pass"
+                printf '%s\n' \
+                  '(local fun (require :fun))' \
+                  '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) (ipairs [1 2 3]))))' \
+                  '(assert (= (table.concat mapped ",") "2,4,6"))' \
+                  '(print "fennel-luafun=pass")' > "$tmp/smoke.fnl"
+                test "$(fennel "$tmp/smoke.fnl")" = "fennel-luafun=pass"
+                echo "fennel-luajit-luafun-smoke=pass"
               '';
             };
           in {
@@ -464,12 +468,20 @@
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda > "$tmp/BetaOptimalityBoundary.agda"
                 awk '
+                  /^module LawvereDiagonal where$/ { capture=1; print; next }
+                  /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/TheoremsMonolith.agda > "$tmp/LawvereDiagonal.agda"
+                awk '
                   /^module CanonicalBellmanOrderTheory where$/ { capture=1; print; next }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda > "$tmp/CanonicalBellmanOrderTheory.agda"
                 test -s "$tmp/ScottStracheyDomains.agda"
                 test -s "$tmp/BetaOptimalityBoundary.agda"
                 test -s "$tmp/CanonicalBellmanOrderTheory.agda"
+                test -s "$tmp/LawvereDiagonal.agda"
+                grep -Fq "lawvereFixedPoint" "$tmp/LawvereDiagonal.agda"
+                grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "NeuralPolicyMDP" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
@@ -477,7 +489,8 @@
                 agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
                 agda2hs-agda -i "$tmp" "$tmp/BetaOptimalityBoundary.agda"
                 agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
-                echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith)"
+                agda2hs-agda -i "$tmp" "$tmp/LawvereDiagonal.agda"
+                echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith; Lawvere fixed-point boundary kernel-checked)"
                 echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
                 echo "bellman-order-theory=kernel-checked (Tarski, omega-Kleene, neural MDP Bellman, exact-Q greedy optimality)"
               '';

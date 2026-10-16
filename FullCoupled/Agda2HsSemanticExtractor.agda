@@ -1,8 +1,11 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
-open import Haskell.Prelude
-import Haskell.Prim as Prim
+open import Haskell.Prelude hiding (Nat; zero; suc)
+open import Agda.Builtin.Nat using (Nat)
+open import Haskell.Prim using (eqNat; monusNat)
 
+incrementExtractorNat : Nat → Nat
+incrementExtractorNat n = n + 1
 
 CharList : Type
 CharList = List Char
@@ -39,10 +42,10 @@ isAsciiDigitRegressionChecked = refl
 
 isSourceSpace : Char → Bool
 isSourceSpace c =
-  if eqChar c ' ' then True
-  else if eqChar c '\n' then True
-  else if eqChar c '\r' then True
-  else eqChar c '\t'
+  if c == ' ' then True
+  else if c == '\n' then True
+  else if c == '\r' then True
+  else c == '\t'
 
 data SemanticKind : Type where
   SemanticTopLevel : SemanticKind
@@ -98,10 +101,10 @@ isIdentifierChar c =
     True
   else if isAsciiDigit c then
     True
-  else if eqChar c '_' then
+  else if c == '_' then
     True
   else
-    eqChar c '-'
+    c == '-'
 
 isSpace : Char -> Bool
 isSpace = isSourceSpace
@@ -145,7 +148,7 @@ secondWord source =
 containsChar : Char -> CharList -> Bool
 containsChar _ [] = False
 containsChar target (c ∷ rest) =
-  if eqChar target c then
+  if target == c then
     True
   else
     containsChar target rest
@@ -160,7 +163,7 @@ splitFirstChar :
   CharList × CharList
 splitFirstChar target [] = [] , []
 splitFirstChar target (c ∷ rest) =
-  if eqChar target c then
+  if target == c then
     [] , rest
   else
     let (before , after) = splitFirstChar target rest
@@ -516,7 +519,7 @@ leadingSpaceCountChars :
 leadingSpaceCountChars [] count = count
 leadingSpaceCountChars (c ∷ rest) count =
   if isSpace c then
-    leadingSpaceCountChars rest (suc count)
+    leadingSpaceCountChars rest (incrementExtractorNat count)
   else
     count
 
@@ -526,7 +529,7 @@ leadingSpaceCount :
 leadingSpaceCount source =
   leadingSpaceCountChars
     source
-    zero
+    0
 
 recordFieldHeader :
   String ->
@@ -535,7 +538,7 @@ recordFieldHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
     (Just candidate) ->
-      case leadingSpaceCount line >= suc (suc (suc (suc zero))) of λ where
+      case leadingSpaceCount line >= incrementExtractorNat (incrementExtractorNat (incrementExtractorNat (incrementExtractorNat 0))) of λ where
         False -> Nothing
         True ->
           case candidate == "field" || syntaxHead candidate of λ where
@@ -683,15 +686,15 @@ parseRecordFields sourceFile sourceLines =
       [])
 
 charListLength : CharList -> Nat
-charListLength [] = zero
-charListLength (_ ∷ rest) = suc (charListLength rest)
+charListLength [] = 0
+charListLength (_ ∷ rest) = incrementExtractorNat (charListLength rest)
 
 dropN : Nat -> CharList -> CharList
 dropN _ [] = []
 dropN n (c ∷ rest) =
-  if Prim.eqNat n 0
+  if eqNat n 0
   then c ∷ rest
-  else dropN (Prim.monusNat n 1) rest
+  else dropN (monusNat n 1) rest
 
 matchesPrefix :
   CharList ->
@@ -700,7 +703,7 @@ matchesPrefix :
 matchesPrefix [] _ = True
 matchesPrefix (_ ∷ _) [] = False
 matchesPrefix (needle ∷ needles) (candidate ∷ candidates) =
-  if eqChar needle candidate then
+  if needle == candidate then
     matchesPrefix needles candidates
   else
     False
@@ -897,15 +900,15 @@ normalizedSignature law =
   normalizeSignature (lawSignature law)
 
 countNonreflexive : List SemanticLaw -> Nat
-countNonreflexive [] = zero
+countNonreflexive [] = 0
 countNonreflexive (law ∷ laws) =
-  (if isReflexive law then zero else suc zero)
+  (if isReflexive law then 0 else incrementExtractorNat 0)
   + countNonreflexive laws
 
 countComposite : List SemanticLaw -> Nat
-countComposite [] = zero
+countComposite [] = 0
 countComposite (law ∷ laws) =
-  (if isComposite law then suc zero else zero)
+  (if isComposite law then incrementExtractorNat 0 else 0)
   + countComposite laws
 
 semanticLawName : SemanticLaw -> String
@@ -1001,6 +1004,7 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS scanRecordFields #-}
 {-# COMPILE AGDA2HS parseRecordFields #-}
 {-# COMPILE AGDA2HS charListLength #-}
+{-# COMPILE AGDA2HS incrementExtractorNat #-}
 {-# COMPILE AGDA2HS dropN #-}
 {-# COMPILE AGDA2HS matchesPrefix #-}
 {-# COMPILE AGDA2HS boundaryBefore #-}
