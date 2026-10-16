@@ -13,6 +13,7 @@ graphSearchContractPassed =
     && Search.graphAStarTieBreakRegression
     && Search.graphAStarBestGRegression
     && Search.graphAStarShortestPathRegression
+    && Search.multiCapabilityCoverageRegression
     && Search.nodeHeuristicLowerBoundRegression
     && Search.graphCycleIsRejectedRegression
     && Search.graphDependencyClosureRegression
@@ -37,6 +38,9 @@ main = do
   putStrLn
     ("graph-best-g-policy="
       ++ show Search.graphAStarBestGRegression)
+  putStrLn
+    ("multi-capability-coverage="
+      ++ show Search.multiCapabilityCoverageRegression)
   putStrLn
     ("graph-admissible-heuristic="
       ++ show Search.nodeHeuristicLowerBoundRegression)
