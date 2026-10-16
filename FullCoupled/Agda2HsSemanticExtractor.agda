@@ -1,7 +1,6 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
-open import Haskell.Prelude hiding (Nat; zero; suc)
-open import Agda.Builtin.Nat using (Nat)
+open import Haskell.Prelude
 open import Haskell.Prim using (eqNat; monusNat)
 
 incrementExtractorNat : Nat → Nat
