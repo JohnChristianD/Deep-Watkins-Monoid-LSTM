@@ -1507,9 +1507,10 @@ normalizedSignatureEqual left right =
 semanticLawIsRecordField :
   Extractor.SemanticLaw ->
   Bool
-semanticLawIsRecordField law with Extractor.semanticLawKind law
-... | Extractor.SemanticRecordField = True
-... | Extractor.SemanticTopLevel = False
+semanticLawIsRecordField law =
+  case Extractor.semanticLawKind law of λ where
+    Extractor.SemanticRecordField -> True
+    Extractor.SemanticTopLevel -> False
 
 semanticLawIsReflexive :
   Extractor.SemanticLaw ->
