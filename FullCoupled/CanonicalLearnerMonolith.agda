@@ -2304,7 +2304,7 @@ canonicalTokenLogitTrace K (t ∷ ts) s =
 ------------------------------------------------------------------------
 
 module BetaOptimalityBoundary where
-  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+  data Empty : Set where
   open import Agda.Builtin.Nat
     renaming (Nat to BNat; zero to bzero; suc to bsuc)
 
