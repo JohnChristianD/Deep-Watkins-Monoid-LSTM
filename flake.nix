@@ -688,7 +688,12 @@
                 grep -Fq "graph-two-leaf-paths=True" "$out/report.txt"
                 grep -Fq "graph-cycle-rejected=True" "$out/report.txt"
                 grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
-                grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
+                if ! grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"; then
+                  echo "required theorem graph closure failed; observed plans:" >&2
+                  grep -E '^required-plan-|learner-static-graph|learner-semantic-bridge' "$out/report.txt" >&2 || true
+                  exit 1
+                fi
+                grep -Fq "learner-semantic-bridge-closure=True" "$out/report.txt"
                 grep -Fq "graphTwoLeafBranchesRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
                 grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"

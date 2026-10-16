@@ -25,6 +25,7 @@ graphSearchContractPassed =
     && Search.graphSelfLoopRejectedRegression
     && Search.graphDotParserRegression
     && Search.learnerLogicalGraphRegression
+    && Search.learnerSemanticBridgeRegression
     && Search.autonomousGraphSearchRegression
     && Search.canonicalSearchPlanEGraphClosed
     && Search.graphAStarPlanEGraphClosed
@@ -82,6 +83,9 @@ main = do
   putStrLn
     ("learner-dependency-closure="
       ++ show Search.learnerLogicalGraphRegression)
+  putStrLn
+    ("learner-semantic-bridge-closure="
+      ++ show Search.learnerSemanticBridgeRegression)
   putStrLn
     ("graph-linear-chain="
       ++ show Search.autonomousGraphSearchRegression)
