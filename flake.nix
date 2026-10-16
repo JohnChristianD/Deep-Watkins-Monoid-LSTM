@@ -153,7 +153,6 @@
           p.streamly
           p.streamly-bytestring
           p.streamly-core
-          p.streamly-process
         ]);
 
       acornProver = system:
@@ -387,8 +386,9 @@
                 set -euo pipefail
                 ghc --numeric-version
                 packages="$(ghc-pkg list)"
-                # Use packages present in the pinned nixpkgs Stackage set.
-                for package in streamly streamly-bytestring streamly-core streamly-process; do
+                # streamly-process-0.3.1 is marked broken in this pinned nixpkgs.
+                # Keep the smoke check limited to evaluable Streamly core packages.
+                for package in streamly streamly-bytestring streamly-core; do
                   grep -Fq -- "$package-" <<< "$packages" || {
                     echo "missing Nix-provided Haskell package: $package" >&2
                     exit 1
