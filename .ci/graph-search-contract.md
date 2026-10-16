@@ -43,9 +43,9 @@ Do not call every traversal “A*”.
 ### `graphAStarFirst`: one best-first maximal chain
 
 - Seed: one initial `GraphNode`.
-- Path cost: `g(n) = length(path)`.
+- Path cost: `g(n) = length(path)`; a singleton seed starts at one, and each dependency extension adds one. This has the same ordering as edge-count cost from the fixed seed because the seed-prefix contribution is constant.
 - Heuristic: `h(n) = 0` when the current head has no dependencies; otherwise `h(n) = 1`.
-- Priority: `f(n) = g(n) + h(n)`; insertion places an equal-score candidate before an older entry (`<=`).
+- Priority: the JAxtar-compatible integer score `999999*g(n) + 1000000*h(n)`, an exact integer scaling of `(1 - 10^-6)g + h`. Insertion places an equal-score candidate before an older entry (`<=`).
 - Goal: first `graphMaximalDependencyChain` accepted from the ordered frontier.
 - Fuel: `3 * factorial(number of graph laws)`. This is the explicit finite simple-path search bound for the current implementation. Exhaustion returns `Nothing`; callers must preserve that result, not convert it to success.
 
