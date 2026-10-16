@@ -538,7 +538,7 @@
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
-                                    -i "$out" \
+                                    -i"$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
@@ -619,7 +619,7 @@
                 "${canonicalGhc system}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
-                                    -i "$out" \
+                                    -i"$out" \
                   -odir "$out/ghc" \
                   -hidir "$out/ghc" \
                   -main-is FullCoupled.Agda2HsSemanticSearch.main \
@@ -713,10 +713,10 @@
                 test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
                 mkdir -p "$out/ghc"
-                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i "$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i"$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
                 mkdir -p "$out/ghc-search"
                 "${canonicalGhc system}/bin/ghc" \
-                  -O0 -dcore-lint -i "$out" \
+                  -O0 -dcore-lint -i"$out" \
                   -odir "$out/ghc-search" -hidir "$out/ghc-search" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
                   -o "$out/graph-search-check" \
