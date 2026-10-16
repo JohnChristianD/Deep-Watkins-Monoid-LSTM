@@ -2048,6 +2048,7 @@ main = do
 {-# COMPILE AGDA2HS searchFuel #-}
 {-# COMPILE AGDA2HS astarWithFuel #-}
 {-# COMPILE AGDA2HS listLengthNat #-}
+{-# COMPILE AGDA2HS incrementSearchNat #-}
 {-# COMPILE AGDA2HS planContains #-}
 {-# COMPILE AGDA2HS capabilityCovered #-}
 {-# COMPILE AGDA2HS addCapability #-}
