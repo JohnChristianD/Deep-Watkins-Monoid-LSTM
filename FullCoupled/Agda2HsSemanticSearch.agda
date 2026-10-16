@@ -2133,9 +2133,6 @@ main = do
 {-# COMPILE AGDA2HS dedupeStrings #-}
 {-# COMPILE AGDA2HS allNamesPresent #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphReport #-}
-{-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturatesChecked #-}
-{-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtractsChecked #-}
-{-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosedChecked #-}
 {-# COMPILE AGDA2HS knownRedundancyCandidateNames #-}
 {-# COMPILE AGDA2HS knownRedundancyCandidatesPresent #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}
