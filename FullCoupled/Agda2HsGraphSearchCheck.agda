@@ -19,6 +19,10 @@ graphSearchContractPassed =
     && Search.graphDependencyClosureRegression
     && Search.graphDependencyClosureRejectsCycleRegression
     && Search.graphDependencyClosureRejectsMissingRegression
+    && Search.graphDependencyClosureRepeatedDependenciesRegression
+    && Search.graphDuplicateEdgeSearchRegression
+    && Search.graphMultiParentSearchRegression
+    && Search.graphSelfLoopRejectedRegression
     && Search.learnerLogicalGraphRegression
     && Search.autonomousGraphSearchRegression
     && Search.canonicalSearchPlanEGraphClosed
@@ -56,6 +60,18 @@ main = do
   putStrLn
     ("graph-closure-missing-rejected="
       ++ show Search.graphDependencyClosureRejectsMissingRegression)
+  putStrLn
+    ("graph-closure-duplicate-dependencies="
+      ++ show Search.graphDependencyClosureRepeatedDependenciesRegression)
+  putStrLn
+    ("graph-duplicate-edge-normalization="
+      ++ show Search.graphDuplicateEdgeSearchRegression)
+  putStrLn
+    ("graph-multi-parent-dag="
+      ++ show Search.graphMultiParentSearchRegression)
+  putStrLn
+    ("graph-self-loop-rejected="
+      ++ show Search.graphSelfLoopRejectedRegression)
   putStrLn
     ("graph-astar-shortest-path="
       ++ show Search.graphAStarShortestPathRegression)
