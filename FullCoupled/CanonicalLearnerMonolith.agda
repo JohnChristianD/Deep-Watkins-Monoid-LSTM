@@ -2408,6 +2408,21 @@ module CanonicalBellmanOrderTheory where
   bsuc : BNat → BNat
   bsuc = HP.suc
 
+  -- Keep the extracted proof target self-contained: these helpers use
+  -- Prelude equality, not the monolith's separate Haskell equality aliases.
+  equalityTrans :
+    {A : Set} {x y z : A} → x ≡ y → y ≡ z → x ≡ z
+  equalityTrans refl second = second
+
+  equalitySym :
+    {A : Set} {x y : A} → x ≡ y → y ≡ x
+  equalitySym refl = refl
+
+  equalityCong :
+    {A B : Set} (f : A → B) {x y : A} →
+    x ≡ y → f x ≡ f y
+  equalityCong f refl = refl
+
   record CompleteMeetOrder (Value : Set) : Set₂ where
     field
       _⊑_ : Value → Value → Set
@@ -2925,8 +2940,8 @@ module CanonicalBellmanOrderTheory where
     neuralBellmanOptimalValueFunction M state ≡
       mdpBestActionValue M state (neuralBellmanQStar M state)
   neuralBellmanValueIsSupremumOfQStar M state =
-    trans
-      (sym (ap (λ values → values state)
+    equalityTrans
+      (equalitySym (equalityCong (λ values → values state)
         (neuralBellmanOptimalValueIsFixed M)))
       (mdpBellmanEquation M
         (neuralBellmanOptimalValueFunction M)
