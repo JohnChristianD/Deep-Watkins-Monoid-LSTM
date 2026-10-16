@@ -2589,7 +2589,7 @@ module CanonicalBellmanOrderTheory where
     open OmegaCPO O
 
     iter : OmegaContinuousEndomap O → BNat → Value
-    iter F HP.zero = bottomω
+    iter F HP.zero = OmegaCPO.bottomω O
     iter F (HP.suc n) =
       OmegaContinuousEndomap.stepω F (iter F n)
 
