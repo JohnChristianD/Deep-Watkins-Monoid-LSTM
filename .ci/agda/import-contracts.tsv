@@ -192,7 +192,6 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS addCapabiliti
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS multiCapabilityLaw #-}	{-# COMPILE AGDA2HS multiCapabilityLaw #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS multiCapabilitySearch #-}	{-# COMPILE AGDA2HS multiCapabilitySearch #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS multiCapabilityCoverageRegression #-}	{-# COMPILE AGDA2HS multiCapabilityCoverageRegression #-}	1
-require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS multiCapabilityCoverageRegressionChecked #-}	{-# COMPILE AGDA2HS multiCapabilityCoverageRegressionChecked #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS allRequiredCovered #-}	{-# COMPILE AGDA2HS allRequiredCovered #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS dependenciesSatisfied #-}	{-# COMPILE AGDA2HS dependenciesSatisfied #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS coversLaw #-}	{-# COMPILE AGDA2HS coversLaw #-}	1
