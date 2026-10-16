@@ -367,10 +367,8 @@ mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
 ------------------------------------------------------------------------
 
 module ScottStracheyDomains where
-  open import Agda.Builtin.Equality using (_≡_; refl)
-  import Haskell.Prelude as HP
-  open import Agda.Builtin.Nat
-    renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_)
+  open import Haskell.Prelude
+    renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_; ⊥ to ScottEmpty)
 
   data Lift (A : Set) : Set where
     bottom : Lift A
@@ -389,13 +387,13 @@ module ScottStracheyDomains where
   bottomIsLeast : {A : Set} (value : Lift A) → bottom ⊑ value
   bottomIsLeast _ = bottomLeast
 
-  bottomIsNotZero : bottom ≡ defined bzero → HP.⊥
+  bottomIsNotZero : bottom ≡ defined bzero → ScottEmpty
   bottomIsNotZero ()
 
-  definedZeroIsNotBottom : defined bzero ≡ bottom → HP.⊥
+  definedZeroIsNotBottom : defined bzero ≡ bottom → ScottEmpty
   definedZeroIsNotBottom ()
 
-  definedZeroIsNotLeast : defined bzero ⊑ bottom → HP.⊥
+  definedZeroIsNotLeast : defined bzero ⊑ bottom → ScottEmpty
   definedZeroIsNotLeast ()
 
   data NatExpr : Set where
@@ -453,11 +451,11 @@ module ScottStracheyDomains where
     strictNegate (defined value) = defined (algebraNegate value)
 
     inverseLawFailsAtBottom :
-      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → HP.⊥
+      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → ScottEmpty
     inverseLawFailsAtBottom ()
 
     zeroAnnihilatorFailsAtBottom :
-      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → HP.⊥
+      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → ScottEmpty
     zeroAnnihilatorFailsAtBottom ()
 
 ------------------------------------------------------------------------
@@ -470,8 +468,7 @@ module ScottStracheyDomains where
 ------------------------------------------------------------------------
 
 module LawvereDiagonal where
-  open import Agda.Builtin.Equality using (_≡_; refl)
-  import Haskell.Prelude as HP
+  open import Haskell.Prelude renaming (⊥ to LawvereEmpty)
 
   record DiagonalPreimage {A B : Set}
     (diagonal : A → A → B)
@@ -509,7 +506,7 @@ module LawvereDiagonal where
   booleanFlip booleanTrue = booleanFalse
 
   noBooleanFlipFixedPoint
-    : (b : Boolean) → booleanFlip b ≡ b → HP.⊥
+    : (b : Boolean) → booleanFlip b ≡ b → LawvereEmpty
   noBooleanFlipFixedPoint booleanFalse ()
   noBooleanFlipFixedPoint booleanTrue ()
 
@@ -517,7 +514,7 @@ module LawvereDiagonal where
     : {A : Set}
       (diagonal : A → A → Boolean)
       → ((target : A → Boolean) → DiagonalPreimage diagonal target)
-      → HP.⊥
+      → LawvereEmpty
   noSurjectiveBooleanDiagonal diagonal surjective
     with lawvereFixedPoint diagonal surjective booleanFlip
   ... | fixedPointWitness value equation =
