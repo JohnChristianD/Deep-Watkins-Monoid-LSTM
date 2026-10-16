@@ -1,9 +1,11 @@
 module FullCoupled.Agda2HsTheoremGraphEGraph where
 
 open import Haskell.Prelude hiding (Nat; zero; suc)
-open import Agda.Builtin.Nat using (Nat; zero; suc)
+open import Agda.Builtin.Nat using (Nat)
 open import Haskell.Prim using (eqNat; monusNat)
 
+incrementEGraphNat : Nat → Nat
+incrementEGraphNat n = n + 1
 
 data Expr : Type where
   ExprAtom : String -> Expr
@@ -42,17 +44,17 @@ record Binding : Type where
 open Binding public
 
 bindingCount : List Binding -> Nat
-bindingCount [] = zero
-bindingCount (_ ∷ rest) = suc (bindingCount rest)
+bindingCount [] = 0
+bindingCount (_ ∷ rest) = incrementEGraphNat (bindingCount rest)
 
 natListCount : List Nat -> Nat
-natListCount [] = zero
-natListCount (_ ∷ rest) = suc (natListCount rest)
+natListCount [] = 0
+natListCount (_ ∷ rest) = incrementEGraphNat (natListCount rest)
 
 bindingCountRegression : Bool
 bindingCountRegression =
-  bindingCount [] == zero
-  && bindingCount (MkBinding (MkENode "ExprAtom" []) zero ∷ []) == suc zero
+  bindingCount [] == 0
+  && bindingCount (MkBinding (MkENode "ExprAtom" []) 0 ∷ []) == incrementEGraphNat 0
 
 bindingCountRegressionChecked : bindingCountRegression ≡ True
 bindingCountRegressionChecked = refl
@@ -86,8 +88,8 @@ record ClassAnalysis : Type where
 open ClassAnalysis public
 
 classAnalysisCount : List ClassAnalysis -> Nat
-classAnalysisCount [] = zero
-classAnalysisCount (_ ∷ rest) = suc (classAnalysisCount rest)
+classAnalysisCount [] = 0
+classAnalysisCount (_ ∷ rest) = incrementEGraphNat (classAnalysisCount rest)
 
 record SaturationReport : Type where
   no-eta-equality; pattern
@@ -214,7 +216,7 @@ findBindingByNode target (MkBinding candidate id ∷ rest) =
 freshClass : EGraph -> Nat × EGraph
 freshClass graph =
   let id = nextId graph
-      graph' = MkEGraph (suc id) (setPair id id (parents graph)) (bindings graph)
+      graph' = MkEGraph (incrementEGraphNat id) (setPair id id (parents graph)) (bindings graph)
   in id , graph'
 
 hashconsNode : ENode -> EGraph -> Nat × EGraph
@@ -374,12 +376,12 @@ applyMatch :
   RewriteRule -> Nat -> Substitution -> EGraph -> EGraph × Nat
 applyMatch rule rootId sub graph =
   case instantiatePattern (rhs rule) sub graph of λ where
-    Nothing -> graph , zero
+    Nothing -> graph , 0
     (Just (rhsId , graph')) ->
       let left = root graph' rootId
           right = root graph' rhsId
-      in if left == right then graph' , zero
-         else mergeRoots left right graph' , suc zero
+      in if left == right then graph' , 0
+         else mergeRoots left right graph' , incrementEGraphNat 0
 
 applySubstitutions :
   List Substitution -> RewriteRule -> Nat -> EGraph -> Nat ->
@@ -397,7 +399,7 @@ applyRuleToRoot rule rootId graph =
     rule
     rootId
     graph
-    zero
+    0
 
 uniqueRoots :
   List Binding -> EGraph -> List Nat -> List Nat
@@ -412,7 +414,7 @@ rootClasses graph = uniqueRoots (bindings graph) graph []
 
 applyRulesToRoots :
   RewriteRule -> List Nat -> EGraph -> EGraph × Nat
-applyRulesToRoots _ [] graph = graph , zero
+applyRulesToRoots _ [] graph = graph , 0
 applyRulesToRoots rule (rootId ∷ roots) graph =
   let (graph' , count) = applyRuleToRoot rule rootId graph
       (graph'' , tailCount) = applyRulesToRoots rule roots graph'
@@ -420,7 +422,7 @@ applyRulesToRoots rule (rootId ∷ roots) graph =
 
 saturatePass :
   List RewriteRule -> List Nat -> EGraph -> EGraph × Nat
-saturatePass [] _ graph = graph , zero
+saturatePass [] _ graph = graph , 0
 saturatePass (rule ∷ rules) roots graph =
   let (graph' , count) = applyRulesToRoots rule roots graph
       (graph'' , tailCount) = saturatePass rules roots graph'
@@ -456,10 +458,10 @@ saturateWithFuel (_ ∷ fuel) rules graph total iterations =
       (graph' , rewrites) = saturatePass rules roots graph
       graph'' = rebuild graph'
       stable =
-        rewrites == zero &&
+        rewrites == 0 &&
         classCount graph == classCount graph'' &&
         enodeCount graph == enodeCount graph''
-      nextIterations = suc iterations
+      nextIterations = incrementEGraphNat iterations
   in if stable then
        MkSaturationStep graph'' (total + rewrites) nextIterations True
      else
@@ -468,29 +470,29 @@ saturateWithFuel (_ ∷ fuel) rules graph total iterations =
 saturateUntilStable :
   List RewriteRule -> EGraph -> EGraph × SaturationReport
 saturateUntilStable rules graph =
-  let result = saturateWithFuel (graphFuel graph) rules graph zero zero
+  let result = saturateWithFuel (graphFuel graph) rules graph 0 0
       graph' = stepGraph result
       rewrites = stepTotalRewrites result
       iterations = stepIterations result
       complete = stepComplete result
-      changed = if rewrites == zero then False else True
+      changed = if rewrites == 0 then False else True
   in graph' ,
      MkSaturationReport iterations rewrites changed complete
 
 stringLength : String -> Nat
-stringLength [] = zero
-stringLength (_ ∷ rest) = suc (stringLength rest)
+stringLength [] = 0
+stringLength (_ ∷ rest) = incrementEGraphNat (stringLength rest)
 
 stringLengthRegression : Bool
 stringLengthRegression =
-  stringLength "Agda" == suc (suc (suc (suc zero)))
+  stringLength "Agda" == incrementEGraphNat (incrementEGraphNat (incrementEGraphNat (incrementEGraphNat 0)))
 
 stringLengthRegressionChecked : stringLengthRegression ≡ True
 stringLengthRegressionChecked = refl
 
 localCost : ENode -> Nat
 localCost (MkENode symbol children) =
-  suc (stringLength symbol + natListCount children)
+  incrementEGraphNat (stringLength symbol + natListCount children)
 
 classAnalysisFor :
   Nat -> List Binding -> EGraph -> Maybe ClassAnalysis
@@ -501,9 +503,9 @@ classAnalysisFor target (MkBinding node id ∷ rest) graph =
     True ->
       case classAnalysisFor target rest graph of λ where
         Nothing ->
-          Just (MkClassAnalysis target (suc zero) (localCost node))
+          Just (MkClassAnalysis target (incrementEGraphNat 0) (localCost node))
         (Just current) ->
-          let nextCount = suc (analysisENodeCount current)
+          let nextCount = incrementEGraphNat (analysisENodeCount current)
               cost = localCost node
               nextCost =
                 case cost < analysisMinLocalCost current of λ where
@@ -560,7 +562,7 @@ mutual
 
   extractChildren :
       List ⊤ -> List Nat -> EGraph -> List Nat -> Maybe ChildExtraction
-  extractChildren _ [] _ _ = Just (MkChildExtraction [] zero)
+  extractChildren _ [] _ _ = Just (MkChildExtraction [] 0)
   extractChildren [] (_ ∷ _) _ _ = Nothing
   extractChildren (_ ∷ fuel) (child ∷ children) graph seen =
     case extractBestSeen fuel child graph seen of λ where
@@ -666,7 +668,7 @@ rightAssocExpr (a ∷ b ∷ rest) =
     (lawExpr a ∷ rightAssocExpr (b ∷ rest) ∷ [])
 
 emptyGraph : EGraph
-emptyGraph = MkEGraph zero [] []
+emptyGraph = MkEGraph 0 [] []
 
 record EGraphRegression : Type where
   no-eta-equality; pattern
@@ -743,13 +745,13 @@ regressionGraph =
           stable of λ where
             [] -> False
             _ -> True
-      analysisOk = classAnalysisCount (analyze stable) > zero
+      analysisOk = classAnalysisCount (analyze stable) > 0
       extractOk =
         case extractBest nested stable (extractFuelFor stable) of λ where
           Nothing -> False
-          (Just result) -> extractedCost result > zero
+          (Just result) -> extractedCost result > 0
       quotientOk = classCount g5 < enodeCount g5
-      iterationOk = saturationIterations report > zero
+      iterationOk = saturationIterations report > 0
       saturationOk =
         saturationComplete report &&
         saturationComplete rightReport &&
