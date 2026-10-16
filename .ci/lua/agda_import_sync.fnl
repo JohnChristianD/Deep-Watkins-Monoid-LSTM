@@ -38,7 +38,9 @@
   count)
 
 (local function has-prefix [line prefix]
-  (= (string.sub line 1 (# prefix)) prefix))
+  (and (= (string.sub line 1 (# prefix)) prefix)
+       (or (= (# line) (# prefix))
+           (= (string.sub line (+ (# prefix) 1) (+ (# prefix) 1)) " "))))
 
 (local function count-prefix-lines [content prefix]
   (var count 0)
@@ -99,6 +101,33 @@
     (string.find line "primPOr" 1 true)
     (string.find line "primSubOut" 1 true)
     (string.find line "primSubIn" 1 true)))
+
+(local function redundant-prelude-builtin [imported]
+  (or (= imported "Agda.Builtin.Equality")
+      (= imported "Agda.Builtin.Nat")
+      (= imported "Agda.Builtin.Bool")
+      (= imported "Agda.Builtin.List")
+      (= imported "Agda.Builtin.Unit")))
+
+(local function check-redundant-prelude-builtins [files]
+  (var hits 0)
+  (each [_ path (ipairs files)]
+    (local content (read-file path))
+    (each [line-number line (ipairs (fun.totable (string.gmatch content "[^\\n]+")))]
+      (local imported
+        (or
+          (string.match line "^%s*open%s+import%s+([^%s]+)")
+          (string.match line "^%s*import%s+([^%s]+)")))
+      (when (and imported (redundant-prelude-builtin imported))
+        (set hits (+ hits 1))
+        (io.stderr:write
+          (.. "redundant Agda builtin; use Haskell.Prelude: "
+              path ":" line-number ": " imported "\\n")))))
+  (assert (= hits 0)
+    (.. "found " hits
+        " direct imports of builtins replaced by Haskell.Prelude"))
+  (print (.. "agda-prelude-builtin-migration=clean (" (# files)
+             " tracked Agda sources)")))
 
 (local function check-cubical-free [files]
   (var hits 0)
@@ -233,6 +262,7 @@
     "FullCoupled/Agda2HsSemanticSearch.agda"
     "FullCoupled/Agda2HsGraphSearchCheck.agda" ])
 
+(check-redundant-prelude-builtins agda-files)
 (check-cubical-free agda-files)
 (print "agda-import-sync=pass")
 (print "agda-global-options=pass")
