@@ -368,7 +368,7 @@ mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
 
 module ScottStracheyDomains where
   open import Agda.Builtin.Equality using (_≡_; refl)
-  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+  data Empty : Set where
   open import Agda.Builtin.Nat
     renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_)
 
@@ -471,7 +471,7 @@ module ScottStracheyDomains where
 
 module LawvereDiagonal where
   open import Agda.Builtin.Equality using (_≡_; refl)
-  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+  data Empty : Set where
 
   record DiagonalPreimage {A B : Set}
     (diagonal : A → A → B)
