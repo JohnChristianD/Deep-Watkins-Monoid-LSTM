@@ -67,7 +67,6 @@
       ghcLanguageFlags = [
         "-XMonoLocalBinds"
         "-XNoMonomorphismRestriction"
-        "-XImplicitPrelude"
       ];
 
       canonicalGhc = system:
@@ -268,7 +267,7 @@
             mkdir -p "$agda2hs_base_work/library"
             cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
             chmod -R u+rwX "$agda2hs_base_work/library"
-            if agda2hs "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            if agda2hs "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_work/library" -i . "$@"; then
               status=0
             else
               status=$?
@@ -541,7 +540,6 @@
 
                 mkdir -p "$out/ghc"
                 "${canonicalGhc system}/bin/ghc" \
-                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
                   -O0 \
                   -dcore-lint \
                                     -i"$out" \
@@ -623,7 +621,6 @@
                 grep -Fq "SearchableEquivalence" FullCoupled/TheoremsMonolith.agda
                 mkdir -p "$out/ghc"
                 "${canonicalGhc system}/bin/ghc" \
-                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
                   -O0 \
                   -dcore-lint \
                                     -i"$out" \
@@ -723,7 +720,6 @@
                 "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i"$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
                 mkdir -p "$out/ghc-search"
                 "${canonicalGhc system}/bin/ghc" \
-                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
                   -O0 -dcore-lint -i"$out" \
                   -odir "$out/ghc-search" -hidir "$out/ghc-search" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
