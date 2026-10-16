@@ -461,6 +461,70 @@ module ScottStracheyDomains where
     zeroAnnihilatorFailsAtBottom ()
 
 ------------------------------------------------------------------------
+-- Lawvere diagonal fixed points, constructive existence and boundary.
+--
+-- Pointwise-surjective self-application yields a fixed point for every
+-- endomap. Boolean negation has no fixed point, so such a diagonal decoder
+-- cannot be surjective when its result type has two distinct booleans.
+-- No cubical principles or fixed-point postulates occur in this proof.
+------------------------------------------------------------------------
+
+module LawvereDiagonal where
+  open import Agda.Builtin.Equality using (_≡_; refl)
+  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+
+  record DiagonalPreimage {A B : Set}
+    (diagonal : A → A → B)
+    (target : A → B) : Set where
+    constructor diagonalPreimage
+    field
+      witness : A
+      decodesPointwise : (x : A) → diagonal witness x ≡ target x
+
+  record FixedPointWitness {B : Set} (f : B → B) : Set where
+    constructor fixedPointWitness
+    field
+      fixedValue : B
+      fixedEquation : f fixedValue ≡ fixedValue
+
+  symEq : {A : Set} {x y : A} → x ≡ y → y ≡ x
+  symEq refl = refl
+
+  lawvereFixedPoint
+    : {A B : Set}
+      (diagonal : A → A → B)
+      (surjective : (target : A → B) → DiagonalPreimage diagonal target)
+      (f : B → B)
+      → FixedPointWitness f
+  lawvereFixedPoint diagonal surjective f
+    with surjective (λ x → f (diagonal x x))
+  ... | diagonalPreimage a equation =
+    fixedPointWitness (diagonal a a) (symEq (equation a))
+
+  data Boolean : Set where
+    booleanFalse booleanTrue : Boolean
+
+  booleanFlip : Boolean → Boolean
+  booleanFlip booleanFalse = booleanTrue
+  booleanFlip booleanTrue = booleanFalse
+
+  noBooleanFlipFixedPoint
+    : (b : Boolean) → booleanFlip b ≡ b → Empty
+  noBooleanFlipFixedPoint booleanFalse ()
+  noBooleanFlipFixedPoint booleanTrue ()
+
+  noSurjectiveBooleanDiagonal
+    : {A : Set}
+      (diagonal : A → A → Boolean)
+      → ((target : A → Boolean) → DiagonalPreimage diagonal target)
+      → Empty
+  noSurjectiveBooleanDiagonal diagonal surjective
+    with lawvereFixedPoint diagonal surjective booleanFlip
+  ... | fixedPointWitness value equation =
+    noBooleanFlipFixedPoint value equation
+
+
+------------------------------------------------------------------------
 -- Re-export policy semantics proved beside the canonical learner transition.
 ------------------------------------------------------------------------
 module BetaOptimalityBoundary = C.BetaOptimalityBoundary
