@@ -2303,9 +2303,20 @@ canonicalTokenLogitTrace K (t ∷ ts) s =
 ------------------------------------------------------------------------
 
 module BetaOptimalityBoundary where
-  open import Haskell.Prelude
-    using (Nat; zero; suc; ⊥)
-    renaming (Nat to BNat; zero to bzero; suc to bsuc; ⊥ to BetaEmpty)
+  open import Haskell.Prelude using (_≡_; refl)
+  import Haskell.Prelude as HP
+
+  BNat : Set
+  BNat = HP.Nat
+
+  bzero : BNat
+  bzero = HP.zero
+
+  bsuc : BNat → BNat
+  bsuc = HP.suc
+
+  BetaEmpty : Set
+  BetaEmpty = HP.⊥
 
   data Action : Set where
     leftAction rightAction : Action
@@ -2385,9 +2396,17 @@ module BetaOptimalityBoundary where
 ------------------------------------------------------------------------
 
 module CanonicalBellmanOrderTheory where
-  open import Haskell.Prelude
-    using (Nat; zero; suc; _≡_; refl)
-    renaming (Nat to BNat; zero to bzero; suc to bsuc)
+  open import Haskell.Prelude using (_≡_; refl)
+  import Haskell.Prelude as HP
+
+  BNat : Set
+  BNat = HP.Nat
+
+  bzero : BNat
+  bzero = HP.zero
+
+  bsuc : BNat → BNat
+  bsuc = HP.suc
 
   record CompleteMeetOrder (Value : Set) : Set₂ where
     field
