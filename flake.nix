@@ -480,6 +480,16 @@
                 test -s "$tmp/BetaOptimalityBoundary.agda"
                 test -s "$tmp/CanonicalBellmanOrderTheory.agda"
                 test -s "$tmp/LawvereDiagonal.agda"
+                for extracted in \
+                  "$tmp/ScottStracheyDomains.agda" \
+                  "$tmp/BetaOptimalityBoundary.agda" \
+                  "$tmp/LawvereDiagonal.agda"; do
+                  grep -Fq "open import Haskell.Prelude" "$extracted"
+                  if grep -Fq "Agda.Builtin." "$extracted"; then
+                    echo "forbidden Agda.Builtin import in $extracted" >&2
+                    exit 1
+                  fi
+                done
                 grep -Fq "lawvereFixedPoint" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "NeuralPolicyMDP" "$tmp/CanonicalBellmanOrderTheory.agda"
@@ -506,6 +516,11 @@
               runtimeInputs = [ (agdaCommand system) ];
               text = ''
                 set -euo pipefail
+                grep -Fq "open import Haskell.Prelude" FullCoupled/FormalMethods/MonoidLSTMStreams.agda
+                if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List)([[:space:]]|$)' FullCoupled/FormalMethods/MonoidLSTMStreams.agda; then
+                  echo "stream calculus must use the Agda2HS Prelude for Nat, equality, and lists" >&2
+                  exit 1
+                fi
                 agda2hs-agda -i . FullCoupled/FormalMethods/MonoidLSTMStreams.agda
                 echo "monoid-lstm-stream-check=pass"
               '';
@@ -532,6 +547,18 @@
 
                 # This lane checks only the Agda2HS runtime module closure.
                 # Historical theorem monoliths are outside this kernel-checked target.
+                for source in \
+                  FullCoupled/CanonicalLearnerMonolith.agda \
+                  FullCoupled/TheoremsMonolith.agda \
+                  FullCoupled/FormalMethods/MonoidLSTMStreams.agda \
+                  FullCoupled/Agda2HsSemanticExtractor.agda \
+                  FullCoupled/Agda2HsTheoremGraphEGraph.agda \
+                  FullCoupled/Agda2HsSemanticSearch.agda; do
+                  if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List)([[:space:]]|$)' "$source"; then
+                    echo "Agda2HS runtime module bypasses Haskell.Prelude: $source" >&2
+                    exit 1
+                  fi
+                done
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
@@ -565,6 +592,11 @@
                 grep -Fxq "graph-best-g-policy=True" "$out/report.txt"
                 grep -Fxq "graph-admissible-heuristic=True" "$out/report.txt"
                 grep -Fxq "graph-cycle-rejected=True" "$out/report.txt"
+                grep -Fxq "graph-closure-duplicate-dependencies=True" "$out/report.txt"
+                grep -Fxq "graph-duplicate-edge-normalization=True" "$out/report.txt"
+                grep -Fxq "graph-multi-parent-dag=True" "$out/report.txt"
+                grep -Fxq "graph-self-loop-rejected=True" "$out/report.txt"
+                grep -Fxq "graph-dot-parser-regression=True" "$out/report.txt"
                 grep -Fxq "graph-linear-chain=True" "$out/report.txt"
                 grep -Fxq "graph-search-contract=True" "$out/report.txt"
                 grep -Fxq "canonical-search-egraph-closed=True" "$out/report.txt"
@@ -622,6 +654,8 @@
                 test -s "$out/FullCoupled/Agda2HsTheoremGraphEGraph.hs"
                 grep -Fq "symbolicEGraphRegression" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "eGraphAssociativityRegression" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "canonicalBindingsRegression" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "hashconsAfterUnionRegression" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "requiredTheoremNames" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "requiredPlanComplete" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "inverse-correct" FullCoupled/TheoremsMonolith.agda
@@ -650,6 +684,8 @@
                 grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"
                 grep -Fq "graphTwoLeafBranchesRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
+                grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"
+                grep -Fq "egraph-hashcons-after-union=True" "$out/report.txt"
                 grep -Fq "canonical-search-egraph-closed=True" "$out/report.txt"
                 grep -Fq "graph-astar-egraph-closed=True" "$out/report.txt"
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)

@@ -352,6 +352,71 @@ mapStreamFusionBisim f g input .learnerStreamHeadsAgree = refl
 mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
   mapStreamFusionBisim f g (C.learnerStreamTail input {j})
 
+------------------------------------------------------------------------
+-- Seeded scan semantics on the canonical sized stream carrier.
+--
+-- The seed is observable at position zero; each later state consumes one
+-- input through the transition. This is the stream-level counterpart of the
+-- canonical learner trace and makes state-encoding fusion a theorem-level law.
+------------------------------------------------------------------------
+
+scanLearnerStream :
+  {i : Size} {State Input : Set} →
+  (State → Input → State) →
+  State → C.LearnerStream i Input → C.LearnerStream i State
+C.learnerStreamHead (scanLearnerStream step state inputs) = state
+C.learnerStreamTail (scanLearnerStream step state inputs) {j} =
+  scanLearnerStream
+    step
+    (step state (C.learnerStreamHead inputs))
+    (C.learnerStreamTail inputs {j})
+
+scanMapFusionBisim :
+  {i : Size} {State Target Input : Set} →
+  (encode : State → Target) →
+  (step : State → Input → State) →
+  (targetStep : Target → Input → Target) →
+  (stepFusion :
+    (state : State) (input : Input) →
+    encode (step state input) ＝ targetStep (encode state) input) →
+  (state : State) (inputs : C.LearnerStream i Input) →
+  LearnerStreamBisim i
+    (C.mapLearnerStream encode (scanLearnerStream step state inputs))
+    (scanLearnerStream targetStep (encode state) inputs)
+scanMapFusionBisim encode step targetStep stepFusion state inputs
+  .learnerStreamHeadsAgree = refl
+scanMapFusionBisim encode step targetStep stepFusion state inputs
+  .learnerStreamTailsBisimilar {j}
+  rewrite sym (stepFusion state (C.learnerStreamHead inputs)) =
+    scanMapFusionBisim
+      encode
+      step
+      targetStep
+      stepFusion
+      (step state (C.learnerStreamHead inputs))
+      (C.learnerStreamTail inputs {j})
+
+repeatUnitLearnerStream : {i : Size} → C.LearnerStream i C.⊤
+C.learnerStreamHead repeatUnitLearnerStream = C.tt
+C.learnerStreamTail repeatUnitLearnerStream {j} = repeatUnitLearnerStream
+
+-- Collapse the generic seeded scan back onto the canonical monoid-LSTM
+-- transition: the proof identifies every observable learner state, not just
+-- the first sample or a separately redefined transition function.
+canonicalLearnerTraceScan :
+  {i : Size} {A : Set}
+  (K : C.FullLearnerKernel A)
+  (initial : C.FullLearnerState A) →
+  LearnerStreamBisim i
+    (C.canonicalLearnerTrace K initial)
+    (scanLearnerStream
+      (λ state _ → C.canonicalFullStep K state)
+      initial
+      repeatUnitLearnerStream)
+canonicalLearnerTraceScan K initial .learnerStreamHeadsAgree = refl
+canonicalLearnerTraceScan K initial .learnerStreamTailsBisimilar {j} =
+  canonicalLearnerTraceScan K (C.canonicalFullStep K initial)
+
 -- TypeTopology's falsity is 𝟘. Keep familiar theorem notation local;
 -- do not import the Agda standard library or alter builtin ownership.
 ⊥ : Set
@@ -367,10 +432,24 @@ mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
 ------------------------------------------------------------------------
 
 module ScottStracheyDomains where
-  open import Agda.Builtin.Equality using (_≡_; refl)
-  open import Agda.Builtin.Empty renaming (⊥ to Empty)
-  open import Agda.Builtin.Nat
-    renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_)
+  open import Haskell.Prelude using (_≡_; refl)
+  import Haskell.Prelude as HP
+
+  BNat : Set
+  BNat = HP.Nat
+
+  bzero : BNat
+  bzero = HP.zero
+
+  bsuc : BNat → BNat
+  bsuc = HP.suc
+
+  infixl 6 _b+_
+  _b+_ : BNat → BNat → BNat
+  _b+_ = HP._+_
+
+  ScottEmpty : Set
+  ScottEmpty = HP.⊥
 
   data Lift (A : Set) : Set where
     bottom : Lift A
@@ -389,13 +468,13 @@ module ScottStracheyDomains where
   bottomIsLeast : {A : Set} (value : Lift A) → bottom ⊑ value
   bottomIsLeast _ = bottomLeast
 
-  bottomIsNotZero : bottom ≡ defined bzero → Empty
+  bottomIsNotZero : bottom ≡ defined bzero → ScottEmpty
   bottomIsNotZero ()
 
-  definedZeroIsNotBottom : defined bzero ≡ bottom → Empty
+  definedZeroIsNotBottom : defined bzero ≡ bottom → ScottEmpty
   definedZeroIsNotBottom ()
 
-  definedZeroIsNotLeast : defined bzero ⊑ bottom → Empty
+  definedZeroIsNotLeast : defined bzero ⊑ bottom → ScottEmpty
   definedZeroIsNotLeast ()
 
   data NatExpr : Set where
@@ -453,11 +532,11 @@ module ScottStracheyDomains where
     strictNegate (defined value) = defined (algebraNegate value)
 
     inverseLawFailsAtBottom :
-      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → Empty
+      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → ScottEmpty
     inverseLawFailsAtBottom ()
 
     zeroAnnihilatorFailsAtBottom :
-      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → Empty
+      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → ScottEmpty
     zeroAnnihilatorFailsAtBottom ()
 
 ------------------------------------------------------------------------
@@ -470,8 +549,11 @@ module ScottStracheyDomains where
 ------------------------------------------------------------------------
 
 module LawvereDiagonal where
-  open import Agda.Builtin.Equality using (_≡_; refl)
-  open import Agda.Builtin.Empty renaming (⊥ to Empty)
+  open import Haskell.Prelude using (_≡_; refl)
+  import Haskell.Prelude as HP
+
+  LawvereEmpty : Set
+  LawvereEmpty = HP.⊥
 
   record DiagonalPreimage {A B : Set}
     (diagonal : A → A → B)
@@ -509,7 +591,7 @@ module LawvereDiagonal where
   booleanFlip booleanTrue = booleanFalse
 
   noBooleanFlipFixedPoint
-    : (b : Boolean) → booleanFlip b ≡ b → Empty
+    : (b : Boolean) → booleanFlip b ≡ b → LawvereEmpty
   noBooleanFlipFixedPoint booleanFalse ()
   noBooleanFlipFixedPoint booleanTrue ()
 
@@ -517,7 +599,7 @@ module LawvereDiagonal where
     : {A : Set}
       (diagonal : A → A → Boolean)
       → ((target : A → Boolean) → DiagonalPreimage diagonal target)
-      → Empty
+      → LawvereEmpty
   noSurjectiveBooleanDiagonal diagonal surjective
     with lawvereFixedPoint diagonal surjective booleanFlip
   ... | fixedPointWitness value equation =

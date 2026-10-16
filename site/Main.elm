@@ -164,8 +164,8 @@ candidateColors =
     List.map (candidateRgb >> cat02LmsToOpponent) (List.range 0 35)
 
 
-farthestFrom : List Perceptual -> Perceptual -> Perceptual
-farthestFrom chosen candidate =
+farthestFrom : List Perceptual -> Perceptual -> List Perceptual -> Perceptual
+farthestFrom chosen candidate candidates =
     case chosen of
         [] ->
             candidate
@@ -179,7 +179,7 @@ farthestFrom chosen candidate =
                         best
                 )
                 candidate
-                candidateColors
+                candidates
 
 
 minimumDistance : List Perceptual -> Perceptual -> Float
@@ -205,13 +205,13 @@ maximinStep remaining candidates chosen =
             [] ->
                 chosen
 
-            first :: _ ->
+            first :: rest ->
                 let
                     next =
                         if List.isEmpty chosen then
                             first
                         else
-                            farthestFrom chosen first
+                            farthestFrom chosen first rest
                 in
                 maximinStep
                     (remaining - 1)
@@ -721,7 +721,7 @@ view model =
                     [ div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "modules" ], Html.strong [] [ text (String.fromInt (List.length Graph.nodes)) ] ]
                     , div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "relations" ], Html.strong [] [ text (String.fromInt (List.length Graph.edges)) ] ]
                     , div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "surface" ], Html.strong [] [ text "Fennel / LuaJIT" ] ]
-                    , div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "palette" ], Html.strong [] [ text "CAT02LMS" ] ]
+                    , div [ HA.class "stat" ] [ span [ HA.class "eyebrow" ] [ text "palette" ], Html.strong [] [ text ("CAT02LMS / " ++ String.fromInt (List.length maximinPalette) ++ " colors") ] ]
                     ]
                 ]
             , div [ HA.class "tools" ]

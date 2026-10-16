@@ -1,7 +1,6 @@
 module FullCoupled.Agda2HsTheoremGraphEGraph where
 
-open import Haskell.Prelude hiding (Nat; zero; suc)
-open import Agda.Builtin.Nat using (Nat)
+open import Haskell.Prelude
 open import Haskell.Prim using (eqNat; monusNat)
 
 incrementEGraphNat : Nat → Nat
@@ -207,11 +206,11 @@ sameENode : ENode -> ENode -> Bool
 sameENode (MkENode sx xs) (MkENode sy ys) =
   if sx == sy then listEqualNat xs ys else False
 
-findBindingByNode : ENode -> List Binding -> Maybe Nat
-findBindingByNode _ [] = Nothing
-findBindingByNode target (MkBinding candidate id ∷ rest) =
-  if sameENode target candidate then Just id
-  else findBindingByNode target rest
+findBindingByNode : EGraph -> ENode -> List Binding -> Maybe Nat
+findBindingByNode _ _ [] = Nothing
+findBindingByNode graph target (MkBinding candidate id ∷ rest) =
+  if sameENode target (canonicalNode graph candidate) then Just (root graph id)
+  else findBindingByNode graph target rest
 
 freshClass : EGraph -> Nat × EGraph
 freshClass graph =
@@ -222,7 +221,7 @@ freshClass graph =
 hashconsNode : ENode -> EGraph -> Nat × EGraph
 hashconsNode raw graph =
   let node = canonicalNode graph raw in
-  case findBindingByNode node (bindings graph) of λ where
+  case findBindingByNode graph node (bindings graph) of λ where
     Nothing ->
       let (id , graph') = freshClass graph in
       id ,
@@ -282,9 +281,16 @@ rebuildBindings (MkBinding node id ∷ rest) graph changed =
       else
         rebuildBindings rest (mergeRoots id other graph) True
 
+canonicalizeBindings : List Binding -> EGraph -> List Binding
+canonicalizeBindings [] _ = []
+canonicalizeBindings (MkBinding node id ∷ rest) graph =
+  MkBinding (canonicalNode graph node) id ∷ canonicalizeBindings rest graph
+
 rebuildPass : EGraph -> EGraph × Bool
 rebuildPass graph =
-  rebuildBindings (bindings graph) graph False
+  let canonical = canonicalizeBindings (bindings graph) graph
+      graph' = MkEGraph (nextId graph) (parents graph) canonical
+  in rebuildBindings canonical graph' False
 
 -- Rebuild until congruence stops merging classes or the graph-sized bound
 -- is exhausted. Each successful pass strictly reduces the class partition.
@@ -688,6 +694,39 @@ record EGraphRegression : Type where
 
 open EGraphRegression public
 
+-- After a union, stored enodes must be interpreted through the current
+-- representatives. This checks the invariant even before rebuild is called.
+bindingsCanonical : List Binding -> EGraph -> Bool
+bindingsCanonical [] _ = True
+bindingsCanonical (MkBinding node _ ∷ rest) graph =
+  sameENode node (canonicalNode graph node) && bindingsCanonical rest graph
+
+canonicalBindingsRegression : Bool
+canonicalBindingsRegression =
+  let (a , g1) = addExpr (ExprAtom "a") emptyGraph
+      (b , g2) = addExpr (ExprAtom "b") g1
+      (_ , g3) = addExpr (ExprApp "f" (ExprAtom "b" ∷ [])) g2
+      g4 = merge a b g3
+  in bindingsCanonical (bindings g4) g4
+
+canonicalBindingsRegression-proof : canonicalBindingsRegression ≡ True
+canonicalBindingsRegression-proof = refl
+
+-- A rewrite pass may union classes before its rebuild pass. Hash-consing at
+-- that seam must compare existing enodes modulo the current union-find roots.
+hashconsAfterUnionRegression : Bool
+hashconsAfterUnionRegression =
+  let (a , g1) = addExpr (ExprAtom "a") emptyGraph
+      (b , g2) = addExpr (ExprAtom "b") g1
+      (fb , g3) = addExpr (ExprApp "f" (ExprAtom "b" ∷ [])) g2
+      g4 = mergeRoots a b g3
+      before = enodeCount g4
+      (fa , g5) = addExpr (ExprApp "f" (ExprAtom "a" ∷ [])) g4
+  in enodeCount g5 == before && equivalent fa fb g5
+
+hashconsAfterUnionRegression-proof : hashconsAfterUnionRegression ≡ True
+hashconsAfterUnionRegression-proof = refl
+
 regressionGraph : EGraphRegression
 regressionGraph =
   let (a , g1) = addExpr (ExprAtom "a") emptyGraph
@@ -820,7 +859,9 @@ symbolicEGraphRegression =
   regressionExtractOk regressionGraph &&
   regressionQuotientOk regressionGraph &&
   regressionIterationOk regressionGraph &&
-  regressionSaturationOk regressionGraph
+  regressionSaturationOk regressionGraph &&
+  canonicalBindingsRegression &&
+  hashconsAfterUnionRegression
 
 symbolicEGraphRegression-proof :
   symbolicEGraphRegression ≡ True
@@ -878,6 +919,10 @@ eGraphAssociativityRegression-proof = refl
 {-# COMPILE AGDA2HS extractBest #-}
 {-# COMPILE AGDA2HS rootWithFuel #-}
 {-# COMPILE AGDA2HS rebuildWithFuel #-}
+{-# COMPILE AGDA2HS canonicalizeBindings #-}
+{-# COMPILE AGDA2HS bindingsCanonical #-}
+{-# COMPILE AGDA2HS canonicalBindingsRegression #-}
+{-# COMPILE AGDA2HS hashconsAfterUnionRegression #-}
 {-# COMPILE AGDA2HS rebuildPass #-}
 {-# COMPILE AGDA2HS rebuildBindings #-}
 {-# COMPILE AGDA2HS mergeRoots #-}

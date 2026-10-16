@@ -695,6 +695,31 @@ parseDotEdges : String -> List (String × String)
 parseDotEdges source =
   concatMap parseDotLine (lines source)
 
+parseDotQuotedEdgeRegression : Bool
+parseDotQuotedEdgeRegression =
+  case parseDotLine "\"A.Module\" -> \"B.Module\";" of λ where
+    ((source , target) ∷ []) ->
+      source == "A.Module" && target == "B.Module"
+    _ -> False
+
+parseDotAttributeEdgeRegression : Bool
+parseDotAttributeEdgeRegression =
+  case parseDotLine "\"A\" -> \"B\" [style=solid];" of λ where
+    ((source , target) ∷ []) ->
+      source == "A" && target == "B"
+    _ -> False
+
+parseDotMalformedLineRegression : Bool
+parseDotMalformedLineRegression =
+  listLengthNat (parseDotLine "digraph theorem {") == 0
+    && listLengthNat (parseDotLine "// no dependency edge") == 0
+
+graphDotParserRegression : Bool
+graphDotParserRegression =
+  parseDotQuotedEdgeRegression
+    && parseDotAttributeEdgeRegression
+    && parseDotMalformedLineRegression
+
 canonicalGraphRoot : String
 canonicalGraphRoot = "FullCoupled.Agda2HsSemanticSearch"
 
@@ -979,11 +1004,12 @@ graphAStarFirst laws seed =
   case graphFirst (graphNodePlan seed) of λ where
     Nothing -> Nothing
     (Just root) ->
+      let initialCost = graphNodeScore seed in
       graphAStarFirstWithFuel
         (graphAStarFuelBound laws)
         laws
-        (MkGraphAStarNode (graphNodePlan seed) 0 ∷ [])
-        (MkGraphAStarBest root 0 ∷ [])
+        (MkGraphAStarNode (graphNodePlan seed) initialCost ∷ [])
+        (MkGraphAStarBest root initialCost ∷ [])
 
 graphAStarTieBreakRegression : Bool
 graphAStarTieBreakRegression =
@@ -1102,9 +1128,18 @@ graphCycleIsRejectedRegressionChecked = refl
 -- dependencies before their users. Missing names and cycles return Nothing.
 ------------------------------------------------------------------------
 
+-- Closure traversal queues dependency entries, not just distinct vertices.
+-- Bound fuel by adjacency-list size as well as vertex count; repeated
+-- dependency entries must not make a valid graph report exhaustion.
+graphClosureDependencyFuel : List GraphLaw -> List ⊤
+graphClosureDependencyFuel [] = []
+graphClosureDependencyFuel (law ∷ laws) =
+  repeatBy (graphLawDependencies law) (tt ∷ [])
+    ++ graphClosureDependencyFuel laws
+
 graphClosureFuel : List GraphLaw -> List ⊤
 graphClosureFuel laws =
-  repeatBy laws (graphDepthFuel laws ++ (tt ∷ []))
+  graphDepthFuel laws ++ graphClosureDependencyFuel laws ++ (tt ∷ [])
 
 graphReachableNames :
   List ⊤ ->
@@ -1278,6 +1313,86 @@ graphDependencyClosureRejectsMissingRegression =
   case graphDependencyClosure "A" laws of λ where
     Nothing -> True
     (Just _) -> False
+
+-- Duplicate adjacency entries inflate the pending queue without adding new
+-- vertices. The old vertex-count-only fuel exhausted before draining this
+-- valid graph; edge-count fuel now covers the actual traversal work.
+graphDependencyClosureRepeatedDependenciesRegression : Bool
+graphDependencyClosureRepeatedDependenciesRegression =
+  let
+    repeated =
+      "B" ∷ "B" ∷ "B" ∷ "B" ∷ "B" ∷ "B" ∷ "B" ∷ "B" ∷ []
+    laws =
+      MkGraphLaw "A" repeated ∷
+      MkGraphLaw "B" [] ∷
+      []
+  in
+  case graphDependencyClosure "A" laws of λ where
+    Nothing -> False
+    (Just closure) ->
+      graphDependencyClosureValid laws closure
+        && graphContains "A" closure
+        && graphContains "B" closure
+        && listLengthNat closure == incrementSearchNat (incrementSearchNat 0)
+
+-- Duplicate input arrows must neither multiply a node's dependency list nor
+-- produce duplicate sibling paths.
+graphDuplicateEdgeSearchRegression : Bool
+graphDuplicateEdgeSearchRegression =
+  let
+    edges =
+      ("A" , "B") ∷
+      ("A" , "B") ∷
+      []
+    laws = graphLawsFromEdges edges
+    plans = autonomousGraphSearchFromRoot "A" edges
+  in
+  case graphLawForName "A" laws of λ where
+    Nothing -> False
+    (Just law) ->
+      listLengthNat (graphLawDependencies law) == incrementSearchNat 0
+        && listLengthNat plans == incrementSearchNat 0
+        && graphPathMember ("B" ∷ "A" ∷ []) plans
+
+-- A multi-parent diamond must preserve both valid dependency chains. A*
+-- may return either equal-cost branch, never a fabricated sibling edge.
+graphMultiParentSearchRegression : Bool
+graphMultiParentSearchRegression =
+  let
+    edges =
+      ("A" , "B") ∷
+      ("A" , "C") ∷
+      ("B" , "D") ∷
+      ("C" , "D") ∷
+      []
+    laws = graphLawsFromEdges edges
+    plans = autonomousGraphSearchFromRoot "A" edges
+    astarValid =
+      case graphAStarFirst laws (MkGraphNode ("A" ∷ [])) of λ where
+        Nothing -> False
+        (Just selected) ->
+          graphValidPlan selected laws
+            && listLengthNat selected == incrementSearchNat (incrementSearchNat (incrementSearchNat 0))
+            && (graphStringPathEqual selected ("D" ∷ "B" ∷ "A" ∷ [])
+              || graphStringPathEqual selected ("D" ∷ "C" ∷ "A" ∷ []))
+  in
+  graphPathMember ("D" ∷ "B" ∷ "A" ∷ []) plans
+    && graphPathMember ("D" ∷ "C" ∷ "A" ∷ []) plans
+    && listLengthNat plans == incrementSearchNat (incrementSearchNat 0)
+    && astarValid
+
+graphSelfLoopRejectedRegression : Bool
+graphSelfLoopRejectedRegression =
+  let
+    edges = ("A" , "A") ∷ []
+    laws = graphLawsFromEdges edges
+    plans = autonomousGraphSearchFromRoot "A" edges
+    astarRejects =
+      case graphAStarFirst laws (MkGraphNode ("A" ∷ [])) of λ where
+        Nothing -> True
+        (Just _) -> False
+  in
+  listLengthNat plans == 0 && astarRejects
 
 -- A focused obligation graph separate from the inverse/exact-search graph.
 -- Each path is an explicit dependency chain, not itself a proof term.
@@ -1533,6 +1648,10 @@ semanticSearchExecutableReport laws =
     ++ show symbolicEGraphRegression
     ++ " egraph-associativity-regression="
     ++ show eGraphAssociativityRegression
+    ++ " egraph-canonical-bindings="
+    ++ show EGraph.canonicalBindingsRegression
+    ++ " egraph-hashcons-after-union="
+    ++ show EGraph.hashconsAfterUnionRegression
 
 stringListEqual : List String -> List String -> Bool
 stringListEqual [] [] = True
@@ -2037,6 +2156,15 @@ main = do
 {-# COMPILE AGDA2HS graphDependencyClosureRegression #-}
 {-# COMPILE AGDA2HS graphDependencyClosureRejectsCycleRegression #-}
 {-# COMPILE AGDA2HS graphDependencyClosureRejectsMissingRegression #-}
+{-# COMPILE AGDA2HS graphClosureDependencyFuel #-}
+{-# COMPILE AGDA2HS graphDependencyClosureRepeatedDependenciesRegression #-}
+{-# COMPILE AGDA2HS graphDuplicateEdgeSearchRegression #-}
+{-# COMPILE AGDA2HS graphMultiParentSearchRegression #-}
+{-# COMPILE AGDA2HS graphSelfLoopRejectedRegression #-}
+{-# COMPILE AGDA2HS parseDotQuotedEdgeRegression #-}
+{-# COMPILE AGDA2HS parseDotAttributeEdgeRegression #-}
+{-# COMPILE AGDA2HS parseDotMalformedLineRegression #-}
+{-# COMPILE AGDA2HS graphDotParserRegression #-}
 {-# COMPILE AGDA2HS graphStringPathEqual #-}
 {-# COMPILE AGDA2HS graphPathMember #-}
 {-# COMPILE AGDA2HS graphNodePlanMember #-}

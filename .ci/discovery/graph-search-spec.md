@@ -56,10 +56,7 @@ leaves no further child, that is a dead end, not success.
   bound covers every simple path. Its report must say DFS/maximal dependency
   chains, never A*.
 - `graphAStarFirst` is a separate best-first single-plan search, with
-  JAxtar's default discrete A* policy preserved. The root has `g=0`, each
-  dependency edge costs one, and the heuristic is 0 for a leaf (or unknown
-  node) and 1 for a node with dependencies. Its weighted score is the exact
-  integer scaling of JAxtar's default `f = (1 - 10^-6)g + h`:
+  JAxtar's default discrete A* policy preserved. Path cost is `g = length(path)`: a singleton seed starts at one, and each dependency edge adds one. Relative ordering matches edge-count g-cost from a fixed seed because its prefix contribution is constant. The heuristic is 0 for a leaf (or unknown node) and 1 for a node with dependencies. Its weighted score is the exact integer scaling of JAxtar's default `f = (1 - 10^-6)g + h`:
   `999999*g + 1000000*h`. A non-leaf needs at least one additional edge to
   reach a leaf, so `h=1` is a lower bound. Queue insertion uses `<=`, so an
   incoming equal-score node precedes an existing node.
@@ -92,6 +89,13 @@ Agda reduces these checks to `True`, and generated Haskell prints the same:
   incoming-first rule.
 - `graphAStarBestGRegression`: only strictly cheaper duplicate states are
   enqueued, matching JAxtar's best-cost rule.
+- `graphDependencyClosureRepeatedDependenciesRegression`: repeated dependency
+  entries do not prematurely exhaust closure fuel.
+- `graphDuplicateEdgeSearchRegression`, `graphMultiParentSearchRegression`,
+  and `graphSelfLoopRejectedRegression`: input normalization, both diamond
+  branches, and self-loop rejection.
+- `graphDotParserRegression`: quoted qualified names, semicolon/attribute
+  suffixes, and malformed non-edge lines.
 - Semantic-law and symbolic e-graph regressions remain separate.
 
 The DOT parser is intentionally narrow: it accepts lines whose first three

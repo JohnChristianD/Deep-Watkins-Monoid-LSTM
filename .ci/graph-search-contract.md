@@ -43,9 +43,9 @@ Do not call every traversal “A*”.
 ### `graphAStarFirst`: one best-first maximal chain
 
 - Seed: one initial `GraphNode`.
-- Path cost: `g(n) = length(path)`.
+- Path cost: `g(n) = length(path)`; a singleton seed starts at one, and each dependency extension adds one. This has the same ordering as edge-count cost from the fixed seed because the seed-prefix contribution is constant.
 - Heuristic: `h(n) = 0` when the current head has no dependencies; otherwise `h(n) = 1`.
-- Priority: `f(n) = g(n) + h(n)`; insertion places an equal-score candidate before an older entry (`<=`).
+- Priority: the JAxtar-compatible integer score `999999*g(n) + 1000000*h(n)`, an exact integer scaling of `(1 - 10^-6)g + h`. Insertion places an equal-score candidate before an older entry (`<=`).
 - Goal: first `graphMaximalDependencyChain` accepted from the ordered frontier.
 - Fuel: `3 * factorial(number of graph laws)`. This is the explicit finite simple-path search bound for the current implementation. Exhaustion returns `Nothing`; callers must preserve that result, not convert it to success.
 
@@ -73,10 +73,13 @@ All fixtures should be checked by Agda reduction (`...Checked = refl`) before ex
 5. **Cycle policy:** a back-edge into the current path stops expansion. Current tests deliberately treat the simple path as maximal; they do not certify the input graph is acyclic.
 6. **Tie policy:** `graphAStarTieBreakRegressionChecked` locks down equal-score insertion order.
 7. **Fuel exhaustion:** missing goal/invalid graph or exhausted finite budget yields `Nothing`, not an invented result.
-8. **Generated source:** DOT parser regression covers quotes and trailing semicolons/brackets from actual `--dependency-graph` output.
+8. **Generated source:** DOT parser regressions cover qualified quoted names, semicolons, attribute suffixes, and malformed non-edge lines.
+9. **Duplicate-heavy closure:** repeated dependency entries must not exhaust closure fuel before the queue drains.
+10. **Input normalization:** duplicate arrows yield one dependency and one branch; self-loops fail as leaf searches.
+11. **Multi-parent DAG:** both parent branches remain valid; A* returns one shortest, valid branch.
 
 ## 6. Required next hardening
 
-- Add explicit tests for missing referenced nodes, duplicate input edges, self-loops, multi-parent DAGs, and both search modes.
 - Add a stable graph artifact schema containing format version, source commit, node count, edge count, and hash. Keep theorem proof checking separate from graph generation and graph search.
+- Extend the narrow DOT parser only when fixtures cover the new syntax; quoted names containing spaces and multi-line declarations remain unsupported.
 - Compare fixtures against the legacy Mercury search only as a differential compatibility oracle. Do not restore the Mercury runtime or assert behavioral equivalence until selected outputs and budgets are captured and matched.
