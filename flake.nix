@@ -67,6 +67,7 @@
       ghcLanguageFlags = [
         "-XMonoLocalBinds"
         "-XNoMonomorphismRestriction"
+        "-XImplicitPrelude"
       ];
 
       canonicalGhc = system:
@@ -310,9 +311,13 @@
                 fennel --version
                 tmp=$(mktemp -d)
                 trap 'rm -rf "$tmp"' EXIT
-                printf '%s\n' '(print "fennel-luajit=pass")' > "$tmp/smoke.fnl"
-                test "$(fennel "$tmp/smoke.fnl")" = "fennel-luajit=pass"
-                echo "fennel-luajit-smoke=pass"
+                printf '%s\n' \
+                  '(local fun (require :fun))' \
+                  '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) [1 2 3])))' \
+                  '(assert (= (table.concat mapped ",") "2,4,6"))' \
+                  '(print "fennel-luafun=pass")' > "$tmp/smoke.fnl"
+                test "$(fennel "$tmp/smoke.fnl")" = "fennel-luafun=pass"
+                echo "fennel-luajit-luafun-smoke=pass"
               '';
             };
           in {
@@ -536,6 +541,7 @@
 
                 mkdir -p "$out/ghc"
                 "${canonicalGhc system}/bin/ghc" \
+                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
                   -O0 \
                   -dcore-lint \
                                     -i"$out" \
@@ -617,6 +623,7 @@
                 grep -Fq "SearchableEquivalence" FullCoupled/TheoremsMonolith.agda
                 mkdir -p "$out/ghc"
                 "${canonicalGhc system}/bin/ghc" \
+                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
                   -O0 \
                   -dcore-lint \
                                     -i"$out" \
@@ -716,6 +723,7 @@
                 "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i"$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
                 mkdir -p "$out/ghc-search"
                 "${canonicalGhc system}/bin/ghc" \
+                  ${builtins.concatStringsSep " " ghcLanguageFlags} \
                   -O0 -dcore-lint -i"$out" \
                   -odir "$out/ghc-search" -hidir "$out/ghc-search" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
