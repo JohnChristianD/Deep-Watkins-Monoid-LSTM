@@ -66,7 +66,6 @@ open import Haskell.Extra.Delay public
 open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
-open import Agda.Builtin.Equality public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Reflection public
 open import Agda.Builtin.Coinduction public
@@ -2305,6 +2304,7 @@ canonicalTokenLogitTrace K (t ∷ ts) s =
 
 module BetaOptimalityBoundary where
   open import Haskell.Prelude
+    using (Nat; zero; suc; ⊥)
     renaming (Nat to BNat; zero to bzero; suc to bsuc; ⊥ to BetaEmpty)
 
   data Action : Set where
@@ -2385,8 +2385,8 @@ module BetaOptimalityBoundary where
 ------------------------------------------------------------------------
 
 module CanonicalBellmanOrderTheory where
-  open import Agda.Builtin.Equality using (_≡_; refl)
-  open import Agda.Builtin.Nat
+  open import Haskell.Prelude
+    using (Nat; zero; suc; _≡_; refl)
     renaming (Nat to BNat; zero to bzero; suc to bsuc)
 
   record CompleteMeetOrder (Value : Set) : Set₂ where
