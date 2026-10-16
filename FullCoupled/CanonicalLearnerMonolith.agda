@@ -68,7 +68,7 @@ open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Reflection public
-open import Agda.Builtin.Coinduction public
+import FullCoupled.FormalMethods.MonoidLSTMStreams as MLS
 open import Agda.Builtin.Size public
 
 variable
@@ -2028,42 +2028,59 @@ canonicalFullStep-watkins K s = refl
 -- theorem monolith. The size index bounds every tail observation.
 ------------------------------------------------------------------------
 
-record LearnerStream (i : Size) (A : Set) : Set where
-  coinductive
-  field
-    learnerStreamHead : A
-    learnerStreamTail : ∀ {j : Size< i} → LearnerStream j A
+-- The common sized stream carrier and observation laws live in
+-- MonoidLSTMStreams; the trace below iterates the actual learner transition.
+LearnerStream : (i : Size) → Set ℓ → Set ℓ
+LearnerStream i A = MLS.Stream A i
 
-open LearnerStream public
+learnerStreamHead :
+  {i : Size} {A : Set ℓ} → LearnerStream i A → A
+learnerStreamHead = MLS.streamHead
+
+learnerStreamTail :
+  {i : Size} {A : Set ℓ}
+  (input : LearnerStream i A) →
+  {j : Size< i} → LearnerStream j A
+learnerStreamTail = MLS.streamTail
+
+learnerStreamRepeat :
+  {i : Size} {A : Set ℓ} → A → LearnerStream i A
+learnerStreamRepeat = MLS.repeatStream
 
 mapLearnerStream :
-  {i : Size} {A B : Set} →
+  {i : Size} {A B : Set ℓ} →
   (A → B) → LearnerStream i A → LearnerStream i B
-learnerStreamHead (mapLearnerStream f input) = f (learnerStreamHead input)
-learnerStreamTail (mapLearnerStream f input) {j} =
-  mapLearnerStream f (learnerStreamTail input {j})
+mapLearnerStream = MLS.mapStream
 
--- The head is the initial state; each smaller observation reveals one
--- canonical transition. No fairness or reward-optimality claim is implied.
 canonicalLearnerTrace :
   {i : Size} {A : Set} →
   FullLearnerKernel A →
   FullLearnerState A →
   LearnerStream i (FullLearnerState A)
-learnerStreamHead (canonicalLearnerTrace K initial) = initial
-learnerStreamTail (canonicalLearnerTrace K initial) {j} =
-  canonicalLearnerTrace K (canonicalFullStep K initial)
+canonicalLearnerTrace {i} K initial =
+  MLS.iterateStream {i = i} (canonicalFullStep K) initial
 
--- Finite observation of the productive stream agrees exactly with the
--- canonical step iterator, including the initial state at index zero.
+-- The finite observation law is stated over the stream implementation used
+-- by the canonical learner, not over an independent stream definition.
+canonicalLearnerTracePrefix :
+  ∀ {A : Set}
+    (K : FullLearnerKernel A)
+    (initial : FullLearnerState A)
+    (n : Nat) →
+  MLS.streamPrefix n (canonicalLearnerTrace {i = ∞} K initial) ≡
+    MLS.iterateList n (canonicalFullStep K) initial
+canonicalLearnerTracePrefix K initial n =
+  MLS.iterateStreamPrefix n (canonicalFullStep K) initial
+
 learnerStreamAt :
-  {i : Size} {A : Set} →
+  {i : Size} {A : Set ℓ} →
   ℕ →
   LearnerStream i A →
   A
 learnerStreamAt zero trace = learnerStreamHead trace
 learnerStreamAt (succ n) trace =
   learnerStreamAt n (learnerStreamTail trace)
+
 
 iterateCanonical-step-shift :
   ∀ {A}
