@@ -26,6 +26,8 @@ instance
   iEqCapability ._==_ UniformContinuity UniformContinuity = True
   iEqCapability ._==_ _ _ = False
 
+{-# COMPILE AGDA2HS iEqCapability #-}
+
 -- A proposal prior is only a deterministic tie-break signal for the
 -- capability planner. It is not an MDP action-value Q function.
 record SemanticLaw : Type where
