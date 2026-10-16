@@ -1,6 +1,7 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
-open import Haskell.Prelude
+open import Haskell.Prelude hiding (Nat; zero; suc)
+open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Haskell.Prim using (eqNat; monusNat)
 
 
@@ -39,10 +40,10 @@ isAsciiDigitRegressionChecked = refl
 
 isSourceSpace : Char → Bool
 isSourceSpace c =
-  if eqChar c ' ' then True
-  else if eqChar c '\n' then True
-  else if eqChar c '\r' then True
-  else eqChar c '\t'
+  if c == ' ' then True
+  else if c == '\n' then True
+  else if c == '\r' then True
+  else c == '\t'
 
 data SemanticKind : Type where
   SemanticTopLevel : SemanticKind
@@ -98,10 +99,10 @@ isIdentifierChar c =
     True
   else if isAsciiDigit c then
     True
-  else if eqChar c '_' then
+  else if c == '_' then
     True
   else
-    eqChar c '-'
+    c == '-'
 
 isSpace : Char -> Bool
 isSpace = isSourceSpace
@@ -145,7 +146,7 @@ secondWord source =
 containsChar : Char -> CharList -> Bool
 containsChar _ [] = False
 containsChar target (c ∷ rest) =
-  if eqChar target c then
+  if target == c then
     True
   else
     containsChar target rest
@@ -160,7 +161,7 @@ splitFirstChar :
   CharList × CharList
 splitFirstChar target [] = [] , []
 splitFirstChar target (c ∷ rest) =
-  if eqChar target c then
+  if target == c then
     [] , rest
   else
     let (before , after) = splitFirstChar target rest
@@ -700,7 +701,7 @@ matchesPrefix :
 matchesPrefix [] _ = True
 matchesPrefix (_ ∷ _) [] = False
 matchesPrefix (needle ∷ needles) (candidate ∷ candidates) =
-  if eqChar needle candidate then
+  if needle == candidate then
     matchesPrefix needles candidates
   else
     False
