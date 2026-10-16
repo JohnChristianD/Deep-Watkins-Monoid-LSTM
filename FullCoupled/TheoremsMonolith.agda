@@ -368,7 +368,7 @@ mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
 
 module ScottStracheyDomains where
   open import Agda.Builtin.Equality using (_≡_; refl)
-  data ScottEmpty : Set where
+  import Haskell.Prelude as HP
   open import Agda.Builtin.Nat
     renaming (Nat to BNat; zero to bzero; suc to bsuc; _+_ to _b+_)
 
@@ -389,13 +389,13 @@ module ScottStracheyDomains where
   bottomIsLeast : {A : Set} (value : Lift A) → bottom ⊑ value
   bottomIsLeast _ = bottomLeast
 
-  bottomIsNotZero : bottom ≡ defined bzero → ScottEmpty
+  bottomIsNotZero : bottom ≡ defined bzero → HP.⊥
   bottomIsNotZero ()
 
-  definedZeroIsNotBottom : defined bzero ≡ bottom → ScottEmpty
+  definedZeroIsNotBottom : defined bzero ≡ bottom → HP.⊥
   definedZeroIsNotBottom ()
 
-  definedZeroIsNotLeast : defined bzero ⊑ bottom → ScottEmpty
+  definedZeroIsNotLeast : defined bzero ⊑ bottom → HP.⊥
   definedZeroIsNotLeast ()
 
   data NatExpr : Set where
@@ -453,11 +453,11 @@ module ScottStracheyDomains where
     strictNegate (defined value) = defined (algebraNegate value)
 
     inverseLawFailsAtBottom :
-      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → ScottEmpty
+      strictAdd bottom (strictNegate bottom) ≡ defined algebraZero → HP.⊥
     inverseLawFailsAtBottom ()
 
     zeroAnnihilatorFailsAtBottom :
-      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → ScottEmpty
+      strictMultiply (defined algebraZero) bottom ≡ defined algebraZero → HP.⊥
     zeroAnnihilatorFailsAtBottom ()
 
 ------------------------------------------------------------------------
