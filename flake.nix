@@ -480,6 +480,13 @@
                 test -s "$tmp/BetaOptimalityBoundary.agda"
                 test -s "$tmp/CanonicalBellmanOrderTheory.agda"
                 test -s "$tmp/LawvereDiagonal.agda"
+                for extracted in \
+                  "$tmp/ScottStracheyDomains.agda" \
+                  "$tmp/BetaOptimalityBoundary.agda" \
+                  "$tmp/LawvereDiagonal.agda"; do
+                  grep -Fq "open import Haskell.Prelude" "$extracted"
+                  ! grep -Fq "Agda.Builtin." "$extracted"
+                done
                 grep -Fq "lawvereFixedPoint" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "NeuralPolicyMDP" "$tmp/CanonicalBellmanOrderTheory.agda"
