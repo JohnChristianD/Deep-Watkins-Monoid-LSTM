@@ -2717,7 +2717,7 @@ module CanonicalBellmanOrderTheory where
   bellmanStreamLeastFixedPointAtZero :
     {Value : Set} →
     (B : OmegaContinuousBellmanSemantics Value) →
-    bellmanStreamValue B bzero =
+    bellmanStreamValue B bzero ≡
       OmegaCPO.bottomω (valueDomain B)
   bellmanStreamLeastFixedPointAtZero B = refl
 
