@@ -290,6 +290,8 @@ syntax try-fun t f = try t or-else f
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_; gruStep)
+import FullCoupled.FormalMethods.MonoidLSTMStreams as MLS
+open import Agda.Primitive using (Level)
 open import Agda.Builtin.Size using (Size; Size<_; ∞)
 -- END THEOREM-SPECIFIC IMPORTS
 
@@ -300,7 +302,7 @@ open import Agda.Builtin.Size using (Size; Size<_; ∞)
 
 record GuardedLearnerTrace {A : Set}
   (K : C.FullLearnerKernel A)
-  (initial : C.FullLearnerState A) : Set where
+  (initial : C.FullLearnerState A) : Set₁ where
   constructor guardedLearnerTrace
   field
     learnerTrace : C.LearnerStream ∞ (C.FullLearnerState A)
@@ -324,8 +326,8 @@ learnerSpecGuardedTrace :
   GuardedLearnerTrace K initial
 learnerSpecGuardedTrace = canonicalLearnerTraceGuarded
 
-record LearnerStreamBisim (i : Size) {A : Set}
-  (left right : C.LearnerStream i A) : Set where
+record LearnerStreamBisim (i : Size) {ℓ : Level} {A : Set ℓ}
+  (left right : C.LearnerStream i A) : Set ℓ where
   coinductive
   field
     learnerStreamHeadsAgree :
@@ -341,7 +343,8 @@ open LearnerStreamBisim public
 -- Infinite map fusion: equality of every observable head is preserved
 -- coinductively, with each recursive obligation at a smaller size.
 mapStreamFusionBisim :
-  {i : Size} {A B D : Set} →
+  {ℓA ℓB ℓD : Level} {i : Size}
+  {A : Set ℓA} {B : Set ℓB} {D : Set ℓD} →
   (f : B → D) →
   (g : A → B) →
   (input : C.LearnerStream i A) →
@@ -361,18 +364,15 @@ mapStreamFusionBisim f g input .learnerStreamTailsBisimilar {j} =
 ------------------------------------------------------------------------
 
 scanLearnerStream :
-  {i : Size} {State Input : Set} →
+  {ℓS ℓI : Level} {i : Size}
+  {State : Set ℓS} {Input : Set ℓI} →
   (State → Input → State) →
   State → C.LearnerStream i Input → C.LearnerStream i State
-C.learnerStreamHead (scanLearnerStream step state inputs) = state
-C.learnerStreamTail (scanLearnerStream step state inputs) {j} =
-  scanLearnerStream
-    step
-    (step state (C.learnerStreamHead inputs))
-    (C.learnerStreamTail inputs {j})
+scanLearnerStream = MLS.scanSeededStream
 
 scanMapFusionBisim :
-  {i : Size} {State Target Input : Set} →
+  {ℓS ℓT ℓI : Level} {i : Size}
+  {State : Set ℓS} {Target : Set ℓT} {Input : Set ℓI} →
   (encode : State → Target) →
   (step : State → Input → State) →
   (targetStep : Target → Input → Target) →
@@ -397,8 +397,7 @@ scanMapFusionBisim encode step targetStep stepFusion state inputs
       (C.learnerStreamTail inputs {j})
 
 repeatUnitLearnerStream : {i : Size} → C.LearnerStream i C.⊤
-C.learnerStreamHead repeatUnitLearnerStream = C.tt
-C.learnerStreamTail repeatUnitLearnerStream {j} = repeatUnitLearnerStream
+repeatUnitLearnerStream = C.learnerStreamRepeat C.tt
 
 -- Collapse the generic seeded scan back onto the canonical monoid-LSTM
 -- transition: the proof identifies every observable learner state, not just
