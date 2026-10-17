@@ -763,10 +763,12 @@ recordFieldIsolationRegression =
       "ordinary : Example" ∷
       [] ) of λ where
     (fieldDecl ∷ _) ->
-      declName fieldDecl == "Example.fieldValue" &&
-      declSignature fieldDecl == "Nat" &&
-      declKind fieldDecl == SemanticRecordField &&
-      declContainer fieldDecl == "Example"
+      case declKind fieldDecl of λ where
+        SemanticRecordField ->
+          declName fieldDecl == "Example.fieldValue" &&
+          declSignature fieldDecl == "Nat" &&
+          declContainer fieldDecl == "Example"
+        SemanticTopLevel -> False
     _ -> False
 
 recordFieldIsolationRegressionChecked :
