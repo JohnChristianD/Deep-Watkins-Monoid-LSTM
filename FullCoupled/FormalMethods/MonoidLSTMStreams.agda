@@ -14,15 +14,15 @@ open import Haskell.Prim.Thunk using (Thunk; force)
 -- through sized recursion rather than the guardedness checker.
 -- Agda2HS's supported coinduction encoding: a delayed, sized recursive tail.
 data Stream {ℓ : Level} (a : Set ℓ) (@0 i : Size) : Set ℓ where
-  streamCons : a → Thunk (Stream a) i → Stream a i
+  StreamCons : a → Thunk (Stream a) i → Stream a i
 
 streamHead : {ℓ : Level} {a : Set ℓ} {i : Size} → Stream a i → a
-streamHead (streamCons value _) = value
+streamHead (StreamCons value _) = value
 
 streamTail :
   {ℓ : Level} {a : Set ℓ} {i : Size}
   (input : Stream a i) → {j : Size< i} → Stream a j
-streamTail (streamCons _ delayed) {j} = force delayed {j}
+streamTail (StreamCons _ delayed) {j} = force delayed {j}
 
 {-# COMPILE AGDA2HS Stream #-}
 {-# COMPILE AGDA2HS streamHead #-}
@@ -31,7 +31,7 @@ streamTail (streamCons _ delayed) {j} = force delayed {j}
 repeatStream :
   {ℓ : Level} {i : Size} {a : Set ℓ} → a → Stream a i
 repeatStream value =
-  streamCons value λ where
+  StreamCons value λ where
     .force → repeatStream value
 
 {-# COMPILE AGDA2HS repeatStream #-}
@@ -41,7 +41,7 @@ mapStream :
   {a : Set ℓa} {b : Set ℓb} →
   (a → b) → Stream a i → Stream b i
 mapStream f input =
-  streamCons (f (streamHead input)) λ where
+  StreamCons (f (streamHead input)) λ where
     .force → mapStream f (streamTail input)
 
 {-# COMPILE AGDA2HS mapStream #-}
@@ -96,7 +96,7 @@ scanStream :
   (state → input → state) →
   state → Stream input i → Stream state i
 scanStream step state inputs =
-  streamCons (step state (streamHead inputs)) λ where
+  StreamCons (step state (streamHead inputs)) λ where
     .force →
       scanStream
         step
@@ -112,7 +112,7 @@ scanSeededStream :
   (state → input → state) →
   state → Stream input i → Stream state i
 scanSeededStream step state inputs =
-  streamCons state λ where
+  StreamCons state λ where
     .force →
       scanSeededStream
         step
@@ -125,7 +125,7 @@ iterateStream :
   {ℓ : Level} {i : Size} {a : Set ℓ} →
   (a → a) → a → Stream a i
 iterateStream step state =
-  streamCons state λ where
+  StreamCons state λ where
     .force → iterateStream step (step state)
 
 {-# COMPILE AGDA2HS iterateStream #-}
@@ -245,7 +245,7 @@ extend :
   (∀ {j : Size} → Stream a j → b) →
   Stream a i → Stream b i
 extend context input =
-  streamCons (context (contextStream (duplicate input))) λ where
+  StreamCons (context (contextStream (duplicate input))) λ where
     .force →
       extend context (contextStream (contextTail (duplicate input)))
 
