@@ -518,7 +518,8 @@
               runtimeInputs = [ (agdaCommand system) (agda2hsCommand system) (canonicalGhc system) pkgs.coreutils pkgs.gnugrep ];
               text = ''
                 set -euo pipefail
-                out="build/monoid-lstm-stream-check"
+                repo_root=$PWD
+                out="$repo_root/build/monoid-lstm-stream-check"
                 rm -rf "$out"
                 mkdir -p "$out"
                 tmp=$(mktemp -d)
@@ -554,8 +555,11 @@
                   exit 1
                 fi
 
-                agda2hs-agda -i . -i "$tmp" "$target"
-                agda2hs-ci "$target" -o "$out"
+                # Run from the temporary root: the wrapper resolves module
+                # names through include roots, not the absolute target filename.
+                cd "$tmp"
+                agda2hs-agda -i . -i "$repo_root" FullCoupled/StreamCheck.agda
+                agda2hs-ci FullCoupled/StreamCheck.agda -o "$out"
                 test -s "$out/FullCoupled/StreamCheck.hs"
                 mkdir -p "$out/ghc"
                 ghc -fno-code -i"$out" -odir "$out/ghc" -hidir "$out/ghc" \
