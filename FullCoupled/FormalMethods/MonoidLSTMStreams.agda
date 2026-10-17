@@ -133,11 +133,11 @@ iterateStream step state =
 iterateList :
   {ℓ : Level} {a : Set ℓ} →
   Nat → (a → a) → a → List a
+-- Proof-side finite iterator used by iterateStreamPrefix. Keep it Agda-checked;
+-- Agda2HS's executable Nat pattern subset does not extract this recursion.
 iterateList 0 step state = []
 iterateList (suc n) step state =
   state ∷ iterateList n step (step state)
-
-{-# COMPILE AGDA2HS iterateList #-}
 
 scanList :
   {ℓs ℓi : Level} {state : Set ℓs} {input : Set ℓi} →
