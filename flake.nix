@@ -52,11 +52,10 @@
       agda2hsTool = system:
         (pkgsFor system).haskellPackages.agda2hs;
 
-      # The pinned Agda2HS base library's Show₁/Show₂ defaultShowList
-      # declarations leave their element universe implicit. Agda 2.8 with the
-      # current shared options cannot solve those two level metas, so patch
-      # only the universe binders in a writable compatibility copy. Runtime
-      # behavior and extracted Haskell instances are unchanged.
+      # Agda 2.8 leaves a level meta in the two defaultShowList applications
+      # in the pinned Agda2HS base library. Preserve the public Show₁/Show₂
+      # signatures and pin only the helper's element type to the existing
+      # record parameter in a writable compatibility copy.
       agda2hsBaseLib = system:
         let
           pkgs = pkgsFor system;
@@ -72,11 +71,10 @@
           }
           grep -Fq 'record Show₁ (a : Type) : Type where' "$show_source"
           grep -Fq 'record Show₂ (a : Type) : Type where' "$show_source"
+          grep -Fq 'showList = defaultShowList (showsPrec 0)' "$show_source"
           substituteInPlace "$show_source" \
-            --replace-fail 'record Show₁ (a : Type) : Type where' 'record Show₁ {showLevel₁ : Level} (a : Type showLevel₁) : Type showLevel₁ where' \
-            --replace-fail 'record Show₂ (a : Type) : Type where' 'record Show₂ {showLevel₂ : Level} (a : Type showLevel₂) : Type showLevel₂ where'
-          grep -Fq 'record Show₁ {showLevel₁ : Level} (a : Type showLevel₁) : Type showLevel₁ where' "$show_source"
-          grep -Fq 'record Show₂ {showLevel₂ : Level} (a : Type showLevel₂) : Type showLevel₂ where' "$show_source"
+            --replace-fail 'showList = defaultShowList (showsPrec 0)' 'showList = defaultShowList {a = a} (showsPrec 0)'
+          grep -Fq 'showList = defaultShowList {a = a} (showsPrec 0)' "$show_source"
           find "$out" -name '*.agda-lib' -print -quit | grep -q .
         '') // {
           # Nix's Agda package-set builder reads libraryFile from each package
