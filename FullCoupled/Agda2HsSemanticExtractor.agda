@@ -400,11 +400,21 @@ scanLines sourceFile (line ∷ rest) state accumulator =
     ScanIdle ->
       case topLevelRecordHeader line of λ where
         (Just (name , fragment)) ->
+          -- A record type is one independent graph root. Do not absorb its
+          -- indented field declarations into the root's dependency signature;
+          -- parseRecordFields scans those fields as separate nodes.
           scanLines
             sourceFile
             rest
-            (ScanSignatureState name (fragment ∷ []))
-            accumulator
+            ScanIdle
+            (MkSemanticDecl
+              sourceFile
+              name
+              fragment
+              ""
+              SemanticTopLevel
+              ""
+              ∷ accumulator)
         Nothing ->
           case topLevelHeader line of λ where
             (Just (name , fragment)) ->
@@ -510,6 +520,27 @@ parseLines :
   List SemanticDecl
 parseLines sourceFile sourceLines =
   reverse (scanLines sourceFile sourceLines ScanIdle [])
+
+-- A record header is recorded as one independent graph node, not as a
+-- dependency on every declaration in the body of that record.
+recordHeaderIsolationRegression : Bool
+recordHeaderIsolationRegression =
+  case parseLines
+    "Regression.agda"
+    ( "record Example : Set where" ∷
+      "  field" ∷
+      "    fieldValue : Nat" ∷
+      "ordinary : Example" ∷
+      [] ) of λ where
+    (declaration ∷ _) ->
+      declName declaration == "Example" &&
+      declSignature declaration == "Set where" &&
+      declBody declaration == ""
+    _ -> False
+
+recordHeaderIsolationRegressionChecked :
+  recordHeaderIsolationRegression ≡ True
+recordHeaderIsolationRegressionChecked = refl
 
 leadingSpaceCountChars :
   CharList ->
@@ -684,6 +715,66 @@ parseRecordFields sourceFile sourceLines =
       OutsideRecord
       [])
 
+-- Make a record root depend on its separately represented projections/fields.
+-- This gives graph search the semantic path Record -> Record.field -> type deps,
+-- without reabsorbing the whole record body into the root's signature.
+recordFieldNamesFor : String -> List SemanticDecl -> List String
+recordFieldNamesFor container [] = []
+recordFieldNamesFor container (candidate ∷ rest) =
+  case declKind candidate of λ where
+    SemanticTopLevel ->
+      recordFieldNamesFor container rest
+    SemanticRecordField ->
+      if declContainer candidate == container then
+        declName candidate ∷ recordFieldNamesFor container rest
+      else
+        recordFieldNamesFor container rest
+
+attachRecordFieldNames :
+  List SemanticDecl -> List SemanticDecl -> List SemanticDecl
+attachRecordFieldNames fields [] = []
+attachRecordFieldNames fields (decl ∷ rest) =
+  case declKind decl of λ where
+    SemanticRecordField ->
+      decl ∷ attachRecordFieldNames fields rest
+    SemanticTopLevel ->
+      let ownFieldNames = recordFieldNamesFor (declName decl) fields
+          body =
+            case ownFieldNames of λ where
+              [] -> declBody decl
+              _ -> unwordsString ownFieldNames
+          connected =
+            MkSemanticDecl
+              (sourceFile decl)
+              (declName decl)
+              (declSignature decl)
+              body
+              (declKind decl)
+              (declContainer decl)
+      in connected ∷ attachRecordFieldNames fields rest
+
+recordFieldIsolationRegression : Bool
+recordFieldIsolationRegression =
+  case parseRecordFields
+    "Regression.agda"
+    ( "record Example : Set where" ∷
+      "  field" ∷
+      "    fieldValue : Nat" ∷
+      "ordinary : Example" ∷
+      [] ) of λ where
+    (fieldDecl ∷ _) ->
+      case declKind fieldDecl of λ where
+        SemanticRecordField ->
+          declName fieldDecl == "Example.fieldValue" &&
+          declSignature fieldDecl == "Nat" &&
+          declContainer fieldDecl == "Example"
+        SemanticTopLevel -> False
+    _ -> False
+
+recordFieldIsolationRegressionChecked :
+  recordFieldIsolationRegression ≡ True
+recordFieldIsolationRegressionChecked = refl
+
 charListLength : CharList -> Nat
 charListLength [] = 0
 charListLength (_ ∷ rest) = incrementExtractorNat (charListLength rest)
@@ -778,6 +869,30 @@ findDependencies originSource name text (candidate ∷ rest) accumulator =
     rest
     nextAccumulator
 
+recordFieldGraphEdgeRegression : Bool
+recordFieldGraphEdgeRegression =
+  let fields =
+        parseRecordFields
+          "Regression.agda"
+          ( "record Example : Set where" ∷
+            "  field" ∷
+            "    fieldValue : Nat" ∷
+            [] )
+      declarations =
+        attachRecordFieldNames fields
+          (parseLines "Regression.agda"
+            ("record Example : Set where" ∷ []))
+  in
+  case declarations of λ where
+    (root ∷ []) ->
+      declBody root == "Example.fieldValue" &&
+      containsIdentifier (dependencyText root) "Example.fieldValue"
+    _ -> False
+
+recordFieldGraphEdgeRegressionChecked :
+  recordFieldGraphEdgeRegression ≡ True
+recordFieldGraphEdgeRegressionChecked = refl
+
 semanticSignature : SemanticDecl -> Bool
 semanticSignature decl =
   declName decl /= "" &&
@@ -838,7 +953,8 @@ readSourceDeclarations sourceFile = do
   let sourceLines = lines source
       topLevelDeclarations = parseLines sourceFile sourceLines
       fieldDeclarations = parseRecordFields sourceFile sourceLines
-  pure (fieldDeclarations ++ topLevelDeclarations)
+      connectedRoots = attachRecordFieldNames fieldDeclarations topLevelDeclarations
+  pure (fieldDeclarations ++ connectedRoots)
 
 readAllSources :
   List String ->
@@ -996,12 +1112,17 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS finalizeScanState #-}
 {-# COMPILE AGDA2HS scanLines #-}
 {-# COMPILE AGDA2HS parseLines #-}
+{-# COMPILE AGDA2HS recordHeaderIsolationRegression #-}
 {-# COMPILE AGDA2HS leadingSpaceCountChars #-}
 {-# COMPILE AGDA2HS leadingSpaceCount #-}
 {-# COMPILE AGDA2HS recordFieldHeader #-}
 {-# COMPILE AGDA2HS finalizeRecordFieldState #-}
 {-# COMPILE AGDA2HS scanRecordFields #-}
 {-# COMPILE AGDA2HS parseRecordFields #-}
+{-# COMPILE AGDA2HS recordFieldNamesFor #-}
+{-# COMPILE AGDA2HS attachRecordFieldNames #-}
+{-# COMPILE AGDA2HS recordFieldGraphEdgeRegression #-}
+{-# COMPILE AGDA2HS recordFieldIsolationRegression #-}
 {-# COMPILE AGDA2HS charListLength #-}
 {-# COMPILE AGDA2HS incrementExtractorNat #-}
 {-# COMPILE AGDA2HS dropN #-}

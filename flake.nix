@@ -680,6 +680,7 @@
                   -o "$out/agda2hs-semantic-search" \
                   "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 "$out/agda2hs-semantic-search" > "$out/report.txt"
+                cat "$out/report.txt"
                 grep -Fq "True" "$out/report.txt"
                 grep -E '^theorem-graph-edges=[1-9][0-9]* autonomous-depth-first-chains=[1-9][0-9]*$' "$out/report.txt"
                 grep -E '^agda2hs autonomous theorem-graph DFS: [1-9][0-9]* maximal dependency chains$' "$out/report.txt"

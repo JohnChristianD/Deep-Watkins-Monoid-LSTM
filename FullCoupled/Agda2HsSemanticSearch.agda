@@ -1631,7 +1631,7 @@ requiredTheoremNames =
   "dyadicEquivalent" ∷
   "tsallis2NearDyadic-oneHot" ∷
   "generalSupportSparsityDyadic" ∷
-  "generalSupportSparsityDyadicDyadic-definition" ∷
+  "generalSupportSparsityDyadic-definition" ∷
   []
 
 requiredSubcompositionNames : List String
@@ -1749,6 +1749,50 @@ requiredPlanReport names semanticLaws =
     ++ show (length names)
     ++ " required-plan-regression="
     ++ show (requiredPlanComplete names semanticLaws)
+
+requiredPlanFailureName :
+  String ->
+  List Extractor.SemanticLaw ->
+  Bool
+requiredPlanFailureName requested semanticLaws =
+  case semanticLawForName requested semanticLaws of λ where
+    Nothing -> True
+    (Just law) ->
+      case semanticLawCanSeed law of λ where
+        False -> True
+        True ->
+          case graphDependencyClosure
+            (Extractor.semanticLawId law)
+            (semanticGraphLaws semanticLaws) of λ where
+              Nothing -> True
+              (Just plan) ->
+                not (requiredPlanIsValid semanticLaws plan)
+
+requiredPlanFailures :
+  List String ->
+  List Extractor.SemanticLaw ->
+  List String
+requiredPlanFailures [] semanticLaws = []
+requiredPlanFailures (name ∷ names) semanticLaws =
+  if requiredPlanFailureName name semanticLaws then
+    name ∷ requiredPlanFailures names semanticLaws
+  else
+    requiredPlanFailures names semanticLaws
+
+requiredPlanFailuresText : List String -> String
+requiredPlanFailuresText [] = "none"
+requiredPlanFailuresText (name ∷ []) = name
+requiredPlanFailuresText (name ∷ names) =
+  name ++ ", " ++ requiredPlanFailuresText names
+
+requiredPlanFailureReport :
+  List String ->
+  List Extractor.SemanticLaw ->
+  String
+requiredPlanFailureReport names semanticLaws =
+  "required-plan-failures="
+    ++ requiredPlanFailuresText (requiredPlanFailures names semanticLaws)
+
 
 learnerLogicalPlanReport :
   List Extractor.SemanticLaw ->
@@ -2223,7 +2267,9 @@ main = do
   putStrLn ("canonical-plan=" ++ show canonicalPlan)
   putStrLn (semanticLawExtractionReport semanticLaws)
   putStrLn (requiredPlanReport requiredNames semanticLaws)
+  putStrLn (requiredPlanFailureReport requiredNames semanticLaws)
   putStrLn (learnerLogicalPlanReport semanticLaws)
+  putStrLn (requiredPlanFailureReport learnerLogicalRequiredNames semanticLaws)
   putStrLn learnerSemanticBridgeReport
   putStrLn (semanticSearchExecutableReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
@@ -2370,6 +2416,10 @@ main = do
 {-# COMPILE AGDA2HS requiredPlans #-}
 {-# COMPILE AGDA2HS requiredPlanCount #-}
 {-# COMPILE AGDA2HS requiredPlanComplete #-}
+{-# COMPILE AGDA2HS requiredPlanFailureName #-}
+{-# COMPILE AGDA2HS requiredPlanFailures #-}
+{-# COMPILE AGDA2HS requiredPlanFailuresText #-}
+{-# COMPILE AGDA2HS requiredPlanFailureReport #-}
 {-# COMPILE AGDA2HS requiredPlanReport #-}
 {-# COMPILE AGDA2HS semanticLawExtractionReport #-}
 {-# COMPILE AGDA2HS semanticSearchExecutableReport #-}
