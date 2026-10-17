@@ -753,30 +753,6 @@ attachRecordFieldNames fields (decl ∷ rest) =
               (declContainer decl)
       in connected ∷ attachRecordFieldNames fields rest
 
-recordFieldGraphEdgeRegression : Bool
-recordFieldGraphEdgeRegression =
-  let fields =
-        parseRecordFields
-          "Regression.agda"
-          ( "record Example : Set where" ∷
-            "  field" ∷
-            "    fieldValue : Nat" ∷
-            [] )
-      declarations =
-        attachRecordFieldNames fields
-          (parseLines "Regression.agda"
-            ("record Example : Set where" ∷ []))
-  in
-  case declarations of λ where
-    (root ∷ []) ->
-      declBody root == "Example.fieldValue" &&
-      containsIdentifier (dependencyText root) "Example.fieldValue"
-    _ -> False
-
-recordFieldGraphEdgeRegressionChecked :
-  recordFieldGraphEdgeRegression ≡ True
-recordFieldGraphEdgeRegressionChecked = refl
-
 recordFieldIsolationRegression : Bool
 recordFieldIsolationRegression =
   case parseRecordFields
@@ -890,6 +866,30 @@ findDependencies originSource name text (candidate ∷ rest) accumulator =
     text
     rest
     nextAccumulator
+
+recordFieldGraphEdgeRegression : Bool
+recordFieldGraphEdgeRegression =
+  let fields =
+        parseRecordFields
+          "Regression.agda"
+          ( "record Example : Set where" ∷
+            "  field" ∷
+            "    fieldValue : Nat" ∷
+            [] )
+      declarations =
+        attachRecordFieldNames fields
+          (parseLines "Regression.agda"
+            ("record Example : Set where" ∷ []))
+  in
+  case declarations of λ where
+    (root ∷ []) ->
+      declBody root == "Example.fieldValue" &&
+      containsIdentifier (dependencyText root) "Example.fieldValue"
+    _ -> False
+
+recordFieldGraphEdgeRegressionChecked :
+  recordFieldGraphEdgeRegression ≡ True
+recordFieldGraphEdgeRegressionChecked = refl
 
 semanticSignature : SemanticDecl -> Bool
 semanticSignature decl =
