@@ -531,7 +531,7 @@
                 test -s "$tmp/MonoidLSTMStreams.agda"
                 grep -Fq "open import Haskell.Prelude" "$tmp/MonoidLSTMStreams.agda"
                 grep -Fq "open import Haskell.Prim.Thunk" "$tmp/MonoidLSTMStreams.agda"
-                if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\\.Builtin\\.(Nat|Equality|List|Coinduction)([[:space:]]|$)' "$tmp/MonoidLSTMStreams.agda"; then
+                if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List|Coinduction)([[:space:]]|$)' "$tmp/MonoidLSTMStreams.agda"; then
                   echo "stream calculus must use the Agda2HS Prelude/Thunk coinduction surface" >&2
                   exit 1
                 fi
