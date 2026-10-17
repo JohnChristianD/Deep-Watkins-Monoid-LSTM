@@ -1525,6 +1525,24 @@ learnerSemanticBridgeGraph =
      ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.denote") ∷
      ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.denotationalCompositionalityRegression") ∷
      ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.denotationalBottomStrictnessRegression") ∷
+     ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.scottErshovNLabDenotationalSemanticsRegression") ∷
+     ("LearnerSemanticCoverageSuite" , "CanonicalLearnerDenotation.canonicalLearnerDenotationBottom") ∷
+     ("LearnerSemanticCoverageSuite" , "CanonicalLearnerDenotation.canonicalLearnerTraceDenotationStep") ∷
+     ("LearnerSemanticCoverageSuite" , "ConstructivistDomainRewriteSuite") ∷
+     ("ConstructivistDomainRewriteSuite" , "EGraph.russianConstructivismPostulateRule") ∷
+     ("ConstructivistDomainRewriteSuite" , "EGraph.scottErshovDenotationalSemanticsPostulateRule") ∷
+     ("ConstructivistDomainRewriteSuite" , "EGraph.bishopConstructivismPostulateRule") ∷
+     ("ConstructivistDomainRewriteSuite" , "EGraph.constructivistPostulateRegression") ∷
+     ("EGraph.constructivistPostulateRegression" , "EGraph.semanticRewriteRules") ∷
+     ("EGraph.semanticRewriteRules" , "EGraph.associativityRule") ∷
+     ("EGraph.semanticRewriteRules" , "EGraph.emptyRightRule") ∷
+     ("EGraph.semanticRewriteRules" , "EGraph.emptyLeftRule") ∷
+     ("EGraph.semanticRewriteRules" , "EGraph.russianConstructivismPostulateRule") ∷
+     ("EGraph.semanticRewriteRules" , "EGraph.scottErshovDenotationalSemanticsPostulateRule") ∷
+     ("EGraph.semanticRewriteRules" , "EGraph.bishopConstructivismPostulateRule") ∷
+     ("CanonicalLearnerDenotation.canonicalLearnerTraceDenotationStep" , "CanonicalLearnerDenotation.liftedCanonicalFullStep") ∷
+     ("CanonicalLearnerDenotation.liftedCanonicalFullStep" , "ScottStracheyDomains.liftStrictMap") ∷
+     ("CanonicalLearnerDenotation.canonicalLearnerDenotationBottom" , "ScottStracheyDomains.liftStrictMapBottom") ∷
      ("LearnerSemanticCoverageSuite" , "LawvereDiagonal.noSurjectiveBooleanDiagonal") ∷
      ("LearnerSemanticCoverageSuite" , "OmegaKleeneFixedPoint.leastFixedPointIsFixed") ∷
      ("LearnerSemanticCoverageSuite" , "neuralBellmanInstantiation-obligation") ∷
@@ -1630,6 +1648,13 @@ learnerSemanticBridgeRegression =
         && graphContains "canonicalTotalCountAfter" plan
         && graphContains "ScottStracheyDomains.denotationalCompositionalityRegression" plan
         && graphContains "ScottStracheyDomains.denotationalBottomStrictnessRegression" plan
+        && graphContains "ScottStracheyDomains.scottErshovNLabDenotationalSemanticsRegression" plan
+        && graphContains "CanonicalLearnerDenotation.canonicalLearnerDenotationBottom" plan
+        && graphContains "CanonicalLearnerDenotation.canonicalLearnerTraceDenotationStep" plan
+        && graphContains "EGraph.constructivistPostulateRegression" plan
+        && graphContains "EGraph.russianConstructivismPostulateRule" plan
+        && graphContains "EGraph.scottErshovDenotationalSemanticsPostulateRule" plan
+        && graphContains "EGraph.bishopConstructivismPostulateRule" plan
         && graphContains "MonoidLSTMStreams.iterateStreamPrefix" plan
         && graphContains "LawvereDiagonal.noSurjectiveBooleanDiagonal" plan
         && graphContains "canonicalWatkinsTarget" plan
@@ -1723,9 +1748,25 @@ requiredSubcompositionNames : List String
 requiredSubcompositionNames =
   "CanonicalStationarySubcompositionTheorem" ∷ []
 
+-- Legacy theorem inventory is source-scanned, not imported into this runtime.
+runtimeRequiredNames : List String
+runtimeRequiredNames =
+  "graphDependencyOrderRegressionChecked" ∷
+  "graphTwoLeafBranchesRegressionChecked" ∷
+  "graphAStarTieBreakRegressionChecked" ∷
+  "graphAStarBestGRegressionChecked" ∷
+  "graphAStarShortestPathRegressionChecked" ∷
+  "nodeHeuristicLowerBoundRegressionChecked" ∷
+  "graphCycleIsRejectedRegressionChecked" ∷
+  "learnerLogicalGraphRegressionChecked" ∷
+  "learnerSemanticBridgeRegressionChecked" ∷
+  "sourceOnlyLegacyBoundaryRegressionChecked" ∷
+  "canonicalSearchPlanEGraphClosed" ∷
+  "graphAStarPlanEGraphClosed" ∷
+  []
+
 requiredNames : List String
-requiredNames =
-  requiredTheoremNames ++ requiredSubcompositionNames
+requiredNames = runtimeRequiredNames
 
 -- Additional targets for the learner-specific graph.  The existing inverse,
 -- exact-search, and required-theorem target lists remain unchanged.
@@ -1913,6 +1954,8 @@ semanticSearchExecutableReport laws =
     ++ show EGraph.canonicalBindingsRegression
     ++ " egraph-hashcons-after-union="
     ++ show EGraph.hashconsAfterUnionRegression
+    ++ " egraph-constructivist-postulates="
+    ++ show EGraph.constructivistPostulateRegression
 
 stringListEqual : List String -> List String -> Bool
 stringListEqual [] [] = True
@@ -2326,6 +2369,9 @@ sourceOnlyLegacyRequiredReport =
 sourceOnlyLegacyBoundaryRegression : Bool
 sourceOnlyLegacyBoundaryRegression =
   not (planContains "inverse-csearchable" requiredNames)
+    && not (planContains "CanonicalAQLoopTheorem" requiredNames)
+    && not (planContains "CanonicalFullLearnerConnectedScanConjugacyTheorem" requiredNames)
+    && not (planContains "CanonicalStationarySubcompositionTheorem" requiredNames)
     && haskellMinusOneAStarComplete
 
 sourceOnlyLegacyBoundaryRegressionChecked :

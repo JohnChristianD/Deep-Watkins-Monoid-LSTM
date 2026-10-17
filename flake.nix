@@ -524,6 +524,8 @@
                 grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "denotationalCompositionalityRegression" "$tmp/ScottStracheyDomains.agda"
                 grep -Fq "denotationalBottomStrictnessRegression" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "scottErshovNLabDenotationalSemanticsRegression" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "liftStrictMapBottom" "$tmp/ScottStracheyDomains.agda"
                 grep -Fq "NeuralPolicyMDP" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
@@ -769,6 +771,12 @@
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
                 grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"
                 grep -Fq "egraph-hashcons-after-union=True" "$out/report.txt"
+                grep -Fq "egraph-constructivist-postulates=True" "$out/report.txt"
+                grep -Fq "scottErshovNLabDenotationalSemanticsRegression" FullCoupled/TheoremsMonolith.agda
+                grep -Fq "canonicalLearnerTraceDenotationStep" FullCoupled/TheoremsMonolith.agda
+                grep -Fq "russianConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "scottErshovDenotationalSemanticsPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "bishopConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "canonical-search-egraph-closed=True" "$out/report.txt"
                 grep -Fq "graph-astar-egraph-closed=True" "$out/report.txt"
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
