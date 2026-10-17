@@ -715,6 +715,68 @@ parseRecordFields sourceFile sourceLines =
       OutsideRecord
       [])
 
+-- Make a record root depend on its separately represented projections/fields.
+-- This gives graph search the semantic path Record -> Record.field -> type deps,
+-- without reabsorbing the whole record body into the root's signature.
+recordFieldNamesFor : String -> List SemanticDecl -> List String
+recordFieldNamesFor container [] = []
+recordFieldNamesFor container (candidate ∷ rest) =
+  case declKind candidate of λ where
+    SemanticTopLevel ->
+      recordFieldNamesFor container rest
+    SemanticRecordField ->
+      if declContainer candidate == container then
+        declName candidate ∷ recordFieldNamesFor container rest
+      else
+        recordFieldNamesFor container rest
+
+attachRecordFieldNames :
+  List SemanticDecl -> List SemanticDecl -> List SemanticDecl
+attachRecordFieldNames fields [] = []
+attachRecordFieldNames fields (decl ∷ rest) =
+  case declKind decl of λ where
+    SemanticRecordField ->
+      decl ∷ attachRecordFieldNames fields rest
+    SemanticTopLevel ->
+      let ownFieldNames = recordFieldNamesFor (declName decl) fields
+          body =
+            case ownFieldNames of λ where
+              [] -> declBody decl
+              _ -> unwordsString ownFieldNames
+          connected =
+            MkSemanticDecl
+              (sourceFile decl)
+              (declName decl)
+              (declSignature decl)
+              body
+              (declKind decl)
+              (declContainer decl)
+      in connected ∷ attachRecordFieldNames fields rest
+
+recordFieldGraphEdgeRegression : Bool
+recordFieldGraphEdgeRegression =
+  let fields =
+        parseRecordFields
+          "Regression.agda"
+          ( "record Example : Set where" ∷
+            "  field" ∷
+            "    fieldValue : Nat" ∷
+            [] )
+      declarations =
+        attachRecordFieldNames fields
+          (parseLines "Regression.agda"
+            ("record Example : Set where" ∷ []))
+  in
+  case declarations of λ where
+    (root ∷ []) ->
+      declBody root == "Example.fieldValue" &&
+      containsIdentifier (dependencyText root) "Example.fieldValue"
+    _ -> False
+
+recordFieldGraphEdgeRegressionChecked :
+  recordFieldGraphEdgeRegression ≡ True
+recordFieldGraphEdgeRegressionChecked = refl
+
 recordFieldIsolationRegression : Bool
 recordFieldIsolationRegression =
   case parseRecordFields
@@ -889,7 +951,8 @@ readSourceDeclarations sourceFile = do
   let sourceLines = lines source
       topLevelDeclarations = parseLines sourceFile sourceLines
       fieldDeclarations = parseRecordFields sourceFile sourceLines
-  pure (fieldDeclarations ++ topLevelDeclarations)
+      connectedRoots = attachRecordFieldNames fieldDeclarations topLevelDeclarations
+  pure (fieldDeclarations ++ connectedRoots)
 
 readAllSources :
   List String ->
@@ -1054,6 +1117,9 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS finalizeRecordFieldState #-}
 {-# COMPILE AGDA2HS scanRecordFields #-}
 {-# COMPILE AGDA2HS parseRecordFields #-}
+{-# COMPILE AGDA2HS recordFieldNamesFor #-}
+{-# COMPILE AGDA2HS attachRecordFieldNames #-}
+{-# COMPILE AGDA2HS recordFieldGraphEdgeRegression #-}
 {-# COMPILE AGDA2HS recordFieldIsolationRegression #-}
 {-# COMPILE AGDA2HS charListLength #-}
 {-# COMPILE AGDA2HS incrementExtractorNat #-}
