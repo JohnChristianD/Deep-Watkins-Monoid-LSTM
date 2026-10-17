@@ -10,7 +10,5 @@
 --level-universe
 --auto-inline
 --polarity
---flat-split
---large-indices
 --no-forced-argument-recursion
 --no-guardedness
