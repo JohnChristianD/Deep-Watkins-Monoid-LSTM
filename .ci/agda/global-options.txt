@@ -1,6 +1,5 @@
 --lossy-unification
 --sized-types
---exact-split
 --no-projection-like
 --erased-matches
 --erase-record-parameters
