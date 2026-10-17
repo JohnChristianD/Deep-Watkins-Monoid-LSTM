@@ -290,7 +290,7 @@ syntax try-fun t f = try t or-else f
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_; gruStep)
-import FullCoupled.FormalMethods.MonoidLSTMStreams as MLS
+module MLS = C.MonoidLSTMStreams
 open import Agda.Primitive using (Level)
 open import Agda.Builtin.Size using (Size; Size<_; ∞)
 -- END THEOREM-SPECIFIC IMPORTS
