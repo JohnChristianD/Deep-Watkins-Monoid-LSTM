@@ -1631,7 +1631,7 @@ requiredTheoremNames =
   "dyadicEquivalent" ∷
   "tsallis2NearDyadic-oneHot" ∷
   "generalSupportSparsityDyadic" ∷
-  "generalSupportSparsityDyadicDyadic-definition" ∷
+  "generalSupportSparsityDyadic-definition" ∷
   []
 
 requiredSubcompositionNames : List String
