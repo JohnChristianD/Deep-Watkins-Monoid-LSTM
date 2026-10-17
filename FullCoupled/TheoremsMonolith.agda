@@ -502,6 +502,21 @@ module ScottStracheyDomains where
     denote (diverges ⊕ numeral (bsuc (bsuc (bsuc bzero)))) ≡ bottom
   divergenceAbsorbsAddition = refl
 
+  -- Domain-theoretic regression: denotational semantics is compositional.
+  -- The meaning of a compound expression is obtained by applying the lifted
+  -- operator to the meanings of its subexpressions.
+  denotationalCompositionalityRegression :
+    ∀ (left right : NatExpr) →
+      denote (left ⊕ right) ≡
+        strictNatAdd (denote left) (denote right)
+  denotationalCompositionalityRegression left right = refl
+
+  -- Bottom is observable through strict lifted addition: a diverging left
+  -- operand yields bottom for every right expression.
+  denotationalBottomStrictnessRegression :
+    (right : NatExpr) → denote (diverges ⊕ right) ≡ bottom
+  denotationalBottomStrictnessRegression right = refl
+
   record AlgebraOperations (A : Set) : Set₁ where
     field
       algebraZero : A

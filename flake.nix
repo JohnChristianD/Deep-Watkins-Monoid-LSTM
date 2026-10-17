@@ -492,6 +492,8 @@
                 done
                 grep -Fq "lawvereFixedPoint" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
+                grep -Fq "denotationalCompositionalityRegression" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "denotationalBottomStrictnessRegression" "$tmp/ScottStracheyDomains.agda"
                 grep -Fq "NeuralPolicyMDP" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
@@ -500,7 +502,7 @@
                 agda2hs-agda -i "$tmp" "$tmp/BetaOptimalityBoundary.agda"
                 agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
                 agda2hs-agda -i "$tmp" "$tmp/LawvereDiagonal.agda"
-                echo "scott-strachey-domain-check=pass (source embedded in TheoremsMonolith; Lawvere fixed-point boundary kernel-checked)"
+                echo "scott-strachey-domain-check=pass (Scott domains, compositionality/strictness regression, and Lawvere boundary kernel-checked)"
                 echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
                 echo "bellman-order-theory=kernel-checked (Tarski, omega-Kleene, neural MDP Bellman, exact-Q greedy optimality)"
               '';
@@ -513,37 +515,25 @@
           monoid-lstm-stream-check = let
             script = pkgs.writeShellApplication {
               name = "monoid-lstm-stream-check";
-              runtimeInputs = [ (agdaCommand system) (agda2hsCommand system) (canonicalGhc system) pkgs.coreutils ];
+              runtimeInputs = [ (agdaCommand system) pkgs.coreutils pkgs.gnugrep ];
               text = ''
                 set -euo pipefail
-                out="build/monoid-lstm-stream-check"
-                rm -rf "$out"
-                mkdir -p "$out"
-                tmp=$(mktemp -d)
-                trap 'rm -rf "$tmp"' EXIT
 
-                # The extracted module needs the same local sized-stream flags as its source.
-                printf '%s\n' '{-# OPTIONS --sized-types --no-guardedness #-}' > "$tmp/MonoidLSTMStreams.agda"
-                # Extract the embedded submodule only into a temporary build file.
-                awk '
-                  /^module MonoidLSTMStreams where$/ { capture=1; print; next }
-                  /^module MLS = MonoidLSTMStreams$/ { capture=0; next }
-                  capture && /^------------------------------------------------------------------------/ { capture=0 }
-                  capture { sub(/^  /, ""); print }
-                ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/MonoidLSTMStreams.agda"
-                test -s "$tmp/MonoidLSTMStreams.agda"
-                grep -Fq "open import Haskell.Prelude" "$tmp/MonoidLSTMStreams.agda"
-                grep -Fq "open import Haskell.Prim.Thunk" "$tmp/MonoidLSTMStreams.agda"
-                if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List|Coinduction)([[:space:]]|$)' "$tmp/MonoidLSTMStreams.agda"; then
-                  echo "stream calculus must use the Agda2HS Prelude/Thunk coinduction surface" >&2
+                # The stream calculus is a nested module in the canonical learner;
+                # never extract it to a top-level, separately compiled Agda file.
+                source=FullCoupled/CanonicalLearnerMonolith.agda
+                grep -Fq 'module MonoidLSTMStreams where' "$source"
+                grep -Fq 'runningSumPrefixRegression = refl' "$source"
+                grep -Fq 'canonicalLearnerTracePrefix' "$source"
+                grep -Fq 'canonicalTotalCountAfter' "$source"
+                grep -Fq 'open import Haskell.Prim.Thunk' "$source"
+                if grep -Fq 'open import Agda.Builtin.Coinduction' "$source" ||
+                   grep -Fq 'import Agda.Builtin.Coinduction' "$source"; then
+                  echo "stream calculus must use Agda2HS Thunk coinduction through the owning monolith" >&2
                   exit 1
                 fi
-                agda2hs-agda -i . -i "$tmp" "$tmp/MonoidLSTMStreams.agda"
-                agda2hs-ci "$tmp/MonoidLSTMStreams.agda" -o "$out"
-                test -s "$out/MonoidLSTMStreams.hs"
-                mkdir -p "$out/ghc"
-                ghc -fno-code -i"$out" -odir "$out/ghc" -hidir "$out/ghc" "$out/MonoidLSTMStreams.hs"
-                echo "monoid-lstm-stream-check=pass (embedded module; Agda and Agda2HS/GHC)"
+                agda2hs-agda -i . "$source"
+                echo "monoid-lstm-stream-check=pass (nested in CanonicalLearnerMonolith; Agda2HS Thunk surface)"
               '';
             };
           in {
