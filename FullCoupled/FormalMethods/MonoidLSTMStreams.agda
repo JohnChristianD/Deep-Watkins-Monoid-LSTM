@@ -133,7 +133,7 @@ iterateStream step state =
 iterateList :
   {ℓ : Level} {a : Set ℓ} →
   Nat → (a → a) → a → List a
-iterateList zero step state = []
+iterateList 0 step state = []
 iterateList (suc n) step state =
   state ∷ iterateList n step (step state)
 
