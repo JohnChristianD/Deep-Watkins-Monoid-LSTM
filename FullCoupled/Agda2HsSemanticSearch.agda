@@ -1758,15 +1758,15 @@ requiredPlanFailureName requested semanticLaws =
   case semanticLawForName requested semanticLaws of λ where
     Nothing -> True
     (Just law) ->
-      if semanticLawCanSeed law then
-        case graphDependencyClosure
-          (Extractor.semanticLawId law)
-          (semanticGraphLaws semanticLaws) of λ where
-            Nothing -> True
-            (Just plan) ->
-              not (requiredPlanIsValid semanticLaws plan)
-      else
-        True
+      case semanticLawCanSeed law of λ where
+        False -> True
+        True ->
+          case graphDependencyClosure
+            (Extractor.semanticLawId law)
+            (semanticGraphLaws semanticLaws) of λ where
+              Nothing -> True
+              (Just plan) ->
+                not (requiredPlanIsValid semanticLaws plan)
 
 requiredPlanFailures :
   List String ->
