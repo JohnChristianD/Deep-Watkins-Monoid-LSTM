@@ -525,13 +525,16 @@
                 trap 'rm -rf "$tmp"' EXIT
                 mkdir -p "$tmp/FullCoupled"
 
-                # Build a temporary check harness under the owning monolith's path.
-                # MonoidLSTMStreams remains nested; do not create MonoidLSTMStreams.agda.
+                # This test wrapper avoids compiling the legacy owner monolith
+                # (whose protected --level-universe import closure is incompatible
+                # with Haskell.Prelude). The actual source still owns the nested
+                # module; the wrapper has a unique top-level name to avoid collisions.
+                # Never create MonoidLSTMStreams.agda or MonoidLSTMStreams.hs.
                 source=FullCoupled/CanonicalLearnerMonolith.agda
-                target="$tmp/FullCoupled/CanonicalLearnerMonolith.agda"
+                target="$tmp/FullCoupled/StreamCheck.agda"
                 printf '%s\n' \
                   '{-# OPTIONS --sized-types --no-guardedness #-}' \
-                  'module FullCoupled.CanonicalLearnerMonolith where' > "$target"
+                  'module FullCoupled.StreamCheck where' > "$target"
                 awk '
                   /^module MonoidLSTMStreams where$/ { capture=1; print; next }
                   /^module MLS = MonoidLSTMStreams$/ { capture=0; exit }
@@ -539,7 +542,7 @@
                   capture { sub(/^  /, ""); print }
                 ' "$source" >> "$target"
 
-                grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' "$target"
+                grep -Fq 'module FullCoupled.StreamCheck where' "$target"
                 grep -Fq 'module MonoidLSTMStreams where' "$target"
                 grep -Fq 'runningSumPrefixRegression = refl' "$target"
                 grep -Fq 'canonicalLearnerTracePrefix' "$source"
@@ -553,10 +556,10 @@
 
                 agda2hs-agda -i . -i "$tmp" "$target"
                 agda2hs-ci "$target" -o "$out"
-                test -s "$out/FullCoupled/CanonicalLearnerMonolith.hs"
+                test -s "$out/FullCoupled/StreamCheck.hs"
                 mkdir -p "$out/ghc"
                 ghc -fno-code -i"$out" -odir "$out/ghc" -hidir "$out/ghc" \
-                  "$out/FullCoupled/CanonicalLearnerMonolith.hs"
+                  "$out/FullCoupled/StreamCheck.hs"
                 if find "$tmp" "$out" -name 'MonoidLSTMStreams.agda' -o -name 'MonoidLSTMStreams.hs' | grep -q .; then
                   echo "stream module must not become its own generated source/object" >&2
                   exit 1
