@@ -71,9 +71,12 @@
           }
           grep -Fq 'record Show₁ (a : Type) : Type where' "$show_source"
           grep -Fq 'record Show₂ (a : Type) : Type where' "$show_source"
+          grep -Fq 'defaultShowList : (a → ShowS) → List a → ShowS' "$show_source"
           grep -Fq 'showList = defaultShowList (showsPrec 0)' "$show_source"
           substituteInPlace "$show_source" \
+            --replace-fail 'defaultShowList : (a → ShowS) → List a → ShowS' 'defaultShowList : {@0 a : Type} → (a → ShowS) → List a → ShowS' \
             --replace-fail 'showList = defaultShowList (showsPrec 0)' 'showList = defaultShowList {a = a} (showsPrec 0)'
+          grep -Fq 'defaultShowList : {@0 a : Type} → (a → ShowS) → List a → ShowS' "$show_source"
           grep -Fq 'showList = defaultShowList {a = a} (showsPrec 0)' "$show_source"
           find "$out" -name '*.agda-lib' -print -quit | grep -q .
         '') // {
