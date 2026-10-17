@@ -13,5 +13,4 @@
 --flat-split
 --large-indices
 --no-forced-argument-recursion
---with-K
 --no-guardedness
