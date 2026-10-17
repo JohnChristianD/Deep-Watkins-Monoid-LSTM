@@ -523,7 +523,7 @@
                 trap 'rm -rf "$tmp"' EXIT
 
                 # The extracted module needs the same local sized-stream flags as its source.
-                printf '%s\\n' '{-# OPTIONS --sized-types --no-guardedness #-}' > "$tmp/MonoidLSTMStreams.agda"
+                printf '%s\n' '{-# OPTIONS --sized-types --no-guardedness #-}' > "$tmp/MonoidLSTMStreams.agda"
                 # Extract the embedded submodule only into a temporary build file.
                 awk '
                   /^module MonoidLSTMStreams where$/ { capture=1; print; next }
