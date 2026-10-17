@@ -62,7 +62,7 @@
           pkgs = pkgsFor system;
           upstream = pkgs.agdaPackages.agda2hs-base;
         in
-        pkgs.runCommand "agda2hs-base-show-universe-compat" { } ''
+        (pkgs.runCommand "agda2hs-base-show-universe-compat" { } ''
           mkdir -p "$out"
           cp -RL "${upstream}/." "$out/"
           show_source="$(find "$out" -path '*/Haskell/Prim/Show.agda' -print -quit)"
@@ -78,7 +78,12 @@
           grep -Fq 'record Show₁ {showLevel₁ : Level} (a : Type showLevel₁) : Type showLevel₁ where' "$show_source"
           grep -Fq 'record Show₂ {showLevel₂ : Level} (a : Type showLevel₂) : Type showLevel₂ where' "$show_source"
           find "$out" -name '*.agda-lib' -print -quit | grep -q .
-        '';
+        '') // {
+          # Nix's Agda package-set builder reads libraryFile from each package
+          # derivation when generating the libraries file. Preserve the pinned
+          # upstream metadata while substituting only the patched source tree.
+          inherit (upstream) libraryFile;
+        };
 
       agdaEmacs = system:
         let
