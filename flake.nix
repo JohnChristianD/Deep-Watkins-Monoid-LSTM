@@ -52,16 +52,17 @@
       agda2hsTool = system:
         (pkgsFor system).haskellPackages.agda2hs;
 
-      # Agda 2.8 leaves a level meta in the two defaultShowList applications
-      # in the pinned Agda2HS base library. Preserve the public Show₁/Show₂
-      # signatures and pin only the helper's element type to the existing
-      # record parameter in a writable compatibility copy.
+      # The pinned defaultShowList combines Agda 2.8's unresolved level and
+      # instance metas in a higher-order fold. Use the definitionally equivalent
+      # recursive renderer: keep the class signatures and ordinary output intact.
       agda2hsBaseLib = system:
         let
           pkgs = pkgsFor system;
           upstream = pkgs.agdaPackages.agda2hs-base;
         in
-        (pkgs.runCommand "agda2hs-base-show-universe-compat" { } ''
+        (pkgs.runCommand "agda2hs-base-show-universe-compat" {
+          nativeBuildInputs = [ pkgs.python3 ];
+        } ''
           mkdir -p "$out"
           cp -RL "${upstream}/." "$out/"
           show_source="$(find "$out" -path '*/Haskell/Prim/Show.agda' -print -quit)"
@@ -71,21 +72,40 @@
           }
           grep -Fq 'record Show₁ (a : Type) : Type where' "$show_source"
           grep -Fq 'record Show₂ (a : Type) : Type where' "$show_source"
-          grep -Fq 'defaultShowList : (a → ShowS) → List a → ShowS' "$show_source"
-          grep -Fq 'showString ","' "$show_source"
-          grep -Fq 'showList = defaultShowList (showsPrec 0)' "$show_source"
-          substituteInPlace "$show_source" \
-            --replace-fail 'defaultShowList : (a → ShowS) → List a → ShowS' 'defaultShowList : {@0 a : Type} → (a → ShowS) → List a → ShowS' \
-            --replace-fail 'showString ","' "showChar ','" \
-            --replace-fail 'showList = defaultShowList (showsPrec 0)' 'showList = defaultShowList {a = a} (showsPrec 0)'
-          grep -Fq 'defaultShowList : {@0 a : Type} → (a → ShowS) → List a → ShowS' "$show_source"
+          python - "$show_source" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+source = path.read_text()
+old = """defaultShowList : (a → ShowS) → List a → ShowS
+defaultShowList shows = λ where
+  []       → showString "[]"
+  (x ∷ xs) → showString "["
+           ∘ foldl (λ s x → s ∘ showString "," ∘ shows x) (shows x) xs
+           ∘ showString "]"
+"""
+new = """defaultShowListTail : {@0 a : Type} → (a → ShowS) → List a → ShowS
+defaultShowListTail {a = a} shows [] = showString "]"
+defaultShowListTail {a = a} shows (x ∷ xs) =
+  showChar ',' ∘ shows x ∘ defaultShowListTail {a = a} shows xs
+
+defaultShowList : {@0 a : Type} → (a → ShowS) → List a → ShowS
+defaultShowList {a = a} shows [] = showString "[]"
+defaultShowList {a = a} shows (x ∷ xs) =
+  showString "[" ∘ shows x ∘ defaultShowListTail {a = a} shows xs
+"""
+if old not in source:
+    raise SystemExit("pinned Haskell.Prim.Show defaultShowList block changed; refusing a fuzzy edit")
+path.write_text(source.replace(old, new, 1))
+PY
+          grep -Fq 'defaultShowListTail {a = a} shows (x ∷ xs)' "$show_source"
           grep -Fq "showChar ','" "$show_source"
-          grep -Fq 'showList = defaultShowList {a = a} (showsPrec 0)' "$show_source"
+          grep -Fq 'defaultShowList {a = a} shows (x ∷ xs)' "$show_source"
           find "$out" -name '*.agda-lib' -print -quit | grep -q .
         '') // {
-          # Nix's Agda package-set builder reads libraryFile from each package
-          # derivation when generating the libraries file. Preserve the pinned
-          # upstream metadata while substituting only the patched source tree.
+          # Nix's Agda package-set builder requires this metadata when building
+          # its libraries file. Preserve the pinned upstream package contract.
           inherit (upstream) libraryFile;
         };
 
