@@ -705,6 +705,8 @@
                   exit 1
                 fi
                 grep -Fq "learner-semantic-bridge-closure=True" "$out/report.txt"
+                grep -Fq "semantic-identifier-normalization=True" "$out/report.txt"
+                grep -Fq "source-only-legacy-boundary=True" "$out/report.txt"
                 grep -Fq "graphTwoLeafBranchesRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
                 grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"

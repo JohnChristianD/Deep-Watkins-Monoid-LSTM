@@ -802,35 +802,34 @@ semanticLawForName requested (law ∷ laws) =
 -- Case/separator normalization repairs registry display aliases only. It does
 -- not invent semantic edges or equate different theorem statements.
 normalizeIdentifierChar : Char -> String
-normalizeIdentifierChar 'A' = "a"
-normalizeIdentifierChar 'B' = "b"
-normalizeIdentifierChar 'C' = "c"
-normalizeIdentifierChar 'D' = "d"
-normalizeIdentifierChar 'E' = "e"
-normalizeIdentifierChar 'F' = "f"
-normalizeIdentifierChar 'G' = "g"
-normalizeIdentifierChar 'H' = "h"
-normalizeIdentifierChar 'I' = "i"
-normalizeIdentifierChar 'J' = "j"
-normalizeIdentifierChar 'K' = "k"
-normalizeIdentifierChar 'L' = "l"
-normalizeIdentifierChar 'M' = "m"
-normalizeIdentifierChar 'N' = "n"
-normalizeIdentifierChar 'O' = "o"
-normalizeIdentifierChar 'P' = "p"
-normalizeIdentifierChar 'Q' = "q"
-normalizeIdentifierChar 'R' = "r"
-normalizeIdentifierChar 'S' = "s"
-normalizeIdentifierChar 'T' = "t"
-normalizeIdentifierChar 'U' = "u"
-normalizeIdentifierChar 'V' = "v"
-normalizeIdentifierChar 'W' = "w"
-normalizeIdentifierChar 'X' = "x"
-normalizeIdentifierChar 'Y' = "y"
-normalizeIdentifierChar 'Z' = "z"
-normalizeIdentifierChar '-' = ""
-normalizeIdentifierChar '_' = ""
-normalizeIdentifierChar value = value ∷ []
+normalizeIdentifierChar value =
+  if value == 'A' then "a" else
+  if value == 'B' then "b" else
+  if value == 'C' then "c" else
+  if value == 'D' then "d" else
+  if value == 'E' then "e" else
+  if value == 'F' then "f" else
+  if value == 'G' then "g" else
+  if value == 'H' then "h" else
+  if value == 'I' then "i" else
+  if value == 'J' then "j" else
+  if value == 'K' then "k" else
+  if value == 'L' then "l" else
+  if value == 'M' then "m" else
+  if value == 'N' then "n" else
+  if value == 'O' then "o" else
+  if value == 'P' then "p" else
+  if value == 'Q' then "q" else
+  if value == 'R' then "r" else
+  if value == 'S' then "s" else
+  if value == 'T' then "t" else
+  if value == 'U' then "u" else
+  if value == 'V' then "v" else
+  if value == 'W' then "w" else
+  if value == 'X' then "x" else
+  if value == 'Y' then "y" else
+  if value == 'Z' then "z" else
+  if value == '-' || value == '_' then "" else value ∷ []
 
 normalizeIdentifier : String -> String
 normalizeIdentifier [] = ""
@@ -2354,6 +2353,7 @@ main = do
   putStrLn (requiredPlanFailureReport requiredNames semanticLaws)
   putStrLn (learnerLogicalPlanReport semanticLaws)
   putStrLn learnerSemanticBridgeReport
+  putStrLn ("semantic-identifier-normalization=" ++ show semanticIdentifierNormalizationRegression)
   putStrLn (semanticSearchExecutableReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
   putStrLn sourceOnlyLegacyRequiredReport
