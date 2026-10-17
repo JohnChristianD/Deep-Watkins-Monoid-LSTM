@@ -400,11 +400,21 @@ scanLines sourceFile (line ∷ rest) state accumulator =
     ScanIdle ->
       case topLevelRecordHeader line of λ where
         (Just (name , fragment)) ->
+          -- A record type is one independent graph root. Do not absorb its
+          -- indented field declarations into the root's dependency signature;
+          -- parseRecordFields scans those fields as separate nodes.
           scanLines
             sourceFile
             rest
-            (ScanSignatureState name (fragment ∷ []))
-            accumulator
+            ScanIdle
+            (MkSemanticDecl
+              sourceFile
+              name
+              fragment
+              ""
+              SemanticTopLevel
+              ""
+              ∷ accumulator)
         Nothing ->
           case topLevelHeader line of λ where
             (Just (name , fragment)) ->
@@ -510,6 +520,27 @@ parseLines :
   List SemanticDecl
 parseLines sourceFile sourceLines =
   reverse (scanLines sourceFile sourceLines ScanIdle [])
+
+-- A record header is recorded as one independent graph node, not as a
+-- dependency on every declaration in the body of that record.
+recordHeaderIsolationRegression : Bool
+recordHeaderIsolationRegression =
+  case parseLines
+    "Regression.agda"
+    ( "record Example : Set where" ∷
+      "  field" ∷
+      "    fieldValue : Nat" ∷
+      "ordinary : Example" ∷
+      [] ) of λ where
+    (declaration ∷ _) ->
+      declName declaration == "Example" &&
+      declSignature declaration == "Set where" &&
+      declBody declaration == ""
+    _ -> False
+
+recordHeaderIsolationRegressionChecked :
+  recordHeaderIsolationRegression ≡ True
+recordHeaderIsolationRegressionChecked = refl
 
 leadingSpaceCountChars :
   CharList ->
@@ -683,6 +714,26 @@ parseRecordFields sourceFile sourceLines =
       sourceLines
       OutsideRecord
       [])
+
+recordFieldIsolationRegression : Bool
+recordFieldIsolationRegression =
+  case parseRecordFields
+    "Regression.agda"
+    ( "record Example : Set where" ∷
+      "  field" ∷
+      "    fieldValue : Nat" ∷
+      "ordinary : Example" ∷
+      [] ) of λ where
+    (fieldDecl ∷ _) ->
+      declName fieldDecl == "Example.fieldValue" &&
+      declSignature fieldDecl == "Nat" &&
+      declKind fieldDecl == SemanticRecordField &&
+      declContainer fieldDecl == "Example"
+    _ -> False
+
+recordFieldIsolationRegressionChecked :
+  recordFieldIsolationRegression ≡ True
+recordFieldIsolationRegressionChecked = refl
 
 charListLength : CharList -> Nat
 charListLength [] = 0
@@ -996,12 +1047,14 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS finalizeScanState #-}
 {-# COMPILE AGDA2HS scanLines #-}
 {-# COMPILE AGDA2HS parseLines #-}
+{-# COMPILE AGDA2HS recordHeaderIsolationRegression #-}
 {-# COMPILE AGDA2HS leadingSpaceCountChars #-}
 {-# COMPILE AGDA2HS leadingSpaceCount #-}
 {-# COMPILE AGDA2HS recordFieldHeader #-}
 {-# COMPILE AGDA2HS finalizeRecordFieldState #-}
 {-# COMPILE AGDA2HS scanRecordFields #-}
 {-# COMPILE AGDA2HS parseRecordFields #-}
+{-# COMPILE AGDA2HS recordFieldIsolationRegression #-}
 {-# COMPILE AGDA2HS charListLength #-}
 {-# COMPILE AGDA2HS incrementExtractorNat #-}
 {-# COMPILE AGDA2HS dropN #-}
