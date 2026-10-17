@@ -52,8 +52,33 @@
       agda2hsTool = system:
         (pkgsFor system).haskellPackages.agda2hs;
 
+      # The pinned Agda2HS base library's Show₁/Show₂ defaultShowList
+      # declarations leave their element universe implicit. Agda 2.8 with the
+      # current shared options cannot solve those two level metas, so patch
+      # only the universe binders in a writable compatibility copy. Runtime
+      # behavior and extracted Haskell instances are unchanged.
       agda2hsBaseLib = system:
-        (pkgsFor system).agdaPackages.agda2hs-base;
+        let
+          pkgs = pkgsFor system;
+          upstream = pkgs.agdaPackages.agda2hs-base;
+        in
+        pkgs.runCommand "agda2hs-base-show-universe-compat" { } ''
+          mkdir -p "$out"
+          cp -RL "${upstream}/." "$out/"
+          show_source="$(find "$out" -path '*/Haskell/Prim/Show.agda' -print -quit)"
+          test -n "$show_source" || {
+            echo "Haskell/Prim/Show.agda not found in pinned agda2hs-base" >&2
+            exit 1
+          }
+          grep -Fq 'record Show₁ (a : Type) : Type where' "$show_source"
+          grep -Fq 'record Show₂ (a : Type) : Type where' "$show_source"
+          substituteInPlace "$show_source" \
+            --replace-fail 'record Show₁ (a : Type) : Type where' 'record Show₁ {showLevel₁ : Level} (a : Type showLevel₁) : Type showLevel₁ where' \
+            --replace-fail 'record Show₂ (a : Type) : Type where' 'record Show₂ {showLevel₂ : Level} (a : Type showLevel₂) : Type showLevel₂ where'
+          grep -Fq 'record Show₁ {showLevel₁ : Level} (a : Type showLevel₁) : Type showLevel₁ where' "$show_source"
+          grep -Fq 'record Show₂ {showLevel₂ : Level} (a : Type showLevel₂) : Type showLevel₂ where' "$show_source"
+          find "$out" -name '*.agda-lib' -print -quit | grep -q .
+        '';
 
       agdaEmacs = system:
         let
