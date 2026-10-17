@@ -527,6 +527,7 @@
                 # Extract the embedded submodule only into a temporary build file.
                 awk '
                   /^module MonoidLSTMStreams where$/ { capture=1; print; next }
+                  /^module MLS = MonoidLSTMStreams$/ { capture=0; next }
                   capture && /^------------------------------------------------------------------------/ { capture=0 }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/MonoidLSTMStreams.agda"
