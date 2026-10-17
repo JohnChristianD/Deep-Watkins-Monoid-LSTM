@@ -515,25 +515,53 @@
           monoid-lstm-stream-check = let
             script = pkgs.writeShellApplication {
               name = "monoid-lstm-stream-check";
-              runtimeInputs = [ (agdaCommand system) pkgs.coreutils pkgs.gnugrep ];
+              runtimeInputs = [ (agdaCommand system) (agda2hsCommand system) (canonicalGhc system) pkgs.coreutils pkgs.gnugrep ];
               text = ''
                 set -euo pipefail
+                out="build/monoid-lstm-stream-check"
+                rm -rf "$out"
+                mkdir -p "$out"
+                tmp=$(mktemp -d)
+                trap 'rm -rf "$tmp"' EXIT
+                mkdir -p "$tmp/FullCoupled"
 
-                # The stream calculus is a nested module in the canonical learner;
-                # never extract it to a top-level, separately compiled Agda file.
+                # Build a temporary check harness under the owning monolith's path.
+                # MonoidLSTMStreams remains nested; do not create MonoidLSTMStreams.agda.
                 source=FullCoupled/CanonicalLearnerMonolith.agda
-                grep -Fq 'module MonoidLSTMStreams where' "$source"
-                grep -Fq 'runningSumPrefixRegression = refl' "$source"
+                target="$tmp/FullCoupled/CanonicalLearnerMonolith.agda"
+                printf '%s\n' \
+                  '{-# OPTIONS --sized-types --no-guardedness #-}' \
+                  'module FullCoupled.CanonicalLearnerMonolith where' > "$target"
+                awk '
+                  /^module MonoidLSTMStreams where$/ { capture=1; print; next }
+                  /^module MLS = MonoidLSTMStreams$/ { capture=0; exit }
+                  capture && /^------------------------------------------------------------------------/ { capture=0; exit }
+                  capture { sub(/^  /, ""); print }
+                ' "$source" >> "$target"
+
+                grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' "$target"
+                grep -Fq 'module MonoidLSTMStreams where' "$target"
+                grep -Fq 'runningSumPrefixRegression = refl' "$target"
                 grep -Fq 'canonicalLearnerTracePrefix' "$source"
                 grep -Fq 'canonicalTotalCountAfter' "$source"
-                grep -Fq 'open import Haskell.Prim.Thunk' "$source"
-                if grep -Fq 'open import Agda.Builtin.Coinduction' "$source" ||
-                   grep -Fq 'import Agda.Builtin.Coinduction' "$source"; then
-                  echo "stream calculus must use Agda2HS Thunk coinduction through the owning monolith" >&2
+                grep -Fq 'open import Haskell.Prim.Thunk' "$target"
+                if grep -Fq 'open import Agda.Builtin.Coinduction' "$target" ||
+                   grep -Fq 'import Agda.Builtin.Coinduction' "$target"; then
+                  echo "stream calculus must use Agda2HS Thunk coinduction" >&2
                   exit 1
                 fi
-                agda2hs-agda -i . "$source"
-                echo "monoid-lstm-stream-check=pass (nested in CanonicalLearnerMonolith; Agda2HS Thunk surface)"
+
+                agda2hs-agda -i . -i "$tmp" "$target"
+                agda2hs-ci "$target" -o "$out"
+                test -s "$out/FullCoupled/CanonicalLearnerMonolith.hs"
+                mkdir -p "$out/ghc"
+                ghc -fno-code -i"$out" -odir "$out/ghc" -hidir "$out/ghc" \
+                  "$out/FullCoupled/CanonicalLearnerMonolith.hs"
+                if find "$tmp" "$out" -name 'MonoidLSTMStreams.agda' -o -name 'MonoidLSTMStreams.hs' | grep -q .; then
+                  echo "stream module must not become its own generated source/object" >&2
+                  exit 1
+                fi
+                echo "monoid-lstm-stream-check=pass (nested stream, owner-module Agda2HS/GHC smoke test)"
               '';
             };
           in {
