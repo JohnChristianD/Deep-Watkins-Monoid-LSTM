@@ -519,17 +519,31 @@
                 out="build/monoid-lstm-stream-check"
                 rm -rf "$out"
                 mkdir -p "$out"
-                grep -Fq "open import Haskell.Prelude" FullCoupled/FormalMethods/MonoidLSTMStreams.agda
-                if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List)([[:space:]]|$)' FullCoupled/FormalMethods/MonoidLSTMStreams.agda; then
-                  echo "stream calculus must use the Agda2HS Prelude for Nat, equality, and lists" >&2
+                tmp=$(mktemp -d)
+                trap 'rm -rf "$tmp"' EXIT
+
+                # The extracted module needs the same local sized-stream flags as its source.
+                printf '%s\n' '{-# OPTIONS --sized-types --no-guardedness #-}' > "$tmp/MonoidLSTMStreams.agda"
+                # Extract the embedded submodule only into a temporary build file.
+                awk '
+                  /^module MonoidLSTMStreams where$/ { capture=1; print; next }
+                  /^module MLS = MonoidLSTMStreams$/ { capture=0; next }
+                  capture && /^------------------------------------------------------------------------/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/MonoidLSTMStreams.agda"
+                test -s "$tmp/MonoidLSTMStreams.agda"
+                grep -Fq "open import Haskell.Prelude" "$tmp/MonoidLSTMStreams.agda"
+                grep -Fq "open import Haskell.Prim.Thunk" "$tmp/MonoidLSTMStreams.agda"
+                if grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Agda\.Builtin\.(Nat|Equality|List|Coinduction)([[:space:]]|$)' "$tmp/MonoidLSTMStreams.agda"; then
+                  echo "stream calculus must use the Agda2HS Prelude/Thunk coinduction surface" >&2
                   exit 1
                 fi
-                agda2hs-agda -i . FullCoupled/FormalMethods/MonoidLSTMStreams.agda
-                agda2hs-ci FullCoupled/FormalMethods/MonoidLSTMStreams.agda -o "$out"
-                test -s "$out/FullCoupled/FormalMethods/MonoidLSTMStreams.hs"
+                agda2hs-agda -i . -i "$tmp" "$tmp/MonoidLSTMStreams.agda"
+                agda2hs-ci "$tmp/MonoidLSTMStreams.agda" -o "$out"
+                test -s "$out/MonoidLSTMStreams.hs"
                 mkdir -p "$out/ghc"
-                ghc -fno-code -i"$out" -odir "$out/ghc" -hidir "$out/ghc" "$out/FullCoupled/FormalMethods/MonoidLSTMStreams.hs"
-                echo "monoid-lstm-stream-check=pass (Agda and Agda2HS/GHC)"
+                ghc -fno-code -i"$out" -odir "$out/ghc" -hidir "$out/ghc" "$out/MonoidLSTMStreams.hs"
+                echo "monoid-lstm-stream-check=pass (embedded module; Agda and Agda2HS/GHC)"
               '';
             };
           in {
@@ -557,7 +571,6 @@
                 for source in \
                   FullCoupled/CanonicalLearnerMonolith.agda \
                   FullCoupled/TheoremsMonolith.agda \
-                  FullCoupled/FormalMethods/MonoidLSTMStreams.agda \
                   FullCoupled/Agda2HsSemanticExtractor.agda \
                   FullCoupled/Agda2HsTheoremGraphEGraph.agda \
                   FullCoupled/Agda2HsSemanticSearch.agda; do
@@ -695,6 +708,8 @@
                   exit 1
                 fi
                 grep -Fq "learner-semantic-bridge-closure=True" "$out/report.txt"
+                grep -Fq "semantic-identifier-normalization=True" "$out/report.txt"
+                grep -Fq "source-only-legacy-boundary=True" "$out/report.txt"
                 grep -Fq "graphTwoLeafBranchesRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
                 grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"

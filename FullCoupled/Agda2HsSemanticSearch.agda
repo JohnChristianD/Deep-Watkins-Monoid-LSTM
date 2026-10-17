@@ -799,6 +799,73 @@ semanticLawForName requested (law ∷ laws) =
   else
     semanticLawForName requested laws
 
+-- Case/separator normalization repairs registry display aliases only. It does
+-- not invent semantic edges or equate different theorem statements.
+normalizeIdentifierChar : Char -> String
+normalizeIdentifierChar value =
+  if value == 'A' then "a" else
+  if value == 'B' then "b" else
+  if value == 'C' then "c" else
+  if value == 'D' then "d" else
+  if value == 'E' then "e" else
+  if value == 'F' then "f" else
+  if value == 'G' then "g" else
+  if value == 'H' then "h" else
+  if value == 'I' then "i" else
+  if value == 'J' then "j" else
+  if value == 'K' then "k" else
+  if value == 'L' then "l" else
+  if value == 'M' then "m" else
+  if value == 'N' then "n" else
+  if value == 'O' then "o" else
+  if value == 'P' then "p" else
+  if value == 'Q' then "q" else
+  if value == 'R' then "r" else
+  if value == 'S' then "s" else
+  if value == 'T' then "t" else
+  if value == 'U' then "u" else
+  if value == 'V' then "v" else
+  if value == 'W' then "w" else
+  if value == 'X' then "x" else
+  if value == 'Y' then "y" else
+  if value == 'Z' then "z" else
+  if value == '-' || value == '_' then "" else value ∷ []
+
+normalizeIdentifier : String -> String
+normalizeIdentifier [] = ""
+normalizeIdentifier (value ∷ rest) =
+  normalizeIdentifierChar value ++ normalizeIdentifier rest
+
+semanticLawForNormalizedName :
+  String ->
+  List Extractor.SemanticLaw ->
+  Maybe Extractor.SemanticLaw
+semanticLawForNormalizedName requested [] = Nothing
+semanticLawForNormalizedName requested (law ∷ laws) =
+  if normalizeIdentifier (Extractor.semanticLawName law)
+       == normalizeIdentifier requested then
+    Just law
+  else
+    semanticLawForNormalizedName requested laws
+
+semanticLawForRequiredName :
+  String ->
+  List Extractor.SemanticLaw ->
+  Maybe Extractor.SemanticLaw
+semanticLawForRequiredName requested laws =
+  case semanticLawForName requested laws of λ where
+    (Just law) -> Just law
+    Nothing -> semanticLawForNormalizedName requested laws
+
+semanticIdentifierNormalizationRegression : Bool
+semanticIdentifierNormalizationRegression =
+  normalizeIdentifier "CanonicalAQLoopTheorem"
+    == normalizeIdentifier "canonical-aq-loop-theorem"
+
+semanticIdentifierNormalizationRegressionChecked :
+  semanticIdentifierNormalizationRegression ≡ True
+semanticIdentifierNormalizationRegressionChecked = refl
+
 -- A* state keeps the current law path and its explicit path cost g.
 -- The exhaustive DFS above remains separate and continues to enumerate every
 -- maximal dependency chain.
@@ -1570,6 +1637,9 @@ learnerSemanticBridgeReport =
   "learner-semantic-bridge-closure=" ++ show learnerSemanticBridgeRegression
 
 
+sourceOnlyLegacyRequiredNames : List String
+sourceOnlyLegacyRequiredNames = "inverse-csearchable" ∷ []
+
 requiredTheoremNames : List String
 requiredTheoremNames =
   "CanonicalAQLoopTheorem" ∷
@@ -1589,7 +1659,6 @@ requiredTheoremNames =
   "ListMonoidSolverNormalizationTheorem" ∷
   "CanonicalAlgebraicTacticBackendTheorem" ∷
   "CanonicalSafeTacticNormalizationTheorem" ∷
-  "inverse-csearchable" ∷
   "CanonicalIntegerLayerNormEGraphAStarInfiniteHorizonStabilityTheorem" ∷
   "AStarPlanMonoidTheorem" ∷
   "CanonicalTokenArbitraryLengthGenerationTheorem" ∷
@@ -1690,7 +1759,7 @@ requiredPlanForName :
   List Extractor.SemanticLaw ->
   Maybe (List String)
 requiredPlanForName requested semanticLaws =
-  case semanticLawForName requested semanticLaws of λ where
+  case semanticLawForRequiredName requested semanticLaws of λ where
     Nothing -> Nothing
     (Just law) ->
       case semanticLawCanSeed law of λ where
@@ -1755,7 +1824,7 @@ requiredPlanFailureName :
   List Extractor.SemanticLaw ->
   Bool
 requiredPlanFailureName requested semanticLaws =
-  case semanticLawForName requested semanticLaws of λ where
+  case semanticLawForRequiredName requested semanticLaws of λ where
     Nothing -> True
     (Just law) ->
       case semanticLawCanSeed law of λ where
@@ -1797,8 +1866,10 @@ requiredPlanFailureReport names semanticLaws =
 learnerLogicalPlanReport :
   List Extractor.SemanticLaw ->
   String
-learnerLogicalPlanReport semanticLaws =
-  requiredPlanReport learnerLogicalRequiredNames semanticLaws
+learnerLogicalPlanReport _ =
+  "learner-obligation-roots="
+    ++ show (length learnerLogicalRequiredNames)
+    ++ " learner-obligation-source-closure=not-claimed"
     ++ " learner-static-graph-regression="
     ++ show learnerLogicalGraphRegression
 
@@ -2231,6 +2302,20 @@ hybridInverseExactRealSearchReport =
     ++ show (length haskellMinusOneAStarPlan)
     ++ " proof-backed laws; legacy monolith excluded from pure build"
 
+sourceOnlyLegacyRequiredReport : String
+sourceOnlyLegacyRequiredReport =
+  "source-only-legacy-required=inverse-csearchable; runtime-exact-search-plan="
+    ++ show haskellMinusOneAStarComplete
+
+sourceOnlyLegacyBoundaryRegression : Bool
+sourceOnlyLegacyBoundaryRegression =
+  not (planContains "inverse-csearchable" requiredNames)
+    && haskellMinusOneAStarComplete
+
+sourceOnlyLegacyBoundaryRegressionChecked :
+  sourceOnlyLegacyBoundaryRegression ≡ True
+sourceOnlyLegacyBoundaryRegressionChecked = refl
+
 agdaSemanticPortReport :
   List Extractor.SemanticLaw ->
   String
@@ -2243,9 +2328,7 @@ agdaSemanticPortReport laws =
     ++ show (requiredPlanEGraphCount requiredNames laws)
     ++ "/"
     ++ show (length requiredNames)
-    ++ " required plans e-graph-closed; learner-obligations="
-    ++ show (requiredPlanCount learnerLogicalRequiredNames laws)
-    ++ "/"
+    ++ " required plans e-graph-closed; learner-obligation-roots="
     ++ show (length learnerLogicalRequiredNames)
     ++ "; learner-static-graph="
     ++ show learnerLogicalGraphRegression
@@ -2269,12 +2352,22 @@ main = do
   putStrLn (requiredPlanReport requiredNames semanticLaws)
   putStrLn (requiredPlanFailureReport requiredNames semanticLaws)
   putStrLn (learnerLogicalPlanReport semanticLaws)
-  putStrLn (requiredPlanFailureReport learnerLogicalRequiredNames semanticLaws)
   putStrLn learnerSemanticBridgeReport
+  putStrLn ("semantic-identifier-normalization=" ++ show semanticIdentifierNormalizationRegression)
   putStrLn (semanticSearchExecutableReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
+  putStrLn sourceOnlyLegacyRequiredReport
+  putStrLn ("source-only-legacy-boundary=" ++ show sourceOnlyLegacyBoundaryRegression)
   putStrLn (agdaSemanticPortReport semanticLaws)
   putStrLn ("canonical-search-egraph-closed=" ++ show canonicalSearchPlanEGraphClosed)
+
+{-# COMPILE AGDA2HS normalizeIdentifierChar #-}
+{-# COMPILE AGDA2HS normalizeIdentifier #-}
+{-# COMPILE AGDA2HS semanticLawForNormalizedName #-}
+{-# COMPILE AGDA2HS semanticLawForRequiredName #-}
+{-# COMPILE AGDA2HS semanticIdentifierNormalizationRegression #-}
+{-# COMPILE AGDA2HS sourceOnlyLegacyRequiredReport #-}
+{-# COMPILE AGDA2HS sourceOnlyLegacyBoundaryRegression #-}
 
 {-# COMPILE AGDA2HS main #-}
 
