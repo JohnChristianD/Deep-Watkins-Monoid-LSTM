@@ -65,6 +65,7 @@
         } ''
           mkdir -p "$out"
           cp -RL "${upstream}/." "$out/"
+          chmod -R u+w "$out"
           show_source="$(find "$out" -path '*/Haskell/Prim/Show.agda' -print -quit)"
           test -n "$show_source" || {
             echo "Haskell/Prim/Show.agda not found in pinned agda2hs-base" >&2
