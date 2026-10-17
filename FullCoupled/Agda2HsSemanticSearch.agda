@@ -1519,13 +1519,25 @@ learnerSemanticBridgeGraph =
   graphLawsFromEdges
     (("LearnerSemanticCoverageSuite" , "canonicalLearnerTraceGuarded") ∷
      ("LearnerSemanticCoverageSuite" , "canonicalLearnerTraceScan") ∷
+     ("LearnerSemanticCoverageSuite" , "canonicalLearnerTraceAt") ∷
+     ("LearnerSemanticCoverageSuite" , "canonicalTotalCountAfter") ∷
      ("LearnerSemanticCoverageSuite" , "rewardDependentBetaOptimalityBridge-obligation") ∷
      ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.denote") ∷
+     ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.denotationalCompositionalityRegression") ∷
+     ("LearnerSemanticCoverageSuite" , "ScottStracheyDomains.denotationalBottomStrictnessRegression") ∷
      ("LearnerSemanticCoverageSuite" , "LawvereDiagonal.noSurjectiveBooleanDiagonal") ∷
      ("LearnerSemanticCoverageSuite" , "OmegaKleeneFixedPoint.leastFixedPointIsFixed") ∷
      ("LearnerSemanticCoverageSuite" , "neuralBellmanInstantiation-obligation") ∷
      ("canonicalLearnerTraceGuarded" , "canonicalLearnerTrace") ∷
+     ("canonicalLearnerTraceAt" , "canonicalLearnerTrace") ∷
+     ("canonicalLearnerTraceAt" , "iterateCanonical") ∷
      ("canonicalLearnerTrace" , "canonicalLearnerTracePrefix") ∷
+     ("canonicalTotalCountAfter" , "canonicalTotalCountStep") ∷
+     ("canonicalTotalCountStep" , "canonicalCountStep") ∷
+     ("canonicalCountStep" , "updateLCBCount") ∷
+     ("ScottStracheyDomains.denotationalCompositionalityRegression" , "ScottStracheyDomains.denote") ∷
+     ("ScottStracheyDomains.denotationalCompositionalityRegression" , "ScottStracheyDomains.strictNatAdd") ∷
+     ("ScottStracheyDomains.denotationalBottomStrictnessRegression" , "ScottStracheyDomains.denote") ∷
      ("canonicalLearnerTrace" , "MonoidLSTMStreams.iterateStream") ∷
      ("canonicalLearnerTracePrefix" , "MonoidLSTMStreams.iterateStreamPrefix") ∷
      ("canonicalLearnerTracePrefix" , "canonicalFullStep") ∷
@@ -1614,6 +1626,10 @@ learnerSemanticBridgeRegression =
     (Just plan) →
       graphDependencyClosureValid learnerSemanticBridgeGraph plan
         && graphContains "canonicalLearnerTracePrefix" plan
+        && graphContains "canonicalLearnerTraceAt" plan
+        && graphContains "canonicalTotalCountAfter" plan
+        && graphContains "ScottStracheyDomains.denotationalCompositionalityRegression" plan
+        && graphContains "ScottStracheyDomains.denotationalBottomStrictnessRegression" plan
         && graphContains "MonoidLSTMStreams.iterateStreamPrefix" plan
         && graphContains "LawvereDiagonal.noSurjectiveBooleanDiagonal" plan
         && graphContains "canonicalWatkinsTarget" plan
