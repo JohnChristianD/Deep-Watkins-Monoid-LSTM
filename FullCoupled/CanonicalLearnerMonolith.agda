@@ -4,7 +4,6 @@
 --exact-split
 --no-projection-like
 --erased-matches
---erase-record-parameters
 --prop
 --confluence-check
 --two-level

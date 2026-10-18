@@ -4,7 +4,6 @@
 --exact-split
 --no-projection-like
 --erased-matches
---erase-record-parameters
 --prop
 --confluence-check
 --two-level
@@ -289,6 +288,13 @@ syntax try-fun t f = try t or-else f
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_; gruStep)
+
+------------------------------------------------------------------------
+-- Re-export shared constructive-computability assumptions from the
+-- canonical learner monolith. Keep the actual nested source module there.
+------------------------------------------------------------------------
+module ConstructiveComputabilityPostulates = C.ConstructiveComputabilityPostulates
+
 module MLS = C.MonoidLSTMStreams
 open import Agda.Primitive using (Level)
 open import Agda.Builtin.Size using (Size; Size<_; ∞)
@@ -622,12 +628,6 @@ module LawvereDiagonal where
   ... | fixedPointWitness value equation =
     noBooleanFlipFixedPoint value equation
 
-
-------------------------------------------------------------------------
--- Re-export the shared constructive-computability interfaces from the
--- canonical learner monolith; keep one authoritative set of assumptions.
-------------------------------------------------------------------------
-module ConstructiveComputabilityPostulates = C.ConstructiveComputabilityPostulates
 
 ------------------------------------------------------------------------
 -- Re-export policy semantics proved beside the canonical learner transition.
