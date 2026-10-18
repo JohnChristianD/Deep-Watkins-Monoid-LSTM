@@ -450,6 +450,7 @@ DHALL
     jaxSupportSparsityFraction
     jaxJittedScanSum
     JAXExecutionMirrorReproof
+    discreteExactUniversalUAPFromLeftInverse
     '
     while IFS= read -r symbol; do
       [ -z "$symbol" ] || grep -Fq "$symbol" "$theorem" || { echo "missing theorem symbol: $symbol"; exit 1; }
@@ -458,6 +459,7 @@ DHALL
     [ ! -f .ci/discovery/learner-semantic-laws.tsv ] || { echo "generated semantic law artifact present"; exit 1; }
     grep -Eiq 'walsh|rope|target-network|target_network|target network|normalization|regularization' "$learner" && { echo "forbidden semantic term present"; exit 1; } || true
     grep -Fq 'open import FullCoupled.CanonicalLearnerMonolith as C' "$theorem" || { echo "non-canonical theorem source"; exit 1; }
+    grep -Fq 'neuralPolicyGreedyTwoEpsilonRegret' "$learner" || { echo "missing two-epsilon greedy regret theorem"; exit 1; }
     '',
   Surface = ''
     set -euo pipefail
