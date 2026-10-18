@@ -431,7 +431,6 @@ canonicalLearnerTraceScan K initial .learnerStreamTailsBisimilar {j} =
 
 module ScottStracheyDomains where
   open import Haskell.Prelude using (_≡_; refl)
-  open import Agda.Primitive using (Level)
   import Haskell.Prelude as HP
 
   BNat : Set
@@ -450,40 +449,21 @@ module ScottStracheyDomains where
   ScottEmpty : Set
   ScottEmpty = HP.⊥
 
-  data Lift {ℓ : Level} (A : Set ℓ) : Set ℓ where
+  data Lift (A : Set) : Set where
     bottom : Lift A
     defined : A → Lift A
 
-  -- Strict lifting preserves bottom and maps defined states through the step.
-  liftStrictMap :
-    {ℓ : Level} {A : Set ℓ} → (A → A) → Lift A → Lift A
-  liftStrictMap step bottom = bottom
-  liftStrictMap step (defined value) = defined (step value)
-
-  liftStrictMapBottom :
-    {ℓ : Level} {A : Set ℓ} (step : A → A) →
-    liftStrictMap step bottom ≡ bottom
-  liftStrictMapBottom step = refl
-
-  liftStrictMapDefined :
-    {ℓ : Level} {A : Set ℓ} (step : A → A) (value : A) →
-    liftStrictMap step (defined value) ≡ defined (step value)
-  liftStrictMapDefined step value = refl
-
   infix 4 _⊑_
 
-  data _⊑_ {ℓ : Level} {A : Set ℓ} :
-    Lift A → Lift A → Set ℓ where
+  data _⊑_ {A : Set} : Lift A → Lift A → Set where
     bottomLeast : {value : Lift A} → bottom ⊑ value
     definedReflexive : {value : A} → defined value ⊑ defined value
 
-  reflexive⊑ :
-    {ℓ : Level} {A : Set ℓ} {value : Lift A} → value ⊑ value
+  reflexive⊑ : {A : Set} {value : Lift A} → value ⊑ value
   reflexive⊑ {value = bottom} = bottomLeast
   reflexive⊑ {value = defined value} = definedReflexive
 
-  bottomIsLeast :
-    {ℓ : Level} {A : Set ℓ} (value : Lift A) → bottom ⊑ value
+  bottomIsLeast : {A : Set} (value : Lift A) → bottom ⊑ value
   bottomIsLeast _ = bottomLeast
 
   bottomIsNotZero : bottom ≡ defined bzero → ScottEmpty
@@ -536,27 +516,6 @@ module ScottStracheyDomains where
     (right : NatExpr) → denote (diverges ⊕ right) ≡ bottom
   denotationalBottomStrictnessRegression right = refl
 
-  -- nLab-style Scott–Ershov regression: compositionality and bottom strictness
-  -- are jointly exhibited as actual kernel-checked proof fields.
-  record NLabDenotationalSemanticsRegression
-    (left right : NatExpr) : Set where
-    constructor nLabDenotationalSemanticsRegression
-    field
-      nLabCompositionality :
-        denote (left ⊕ right) ≡
-          strictNatAdd (denote left) (denote right)
-      nLabBottomStrictness :
-        denote (diverges ⊕ right) ≡ bottom
-
-  scottErshovNLabDenotationalSemanticsRegression :
-    (left right : NatExpr) →
-    NLabDenotationalSemanticsRegression left right
-  scottErshovNLabDenotationalSemanticsRegression left right =
-    record
-      { nLabCompositionality = refl
-      ; nLabBottomStrictness = refl
-      }
-
   record AlgebraOperations (A : Set) : Set₁ where
     field
       algebraZero : A
@@ -596,30 +555,6 @@ module ScottStracheyDomains where
       strictMultiply (defined (AlgebraOperations.algebraZero operations)) bottom ≡
         defined (AlgebraOperations.algebraZero operations) → ScottEmpty
     zeroAnnihilatorFailsAtBottom ()
-
-------------------------------------------------------------------------
--- Scott-domain interpretation of the actual canonical learner transition.
--- This strict lift is tied to the learner's real canonicalFullStep.
-------------------------------------------------------------------------
-
-module CanonicalLearnerDenotation {A : Set}
-  (K : C.FullLearnerKernel A) where
-  open ScottStracheyDomains
-
-  liftedCanonicalFullStep :
-    Lift (C.FullLearnerState A) → Lift (C.FullLearnerState A)
-  liftedCanonicalFullStep =
-    liftStrictMap (C.canonicalFullStep K)
-
-  canonicalLearnerDenotationBottom :
-    liftedCanonicalFullStep bottom ≡ bottom
-  canonicalLearnerDenotationBottom = refl
-
-  canonicalLearnerTraceDenotationStep :
-    (state : C.FullLearnerState A) →
-    liftedCanonicalFullStep (defined state) ≡
-      defined (C.canonicalFullStep K state)
-  canonicalLearnerTraceDenotationStep state = refl
 
 ------------------------------------------------------------------------
 -- Lawvere diagonal fixed points, constructive existence and boundary.
