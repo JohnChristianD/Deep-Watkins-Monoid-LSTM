@@ -2672,6 +2672,7 @@ main = do
 {-# COMPILE AGDA2HS semanticLawCanSeed #-}
 {-# COMPILE AGDA2HS requiredTheoremNames #-}
 {-# COMPILE AGDA2HS requiredSubcompositionNames #-}
+{-# COMPILE AGDA2HS runtimeRequiredNames #-}
 {-# COMPILE AGDA2HS requiredNames #-}
 {-# COMPILE AGDA2HS requiredPlanForName #-}
 {-# COMPILE AGDA2HS requiredPlanIsValid #-}
