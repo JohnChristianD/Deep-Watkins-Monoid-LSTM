@@ -1,5 +1,5 @@
 --lossy-unification
---sized-types
+--erasure
 --no-projection-like
 --erased-matches
 --erase-record-parameters
