@@ -1,4 +1,3 @@
---lossy-unification
 --erasure
 --no-projection-like
 --erased-matches
@@ -8,5 +7,5 @@
 --two-level
 --level-universe
 --polarity
---no-forced-argument-recursion
+--sized-types
 --no-guardedness
