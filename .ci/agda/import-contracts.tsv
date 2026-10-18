@@ -121,6 +121,13 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphRemoveNa
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphFindReady #-}	{-# COMPILE AGDA2HS graphFindReady #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphTopologicalSort #-}	{-# COMPILE AGDA2HS graphTopologicalSort #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDependencyClosure #-}	{-# COMPILE AGDA2HS graphDependencyClosure #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathCountLookup #-}	{-# COMPILE AGDA2HS graphPathCountLookup #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathCountDependencies #-}	{-# COMPILE AGDA2HS graphPathCountDependencies #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathCountTable #-}	{-# COMPILE AGDA2HS graphPathCountTable #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathCountTableForLaws #-}	{-# COMPILE AGDA2HS graphPathCountTableForLaws #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathCountSum #-}	{-# COMPILE AGDA2HS graphPathCountSum #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathCountAt #-}	{-# COMPILE AGDA2HS graphPathCountAt #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPathCountRegression #-}	{-# COMPILE AGDA2HS graphPathCountRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphPrecedes #-}	{-# COMPILE AGDA2HS graphPrecedes #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphClosureDependenciesValid #-}	{-# COMPILE AGDA2HS graphClosureDependenciesValid #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphClosureMemberValid #-}	{-# COMPILE AGDA2HS graphClosureMemberValid #-}	1
