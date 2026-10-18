@@ -80,6 +80,10 @@ require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS semanticR
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS associativityRule #-}	{-# COMPILE AGDA2HS associativityRule #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS emptyRightRule #-}	{-# COMPILE AGDA2HS emptyRightRule #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS emptyLeftRule #-}	{-# COMPILE AGDA2HS emptyLeftRule #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS russianConstructivismPostulateRule #-}	{-# COMPILE AGDA2HS russianConstructivismPostulateRule #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS scottErshovDenotationalSemanticsPostulateRule #-}	{-# COMPILE AGDA2HS scottErshovDenotationalSemanticsPostulateRule #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS bishopConstructivismPostulateRule #-}	{-# COMPILE AGDA2HS bishopConstructivismPostulateRule #-}	1
+require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS constructivistPostulateRegression #-}	{-# COMPILE AGDA2HS constructivistPostulateRegression #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS equivalent #-}	{-# COMPILE AGDA2HS equivalent #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS merge #-}	{-# COMPILE AGDA2HS merge #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS Expr #-}	{-# COMPILE AGDA2HS Expr #-}	1
