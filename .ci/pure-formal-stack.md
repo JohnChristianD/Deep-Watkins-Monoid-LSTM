@@ -149,3 +149,42 @@ The shared `.ci/agda/global-options.txt` contains only `--erasure`, `--no-projec
 - **Demand semantics matter, with a boundary.** The extracted Haskell factorial-fuel list is lazy, so A* can demand its spine incrementally and avoid eager allocation of `4 × n!` cells. This affects runtime allocation and time-to-first-result. It does not turn finite fuel into an infinite stream or prove that exhaustion means no solution. The sized `LearnerStream` theorem proves finite observation and coinductive fusion; a theorem about Haskell call-by-need allocation requires an operational/cost model of the generated Haskell, not just stream bisimulation in Agda.
 
 Research pointers: [Agda2HS paper](https://doi.org/10.1145/3546189.3549920); [Haskell⁻¹ paper record](https://dblp.org/rec/conf/haskell/TeegenPB21.html); [Liquid Haskell, refinement types and lazy evaluation](https://doi.org/10.1145/2628136.2628161); [Agda2Scheme repository](https://github.com/jespercockx/agda2scheme).
+
+## Constructive foundations: profiles, not global rewrite rules
+
+**Decision:** Do not merge Russian constructivism, Bishop-style constructive mathematics, Scott–Ershov domain theory, Henkin constructions, Lawvere's fixed-point theorem, and Kleene's omega fixed-point theorem into one global postulate or one rewrite system. Their assumptions and conclusions live at different levels. Nothing in their names or in the existing Agda development establishes a contradiction or a dominance relation among them.
+
+- **Bishop-style constructive mathematics** is a constructive mathematical practice, usually presented with intuitionistic logic and explicit evidence for existence. It does not, by itself, prescribe one universal axiom package.
+- **Russian constructivism / recursive mathematics** adds an effective or realizability-oriented interpretation. Church's Thesis and Markov's Principle are common additional principles in formal presentations, but the exact package varies. Record each adopted principle explicitly; do not silently identify it with Bishop's base practice.
+- **Scott-style denotational semantics and Ershov's effective-domain tradition** concern semantic structures for partial information and computation. The repo's nested `ScottStracheyDomains` is a particular lifted-natural model, not a global axiom. A domain contract should expose its order, bottom, chain suprema, and continuity assumptions.
+- **Henkin constructions** are model-building methods used in completeness proofs. Their inputs include a formal language, a consistency condition, and suitable witness/closure steps. A standard classical proof does not automatically become constructive by being renamed a postulate; constructive formalizations exist, but the proof and background theory must be stated.
+- **Lawvere's fixed-point theorem** is a diagonal/representability result. In a common formulation, a weakly point-surjective evaluation map into an exponential yields a fixed point for every endomap of the codomain. It does not generally supply a least fixed point in an order.
+- **Kleene's omega fixed-point theorem** is an order-theoretic result: for a pointed `ω`-CPO and an `ω`-continuous endomap `F`, the least fixed point is `⊔ (n : ℕ) . Fⁿ(⊥)`. The pointed-domain, chain-supremum, and continuity premises are essential. This is the contract already documented for `CanonicalBellmanOrderTheory`.
+
+### Compatibility verdict
+
+These theories are **not inconsistent merely by being studied together**, and none subsumes all the others. Constructive mathematics specifies evidential/logical discipline; domain theory supplies semantic models; Henkin methods construct models under logical premises; Lawvere supplies an abstract fixed-point/diagonal principle; Kleene supplies a least fixed point under order-continuity premises. Lawvere's and Kleene's theorems may interact, yet neither replaces the other's hypotheses or conclusion. A contradiction claim needs an explicit common formal theory and a derivation of `⊥`; a dominance claim needs a stated implication or interpretation theorem.
+
+Compatibility is profile-dependent. In particular, do not add excluded middle, Church's Thesis, Markov's Principle, choice principles, or domain-existence assumptions globally merely because a source uses them. Keep each assumption named, scoped, and visible in the dependency path. Do not infer that a theorem is constructive when its proof imports a classical or untracked assumption.
+
+### Agda encoding boundary
+
+A **postulate** introduces an assumption at a type. A **rewrite rule** changes computation by orienting an equality as a reduction rule. These mechanisms are not interchangeable: registering a postulated equality as a rewrite rule does not prove it, remove its axiom dependency, or make its computational behavior sound. Before admitting a rewrite rule, check the equality's provenance, type preservation, orientation, and confluence in the intended module profile.
+
+The current command policy above remains in force: `--rewriting` is file-local and must not be promoted to a global CLI flag. Keep incompatible foundational profiles in separate modules or CI lanes. A suitable decomposition is:
+
+- `Foundations.BishopProfile`: the chosen constructive logic and explicit principles, without assuming a universal axiom bundle.
+- `Foundations.RussianProfile`: the effective/realizability interpretation, with Church's Thesis, Markov's Principle, and any choice assumptions exposed separately.
+- `Semantics.ScottErshovDomain`: a typed domain interface with order, bottom, chain suprema, and continuity laws.
+- `ModelTheory.Henkin`: a language/theory plus explicit consistency and witness-extension conditions.
+- `FixedPoint.Lawvere` and `FixedPoint.OmegaKleene`: independent theorem interfaces retaining their own hypotheses and conclusions.
+
+Treat those names as a proposed module boundary, not as evidence that these modules already exist or have been kernel-checked. Existing checked results remain conditional on exactly the assumptions in their own dependency closure.
+
+### Research pointers
+
+- Hannes Diener and Peter Schuster, [“On Choice Principles and Fan Theorems” (2010)](https://doi.org/10.3217/jucs-016-18-2556), states its Bishop-style setting and flags where choice principles enter.
+- Hugo Herbelin and Danko Ilik, [“An analysis of the constructive content of Henkin's proof of Gödel's completeness theorem” (2024)](https://doi.org/10.48550/arXiv.2401.13304), studies a formalized constructive treatment of Henkin's method.
+- Andrej Bauer, [“On fixed-point theorems in synthetic computability” (2017)](https://doi.org/10.1515/TMJ-2017-0107), relates Lawvere-style fixed points and order-theoretic fixed-point principles under explicit assumptions.
+- Noson S. Yanofsky, [“A universal approach to self-referential paradoxes, incompleteness and fixed points” (2003)](https://doi.org/10.2178/BSL/1058448677), develops the shared diagonal scheme behind several fixed-point and incompleteness results.
+
