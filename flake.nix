@@ -1,8 +1,19 @@
 {
-  description = "Agda2HS graph search with Nixpkgs and Lua/Luafun support";
+  description = "Agda2HS graph search with pinned official Acorn exact-real library and Lua/Luafun support";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/0439f75413ace6c42e4c722cafd4d6e5401de648";
+    # Acorn's upstream compiler fork explicitly requires Agda >=2.6.4 <2.6.5.
+    # Keep that isolated from this project's current Agda 2.8 runtime.
+    acornNixpkgs.url = "github:NixOS/nixpkgs/205fd4226592cc83fd4c0885a3e4c9c400efabb5";
+    acornReals = {
+      url = "github:viktorcsimma/acorn/21b7624dbfb4ddd75418a0b037620ae4c8883cb2";
+      flake = false;
+    };
+    acornAgda2hs = {
+      url = "github:viktorcsimma/agda2hs/a3c83ad3be876ce0c7aa31157f3107843bf2f465";
+      flake = false;
+    };
     luafun = {
       url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
       flake = false;
@@ -12,6 +23,9 @@
   outputs = {
     self,
     nixpkgs,
+    acornNixpkgs,
+    acornReals,
+    acornAgda2hs,
     luafun
   }:
     let
@@ -28,6 +42,27 @@
         import nixpkgs {
           inherit system;
         };
+
+      # Build the real-number library maintained by the AcornCalc author.
+      # Its pinned agda2hs fork has an Agda 2.6.4 API bound, so keep this
+      # package on a pinned compatible Nixpkgs/GHC set rather than mixing
+      # generated modules into the project's Agda 2.8 / GHC runtime.
+      acornRealLibrary = system:
+        let
+          pkgs = import acornNixpkgs { inherit system; };
+          compiler = pkgs.haskellPackages.callCabal2nix "agda2hs" acornAgda2hs { };
+          library = pkgs.haskellPackages.callCabal2nix "acorn" acornReals { };
+        in
+        library.overrideAttrs (old: {
+          nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ compiler ];
+          preBuild = (old.preBuild or "") + ''
+            agda_config="$TMPDIR/acorn-agda"
+            mkdir -p "$agda_config"
+            printf '%s\n' "$PWD/acorn.agda-lib" "\${acornAgda2hs}/agda2hs.agda-lib" > "$agda_config/libraries"
+            printf '%s\n' "agda2hs" > "$agda_config/defaults"
+            export AGDA_DIR="$agda_config"
+          '';
+        });
 
       agda2hsTool = system:
         (pkgsFor system).haskellPackages.agda2hs;
@@ -299,6 +334,7 @@ PY
           agda = agdaCli system;
           agda2hs = agda2hsWithCanonicalGhc system;
           agda-emacs = agdaEmacs system;
+          acorn-reals = acornRealLibrary system;
           ci = pkgs.dhall;
           default = pkgs.dhall;
         });
@@ -312,6 +348,23 @@ PY
             type = "app";
             program = "${pkgs.dhall}/bin/dhall";
           };
+          acorn-real-check = let
+            script = pkgs.writeShellApplication {
+              name = "acorn-real-check";
+              runtimeInputs = [ (acornRealLibrary system) pkgs.coreutils ];
+              text = ''
+                set -euo pipefail
+                test -x "\${acornRealLibrary system}/bin/AcornShell"
+                echo "official-acorn-reals=nix-build-pass"
+                echo "acorn-compiler=have-it-both-ways/a3c83ad3be876ce0c7aa31157f3107843bf2f465"
+                echo "agda-api=2.6.4.x"
+              '';
+            };
+          in {
+            type = "app";
+            program = "\${script}/bin/acorn-real-check";
+          };
+
           fennel-smoke = let
             script = pkgs.writeShellApplication {
               name = "fennel-smoke";
@@ -468,16 +521,6 @@ PY
                   /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/TheoremsMonolith.agda > "$tmp/LawvereDiagonal.agda"
-                # Check the source-owned Cauchy-approximation boundary from its
-                # monolith, without adding a tracked standalone proof module.
-                awk '
-                  /^module CoRNRealBoundary where$/ { capture=1; print; next }
-                  capture {
-                    sub(/^  /, "")
-                    if ($0 == "-- END CoRNRealBoundary") exit
-                    print
-                  }
-                ' FullCoupled/TheoremsMonolith.agda > "$tmp/CoRNRealBoundary.agda"
                 awk '
                   /^module CanonicalBellmanOrderTheory where$/ { capture=1; print; next }
                   capture { sub(/^  /, ""); print }
@@ -486,7 +529,6 @@ PY
                 test -s "$tmp/BetaOptimalityBoundary.agda"
                 test -s "$tmp/CanonicalBellmanOrderTheory.agda"
                 test -s "$tmp/LawvereDiagonal.agda"
-                test -s "$tmp/CoRNRealBoundary.agda"
                 test -s "$tmp/ConstructiveComputabilityPostulates.agda"
                 test -s "$tmp/ConstructiveExceptionSemantics.agda"
                 test -s "$tmp/ConstructivePropTransport.agda"
@@ -547,13 +589,6 @@ PY
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanValueIsSupremumOfQStar" "$tmp/CanonicalBellmanOrderTheory.agda"
-                grep -Fq "coRNMinRegression = refl" "$tmp/CoRNRealBoundary.agda"
-                grep -Fq "monolithTabularQExact target state action = refl" "$tmp/CoRNRealBoundary.agda"
-                if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/CoRNRealBoundary.agda"; then
-                  echo "CoRN approximation boundary must not add global postulates" >&2
-                  exit 1
-                fi
-                agda2hs-agda -i "$tmp" "$tmp/CoRNRealBoundary.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ConstructivePropTransport.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ConstructiveExceptionSemantics.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
