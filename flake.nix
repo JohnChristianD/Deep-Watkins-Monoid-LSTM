@@ -461,7 +461,13 @@
                 awk '
                   /^module ConstructiveComputabilityPostulates where$/ { capture=1; next }
                   /^variable$/ { capture=0 }
-                  capture { sub(/^  /, ""); print }
+                  capture {
+                    sub(/^  /, "")
+                    print
+                    # Bind rewriting to Prelude equality without adding an Agda.Builtin import.
+                    if ($0 == "open import Haskell.Prelude using (Nat; suc; _≡_)")
+                      print "{-# BUILTIN REWRITE _≡_ #-}"
+                  }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
                 awk '
                   /^module ScottStracheyDomains where$/ { capture=1; print; next }
