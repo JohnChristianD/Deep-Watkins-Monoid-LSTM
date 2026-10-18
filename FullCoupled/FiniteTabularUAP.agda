@@ -15,8 +15,7 @@
 
 module FullCoupled.FiniteTabularUAP where
 
-open import Agda.Builtin.Nat using (Nat; zero; suc)
-open import Agda.Builtin.Equality using (_≡_)
+open import Haskell.Prelude using (Nat; zero; suc; _≡_)
 open import FullCoupled.ReflectionAutomation using (byDefinitionalRefl)
 
 data Fin : Nat → Set where
