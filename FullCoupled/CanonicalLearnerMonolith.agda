@@ -142,14 +142,17 @@ module ConstructiveComputabilityPostulates where
   -- for this particular domain, not a theorem about every ordered set.
   ----------------------------------------------------------------------
 
-  module ScottErshovEffectiveDomain
+  infix 4 _⊑d_ _≪d_
+
+  -- A Scott-Ershov domain is explicit data, not an axiom that every carrier
+  -- has a compact basis. This prevents instantiating the interface at an
+  -- empty or otherwise unsuitable carrier and deriving arbitrary results.
+  record ScottErshovEffectiveDomainData
     (D : Set)
     (_⊑d_ : D → D → Set)
-    (_≪d_ : D → D → Set) where
-
-    infix 4 _⊑d_ _≪d_
-
-    postulate
+    (_≪d_ : D → D → Set) : Set₁ where
+    constructor scottErshovEffectiveDomainData
+    field
       compactCode : ℕ → D
       compactCodeIsCompact :
         (n : ℕ) → _≪d_ (compactCode n) (compactCode n)
@@ -160,16 +163,6 @@ module ConstructiveComputabilityPostulates where
         (x : D) (n : ℕ) →
         compactApproximation x n ≡ compactCode (approximationIndex x n)
 
-    -- Computation reduces an approximation to its effective compact code.
-    {-# REWRITE compactApproximationComputes #-}
-
-    compactApproximationIsCompact :
-      (x : D) (n : ℕ) →
-      _≪d_ (compactApproximation x n) (compactApproximation x n)
-    compactApproximationIsCompact x n =
-      compactCodeIsCompact (approximationIndex x n)
-
-    postulate
       compactApproximationBelow :
         (x : D) (n : ℕ) →
         _⊑d_ (compactApproximation x n) x
@@ -182,6 +175,63 @@ module ConstructiveComputabilityPostulates where
         (x y : D) →
         ((n : ℕ) → _⊑d_ (compactApproximation x n) y) →
         _⊑d_ x y
+
+  module ScottErshovEffectiveDomain
+    {D : Set}
+    {_⊑d_ : D → D → Set}
+    {_≪d_ : D → D → Set}
+    (domain : ScottErshovEffectiveDomainData D _⊑d_ _≪d_) where
+
+    compactCode : ℕ → D
+    compactCode = ScottErshovEffectiveDomainData.compactCode domain
+
+    compactCodeIsCompact :
+      (n : ℕ) → _≪d_ (compactCode n) (compactCode n)
+    compactCodeIsCompact =
+      ScottErshovEffectiveDomainData.compactCodeIsCompact domain
+
+    approximationIndex : D → ℕ → ℕ
+    approximationIndex =
+      ScottErshovEffectiveDomainData.approximationIndex domain
+
+    compactApproximation : D → ℕ → D
+    compactApproximation =
+      ScottErshovEffectiveDomainData.compactApproximation domain
+
+    compactApproximationComputes :
+      (x : D) (n : ℕ) →
+      compactApproximation x n ≡ compactCode (approximationIndex x n)
+    compactApproximationComputes =
+      ScottErshovEffectiveDomainData.compactApproximationComputes domain
+
+    -- Computation reduces an approximation to its effective compact code.
+    -- The rule is available only with a concrete domain-data witness.
+    {-# REWRITE compactApproximationComputes #-}
+
+    compactApproximationIsCompact :
+      (x : D) (n : ℕ) →
+      _≪d_ (compactApproximation x n) (compactApproximation x n)
+    compactApproximationIsCompact x n =
+      compactCodeIsCompact (approximationIndex x n)
+
+    compactApproximationBelow :
+      (x : D) (n : ℕ) →
+      _⊑d_ (compactApproximation x n) x
+    compactApproximationBelow =
+      ScottErshovEffectiveDomainData.compactApproximationBelow domain
+
+    compactApproximationIncreasing :
+      (x : D) (n : ℕ) →
+      _⊑d_ (compactApproximation x n) (compactApproximation x (succ n))
+    compactApproximationIncreasing =
+      ScottErshovEffectiveDomainData.compactApproximationIncreasing domain
+
+    compactApproximationLeast :
+      (x y : D) →
+      ((n : ℕ) → _⊑d_ (compactApproximation x n) y) →
+      _⊑d_ x y
+    compactApproximationLeast =
+      ScottErshovEffectiveDomainData.compactApproximationLeast domain
 
   ----------------------------------------------------------------------
   -- Henkin construction with consistency and witness hypotheses explicit.
@@ -197,17 +247,18 @@ module ConstructiveComputabilityPostulates where
       HasHenkinWitnesses : (Sentence → Set) → Set
       Satisfies : Model → Sentence → Set
 
-  open HenkinTheoryInterface public
+      -- Each logic supplies its own constructive Henkin builder. The mere
+      -- labels "consistent" and "has witnesses" are not treated as axioms
+      -- from which a model of arbitrary uninterpreted predicates follows.
+      henkinModelExists :
+        (T : Sentence → Set) →
+        Consistent T →
+        HasHenkinWitnesses T →
+        SigmaWitness
+          Model
+          (λ M → (φ : Sentence) → T φ → Satisfies M φ)
 
-  postulate
-    henkinModelExists :
-      (L : HenkinTheoryInterface) →
-      (T : Sentence L → Set) →
-      Consistent L T →
-      HasHenkinWitnesses L T →
-      SigmaWitness
-        (Model L)
-        (λ M → (φ : Sentence L) → T φ → Satisfies L M φ)
+  open HenkinTheoryInterface public
 
 variable
   ℓ ℓ₁ ℓ₂ ℓ₃ ℓ₄ : Level
