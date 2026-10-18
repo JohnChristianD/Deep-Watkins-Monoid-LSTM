@@ -506,6 +506,7 @@
                 done
                 # Validate the constructive foundations separately from the legacy monolith.
                 grep -Fq "russianMarkovPrinciple" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "russianCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "BishopWitness" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "ScottErshovEffectiveDomainData" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "HenkinTheoryInterface" "$tmp/ConstructiveComputabilityPostulates.agda"
