@@ -17,7 +17,6 @@
 --no-forced-argument-recursion
 --with-K
 --no-guardedness
---injective-type-constructors
 #-}
 
 ------------------------------------------------------------------------
