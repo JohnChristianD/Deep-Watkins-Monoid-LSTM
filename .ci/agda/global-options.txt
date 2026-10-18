@@ -1,4 +1,3 @@
 --erasure
 --no-projection-like
 --confluence-check
---sized-types
