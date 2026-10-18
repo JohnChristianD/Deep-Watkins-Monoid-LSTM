@@ -100,9 +100,10 @@ module ConstructiveComputabilityPostulates where
 
   open SigmaWitness public
 
-  -- Impredicative proposition-valued existential. Elimination stays in
-  -- Prop, so it records existence without turning erased evidence into data.
-  PropExists : {A : Set} → (A → Prop) → Prop
+  -- Church-encoded existential over propositions. Quantifying over Prop
+  -- places this encoding in Prop₁; elimination remains proposition-valued
+  -- and does not turn erased evidence into a Set witness.
+  PropExists : {A : Set} → (A → Prop) → Prop₁
   PropExists {A} P = (R : Prop) → ((x : A) → P x → R) → R
 
   propExistsIntro :
