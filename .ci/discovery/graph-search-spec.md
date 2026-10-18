@@ -62,11 +62,24 @@ leaves no further child, that is a dead end, not success.
   the bounded exhaustive fallback. This preserves exact report counts without
   exponential path-list construction and insertion sorting. Reports say DFS /
   maximal dependency chains, never A*.
-- `graphAStarFirst` is a separate best-first single-plan search, with
-  JAxtar's default discrete A* policy preserved. Path cost is `g = length(path)`: a singleton seed starts at one, and each dependency edge adds one. Relative ordering matches edge-count g-cost from a fixed seed because its prefix contribution is constant. The heuristic is 0 for a leaf (or unknown node) and 1 for a node with dependencies. Its weighted score is the exact integer scaling of JAxtar's default `f = (1 - 10^-6)g + h`:
-  `999999*g + 1000000*h`. A non-leaf needs at least one additional edge to
-  reach a leaf, so `h=1` is a lower bound. Queue insertion uses `<=`, so an
-  incoming equal-score node precedes an existing node.
+- `graphAStarFirst` is the production best-first single-plan search. It now uses
+  JAxtar-style **deferred A*** queue entries: an outgoing dependency is queued
+  with lower-bound priority `999999*g`; only when that edge is popped is the
+  child path materialised and its heuristic evaluated, after which it is
+  reinserted with the exact score. This can avoid heuristic work for siblings
+  that are never explored; performance benefit is not assumed without a
+  benchmark. Eager `graphAStarFirstEager` remains as a differential reference.
+  Ready-node scores preserve JAxtar's default integer scaling of
+  `f = (1 - 10^-6)g + h`: `999999*g + 1000000*h`. Path cost is
+  `g = length(path)`; the heuristic is 0 for a leaf (or unknown node) and 1
+  for a node with dependencies. A deferred edge's lower-bound key omits h and
+  is therefore no greater than its materialised score. Goal testing runs only
+  on ready nodes. Equal-score insertion is incoming-first (`<=`). Best-g
+  deduplication remains keyed by active law ID and stale entries are skipped.
+  Deferred search uses twice the legacy `3*n!` fuel budget to account for
+  its separate pending-edge and ready-node queue phases; exhaustion is still a
+  resource bound, not a no-path theorem. Small Agda regressions compare the
+  deferred result with eager A* and reduce the lower-bound policy to `True`.
 - As in JAxtar's strict `optimal_mask` policy, a best-g table is keyed by the
   active law ID. Enqueue only when a candidate has a strictly lower g-cost;
   equal/worse duplicates are discarded and stale queue entries are skipped.
