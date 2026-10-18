@@ -81,7 +81,7 @@ module ConstructiveComputabilityPostulates where
   -- no excluded-middle axiom in this module. The outer monolith's Prop-valued
   -- observational equality/rewrite rules remain limited extensionality; no
   -- identity-level function-extensionality postulate is added.
-  open import Haskell.Prelude using (Nat; zero; suc; Bool; true; false; List; []; _∷_; _≡_)
+  open import Haskell.Prelude using (Nat; zero; suc; Bool; True; False; List; []; _∷_; _≡_)
 
   data EmptyComputability : Set where
 
@@ -118,21 +118,21 @@ module ConstructiveComputabilityPostulates where
   RecursiveProgram = List RecursiveInstruction
 
   natEquality : Nat → Nat → Bool
-  natEquality zero zero = true
-  natEquality zero (suc _) = false
-  natEquality (suc _) zero = false
+  natEquality zero zero = True
+  natEquality zero (suc _) = False
+  natEquality (suc _) zero = False
   natEquality (suc n) (suc m) = natEquality n m
 
   updateRegister :
     Nat → Nat → (Nat → Nat) → Nat → Nat
   updateRegister target value registers index with natEquality index target
-  ... | true = value
-  ... | false = registers index
+  ... | True = value
+  ... | False = registers index
 
   initialRegisters : Nat → Nat → Nat
   initialRegisters input index with natEquality index zero
-  ... | true = input
-  ... | false = zero
+  ... | True = input
+  ... | False = zero
 
   lookupInstruction : RecursiveProgram → Nat → RecursiveInstruction
   lookupInstruction [] _ = haltInstruction
