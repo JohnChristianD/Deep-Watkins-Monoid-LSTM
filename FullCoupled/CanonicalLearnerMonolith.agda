@@ -2183,10 +2183,20 @@ module MonoidLSTMStreams where
   streamHead : {ℓ : Level} {a : Set ℓ} {i : Size} → Stream a i → a
   streamHead (StreamCons value _) = value
   
+  -- Inspect the constructor before introducing the smaller-size witness.
+  -- The size inequality is non-fibrant under the two-level profile, so keep it
+  -- out of the constructor-elimination context and force only afterward.
+  streamDelayedTail :
+    {ℓ : Level} {a : Set ℓ} {i : Size} →
+    Stream a i → Thunk (Stream a) i
+  streamDelayedTail (StreamCons _ delayed) = delayed
+
+  {-# COMPILE AGDA2HS streamDelayedTail #-}
+
   streamTail :
     {ℓ : Level} {a : Set ℓ} {i : Size}
     (input : Stream a i) → {j : Size< i} → Stream a j
-  streamTail (StreamCons _ delayed) {j} = force delayed {j}
+  streamTail input {j} = force (streamDelayedTail input) {j}
   
   {-# COMPILE AGDA2HS Stream #-}
   {-# COMPILE AGDA2HS streamHead #-}
