@@ -53,7 +53,6 @@ open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
 open import Haskell.Law.Monad.List public
 open import Haskell.Law.Monoid.List public
-open import Haskell.Prim.Thunks public
 open import Haskell.Prim.Equality public
 open import Haskell.Prim.Absurd public
 open import Haskell.Prim.Applicative public
