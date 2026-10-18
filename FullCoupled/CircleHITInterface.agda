@@ -1,4 +1,4 @@
-{-# OPTIONS --without-K --exact-split --rewriting --confluence-check #-}
+{-# OPTIONS --exact-split --rewriting --confluence-check #-}
 
 ------------------------------------------------------------------------
 -- Minimal axiomatized circle interface, isolated from the legacy

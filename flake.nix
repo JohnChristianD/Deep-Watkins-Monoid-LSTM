@@ -711,11 +711,11 @@ PY
             script = pkgs.writeShellApplication {
               name = "agda2hs-graph-search-check";
               runtimeInputs = [
-                (agdaCommand system)
-                (agdaWithStandardLibrary system)
+                (agdaCli system)
                 (agda2hsCommand system)
                 (canonicalGhc system)
                 pkgs.coreutils
+                pkgs.gnugrep
               ];
               text = ''
                 set -euo pipefail
@@ -723,16 +723,21 @@ PY
                 rm -rf "$out"
                 mkdir -p "$out"
 
-                # Independently kernel-check the finite discrete UAP baseline.
-                # It uses only Agda builtins and proves exact lookup-table
-                # representation; it is not a density claim for the LSTM.
-                "${agdaWithStandardLibrary system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
-                grep -Fq "tabularQExact target state action = refl" FullCoupled/FiniteTabularUAP.agda
+                # Check the qualified Reflection macro independently before
+                # consuming it in the finite tabular approximation theorem.
+                "${agdaCli system}/bin/agda" -i . FullCoupled/ReflectionAutomation.agda
+                grep -Fq "Reflection.unify goal (Reflection.con (quote refl) [])" FullCoupled/ReflectionAutomation.agda
+                grep -Fq "identityBeta x = byDefinitionalRefl" FullCoupled/ReflectionAutomation.agda
+
+                # Kernel-check the finite discrete UAP baseline. The exact
+                # table theorem is intentionally not a density claim for LSTM.
+                "${agdaCli system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
+                grep -Fq "tabularQExact target state action = byDefinitionalRefl" FullCoupled/FiniteTabularUAP.agda
                 grep -Fq "finiteTabularUniformApproximation" FullCoupled/FiniteTabularUAP.agda
 
                 # Check the restricted Circle recursor separately in a
                 # --without-K profile; never import it into the legacy monolith.
-                "${agdaWithStandardLibrary system}/bin/agda" -i . FullCoupled/CircleHITInterface.agda
+                "${agdaCli system}/bin/agda" -i . FullCoupled/CircleHITInterface.agda
                 grep -Fq -- "--without-K" FullCoupled/CircleHITInterface.agda
                 grep -Fq "Circle-elim-loop" FullCoupled/CircleHITInterface.agda
 
