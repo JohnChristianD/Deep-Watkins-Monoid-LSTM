@@ -473,7 +473,7 @@
                 awk '
                   /^data _≐_/ { capture=1 }
                   /^variable$/ { if (capture) capture=0 }
-                  capture { sub(/^  /, ""); print }
+                  capture { print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructivePropTransport.agda"
                 printf '%s\n' '{-# OPTIONS --confluence-check #-}' 'module ConstructiveExceptionSemantics where' > "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '
