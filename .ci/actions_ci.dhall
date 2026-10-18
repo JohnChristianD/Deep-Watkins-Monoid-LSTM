@@ -230,6 +230,7 @@ let script = merge {
     grep -Fq 'proofKernel=Agda' "$manifest"
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
+    nix run .#acorn-real-check
     nix run .#agda2hs-graph-search-check
     nix run .#scott-strachey-domain-check
     nix run .#monoid-lstm-stream-check
@@ -595,6 +596,7 @@ DHALL
   All = ''
     set -euo pipefail
     nix run .#fennel-smoke
+    nix run .#acorn-real-check
     "$AGDA_COMMAND" --version
     ghc --numeric-version
     dhall --version
