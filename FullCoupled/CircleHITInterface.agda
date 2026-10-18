@@ -12,7 +12,7 @@
 module FullCoupled.CircleHITInterface where
 
 open import Agda.Primitive using (Level)
-open import Agda.Builtin.Equality using (_≡_; refl)
+open import Haskell.Prelude using (_≡_; refl)
 open import Agda.Builtin.Equality.Rewrite
 
 transport :
