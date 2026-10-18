@@ -469,7 +469,7 @@
                       print "{-# BUILTIN REWRITE _≡_ #-}"
                   }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
-                printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude' 'variable' '  A : Set' '  P : A → Set' '  x y : A' 'data _≐_ {A : Set} (x : A) : A → Set where' '  refl≐ : x ≐ x' > "$tmp/ConstructivePropTransport.agda"
+                printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude using (_≡_; refl)' 'variable' '  A : Set' '  P : A → Set' '  x y : A' 'data _≐_ {A : Set} (x : A) : A → Set where' '  refl≐ : x ≐ x' > "$tmp/ConstructivePropTransport.agda"
                 awk '
                   /^transportR :/ { capture=1 }
                   /^variable$/ { if (capture) capture=0 }
