@@ -541,10 +541,11 @@ postulate
 data _≐_ {A : Set ℓ} (x : A) : A → Prop ℓ where
   refl : x ≐ x
 
-postulate
-  transportR : (P : A → Set ℓ) → x ≐ y → P x → P y
-  transportR-refl : transportR P refl x ≡ x
-{-# REWRITE transportR-refl #-}
+transportR : (P : A → Set ℓ) → x ≐ y → P x → P y
+transportR P refl value = value
+
+transportR-refl : transportR P refl x ≡ x
+transportR-refl = refl
 
 variable
   R : A → A → Prop
