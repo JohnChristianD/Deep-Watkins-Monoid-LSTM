@@ -718,6 +718,13 @@ PY
                 rm -rf "$out"
                 mkdir -p "$out"
 
+                # Independently kernel-check the finite discrete UAP baseline.
+                # It uses only Agda builtins and proves exact lookup-table
+                # representation; it is not a density claim for the LSTM.
+                "${agdaCommand system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
+                grep -Fq "tabularQExact target state action = refl" FullCoupled/FiniteTabularUAP.agda
+                grep -Fq "finiteTabularUniformApproximation" FullCoupled/FiniteTabularUAP.agda
+
                 # This lane checks only the Agda2HS runtime module closure.
                 # Historical theorem monoliths are outside this kernel-checked target.
                 for source in \
