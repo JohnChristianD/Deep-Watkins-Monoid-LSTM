@@ -1,6 +1,5 @@
 --erasure
 --no-projection-like
---erased-matches
 --prop
 --confluence-check
 --lossy-unification
