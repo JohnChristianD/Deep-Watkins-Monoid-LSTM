@@ -468,6 +468,16 @@ PY
                   /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/TheoremsMonolith.agda > "$tmp/LawvereDiagonal.agda"
+                # Check the source-owned Cauchy-approximation boundary from its
+                # monolith, without adding a tracked standalone proof module.
+                awk '
+                  /^module CoRNRealBoundary where$/ { capture=1; print; next }
+                  capture {
+                    sub(/^  /, "")
+                    if ($0 == "-- END CoRNRealBoundary") exit
+                    print
+                  }
+                ' FullCoupled/TheoremsMonolith.agda > "$tmp/CoRNRealBoundary.agda"
                 awk '
                   /^module CanonicalBellmanOrderTheory where$/ { capture=1; print; next }
                   capture { sub(/^  /, ""); print }
@@ -476,6 +486,7 @@ PY
                 test -s "$tmp/BetaOptimalityBoundary.agda"
                 test -s "$tmp/CanonicalBellmanOrderTheory.agda"
                 test -s "$tmp/LawvereDiagonal.agda"
+                test -s "$tmp/CoRNRealBoundary.agda"
                 test -s "$tmp/ConstructiveComputabilityPostulates.agda"
                 test -s "$tmp/ConstructiveExceptionSemantics.agda"
                 test -s "$tmp/ConstructivePropTransport.agda"
@@ -536,6 +547,13 @@ PY
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanValueIsSupremumOfQStar" "$tmp/CanonicalBellmanOrderTheory.agda"
+                grep -Fq "coRNMinRegression = refl" "$tmp/CoRNRealBoundary.agda"
+                grep -Fq "monolithTabularQExact target state action = refl" "$tmp/CoRNRealBoundary.agda"
+                if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/CoRNRealBoundary.agda"; then
+                  echo "CoRN approximation boundary must not add global postulates" >&2
+                  exit 1
+                fi
+                agda2hs-agda -i "$tmp" "$tmp/CoRNRealBoundary.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ConstructivePropTransport.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ConstructiveExceptionSemantics.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
