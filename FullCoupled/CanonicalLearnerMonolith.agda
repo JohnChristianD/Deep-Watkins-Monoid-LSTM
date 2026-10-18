@@ -539,10 +539,10 @@ postulate
 
 
 data _≐_ {A : Set ℓ} (x : A) : A → Prop ℓ where
-  refl : x ≐ x
+  refl≐ : x ≐ x
 
 transportR : (P : A → Set ℓ) → x ≐ y → P x → P y
-transportR P refl value = value
+transportR P refl≐ value = value
 
 transportR-refl :
   (P : A → Set ℓ) (value : P x) →
