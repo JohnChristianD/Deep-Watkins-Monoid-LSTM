@@ -253,7 +253,7 @@ module ConstructiveComputabilityPostulates where
       (A : Nat → Set) →
       (P : (n : Nat) → A n → Prop) →
       ((n : Nat) → PropExists (P n)) →
-      PropExists (λ choose → (n : Nat) → P n (choose n))
+      PropExists {A = (n : Nat) → A n} (λ choose → (n : Nat) → P n (choose n))
 
   ----------------------------------------------------------------------
   -- A data-level version of countable choice is a theorem: if every index
