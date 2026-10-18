@@ -134,6 +134,7 @@ let script = merge {
     grep -Fq 'graph-branch-regression=True' "$report"
     grep -Fq 'graph-two-leaf-paths=True' "$report"
     grep -Fq 'graph-cycle-rejected=True' "$report"
+    grep -Fq 'graph-path-count-dp=True' "$report"
     grep -E '^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$' "$report"
     grep -E '^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$' "$report"
     grep -Fq 'egraph-regression=True egraph-associativity-regression=True' "$report"
