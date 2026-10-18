@@ -7,7 +7,6 @@
 --confluence-check
 --two-level
 --level-universe
---auto-inline
 --polarity
 --no-forced-argument-recursion
 --no-guardedness
