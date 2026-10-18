@@ -75,8 +75,9 @@ let policyGate = ''
   grep -Fq 'github:viktorcsimma/agda2hs/a3c83ad3be876ce0c7aa31157f3107843bf2f465' flake.nix
   grep -Fq 'graphAStarFirst :' FullCoupled/Agda2HsSemanticSearch.agda
   grep -Fq 'graphAStarFirst laws seed = graphAStarFirstEager laws seed' FullCoupled/Agda2HsSemanticSearch.agda
+  grep -Fq 'graphAStarDeferredPriorityLowerBoundRegressionChecked' FullCoupled/Agda2HsSemanticSearch.agda
   grep -Fq 'graphAStarDeferredMatchesEagerRegressionChecked' FullCoupled/Agda2HsSemanticSearch.agda
-'';
+''
 
 let Lane = < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >
 
