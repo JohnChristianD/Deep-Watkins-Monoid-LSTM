@@ -18,6 +18,12 @@ Real arithmetic:
     Nixpkgs snapshot. Do not invent an abstract Cauchy interface and call it
     Acorn or CoRN. A successful build does not prove all upstream definitions:
     audit the upstream Tool.Cheat use separately.
+  * Upstream `src/Tool/Cheat.agda` declares the erased postulate
+    `cheat : ∀ {i} {a : Set i} → a` and explicitly says that importing it
+    makes the development unsafe until removed. Treat Acorn as the official
+    exact-real executable/library source, not as a fully kernel-certified
+    proof library. Its Agda2HS build and tests are useful evidence, but they do
+    not discharge the `cheat` assumptions.
   * The graph runtime continues to use the project's pinned Agda 2.8/Agda2HS
     toolchain. Do not mix compiled Haskell artifacts across incompatible GHC
     package sets.
