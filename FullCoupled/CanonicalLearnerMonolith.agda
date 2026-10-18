@@ -546,7 +546,7 @@ transportR P refl≐ value = value
 
 transportR-refl :
   (P : A → Set ℓ) (value : P x) →
-  transportR P refl value ≡ value
+  transportR P refl≐ value ≡ value
 transportR-refl P value = refl
 
 variable
