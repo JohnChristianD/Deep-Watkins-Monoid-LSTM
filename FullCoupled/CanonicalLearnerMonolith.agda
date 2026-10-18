@@ -77,7 +77,11 @@ open import Agda.Builtin.Size public
 ------------------------------------------------------------------------
 
 module ConstructiveComputabilityPostulates where
-  open import Haskell.Prelude using (ℕ; _≡_)
+  -- Markov's principle below is restricted to decidable predicates. There is
+  -- no excluded-middle axiom in this module. The outer monolith's Prop-valued
+  -- observational equality/rewrite rules remain limited extensionality; no
+  -- identity-level function-extensionality postulate is added.
+  open import Haskell.Prelude using (Nat; suc; _≡_)
 
   data EmptyComputability : Set where
 
@@ -104,10 +108,10 @@ module ConstructiveComputabilityPostulates where
 
   postulate
     russianMarkovPrinciple :
-      (P : ℕ → Set) →
-      ((n : ℕ) → Decidable (P n)) →
-      Neg (Neg (SigmaWitness ℕ P)) →
-      SigmaWitness ℕ P
+      (P : Nat → Set) →
+      ((n : Nat) → Decidable (P n)) →
+      Neg (Neg (SigmaWitness Nat P)) →
+      SigmaWitness Nat P
 
   ----------------------------------------------------------------------
   -- Bishop-style constructive existence: keep witness and evidence paired.
@@ -153,27 +157,27 @@ module ConstructiveComputabilityPostulates where
     (_≪d_ : D → D → Set) : Set₁ where
     constructor scottErshovEffectiveDomainData
     field
-      compactCode : ℕ → D
+      compactCode : Nat → D
       compactCodeIsCompact :
-        (n : ℕ) → _≪d_ (compactCode n) (compactCode n)
+        (n : Nat) → _≪d_ (compactCode n) (compactCode n)
 
-      approximationIndex : D → ℕ → ℕ
-      compactApproximation : D → ℕ → D
+      approximationIndex : D → Nat → Nat
+      compactApproximation : D → Nat → D
       compactApproximationComputes :
-        (x : D) (n : ℕ) →
+        (x : D) (n : Nat) →
         compactApproximation x n ≡ compactCode (approximationIndex x n)
 
       compactApproximationBelow :
-        (x : D) (n : ℕ) →
+        (x : D) (n : Nat) →
         _⊑d_ (compactApproximation x n) x
 
       compactApproximationIncreasing :
-        (x : D) (n : ℕ) →
-        _⊑d_ (compactApproximation x n) (compactApproximation x (succ n))
+        (x : D) (n : Nat) →
+        _⊑d_ (compactApproximation x n) (compactApproximation x (suc n))
 
       compactApproximationLeast :
         (x y : D) →
-        ((n : ℕ) → _⊑d_ (compactApproximation x n) y) →
+        ((n : Nat) → _⊑d_ (compactApproximation x n) y) →
         _⊑d_ x y
 
   module ScottErshovEffectiveDomain
@@ -182,24 +186,24 @@ module ConstructiveComputabilityPostulates where
     {_≪d_ : D → D → Set}
     (domain : ScottErshovEffectiveDomainData D _⊑d_ _≪d_) where
 
-    compactCode : ℕ → D
+    compactCode : Nat → D
     compactCode = ScottErshovEffectiveDomainData.compactCode domain
 
     compactCodeIsCompact :
-      (n : ℕ) → _≪d_ (compactCode n) (compactCode n)
+      (n : Nat) → _≪d_ (compactCode n) (compactCode n)
     compactCodeIsCompact =
       ScottErshovEffectiveDomainData.compactCodeIsCompact domain
 
-    approximationIndex : D → ℕ → ℕ
+    approximationIndex : D → Nat → Nat
     approximationIndex =
       ScottErshovEffectiveDomainData.approximationIndex domain
 
-    compactApproximation : D → ℕ → D
+    compactApproximation : D → Nat → D
     compactApproximation =
       ScottErshovEffectiveDomainData.compactApproximation domain
 
     compactApproximationComputes :
-      (x : D) (n : ℕ) →
+      (x : D) (n : Nat) →
       compactApproximation x n ≡ compactCode (approximationIndex x n)
     compactApproximationComputes =
       ScottErshovEffectiveDomainData.compactApproximationComputes domain
@@ -209,26 +213,26 @@ module ConstructiveComputabilityPostulates where
     {-# REWRITE compactApproximationComputes #-}
 
     compactApproximationIsCompact :
-      (x : D) (n : ℕ) →
+      (x : D) (n : Nat) →
       _≪d_ (compactApproximation x n) (compactApproximation x n)
     compactApproximationIsCompact x n =
       compactCodeIsCompact (approximationIndex x n)
 
     compactApproximationBelow :
-      (x : D) (n : ℕ) →
+      (x : D) (n : Nat) →
       _⊑d_ (compactApproximation x n) x
     compactApproximationBelow =
       ScottErshovEffectiveDomainData.compactApproximationBelow domain
 
     compactApproximationIncreasing :
-      (x : D) (n : ℕ) →
-      _⊑d_ (compactApproximation x n) (compactApproximation x (succ n))
+      (x : D) (n : Nat) →
+      _⊑d_ (compactApproximation x n) (compactApproximation x (suc n))
     compactApproximationIncreasing =
       ScottErshovEffectiveDomainData.compactApproximationIncreasing domain
 
     compactApproximationLeast :
       (x y : D) →
-      ((n : ℕ) → _⊑d_ (compactApproximation x n) y) →
+      ((n : Nat) → _⊑d_ (compactApproximation x n) y) →
       _⊑d_ x y
     compactApproximationLeast =
       ScottErshovEffectiveDomainData.compactApproximationLeast domain
