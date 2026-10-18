@@ -5,7 +5,7 @@
 --prop
 --confluence-check
 --two-level
---level-universe
+--lossy-unification
 --polarity
 --sized-types
 --no-guardedness
