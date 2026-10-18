@@ -1,6 +1,5 @@
 --erasure
 --no-projection-like
---prop
 --confluence-check
 --lossy-unification
 --sized-types
