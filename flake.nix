@@ -708,6 +708,7 @@ PY
               name = "agda2hs-graph-search-check";
               runtimeInputs = [
                 (agdaCommand system)
+                (agdaWithStandardLibrary system)
                 (agda2hsCommand system)
                 (canonicalGhc system)
                 pkgs.coreutils
@@ -721,13 +722,13 @@ PY
                 # Independently kernel-check the finite discrete UAP baseline.
                 # It uses only Agda builtins and proves exact lookup-table
                 # representation; it is not a density claim for the LSTM.
-                "${agdaCommand system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
+                "${agdaWithStandardLibrary system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
                 grep -Fq "tabularQExact target state action = refl" FullCoupled/FiniteTabularUAP.agda
                 grep -Fq "finiteTabularUniformApproximation" FullCoupled/FiniteTabularUAP.agda
 
                 # Check the restricted Circle recursor separately in a
                 # --without-K profile; never import it into the legacy monolith.
-                "${agdaCommand system}/bin/agda" -i . FullCoupled/CircleHITInterface.agda
+                "${agdaWithStandardLibrary system}/bin/agda" -i . FullCoupled/CircleHITInterface.agda
                 grep -Fq -- "--without-K" FullCoupled/CircleHITInterface.agda
                 grep -Fq "Circle-elim-loop" FullCoupled/CircleHITInterface.agda
 
