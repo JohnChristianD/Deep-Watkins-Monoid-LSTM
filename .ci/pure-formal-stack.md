@@ -30,7 +30,7 @@ Make the executable search path small, deterministic, and auditable. Keep each t
   Lua library because the repository tests its actual Fennel/LuaJIT interop.
 - CoRN (Constructive Repository at Nijmegen) is a mathematical reference for
   constructive real-number semantics, not a build input. Do not fetch or invoke
-  Rocq/Coq, Acorn, or a separate CoRN toolchain. Port only the required
+  Rocq/Coq or a separate CoRN toolchain. Port only the required
   constructive rational/Cauchy interface into an allowed monolith, within the
   Agda2HS-supported language subset. Do not claim equivalence with upstream
   CoRN until the represented definitions and required laws are checked in
