@@ -1088,23 +1088,24 @@ graphAStarFirstDeferredWithFuel (_ ∷ fuel) laws
           Nothing ->
             graphAStarFirstDeferredWithFuel fuel laws frontier known
           (Just bestG) ->
-            if graphAStarPathCost node == bestG then
-              case graphMaximalDependencyChain (graphAStarPlan node) laws of λ where
-                True -> Just (graphAStarPlan node)
-                False ->
-                  let
-                    (known' , frontier') =
-                      graphAStarEnqueueDeferredChildren
-                        laws
-                        (graphAStarPlan node)
-                        (graphAStarDeferredDependencies laws (graphAStarPlan node))
-                        (incrementSearchNat (graphAStarPathCost node))
-                        known
-                        frontier
-                  in graphAStarFirstDeferredWithFuel fuel laws frontier' known'
-            else
-              -- Skip stale deferred/ready entries after a better g was found.
-              graphAStarFirstDeferredWithFuel fuel laws frontier known
+            case graphAStarPathCost node == bestG of λ where
+              False ->
+                -- Skip stale deferred/ready entries after a better g was found.
+                graphAStarFirstDeferredWithFuel fuel laws frontier known
+              True ->
+                case graphMaximalDependencyChain (graphAStarPlan node) laws of λ where
+                  True -> Just (graphAStarPlan node)
+                  False ->
+                    let
+                      (known' , frontier') =
+                        graphAStarEnqueueDeferredChildren
+                          laws
+                          (graphAStarPlan node)
+                          (graphAStarDeferredDependencies laws (graphAStarPlan node))
+                          (incrementSearchNat (graphAStarPathCost node))
+                          known
+                          frontier
+                    in graphAStarFirstDeferredWithFuel fuel laws frontier' known'
 
 -- Each accepted child can be popped once as a deferred edge and once as a
 -- ready node. Double the legacy 3*n! operational budget accordingly. As before,
