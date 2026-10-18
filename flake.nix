@@ -501,7 +501,7 @@
                 test -s "$tmp/ConstructiveComputabilityPostulates.agda"
                 test -s "$tmp/ConstructiveExceptionSemantics.agda"
                 for extracted in \
-                  "$tmp/ConstructiveExceptionSemantics.agda" \\
+                  "$tmp/ConstructiveExceptionSemantics.agda" \
                   "$tmp/ScottStracheyDomains.agda" \
                   "$tmp/BetaOptimalityBoundary.agda" \
                   "$tmp/LawvereDiagonal.agda" \
