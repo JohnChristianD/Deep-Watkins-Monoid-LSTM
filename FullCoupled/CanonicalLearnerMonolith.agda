@@ -69,6 +69,147 @@ open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Reflection public
 open import Agda.Builtin.Size public
 
+------------------------------------------------------------------------
+-- Shared constructive-computability assumptions and interfaces.
+--
+-- These live beside the canonical type-level/computational foundations and
+-- are re-exported by the theorem monolith. Each principle stays named and
+-- conditional: no blanket equivalence between the underlying foundations.
+------------------------------------------------------------------------
+
+module ConstructiveComputabilityPostulates where
+  open import Haskell.Prelude using (ℕ; _≡_)
+
+  data EmptyComputability : Set where
+
+  Neg : Set → Set
+  Neg A = A → EmptyComputability
+
+  data Decidable (A : Set) : Set where
+    yes : A → Decidable A
+    no : Neg A → Decidable A
+
+  record SigmaWitness (A : Set) (P : A → Set) : Set where
+    constructor sigma-witness
+    field
+      sigmaValue : A
+      sigmaEvidence : P sigmaValue
+
+  open SigmaWitness public
+
+  ----------------------------------------------------------------------
+  -- Russian constructivism: Markov's principle for decidable predicates.
+  -- This is an explicit assumption, not a theorem of bare intuitionistic
+  -- type theory.
+  ----------------------------------------------------------------------
+
+  postulate
+    russianMarkovPrinciple :
+      (P : ℕ → Set) →
+      ((n : ℕ) → Decidable (P n)) →
+      Neg (Neg (SigmaWitness ℕ P)) →
+      SigmaWitness ℕ P
+
+  ----------------------------------------------------------------------
+  -- Bishop-style constructive existence: keep witness and evidence paired.
+  -- This uses data and computation rather than a bare existence axiom.
+  ----------------------------------------------------------------------
+
+  record BishopWitness (A : Set) (P : A → Set) : Set where
+    constructor bishop-witness
+    field
+      witnessValue : A
+      witnessEvidence : P witnessValue
+
+  open BishopWitness public
+
+  bishopWitnessToSigma :
+    {A : Set} {P : A → Set} →
+    BishopWitness A P → SigmaWitness A P
+  bishopWitnessToSigma (bishop-witness value evidence) =
+    sigma-witness value evidence
+
+  bishopWitnessFromSigma :
+    {A : Set} {P : A → Set} →
+    SigmaWitness A P → BishopWitness A P
+  bishopWitnessFromSigma (sigma-witness value evidence) =
+    bishop-witness value evidence
+
+  ----------------------------------------------------------------------
+  -- Scott-Ershov effective-domain contract.
+  --
+  -- The caller supplies a carrier, approximation order, and way-below
+  -- relation. Compactness and approximation convergence are assumptions
+  -- for this particular domain, not a theorem about every ordered set.
+  ----------------------------------------------------------------------
+
+  module ScottErshovEffectiveDomain
+    (D : Set)
+    (_⊑d_ : D → D → Set)
+    (_≪d_ : D → D → Set) where
+
+    infix 4 _⊑d_ _≪d_
+
+    postulate
+      compactCode : ℕ → D
+      compactCodeIsCompact :
+        (n : ℕ) → _≪d_ (compactCode n) (compactCode n)
+
+      approximationIndex : D → ℕ → ℕ
+      compactApproximation : D → ℕ → D
+      compactApproximationComputes :
+        (x : D) (n : ℕ) →
+        compactApproximation x n ≡ compactCode (approximationIndex x n)
+
+    -- Computation reduces an approximation to its effective compact code.
+    {-# REWRITE compactApproximationComputes #-}
+
+    compactApproximationIsCompact :
+      (x : D) (n : ℕ) →
+      _≪d_ (compactApproximation x n) (compactApproximation x n)
+    compactApproximationIsCompact x n =
+      compactCodeIsCompact (approximationIndex x n)
+
+    postulate
+      compactApproximationBelow :
+        (x : D) (n : ℕ) →
+        _⊑d_ (compactApproximation x n) x
+
+      compactApproximationIncreasing :
+        (x : D) (n : ℕ) →
+        _⊑d_ (compactApproximation x n) (compactApproximation x (succ n))
+
+      compactApproximationLeast :
+        (x y : D) →
+        ((n : ℕ) → _⊑d_ (compactApproximation x n) y) →
+        _⊑d_ x y
+
+  ----------------------------------------------------------------------
+  -- Henkin construction with consistency and witness hypotheses explicit.
+  -- A result is returned with a concrete model witness and satisfaction
+  -- evidence; completeness is not asserted for an unspecified proof system.
+  ----------------------------------------------------------------------
+
+  record HenkinTheoryInterface : Set₁ where
+    field
+      Sentence : Set
+      Model : Set
+      Consistent : (Sentence → Set) → Set
+      HasHenkinWitnesses : (Sentence → Set) → Set
+      Satisfies : Model → Sentence → Set
+
+  open HenkinTheoryInterface public
+
+  postulate
+    henkinModelExists :
+      (L : HenkinTheoryInterface) →
+      (T : Sentence L → Set) →
+      Consistent L T →
+      HasHenkinWitnesses L T →
+      SigmaWitness
+        (Model L)
+        (λ M → (φ : Sentence L) → T φ → Satisfies L M φ)
+
 variable
   ℓ ℓ₁ ℓ₂ ℓ₃ ℓ₄ : Level
   A B C       : Set ℓ
