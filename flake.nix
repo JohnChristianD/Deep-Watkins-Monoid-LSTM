@@ -538,6 +538,10 @@ PY
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '
                   /^module ScottStracheyDomains where$/ { capture=1; print; next }
+                  # Do not sweep the subsequent top-level learner-denotation
+                  # module into this standalone extraction. Removing two-space
+                  # nesting from its continued module header makes invalid Agda.
+                  /^module / { if (capture) capture=0 }
                   /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/TheoremsMonolith.agda > "$tmp/ScottStracheyDomains.agda"
