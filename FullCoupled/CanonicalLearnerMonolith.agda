@@ -2485,6 +2485,52 @@ module MonoidLSTMStreams where
   -- a state encoding fuses with a scan whenever it commutes with one transition.
   -- The proof is coinductive: each tail obligation reduces the commuting square,
   -- then recurses at the strictly smaller stream size.
+  -- Equality composition and congruence are isolated from the sized
+  -- coinductive field so that no equality is eliminated in a Size< context.
+  streamCong :
+    {ℓa ℓb : Level} {a : Set ℓa} {b : Set ℓb}
+    (f : a → b) {x y : a} → x ≡ y → f x ≡ f y
+  streamCong f refl = refl
+
+  streamTrans :
+    {ℓ : Level} {a : Set ℓ} {x y z : a} →
+    x ≡ y → y ≡ z → x ≡ z
+  streamTrans refl yz = yz
+
+  scanMapFusionBisimAux :
+    {ℓs ℓt ℓi : Level} {i : Size}
+    {state : Set ℓs} {target : Set ℓt} {input : Set ℓi} →
+    (encode : state → target) →
+    (step : state → input → state) →
+    (targetStep : target → input → target) →
+    (stepFusion :
+      (state : state) (input : input) →
+      encode (step state input) ≡ targetStep (encode state) input) →
+    (state : state) (targetState : target) →
+    encode state ≡ targetState →
+    (inputs : Stream input i) →
+    Bisim i
+      (mapStream encode (scanStream step state inputs))
+      (scanStream targetStep targetState inputs)
+  scanMapFusionBisimAux encode step targetStep stepFusion
+    state targetState stateAgreement inputs .headsAgree =
+      streamTrans
+        (stepFusion state (streamHead inputs))
+        (streamCong (λ value → targetStep value (streamHead inputs)) stateAgreement)
+  scanMapFusionBisimAux encode step targetStep stepFusion
+    state targetState stateAgreement inputs .tailsBisimilar {j} =
+      scanMapFusionBisimAux
+        encode
+        step
+        targetStep
+        stepFusion
+        (step state (streamHead inputs))
+        (targetStep targetState (streamHead inputs))
+        (streamTrans
+          (stepFusion state (streamHead inputs))
+          (streamCong (λ value → targetStep value (streamHead inputs)) stateAgreement))
+        (streamTail inputs {j})
+
   scanMapFusionBisim :
     {ℓs ℓt ℓi : Level} {i : Size}
     {state : Set ℓs} {target : Set ℓt} {input : Set ℓi} →
@@ -2498,19 +2544,9 @@ module MonoidLSTMStreams where
     Bisim i
       (mapStream encode (scanStream step state inputs))
       (scanStream targetStep (encode state) inputs)
-  scanMapFusionBisim encode step targetStep stepFusion state inputs
-    .headsAgree =
-      stepFusion state (streamHead inputs)
-  scanMapFusionBisim encode step targetStep stepFusion state inputs
-    .tailsBisimilar {j}
-    rewrite sym (stepFusion state (streamHead inputs)) =
-      scanMapFusionBisim
-        encode
-        step
-        targetStep
-        stepFusion
-        (step state (streamHead inputs))
-        (streamTail inputs {j})
+  scanMapFusionBisim encode step targetStep stepFusion state inputs =
+    scanMapFusionBisimAux
+      encode step targetStep stepFusion state (encode state) refl inputs
   
   -- Regression: successor encoding commutes with natural-number addition.
   -- Mapping successor over a running sum agrees with starting the scan
