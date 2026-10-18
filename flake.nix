@@ -796,6 +796,7 @@
                 grep -Fq "graph-branch-regression=True" "$out/report.txt"
                 grep -Fq "graph-two-leaf-paths=True" "$out/report.txt"
                 grep -Fq "graph-cycle-rejected=True" "$out/report.txt"
+                grep -Fq "graph-path-count-dp=True" "$out/report.txt"
                 grep -E "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$" "$out/report.txt"
                 if ! grep -E "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$" "$out/report.txt"; then
                   echo "required theorem graph closure failed; observed plans:" >&2

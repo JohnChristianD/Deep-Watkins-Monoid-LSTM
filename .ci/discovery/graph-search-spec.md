@@ -51,10 +51,17 @@ leaves no further child, that is a dead end, not success.
 
 ## Two distinct search routines
 
-- `autonomousGraphSearchFromRoot` is bounded exhaustive DFS. Its depth bound
-  is the number of laws. Since accepted paths contain no repeated ID, this
-  bound covers every simple path. Its report must say DFS/maximal dependency
-  chains, never A*.
+- `autonomousGraphSearchFromRoot` remains bounded exhaustive DFS for small
+  regression fixtures. Its depth bound is the number of laws; accepted paths
+  contain no repeated ID. The two-leaf fixture must still return both branches.
+- Production report counters use a topological dynamic-programming table on the
+  acyclic Agda import graph instead of materializing all paths: a leaf counts as
+  one, and each node counts the sum of its direct dependencies' path counts.
+  The graph-wide report sums over roots; the canonical report selects the
+  `FullCoupled.Agda2HsSemanticSearch` root. If topological sorting fails, retain
+  the bounded exhaustive fallback. This preserves exact report counts without
+  exponential path-list construction and insertion sorting. Reports say DFS /
+  maximal dependency chains, never A*.
 - `graphAStarFirst` is a separate best-first single-plan search, with
   JAxtar's default discrete A* policy preserved. Path cost is `g = length(path)`: a singleton seed starts at one, and each dependency edge adds one. Relative ordering matches edge-count g-cost from a fixed seed because its prefix contribution is constant. The heuristic is 0 for a leaf (or unknown node) and 1 for a node with dependencies. Its weighted score is the exact integer scaling of JAxtar's default `f = (1 - 10^-6)g + h`:
   `999999*g + 1000000*h`. A non-leaf needs at least one additional edge to
