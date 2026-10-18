@@ -719,11 +719,16 @@ PY
                 rm -rf "$out"
                 mkdir -p "$out"
 
-                # Independently kernel-check the finite discrete UAP baseline.
-                # It uses only Agda builtins and proves exact lookup-table
-                # representation; it is not a density claim for the LSTM.
+                # Check the qualified Reflection macro independently before
+                # consuming it in the finite tabular approximation theorem.
+                "${agdaWithStandardLibrary system}/bin/agda" -i . FullCoupled/ReflectionAutomation.agda
+                grep -Fq "Reflection.unify goal (quoteTerm refl)" FullCoupled/ReflectionAutomation.agda
+                grep -Fq "identityBeta x = byDefinitionalRefl" FullCoupled/ReflectionAutomation.agda
+
+                # Kernel-check the finite discrete UAP baseline. The exact
+                # table theorem is intentionally not a density claim for LSTM.
                 "${agdaWithStandardLibrary system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
-                grep -Fq "tabularQExact target state action = refl" FullCoupled/FiniteTabularUAP.agda
+                grep -Fq "tabularQExact target state action = byDefinitionalRefl" FullCoupled/FiniteTabularUAP.agda
                 grep -Fq "finiteTabularUniformApproximation" FullCoupled/FiniteTabularUAP.agda
 
                 # Check the restricted Circle recursor separately in a
