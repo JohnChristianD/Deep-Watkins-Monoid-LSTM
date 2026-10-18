@@ -101,21 +101,141 @@ module ConstructiveComputabilityPostulates where
   open SigmaWitness public
 
   ----------------------------------------------------------------------
-  -- Russian constructivism: Markov's principle for decidable predicates.
-  -- This is an explicit assumption, not a theorem of bare intuitionistic
-  -- type theory.
+  -- A concrete computation relation for Church's Thesis.
+  --
+  -- Programs are finite register-machine listings with increment,
+  -- decrement/zero-test, jumps, and halt. A computation is a finite trace
+  -- ending at halt with the output in register zero. Church's Thesis below
+  -- asserts that every total Nat -> Nat function has such a program.
+  ----------------------------------------------------------------------
+
+  data RecursiveInstruction : Set where
+    haltInstruction : RecursiveInstruction
+    incrementRegister : Nat → Nat → RecursiveInstruction
+    decrementOrJump : Nat → Nat → Nat → RecursiveInstruction
+
+  RecursiveProgram : Set
+  RecursiveProgram = List RecursiveInstruction
+
+  natEquality : Nat → Nat → Bool
+  natEquality zero zero = true
+  natEquality zero (suc _) = false
+  natEquality (suc _) zero = false
+  natEquality (suc n) (suc m) = natEquality n m
+
+  updateRegister :
+    Nat → Nat → (Nat → Nat) → Nat → Nat
+  updateRegister target value registers index with natEquality index target
+  ... | true = value
+  ... | false = registers index
+
+  initialRegisters : Nat → Nat → Nat
+  initialRegisters input index with natEquality index zero
+  ... | true = input
+  ... | false = zero
+
+  lookupInstruction : RecursiveProgram → Nat → RecursiveInstruction
+  lookupInstruction [] _ = haltInstruction
+  lookupInstruction (instruction ∷ rest) zero = instruction
+  lookupInstruction (_ ∷ rest) (suc pc) = lookupInstruction rest pc
+
+  record MachineConfiguration : Set where
+    constructor machineConfiguration
+    field
+      programCounter : Nat
+      registerContents : Nat → Nat
+
+  open MachineConfiguration public
+
+  initialConfiguration : Nat → MachineConfiguration
+  initialConfiguration input =
+    machineConfiguration zero (initialRegisters input)
+
+  data MachineStep
+    (program : RecursiveProgram) :
+    MachineConfiguration → MachineConfiguration → Set where
+    incrementStep :
+      {pc register target : Nat} {store : Nat → Nat} →
+      lookupInstruction program pc ≡ incrementRegister register target →
+      MachineStep program
+        (machineConfiguration pc store)
+        (machineConfiguration target
+          (updateRegister register (suc (store register)) store))
+
+    decrementZeroStep :
+      {pc register onZero onPositive : Nat} {store : Nat → Nat} →
+      lookupInstruction program pc ≡
+        decrementOrJump register onZero onPositive →
+      store register ≡ zero →
+      MachineStep program
+        (machineConfiguration pc store)
+        (machineConfiguration onZero store)
+
+    decrementPositiveStep :
+      {pc register onZero onPositive value : Nat}
+      {store : Nat → Nat} →
+      lookupInstruction program pc ≡
+        decrementOrJump register onZero onPositive →
+      store register ≡ suc value →
+      MachineStep program
+        (machineConfiguration pc store)
+        (machineConfiguration onPositive
+          (updateRegister register value store))
+
+  data MachineSteps (program : RecursiveProgram) :
+    MachineConfiguration → MachineConfiguration → Set where
+    machineStepsRefl :
+      {configuration : MachineConfiguration} →
+      MachineSteps program configuration configuration
+    machineStepsCons :
+      {first middle last : MachineConfiguration} →
+      MachineStep program first middle →
+      MachineSteps program middle last →
+      MachineSteps program first last
+
+  data MachineHalted
+    (program : RecursiveProgram) :
+    MachineConfiguration → Set where
+    machineHalted :
+      {pc : Nat} {store : Nat → Nat} →
+      lookupInstruction program pc ≡ haltInstruction →
+      MachineHalted program (machineConfiguration pc store)
+
+  record ComputationTrace
+    (program : RecursiveProgram) (input output : Nat) : Set where
+    constructor computationTrace
+    field
+      finalMachineState : MachineConfiguration
+      machineTrace :
+        MachineSteps program
+          (initialConfiguration input) finalMachineState
+      machineTraceHalted : MachineHalted program finalMachineState
+      machineTraceOutput :
+        registerContents finalMachineState zero ≡ output
+
+  record ComputesFunction
+    (program : RecursiveProgram) (f : Nat → Nat) : Set where
+    field
+      computationFor : (input : Nat) → ComputationTrace program input (f input)
+
+  ----------------------------------------------------------------------
+  -- Russian constructivism: explicit global axiom schemas.
   ----------------------------------------------------------------------
 
   postulate
+    -- Markov's Principle for every decidable predicate on the naturals.
     russianMarkovPrinciple :
       (P : Nat → Set) →
       ((n : Nat) → Decidable (P n)) →
       Neg (Neg (SigmaWitness Nat P)) →
       SigmaWitness Nat P
 
-    -- Countable choice (ACω) for an indexed family of inhabited types.
-    -- Choice is explicit for every n; the result is a choice function together
-    -- with proof that each selected value satisfies its indexed predicate.
+    -- Church's Thesis for the concrete register-machine computation relation.
+    churchThesis :
+      (f : Nat → Nat) →
+      SigmaWitness RecursiveProgram (λ program → ComputesFunction program f)
+
+    -- Countable choice (ACω) for every sequence of inhabited types.
     russianCountableChoice :
       (A : Nat → Set) →
       (P : (n : Nat) → A n → Set) →
