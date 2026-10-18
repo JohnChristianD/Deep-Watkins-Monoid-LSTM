@@ -469,6 +469,12 @@
                       print "{-# BUILTIN REWRITE _≡_ #-}"
                   }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
+                printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude' 'variable' '  ℓ : Level' '  A : Set ℓ' '  P : A → Set ℓ' '  x y : A' '' > "$tmp/ConstructivePropTransport.agda"
+                awk '
+                  /^data _≐_/ { capture=1 }
+                  /^variable$/ { if (capture) capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructivePropTransport.agda"
                 printf '%s\n' '{-# OPTIONS --confluence-check #-}' 'module ConstructiveExceptionSemantics where' > "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '
                   /^module ConstructiveExceptionSemantics where$/ { capture=1; next }
@@ -500,7 +506,9 @@
                 test -s "$tmp/LawvereDiagonal.agda"
                 test -s "$tmp/ConstructiveComputabilityPostulates.agda"
                 test -s "$tmp/ConstructiveExceptionSemantics.agda"
+                test -s "$tmp/ConstructivePropTransport.agda"
                 for extracted in \
+                  "$tmp/ConstructivePropTransport.agda" \
                   "$tmp/ConstructiveExceptionSemantics.agda" \
                   "$tmp/ScottStracheyDomains.agda" \
                   "$tmp/BetaOptimalityBoundary.agda" \
@@ -512,6 +520,13 @@
                     exit 1
                   fi
                 done
+                # Validate Prop-to-Set transport as constructor elimination, not an axiom.
+                grep -Fq "transportR P refl value = value" "$tmp/ConstructivePropTransport.agda"
+                grep -Fq "transportR-refl = refl" "$tmp/ConstructivePropTransport.agda"
+                if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/ConstructivePropTransport.agda"; then
+                  echo "unexpected transport postulate" >&2
+                  exit 1
+                fi
                 # Validate executable exception semantics without polymorphic bottom.
                 grep -Fq "mapExceptional" "$tmp/ConstructiveExceptionSemantics.agda"
                 grep -Fq "exceptionPropagation" "$tmp/ConstructiveExceptionSemantics.agda"
@@ -547,6 +562,7 @@
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanValueIsSupremumOfQStar" "$tmp/CanonicalBellmanOrderTheory.agda"
+                agda2hs-agda -i "$tmp" "$tmp/ConstructivePropTransport.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ConstructiveExceptionSemantics.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ConstructiveComputabilityPostulates.agda"
@@ -554,6 +570,7 @@
                 agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
                 agda2hs-agda -i "$tmp" "$tmp/LawvereDiagonal.agda"
                 echo "constructive-computability=kernel-and-confluence-checked (Markov; Church; proposition-level countable choice; executable data choice; Scott-Ershov contract; Henkin builder; no explicit excluded middle)"
+                echo "prop-transport=kernel-and-confluence-checked (single-constructor Prop elimination; definitional reflexivity)"
                 echo "exceptions=kernel-checked (typed failure values, total catch, no polymorphic bottom)"
                 echo "scott-strachey-domain-check=pass (Scott domains, compositionality/strictness regression, and Lawvere boundary kernel-checked)"
                 echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
