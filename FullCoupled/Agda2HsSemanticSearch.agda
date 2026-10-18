@@ -1112,8 +1112,8 @@ graphAStarFirstDeferredWithFuel (_ ∷ fuel) laws
 -- exhaustion is a resource bound, not proof that no path exists.
 graphAStarDeferredFuelBound : List GraphLaw -> List ⊤
 graphAStarDeferredFuelBound laws =
-  let fuel = graphAStarFuelBound laws
-  in fuel ++ fuel
+  let fuel = factorialFuel laws
+  in fuel ++ fuel ++ fuel ++ fuel ++ fuel ++ fuel
 
 graphAStarFirstWithFuel :
   List ⊤ ->
