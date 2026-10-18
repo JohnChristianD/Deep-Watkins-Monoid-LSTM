@@ -16,11 +16,15 @@ legacy theorem names can be inventoried. Text scanning does not type-check
 those monoliths, validate their proofs, or transfer proof status. CI must not
 say they were kernel-checked by the pure flake.
 
-Acorn, XDS-Agda, and MiniVehicle are independent tools/checks. Acorn develops
-proofs in its own language; it does not automatically import Agda proof terms.
-XDS-Agda is a separate Agda development for denotational semantics. MiniVehicle
-checks its own formalised language. Success in those checks is not a substitute
-for this project's Agda type-check and extracted-Haskell compile.
+Non-graph-search theorem content belongs in
+`FullCoupled/CanonicalLearnerMonolith.agda` and
+`FullCoupled/TheoremsMonolith.agda`; do not add standalone project-owned
+non-graph-search proof modules or custom proof-tool inputs. Graph-specific
+regressions stay beside the graph/e-graph implementation. Nixpkgs supplies the
+toolchain, and Luafun remains the only pinned third-party library input for
+the Fennel/LuaJIT interoperability smoke test. CoRN is a mathematical reference,
+not a Rocq/Coq build dependency: required real-number definitions must be
+re-expressed in the Agda2HS-supported subset inside a designated monolith.
 
 ## Three different graphs
 
@@ -62,8 +66,17 @@ leaves no further child, that is a dead end, not success.
   the bounded exhaustive fallback. This preserves exact report counts without
   exponential path-list construction and insertion sorting. Reports say DFS /
   maximal dependency chains, never A*.
-- `graphAStarFirst` is the default eager, single-plan best-first search. It retains JAxtar's default discrete score `999999*g + 1000000*h`, incoming-first tie insertion, strict best-`g` duplicate filtering, and stale-entry skipping. As above, it is an integer-scaled version of `(1 - 10^-6)g + h`; small regression fixtures verify selected behavior, not a general optimality theorem.
-- `graphAStarFirstDeferred` is an opt-in JAxtar-inspired deferred-evaluation variant. It queues a pending edge using the lower bound `999999*g`; only when popped does it materialise the path, evaluate the heuristic, and reinsert the ready node with its exact priority. `graphAStarFirstEager` is kept as the differential reference. Agda regression fixtures check the lower-bound ordering and compare the deferred and eager selected paths on the direct-leaf-versus-longer-branch fixture. The implementation is a scalar Agda list queue, not JAxtar's batched JAX implementation; **no performance improvement is claimed without a benchmark on the real graph**.
+- `graphAStarFirst` remains the production eager best-first single-plan search.
+  It uses unit edge costs, JAxtar's integer-scaled score
+  `999999*g + 1000000*h`, incoming-first equal-score insertion, best-`g`
+  filtering by active law ID, and stale-entry skipping. The documented finite
+  regressions verify selected behaviors; they do not establish a general
+  shortest-path theorem for arbitrary cyclic dependency graphs.
+- Deferred A* is not promoted to production until Agda proves non-inferiority
+  over the supported graph domain, including goal/path validity, duplicate and
+  cycle handling, returned path cost, and fuel exhaustion. Matching one finite
+  fixture is not a general proof. The current heuristic is cheap, so no speed
+  advantage is assumed without a real-graph benchmark.
 - Best-first search rejects repeated IDs and uses fuel `3 * factorial(n)`.
   Non-empty simple ordered paths are bounded by
   `sum(n!/(n-k)!, k=1..n) < 3*n!`. Fuel exhaustion returns `Nothing`; alone
@@ -106,5 +119,5 @@ declarations are unsupported until separately regression-tested.
 The active flake has no TypeTopology input/include path; type-checks the pure
 Agda2HS modules; retains readable Haskell; compiles it with GHC core lint; runs
 graph/e-graph regressions; marks historical monoliths source-inventory-only;
-and runs Acorn, XDS-Agda, MiniVehicle independently. Claim a green result only
+and validates the approved Nixpkgs/Agda2HS graph-search closure. Claim a green result only
 after CI reports success.
