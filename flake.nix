@@ -54,6 +54,7 @@
           library = pkgs.haskellPackages.callCabal2nix "acorn" acornReals { };
         in
         library.overrideAttrs (old: {
+          doCheck = true;
           nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ compiler ];
           preBuild = (old.preBuild or "") + ''
             agda_config="$TMPDIR/acorn-agda"
@@ -378,8 +379,9 @@ PY
                 trap 'rm -rf "$tmp"' EXIT
                 printf '%s\n' \
                   '(local fun (require :fun))' \
-                  '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) (ipairs [1 2 3]))))' \
-                  '(assert (= (table.concat mapped ",") "2,4,6"))' \
+                  '(local filtered (fun.totable (fun.filter (fn [n] (> n 1)) [1 2 3 4])))' \
+                  '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) filtered)))' \
+                  '(assert (= (table.concat mapped ",") "4,6,8"))' \
                   '(print "fennel-luafun=pass")' > "$tmp/smoke.fnl"
                 test "$(fennel "$tmp/smoke.fnl")" = "fennel-luafun=pass"
                 echo "fennel-luajit-luafun-smoke=pass"
