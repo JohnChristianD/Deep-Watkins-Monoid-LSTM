@@ -1,4 +1,4 @@
-{-# OPTIONS --without-K #-}
+{-# OPTIONS --erased-matches #-}
 
 ------------------------------------------------------------------------
 -- Reflection helper for proof obligations that are definitionally reflexive.
