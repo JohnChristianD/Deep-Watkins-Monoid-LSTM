@@ -544,8 +544,10 @@ data _≐_ {A : Set ℓ} (x : A) : A → Prop ℓ where
 transportR : (P : A → Set ℓ) → x ≐ y → P x → P y
 transportR P refl value = value
 
-transportR-refl : transportR P refl x ≡ x
-transportR-refl = refl
+transportR-refl :
+  (P : A → Set ℓ) (value : P x) →
+  transportR P refl value ≡ value
+transportR-refl P value = refl
 
 variable
   R : A → A → Prop
