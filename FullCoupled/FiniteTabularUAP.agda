@@ -16,7 +16,8 @@
 module FullCoupled.FiniteTabularUAP where
 
 open import Agda.Builtin.Nat using (Nat; zero; suc)
-open import Agda.Builtin.Equality using (_≡_; refl)
+open import Agda.Builtin.Equality using (_≡_)
+open import FullCoupled.ReflectionAutomation using (byDefinitionalRefl)
 
 data Fin : Nat → Set where
   fzero : {n : Nat} → Fin (suc n)
@@ -47,7 +48,7 @@ tabularQExact :
   (target : TabularParameters stateCount actionCount Scalar) →
   (state : Fin stateCount) → (action : Fin actionCount) →
   tabularQ (tabularParameterize target) state action ≡ target state action
-tabularQExact target state action = refl
+tabularQExact target state action = byDefinitionalRefl
 
 -- Epsilon ranges over admissible tolerances. exactWithin expresses the
 -- metric/order fact that zero error is within any such tolerance; e.g.
