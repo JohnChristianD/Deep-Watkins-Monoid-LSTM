@@ -269,7 +269,7 @@ module ConstructiveComputabilityPostulates where
   constructiveCountableChoice A P witnesses =
     sigma-witness
       (λ n → sigmaValue (witnesses n))
-      (λ n → sigmaEvidence (witnesses n)
+      (λ n → sigmaEvidence (witnesses n))
 
   ----------------------------------------------------------------------
   -- Bishop-style constructive existence: keep witness and evidence paired.
