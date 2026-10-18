@@ -3801,3 +3801,53 @@ module CanonicalBellmanOrderTheory where
         (nnGreedy M state action)
         (scalarEqualityImpliesOrder M
           (exactQ state (nnGreedyPolicy M state))))
+
+  ------------------------------------------------------------------------
+  -- Quantified approximation guarantee for the Q*-greedy policy.
+  --
+  -- If the fixed network approximates each target Q* action value from both
+  -- sides within epsilon, and the scalar addition is monotone in its left
+  -- argument, then a greedy network action is within 2 epsilon of every
+  -- action in the target ordering. This is conditional on the supplied
+  -- uniform-error witness; it does not claim that this architecture satisfies
+  -- a universal approximation theorem or that training constructs the witness.
+  ------------------------------------------------------------------------
+
+  neuralPolicyGreedyTwoEpsilonRegret :
+    (M : NeuralPolicyMDP) →
+    (epsilon : neuralScalar M) →
+    (addMonotoneRight :
+      {x y z : neuralScalar M} →
+      OmegaCPO._⊑ω_ (mdpScalarDomain M) x y →
+      OmegaCPO._⊑ω_ (mdpScalarDomain M)
+        (mdpAdd M x z) (mdpAdd M y z)) →
+    (uniformQApproximation :
+      (state : neuralState M) →
+      (action : neuralAction M) →
+      (OmegaCPO._⊑ω_ (mdpScalarDomain M)
+        (neuralBellmanQStar M state action)
+        (mdpAdd M (nnQ M (nnParameters M) state action) epsilon)
+      ×
+      OmegaCPO._⊑ω_ (mdpScalarDomain M)
+        (nnQ M (nnParameters M) state action)
+        (mdpAdd M (neuralBellmanQStar M state action) epsilon))) →
+    (state : neuralState M) →
+    (action : neuralAction M) →
+    OmegaCPO._⊑ω_ (mdpScalarDomain M)
+      (neuralBellmanQStar M state action)
+      (mdpAdd M
+        (mdpAdd M
+          (neuralBellmanQStar M state (nnGreedyPolicy M state))
+          epsilon)
+        epsilon)
+  neuralPolicyGreedyTwoEpsilonRegret
+    M epsilon addMonotoneRight uniformQApproximation state action =
+      OmegaCPO.transω (mdpScalarDomain M)
+        (fst (uniformQApproximation state action))
+        (OmegaCPO.transω (mdpScalarDomain M)
+          (addMonotoneRight (nnGreedy M state action))
+          (addMonotoneRight
+            (snd
+              (uniformQApproximation
+                state (nnGreedyPolicy M state)))))
+
