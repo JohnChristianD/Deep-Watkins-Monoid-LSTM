@@ -24,7 +24,7 @@ grep -Fq 'github:NixOS/nixpkgs/' flake.nix
   echo "TypeTopology must not be in the active flake" >&2
   exit 1
 }
-input_count=$(grep -Ec '^[[:space:]]+(nixpkgs\.)?url[[:space:]]*=[[:space:]]*"github:' flake.nix)
+input_count=$(grep -Ec '^[[:space:]]+([[:alnum:]_-]+[.])?url[[:space:]]*=[[:space:]]*"github:' flake.nix)
 [ "$input_count" -eq 5 ] || { echo "expected pinned main/Acorn Nixpkgs, official Acorn, its required Agda2HS fork, and Luafun inputs; found $input_count" >&2; exit 1; }
 grep -Fq 'nixpkgs.url = "github:NixOS/nixpkgs/' flake.nix
 grep -Fq 'acornNixpkgs.url = "github:NixOS/nixpkgs/205fd4226592cc83fd4c0885a3e4c9c400efabb5"' flake.nix
