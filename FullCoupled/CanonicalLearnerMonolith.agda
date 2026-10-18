@@ -60,7 +60,6 @@ open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Builtin.Equality.Rewrite public
-open import Agda.Builtin.Reflection public hiding (Type; abs)
 open import Agda.Builtin.Size public
 
 ------------------------------------------------------------------------
