@@ -216,7 +216,6 @@ sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Semigroup
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Nat public	open import Haskell.Law.Nat public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Monad.List public	open import Haskell.Law.Monad.List public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Monoid.List public	open import Haskell.Law.Monoid.List public	1
-sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prim.Thunks public	open import Haskell.Prim.Thunks public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prim.Equality public	open import Haskell.Prim.Equality public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prim.Absurd public	open import Haskell.Prim.Absurd public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Prim.Applicative public	open import Haskell.Prim.Applicative public	1
