@@ -12,8 +12,7 @@
 
 module FullCoupled.ReflectionAutomation where
 
-open import Agda.Builtin.Unit using (⊤)
-open import Agda.Builtin.Equality using (_≡_; refl)
+open import Haskell.Prelude using (⊤; _≡_; refl)
 import Agda.Builtin.Reflection as Reflection
 
 macro
