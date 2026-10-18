@@ -538,7 +538,7 @@ postulate
 {-# REWRITE elim-loop #-}
 
 
-data _≐_ {A : Set ℓ} (x : A) : A → Prop ℓ where
+data _≐_ {A : Set ℓ} (x : A) : A → Set ℓ where
   refl≐ : x ≐ x
 
 transportR : (P : A → Set ℓ) → x ≐ y → P x → P y
