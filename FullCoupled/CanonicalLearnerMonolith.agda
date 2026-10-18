@@ -3213,7 +3213,7 @@ module BetaOptimalityBoundary where
 ------------------------------------------------------------------------
 
 module CanonicalBellmanOrderTheory where
-  open import Haskell.Prelude using (_≡_; refl)
+  open import Haskell.Prelude using (_≡_; refl; _×_; fst; snd)
   import Haskell.Prelude as HP
 
   BNat : Set
