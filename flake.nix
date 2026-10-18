@@ -465,7 +465,7 @@
                     sub(/^  /, "")
                     print
                     # Bind rewriting to Prelude equality without adding an Agda.Builtin import.
-                    if ($0 == "open import Haskell.Prelude using (Nat; zero; suc; Bool; True; False; List; []; _∷_; _≡_)")
+                    if ($0 == "open import Haskell.Prelude using (Nat; zero; suc; Bool; True; False; List; []; _∷_; _≡_; refl)")
                       print "{-# BUILTIN REWRITE _≡_ #-}"
                   }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
@@ -525,11 +525,11 @@
                 grep -Fq "churchThesis" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "russianCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "constructiveCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
-                grep -Fq "PropWitness" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "PropExists" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "BishopWitness" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "ScottErshovEffectiveDomainData" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "HenkinTheoryInterface" "$tmp/ConstructiveComputabilityPostulates.agda"
-                grep -Fq "{-# REWRITE compactApproximationComputes #-}" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "compactApproximationComputes x n = refl" "$tmp/ConstructiveComputabilityPostulates.agda"
                 test "$(grep -c '^postulate$' "$tmp/ConstructiveComputabilityPostulates.agda")" -eq 1
                 if grep -Eiq '(^|[^[:alnum:]_])(excludedMiddle|lawOfExcludedMiddle|excludedMiddleAxiom|LEM)([^[:alnum:]_]|$)' "$tmp/ConstructiveComputabilityPostulates.agda"; then
                   echo "excluded-middle declaration in constructive computability interface" >&2
