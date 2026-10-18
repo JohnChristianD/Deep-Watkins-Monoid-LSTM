@@ -53,12 +53,14 @@ The heuristic is intentionally small and only supports current best-first orderi
 
 ### `autonomousCanonicalGraphSearch`: bounded enumeration
 
-- Parses DOT edges and begins at `FullCoupled.TheoremsMonolith`.
+- Parses DOT edges and begins at `FullCoupled.Agda2HsSemanticSearch`.
 - Expands with `graphSearchDepth` / `graphSearchChildren`, bounded by number of graph laws.
-- Enumerates maximal simple dependency chains and sorts them by path length. Equal-length ordering follows the stable insertion behavior of `graphInsertPlan`.
-- Report label: `agda2hs autonomous theorem-graph bounded DFS: N dependency chains`.
+- The explicit `autonomousCanonicalGraphSearch` routine enumerates maximal simple dependency chains and sorts them by path length. Equal-length ordering follows the stable insertion behavior of `graphInsertPlan`.
+- Production report counts do **not** materialize that path list. For an acyclic graph, `autonomousGraphSearchCount` and `autonomousCanonicalGraphSearchCount` use a topological dynamic-programming table: a leaf contributes one chain, and each other node contributes the sum of its direct dependencies' counts. The whole-graph report sums per-node counts; the canonical report reads the root count. This keeps exact counts without exponential path enumeration and quadratic sorting.
+- If the input is not topologically sortable, counters fall back to the existing fuel-bounded simple-path enumeration, preserving cycle behavior.
+- Report label remains `agda2hs autonomous theorem-graph DFS: N maximal dependency chains`.
 
-This enumeration is bounded DFS, not `graphAStarFirst`. Its report must not say “A*”. The two routines have different purposes: enumeration exposes the graph's bounded set of chains; `graphAStarFirst` selects one chain for a supplied goal/root.
+This enumeration is bounded DFS, not `graphAStarFirst`. Its report must not say “A*”. The explicit enumeration routine remains useful for small regression fixtures; report counting uses dynamic programming on the Agda module DAG. `graphAStarFirst` selects one chain for a supplied goal/root.
 
 Neither routine proves that a theorem represented by a graph node is valid. A dependency path is a navigation artifact, not a proof term.
 
