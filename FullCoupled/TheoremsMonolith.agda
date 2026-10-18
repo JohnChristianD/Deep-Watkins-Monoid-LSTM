@@ -4830,6 +4830,21 @@ record DiscreteExactUniversalUAP
 
 open DiscreteExactUniversalUAP public
 
+-- Exact universal readout on a discrete carrier follows from an explicit
+-- left inverse. This is an exact factorisation result for arbitrary set-valued
+-- targets; it is not the analytic UAP for continuous functions on compact
+-- subsets of R^n.
+discreteExactUniversalUAPFromLeftInverse :
+  ∀ {State Feature : Set}
+  (observe : State → Feature)
+  (inverse : Feature → State) →
+  (∀ s → inverse (observe s) ＝ s) →
+  DiscreteExactUniversalUAP State Feature observe
+discreteExactUniversalUAPFromLeftInverse observe inverse leftInverse =
+  discreteExactUniversalUAP
+    (λ {Output} target feature → target (inverse feature))
+    (λ {Output} target s → sym (ap target (leftInverse s)))
+
 discreteLeftInverse-observe-injective :
   ∀ {State Feature : Set}
   {observe : State → Feature}
