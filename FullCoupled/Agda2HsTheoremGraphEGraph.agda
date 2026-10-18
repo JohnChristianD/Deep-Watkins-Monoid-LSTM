@@ -641,12 +641,83 @@ emptyLeftRule =
        []))
     (PatternVar "A")
 
+-- Symbolic tags for the three requested constructive/domain traditions.
+-- These normalize named assumptions for graph search; they are not added
+-- Agda kernel axioms and do not alone prove learner optimality.
+russianConstructivismPostulateRule : RewriteRule
+russianConstructivismPostulateRule =
+  MkRewriteRule
+    "russian-constructivism-postulate"
+    (PatternApp "constructivist-postulate"
+      (PatternApp "RussianConstructivism" [] ∷ []))
+    (PatternApp "constructive-framework"
+      (PatternApp "RussianConstructivism" [] ∷ []))
+
+scottErshovDenotationalSemanticsPostulateRule : RewriteRule
+scottErshovDenotationalSemanticsPostulateRule =
+  MkRewriteRule
+    "scott-ershov-denotational-semantics-postulate"
+    (PatternApp "constructivist-postulate"
+      (PatternApp "ScottErshovDomainSemantics" [] ∷ []))
+    (PatternApp "domain-denotational-semantics"
+      (PatternApp "ScottErshovDomainSemantics" [] ∷ []))
+
+bishopConstructivismPostulateRule : RewriteRule
+bishopConstructivismPostulateRule =
+  MkRewriteRule
+    "bishop-constructivism-postulate"
+    (PatternApp "constructivist-postulate"
+      (PatternApp "BishopConstructivism" [] ∷ []))
+    (PatternApp "constructive-proof-method"
+      (PatternApp "BishopConstructivism" [] ∷ []))
+
 semanticRewriteRules : List RewriteRule
 semanticRewriteRules =
   associativityRule ∷
   emptyRightRule ∷
   emptyLeftRule ∷
+  russianConstructivismPostulateRule ∷
+  scottErshovDenotationalSemanticsPostulateRule ∷
+  bishopConstructivismPostulateRule ∷
   []
+
+constructivistPostulateRegression : Bool
+constructivistPostulateRegression =
+  let
+    russian =
+      ExprApp "constructivist-postulate"
+        (ExprApp "RussianConstructivism" [] ∷ [])
+    russianNormalized =
+      ExprApp "constructive-framework"
+        (ExprApp "RussianConstructivism" [] ∷ [])
+    scottErshov =
+      ExprApp "constructivist-postulate"
+        (ExprApp "ScottErshovDomainSemantics" [] ∷ [])
+    scottErshovNormalized =
+      ExprApp "domain-denotational-semantics"
+        (ExprApp "ScottErshovDomainSemantics" [] ∷ [])
+    bishop =
+      ExprApp "constructivist-postulate"
+        (ExprApp "BishopConstructivism" [] ∷ [])
+    bishopNormalized =
+      ExprApp "constructive-proof-method"
+        (ExprApp "BishopConstructivism" [] ∷ [])
+    (russianId , g1) = addExpr russian emptyGraph
+    (russianNormalizedId , g2) = addExpr russianNormalized g1
+    (scottErshovId , g3) = addExpr scottErshov g2
+    (scottErshovNormalizedId , g4) = addExpr scottErshovNormalized g3
+    (bishopId , g5) = addExpr bishop g4
+    (bishopNormalizedId , g6) = addExpr bishopNormalized g5
+    (saturated , report) = saturateUntilStable semanticRewriteRules g6
+  in
+  saturationComplete report
+    && equivalent russianId russianNormalizedId saturated
+    && equivalent scottErshovId scottErshovNormalizedId saturated
+    && equivalent bishopId bishopNormalizedId saturated
+
+constructivistPostulateRegression-proof :
+  constructivistPostulateRegression ≡ True
+constructivistPostulateRegression-proof = refl
 
 lawExpr : String -> Expr
 lawExpr id = ExprApp "semantic-law" (ExprAtom id ∷ [])
@@ -963,6 +1034,10 @@ eGraphAssociativityRegression-proof = refl
 {-# COMPILE AGDA2HS associativityRule #-}
 {-# COMPILE AGDA2HS emptyRightRule #-}
 {-# COMPILE AGDA2HS emptyLeftRule #-}
+{-# COMPILE AGDA2HS russianConstructivismPostulateRule #-}
+{-# COMPILE AGDA2HS scottErshovDenotationalSemanticsPostulateRule #-}
+{-# COMPILE AGDA2HS bishopConstructivismPostulateRule #-}
+{-# COMPILE AGDA2HS constructivistPostulateRegression #-}
 {-# COMPILE AGDA2HS equivalent #-}
 {-# COMPILE AGDA2HS merge #-}
 {-# COMPILE AGDA2HS regressionGraph #-}

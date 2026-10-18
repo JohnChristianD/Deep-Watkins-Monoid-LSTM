@@ -52,8 +52,63 @@
       agda2hsTool = system:
         (pkgsFor system).haskellPackages.agda2hs;
 
+      # The pinned defaultShowList combines Agda 2.8's unresolved level and
+      # instance metas in a higher-order fold. Use the definitionally equivalent
+      # recursive renderer: keep the class signatures and ordinary output intact.
       agda2hsBaseLib = system:
-        (pkgsFor system).agdaPackages.agda2hs-base;
+        let
+          pkgs = pkgsFor system;
+          upstream = pkgs.agdaPackages.agda2hs-base;
+        in
+        (pkgs.runCommand "agda2hs-base-show-universe-compat" {
+          nativeBuildInputs = [ pkgs.python3 ];
+        } ''
+          mkdir -p "$out"
+          cp -RL "${upstream}/." "$out/"
+          chmod -R u+w "$out"
+          show_source="$(find "$out" -path '*/Haskell/Prim/Show.agda' -print -quit)"
+          test -n "$show_source" || {
+            echo "Haskell/Prim/Show.agda not found in pinned agda2hs-base" >&2
+            exit 1
+          }
+          grep -Fq 'record Show₁ (a : Type) : Type where' "$show_source"
+          grep -Fq 'record Show₂ (a : Type) : Type where' "$show_source"
+          python - "$show_source" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+source = path.read_text()
+old = """defaultShowList : (a → ShowS) → List a → ShowS
+defaultShowList shows = λ where
+  []       → showString "[]"
+  (x ∷ xs) → showString "["
+           ∘ foldl (λ s x → s ∘ showString "," ∘ shows x) (shows x) xs
+           ∘ showString "]"
+"""
+new = """defaultShowListTail : {@0 a : Type} → (a → ShowS) → List a → ShowS
+defaultShowListTail {a = a} shows [] = showString "]"
+defaultShowListTail {a = a} shows (x ∷ xs) =
+  showChar ',' ∘ shows x ∘ defaultShowListTail {a = a} shows xs
+
+defaultShowList : {@0 a : Type} → (a → ShowS) → List a → ShowS
+defaultShowList {a = a} shows [] = showString "[]"
+defaultShowList {a = a} shows (x ∷ xs) =
+  showString "[" ∘ shows x ∘ defaultShowListTail {a = a} shows xs
+"""
+if old not in source:
+    raise SystemExit("pinned Haskell.Prim.Show defaultShowList block changed; refusing a fuzzy edit")
+path.write_text(source.replace(old, new, 1))
+PY
+          grep -Fq 'defaultShowListTail {a = a} shows (x ∷ xs)' "$show_source"
+          grep -Fq "showChar ','" "$show_source"
+          grep -Fq 'defaultShowList {a = a} shows (x ∷ xs)' "$show_source"
+          find "$out" -name '*.agda-lib' -print -quit | grep -q .
+        '') // {
+          # Nix's Agda package-set builder requires this metadata when building
+          # its libraries file. Preserve the pinned upstream package contract.
+          inherit (upstream) libraryFile;
+        };
 
       agdaEmacs = system:
         let
@@ -494,6 +549,8 @@
                 grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
                 grep -Fq "denotationalCompositionalityRegression" "$tmp/ScottStracheyDomains.agda"
                 grep -Fq "denotationalBottomStrictnessRegression" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "scottErshovNLabDenotationalSemanticsRegression" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "liftStrictMapBottom" "$tmp/ScottStracheyDomains.agda"
                 grep -Fq "NeuralPolicyMDP" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
@@ -739,6 +796,12 @@
                 grep -Fq "egraph-regression=True egraph-associativity-regression=True" "$out/report.txt"
                 grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"
                 grep -Fq "egraph-hashcons-after-union=True" "$out/report.txt"
+                grep -Fq "egraph-constructivist-postulates=True" "$out/report.txt"
+                grep -Fq "scottErshovNLabDenotationalSemanticsRegression" FullCoupled/TheoremsMonolith.agda
+                grep -Fq "canonicalLearnerTraceDenotationStep" FullCoupled/TheoremsMonolith.agda
+                grep -Fq "russianConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "scottErshovDenotationalSemanticsPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "bishopConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "canonical-search-egraph-closed=True" "$out/report.txt"
                 grep -Fq "graph-astar-egraph-closed=True" "$out/report.txt"
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
