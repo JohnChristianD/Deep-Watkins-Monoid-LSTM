@@ -457,7 +457,7 @@
                 set -euo pipefail
                 tmp=$(mktemp -d)
                 trap 'rm -rf "$tmp"' EXIT
-                printf '%s\n' '{-# OPTIONS --rewriting --confluence-check #-}' 'module ConstructiveComputabilityPostulates where' > "$tmp/ConstructiveComputabilityPostulates.agda"
+                printf '%s\n' '{-# OPTIONS --prop --rewriting --confluence-check #-}' 'module ConstructiveComputabilityPostulates where' > "$tmp/ConstructiveComputabilityPostulates.agda"
                 awk '
                   /^module ConstructiveComputabilityPostulates where$/ { capture=1; next }
                   /^variable$/ { capture=0 }
@@ -508,6 +508,8 @@
                 grep -Fq "russianMarkovPrinciple" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "churchThesis" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "russianCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "constructiveCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "PropWitness" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "BishopWitness" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "ScottErshovEffectiveDomainData" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "HenkinTheoryInterface" "$tmp/ConstructiveComputabilityPostulates.agda"
