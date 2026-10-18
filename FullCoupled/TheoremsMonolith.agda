@@ -12537,8 +12537,8 @@ eGraphEconomicFiniteCandidatePriceComposition-from-path path =
 -- a local Agda2HS port of the relevant CoRN mathematics. The rational carrier
 -- and precision relation are explicit parameters, not imported Coq/Rocq code.
 -- This interface is NOT by itself a completed quotient, ordered real field,
--- completeness theorem, or claim of equivalence with a separate acorn-calc
--- project. Those require a concrete rational model and checked laws.
+-- completeness theorem, or claim of equivalence with a separately named
+-- calculator project. Those require a concrete rational model and checked laws.
 ------------------------------------------------------------------------
 
 coRNMin : Nat -> Nat -> Nat
