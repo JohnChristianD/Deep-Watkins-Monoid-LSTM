@@ -12530,146 +12530,150 @@ eGraphEconomicFiniteCandidatePriceComposition-from-path path =
       decide
       candidates)
 
-------------------------------------------------------------------------
--- CoRN-style constructive-real representation boundary.
---
--- This is a dependency-free Cauchy-approximation interface intended to guide
--- a local Agda2HS port of the relevant CoRN mathematics. The rational carrier
--- and precision relation are explicit parameters, not imported Coq/Rocq code.
--- This interface is NOT by itself a completed quotient, ordered real field,
--- completeness theorem, or claim of equivalence with a separately named
--- calculator project. Those require a concrete rational model and checked laws.
-------------------------------------------------------------------------
+module CoRNRealBoundary where
+  open import Haskell.Prelude using (Nat; zero; suc; _≡_; refl)
 
-coRNMin : Nat -> Nat -> Nat
-coRNMin zero m = zero
-coRNMin (suc n) zero = zero
-coRNMin (suc n) (suc m) = suc (coRNMin n m)
+  ------------------------------------------------------------------------
+  -- CoRN-style constructive-real representation boundary.
+  --
+  -- This is a dependency-free Cauchy-approximation interface intended to guide
+  -- a local Agda2HS port of the relevant CoRN mathematics. The rational carrier
+  -- and precision relation are explicit parameters, not imported Coq/Rocq code.
+  -- This interface is NOT by itself a completed quotient, ordered real field,
+  -- completeness theorem, or claim of equivalence with a separately named
+  -- calculator project. Those require a concrete rational model and checked laws.
+  ------------------------------------------------------------------------
 
-coRNMinRegression :
-  coRNMin (suc (suc zero)) (suc zero) ≡ suc zero
-coRNMinRegression = refl
+  coRNMin : Nat -> Nat -> Nat
+  coRNMin zero m = zero
+  coRNMin (suc n) zero = zero
+  coRNMin (suc n) (suc m) = suc (coRNMin n m)
 
-record CoRNRationalCloseness : Set₁ where
-  constructor coRNRationalCloseness
-  field
-    CoRNRational : Set
-    coRNClose : Nat -> CoRNRational -> CoRNRational -> Set
-    coRNCloseRefl :
-      (precision : Nat) (x : CoRNRational) ->
-      coRNClose precision x x
-    coRNCloseSym :
-      (precision : Nat) {x y : CoRNRational} ->
-      coRNClose precision x y -> coRNClose precision y x
-    coRNCloseTighten :
-      (precision : Nat) {x y : CoRNRational} ->
-      coRNClose (suc precision) x y -> coRNClose precision x y
-    coRNCloseTriangle :
-      (precision : Nat) {x y z : CoRNRational} ->
-      coRNClose (suc precision) x y ->
-      coRNClose (suc precision) y z ->
-      coRNClose precision x z
+  coRNMinRegression :
+    coRNMin (suc (suc zero)) (suc zero) ≡ suc zero
+  coRNMinRegression = refl
 
-open CoRNRationalCloseness public
+  record CoRNRationalCloseness : Set₁ where
+    constructor coRNRationalCloseness
+    field
+      CoRNRational : Set
+      coRNClose : Nat -> CoRNRational -> CoRNRational -> Set
+      coRNCloseRefl :
+        (precision : Nat) (x : CoRNRational) ->
+        coRNClose precision x x
+      coRNCloseSym :
+        (precision : Nat) {x y : CoRNRational} ->
+        coRNClose precision x y -> coRNClose precision y x
+      coRNCloseTighten :
+        (precision : Nat) {x y : CoRNRational} ->
+        coRNClose (suc precision) x y -> coRNClose precision x y
+      coRNCloseTriangle :
+        (precision : Nat) {x y z : CoRNRational} ->
+        coRNClose (suc precision) x y ->
+        coRNClose (suc precision) y z ->
+        coRNClose precision x z
 
-record CoRNCauchyRepresentative
-  (model : CoRNRationalCloseness) : Set₁ where
-  constructor coRNCauchyRepresentative
-  field
-    coRNApproximation : Nat -> CoRNRational model
-    coRNRegularity :
-      (n m : Nat) ->
-      coRNClose model (coRNMin n m)
-        (coRNApproximation n) (coRNApproximation m)
+  open CoRNRationalCloseness public
 
-open CoRNCauchyRepresentative public
+  record CoRNCauchyRepresentative
+    (model : CoRNRationalCloseness) : Set₁ where
+    constructor coRNCauchyRepresentative
+    field
+      coRNApproximation : Nat -> CoRNRational model
+      coRNRegularity :
+        (n m : Nat) ->
+        coRNClose model (coRNMin n m)
+          (coRNApproximation n) (coRNApproximation m)
 
--- Precision agreement is kept explicit and is not conflated with Agda equality.
-coRNPrecisionAgreement :
-  {model : CoRNRationalCloseness} ->
-  CoRNCauchyRepresentative model ->
-  CoRNCauchyRepresentative model ->
-  Set
-coRNPrecisionAgreement {model} x y =
-  (precision : Nat) ->
-  coRNClose model precision
-    (coRNApproximation x precision)
-    (coRNApproximation y precision)
+  open CoRNCauchyRepresentative public
+
+  -- Precision agreement is kept explicit and is not conflated with Agda equality.
+  coRNPrecisionAgreement :
+    {model : CoRNRationalCloseness} ->
+    CoRNCauchyRepresentative model ->
+    CoRNCauchyRepresentative model ->
+    Set
+  coRNPrecisionAgreement {model} x y =
+    (precision : Nat) ->
+    coRNClose model precision
+      (coRNApproximation x precision)
+      (coRNApproximation y precision)
 
 
-------------------------------------------------------------------------
--- Finite tabular Q exactness, retained inside the theorem monolith.
--- This is exact expressivity on Finite state/action sets, not a density theorem
--- for the project's recurrent/LSTM architecture on a real-valued domain.
-------------------------------------------------------------------------
+  ------------------------------------------------------------------------
+  -- Finite tabular Q exactness, retained inside the theorem monolith.
+  -- This is exact expressivity on Finite state/action sets, not a density theorem
+  -- for the project's recurrent/LSTM architecture on a real-valued domain.
+  ------------------------------------------------------------------------
 
-data MonolithFin : Nat -> Set where
-  monolithFzero : {n : Nat} -> MonolithFin (suc n)
-  monolithFsuc : {n : Nat} -> MonolithFin n -> MonolithFin (suc n)
+  data MonolithFin : Nat -> Set where
+    monolithFzero : {n : Nat} -> MonolithFin (suc n)
+    monolithFsuc : {n : Nat} -> MonolithFin n -> MonolithFin (suc n)
 
-MonolithTabularParameters :
-  (stateCount actionCount : Nat) -> (Scalar : Set) -> Set
-MonolithTabularParameters stateCount actionCount Scalar =
-  MonolithFin stateCount -> MonolithFin actionCount -> Scalar
+  MonolithTabularParameters :
+    (stateCount actionCount : Nat) -> (Scalar : Set) -> Set
+  MonolithTabularParameters stateCount actionCount Scalar =
+    MonolithFin stateCount -> MonolithFin actionCount -> Scalar
 
-monolithTabularQ :
-  {stateCount actionCount : Nat} {Scalar : Set} ->
-  MonolithTabularParameters stateCount actionCount Scalar ->
-  MonolithFin stateCount -> MonolithFin actionCount -> Scalar
-monolithTabularQ parameters = parameters
+  monolithTabularQ :
+    {stateCount actionCount : Nat} {Scalar : Set} ->
+    MonolithTabularParameters stateCount actionCount Scalar ->
+    MonolithFin stateCount -> MonolithFin actionCount -> Scalar
+  monolithTabularQ parameters = parameters
 
-monolithTabularParameterize :
-  {stateCount actionCount : Nat} {Scalar : Set} ->
-  (MonolithFin stateCount -> MonolithFin actionCount -> Scalar) ->
-  MonolithTabularParameters stateCount actionCount Scalar
-monolithTabularParameterize target = target
+  monolithTabularParameterize :
+    {stateCount actionCount : Nat} {Scalar : Set} ->
+    (MonolithFin stateCount -> MonolithFin actionCount -> Scalar) ->
+    MonolithTabularParameters stateCount actionCount Scalar
+  monolithTabularParameterize target = target
 
-monolithTabularQExact :
-  {stateCount actionCount : Nat} {Scalar : Set} ->
-  (target : MonolithTabularParameters stateCount actionCount Scalar) ->
-  (state : MonolithFin stateCount) ->
-  (action : MonolithFin actionCount) ->
-  monolithTabularQ (monolithTabularParameterize target) state action
-    ≡ target state action
-monolithTabularQExact target state action = refl
+  monolithTabularQExact :
+    {stateCount actionCount : Nat} {Scalar : Set} ->
+    (target : MonolithTabularParameters stateCount actionCount Scalar) ->
+    (state : MonolithFin stateCount) ->
+    (action : MonolithFin actionCount) ->
+    monolithTabularQ (monolithTabularParameterize target) state action
+      ≡ target state action
+  monolithTabularQExact target state action = refl
 
-record MonolithApproximationRelation
-  (Scalar Tolerance : Set) : Set₁ where
-  field
-    monolithWithin : Scalar -> Scalar -> Tolerance -> Set
-    monolithExactWithin :
-      (value : Scalar) -> (epsilon : Tolerance) ->
-      monolithWithin value value epsilon
+  record MonolithApproximationRelation
+    (Scalar Tolerance : Set) : Set₁ where
+    field
+      monolithWithin : Scalar -> Scalar -> Tolerance -> Set
+      monolithExactWithin :
+        (value : Scalar) -> (epsilon : Tolerance) ->
+        monolithWithin value value epsilon
 
-open MonolithApproximationRelation public
+  open MonolithApproximationRelation public
 
-record MonolithFiniteTabularWitness
-  {stateCount actionCount : Nat}
-  {Scalar Tolerance : Set}
-  (relation : MonolithApproximationRelation Scalar Tolerance)
-  (target : MonolithTabularParameters stateCount actionCount Scalar)
-  (epsilon : Tolerance) : Set where
-  constructor monolithFiniteTabularWitness
-  field
-    monolithWitnessParameters :
-      MonolithTabularParameters stateCount actionCount Scalar
-    monolithWitnessUniformError :
-      (state : MonolithFin stateCount) ->
-      (action : MonolithFin actionCount) ->
-      monolithWithin relation
-        (target state action)
-        (monolithTabularQ monolithWitnessParameters state action)
-        epsilon
+  record MonolithFiniteTabularWitness
+    {stateCount actionCount : Nat}
+    {Scalar Tolerance : Set}
+    (relation : MonolithApproximationRelation Scalar Tolerance)
+    (target : MonolithTabularParameters stateCount actionCount Scalar)
+    (epsilon : Tolerance) : Set where
+    constructor monolithFiniteTabularWitness
+    field
+      monolithWitnessParameters :
+        MonolithTabularParameters stateCount actionCount Scalar
+      monolithWitnessUniformError :
+        (state : MonolithFin stateCount) ->
+        (action : MonolithFin actionCount) ->
+        monolithWithin relation
+          (target state action)
+          (monolithTabularQ monolithWitnessParameters state action)
+          epsilon
 
-monolithFiniteTabularUniformApproximation :
-  {stateCount actionCount : Nat}
-  {Scalar Tolerance : Set} ->
-  (relation : MonolithApproximationRelation Scalar Tolerance) ->
-  (target : MonolithTabularParameters stateCount actionCount Scalar) ->
-  (epsilon : Tolerance) ->
-  MonolithFiniteTabularWitness relation target epsilon
-monolithFiniteTabularUniformApproximation relation target epsilon =
-  monolithFiniteTabularWitness
-    target
-    (λ state action ->
-      monolithExactWithin relation (target state action) epsilon)
+  monolithFiniteTabularUniformApproximation :
+    {stateCount actionCount : Nat}
+    {Scalar Tolerance : Set} ->
+    (relation : MonolithApproximationRelation Scalar Tolerance) ->
+    (target : MonolithTabularParameters stateCount actionCount Scalar) ->
+    (epsilon : Tolerance) ->
+    MonolithFiniteTabularWitness relation target epsilon
+  monolithFiniteTabularUniformApproximation relation target epsilon =
+    monolithFiniteTabularWitness
+      target
+      (λ state action ->
+        monolithExactWithin relation (target state action) epsilon)
+  -- END CoRNRealBoundary
