@@ -113,6 +113,17 @@ module ConstructiveComputabilityPostulates where
       Neg (Neg (SigmaWitness Nat P)) →
       SigmaWitness Nat P
 
+    -- Countable choice (ACω) for an indexed family of inhabited types.
+    -- Choice is explicit for every n; the result is a choice function together
+    -- with proof that each selected value satisfies its indexed predicate.
+    russianCountableChoice :
+      (A : Nat → Set) →
+      (P : (n : Nat) → A n → Set) →
+      ((n : Nat) → SigmaWitness (A n) (P n)) →
+      SigmaWitness
+        ((n : Nat) → A n)
+        (λ choose → (n : Nat) → P n (choose n))
+
   ----------------------------------------------------------------------
   -- Bishop-style constructive existence: keep witness and evidence paired.
   -- This uses data and computation rather than a bare existence axiom.
