@@ -1,3 +1,5 @@
+{-# OPTIONS --erased-matches #-}
+
 ------------------------------------------------------------------------
 -- Exact finite-state/action tabular Q approximation.
 --
