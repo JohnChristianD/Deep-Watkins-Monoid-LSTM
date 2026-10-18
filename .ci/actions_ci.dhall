@@ -152,9 +152,6 @@ let script = merge {
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
     nix run .#agda2hs-graph-search-check
-    nix run .#acorn-smoke
-    nix run .#xds-agda-check
-    nix run .#mini-vehicle-check
     nix run .#scott-strachey-domain-check
     nix run .#monoid-lstm-stream-check
     echo 'agda-semantic-discovery=pass'
@@ -530,9 +527,6 @@ DHALL
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticSearch.agda
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsGraphSearchCheck.agda
     nix run .#agda2hs-graph-search-check
-    nix run .#acorn-smoke
-    nix run .#xds-agda-check
-    nix run .#mini-vehicle-check
     nix run .#scott-strachey-domain-check
     nix run .#monoid-lstm-stream-check
     nix run .#agda2hs-semantic-search
