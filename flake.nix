@@ -465,7 +465,7 @@
                     sub(/^  /, "")
                     print
                     # Bind rewriting to Prelude equality without adding an Agda.Builtin import.
-                    if ($0 == "open import Haskell.Prelude using (Nat; suc; _≡_)")
+                    if ($0 == "open import Haskell.Prelude using (Nat; zero; suc; Bool; true; false; List; []; _∷_; _≡_)")
                       print "{-# BUILTIN REWRITE _≡_ #-}"
                   }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
@@ -506,6 +506,7 @@
                 done
                 # Validate the constructive foundations separately from the legacy monolith.
                 grep -Fq "russianMarkovPrinciple" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "churchThesis" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "russianCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "BishopWitness" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "ScottErshovEffectiveDomainData" "$tmp/ConstructiveComputabilityPostulates.agda"
