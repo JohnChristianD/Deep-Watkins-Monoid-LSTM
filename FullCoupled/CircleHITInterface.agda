@@ -44,6 +44,10 @@ postulate
     (loop* : transport P loop base* ≡ base*) →
     Circle-elim P base* loop* base ≡ base*
 
+-- The base computation must be available when checking the loop computation.
+{-# REWRITE Circle-elim-base #-}
+
+postulate
   Circle-elim-loop :
     {ℓ : Level} (P : Circle → Set ℓ) (base* : P base)
     (loop* : transport P loop base* ≡ base*) →
@@ -52,4 +56,4 @@ postulate
 -- These are the only registered computation rules for this restricted
 -- Circle interface. They are additional definitional equations, not proofs
 -- that Agda's kernel natively constructs or reduces higher inductive types.
-{-# REWRITE Circle-elim-base Circle-elim-loop #-}
+{-# REWRITE Circle-elim-loop #-}
