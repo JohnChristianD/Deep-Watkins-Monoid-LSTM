@@ -457,7 +457,7 @@
                 set -euo pipefail
                 tmp=$(mktemp -d)
                 trap 'rm -rf "$tmp"' EXIT
-                printf '%s\n' '{-# OPTIONS --rewriting #-}' 'module ConstructiveComputabilityPostulates where' > "$tmp/ConstructiveComputabilityPostulates.agda"
+                printf '%s\n' '{-# OPTIONS --rewriting --confluence-check #-}' 'module ConstructiveComputabilityPostulates where' > "$tmp/ConstructiveComputabilityPostulates.agda"
                 awk '
                   /^module ConstructiveComputabilityPostulates where$/ { capture=1; next }
                   /^variable$/ { capture=0 }
@@ -534,7 +534,7 @@
                 agda2hs-agda -i "$tmp" "$tmp/BetaOptimalityBoundary.agda"
                 agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
                 agda2hs-agda -i "$tmp" "$tmp/LawvereDiagonal.agda"
-                echo "constructive-computability=kernel-checked (Markov; Bishop witnesses; Scott-Ershov data; Henkin builder; no excluded middle)"
+                echo "constructive-computability=kernel-and-confluence-checked (Markov; Church; countable choice; Bishop witnesses; Scott-Ershov contract; Henkin builder; no explicit excluded middle)"
                 echo "scott-strachey-domain-check=pass (Scott domains, compositionality/strictness regression, and Lawvere boundary kernel-checked)"
                 echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
                 echo "bellman-order-theory=kernel-checked (Tarski, omega-Kleene, neural MDP Bellman, exact-Q greedy optimality)"
