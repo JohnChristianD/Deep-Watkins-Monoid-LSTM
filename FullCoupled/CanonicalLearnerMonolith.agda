@@ -100,6 +100,14 @@ module ConstructiveComputabilityPostulates where
 
   open SigmaWitness public
 
+  -- A proposition-valued existential: its contents are not an executable
+  -- projection into Set, unlike SigmaWitness above.
+  record PropWitness (A : Set) (P : A → Prop) : Prop where
+    constructor prop-witness
+    field
+      propWitnessValue : A
+      propWitnessEvidence : P propWitnessValue
+
   ----------------------------------------------------------------------
   -- A concrete computation relation for Church's Thesis.
   --
@@ -235,14 +243,33 @@ module ConstructiveComputabilityPostulates where
       (f : Nat → Nat) →
       SigmaWitness RecursiveProgram (λ program → ComputesFunction program f)
 
-    -- Countable choice (ACω) for every sequence of inhabited types.
+    -- Countable choice for proposition-valued existential evidence.
+    -- The witness is intentionally confined to Prop: this axiom does not
+    -- pretend to compute a choice function from erased existence proofs.
     russianCountableChoice :
       (A : Nat → Set) →
-      (P : (n : Nat) → A n → Set) →
-      ((n : Nat) → SigmaWitness (A n) (P n)) →
-      SigmaWitness
+      (P : (n : Nat) → A n → Prop) →
+      ((n : Nat) → PropWitness (A n) (P n)) →
+      PropWitness
         ((n : Nat) → A n)
         (λ choose → (n : Nat) → P n (choose n))
+
+  ----------------------------------------------------------------------
+  -- A data-level version of countable choice is a theorem: if every index
+  -- already supplies a computational SigmaWitness, select its projections.
+  ----------------------------------------------------------------------
+
+  constructiveCountableChoice :
+    (A : Nat → Set) →
+    (P : (n : Nat) → A n → Set) →
+    ((n : Nat) → SigmaWitness (A n) (P n)) →
+    SigmaWitness
+      ((n : Nat) → A n)
+      (λ choose → (n : Nat) → P n (choose n))
+  constructiveCountableChoice A P witnesses =
+    sigma-witness
+      (λ n → sigmaValue (witnesses n))
+      (λ n → sigmaEvidence (witnesses n)
 
   ----------------------------------------------------------------------
   -- Bishop-style constructive existence: keep witness and evidence paired.
