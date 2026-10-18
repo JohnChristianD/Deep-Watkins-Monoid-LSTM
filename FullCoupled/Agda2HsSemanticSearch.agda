@@ -1174,13 +1174,22 @@ graphAStarFirstEager laws seed =
         (MkGraphAStarNode (graphNodePlan seed) initialCost ∷ [])
         (MkGraphAStarBest root initialCost ∷ [])
 
--- Use deferred A* as the graph-search entry point so successor paths and their
--- heuristic scores are materialised only when the corresponding edge is popped.
+-- Preserve standard eager A* as the production default. The lower-bound
+-- deferred variant stays opt-in until real graph benchmarks justify promoting
+-- it; it is not assumed to be faster merely because it delays evaluation.
 graphAStarFirst :
   List GraphLaw ->
   GraphNode ->
   Maybe (List String)
-graphAStarFirst laws seed =
+graphAStarFirst laws seed = graphAStarFirstEager laws seed
+
+-- JAxtar-style deferred A*: queue child IDs and their parent paths with a
+-- lower-bound score; materialise the successor path and exact score on pop.
+graphAStarFirstDeferred :
+  List GraphLaw ->
+  GraphNode ->
+  Maybe (List String)
+graphAStarFirstDeferred laws seed =
   case graphFirst (graphNodePlan seed) of λ where
     Nothing -> Nothing
     (Just root) ->
@@ -1271,7 +1280,7 @@ graphAStarDeferredMatchesEagerRegression =
       []
     seed = MkGraphNode ("A" ∷ [])
   in
-  case graphAStarFirst laws seed of λ where
+  case graphAStarFirstDeferred laws seed of λ where
     Nothing ->
       case graphAStarFirstEager laws seed of λ where
         Nothing -> True
@@ -2849,8 +2858,19 @@ main = do
 {-# COMPILE AGDA2HS graphAStarExpandNode #-}
 {-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}
 {-# COMPILE AGDA2HS graphAStarFirst #-}
+{-# COMPILE AGDA2HS graphAStarFirstEager #-}
 {-# COMPILE AGDA2HS graphAStarFuelBound #-}
 {-# COMPILE AGDA2HS graphAStarFirstWithFuel #-}
+{-# COMPILE AGDA2HS GraphAStarQueueItem #-}
+{-# COMPILE AGDA2HS graphAStarDeferredPriority #-}
+{-# COMPILE AGDA2HS graphAStarDeferredInsert #-}
+{-# COMPILE AGDA2HS graphAStarDeferredDependencies #-}
+{-# COMPILE AGDA2HS graphAStarEnqueueDeferredChildren #-}
+{-# COMPILE AGDA2HS graphAStarDeferredFuelBound #-}
+{-# COMPILE AGDA2HS graphAStarFirstDeferredWithFuel #-}
+{-# COMPILE AGDA2HS graphAStarFirstDeferred #-}
+{-# COMPILE AGDA2HS graphAStarDeferredPriorityLowerBoundRegression #-}
+{-# COMPILE AGDA2HS graphAStarDeferredMatchesEagerRegression #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchFromRoot #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearch #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearchCount #-}
