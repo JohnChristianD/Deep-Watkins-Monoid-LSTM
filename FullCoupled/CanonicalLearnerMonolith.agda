@@ -577,33 +577,44 @@ postulate
   -- I'm not sure what's up with that.
 {-# REWRITE //-beta #-}
 
-postulate
-  Exc : Set
-  runtimeException : Exc
-  raise : Exc → A
+-- Executable exceptions are represented as values, never as inhabitants
+-- of arbitrary types. This keeps Haskell-style failure out of the Agda
+-- logical universe: there is no postulate of type Exc → A.
+module ConstructiveExceptionSemantics where
+  open import Haskell.Prelude using (Bool; True; False; _≡_; refl)
 
-  raise-suc : {e : Exc} → suc (raise e) ≡ raise e
+  data Exc : Set where
+    runtimeException : Exc
 
-  raise-fun : {e : Exc}
-    → raise {A = (x : A) → P x} e
-    ≡ λ x → raise {A = P x} e
+  data Exceptional (A : Set) : Set where
+    returned : A → Exceptional A
+    failed : Exc → Exceptional A
 
-{-# REWRITE raise-suc raise-fun #-}
+  raise : {A : Set} → Exc → Exceptional A
+  raise = failed
 
-postulate
-  catch-Bool : (P : Bool → Set ℓ)
-               (pt : P true) (pf : P false)
-               (h : ∀ e → P (raise e))
-             → (b : Bool) → P b
+  mapExceptional :
+    {A B : Set} → (A → B) → Exceptional A → Exceptional B
+  mapExceptional f (returned value) = returned (f value)
+  mapExceptional _ (failed e) = failed e
 
-  catch-true  : ∀ (P : Bool → Set ℓ) pt pf h
-              → catch-Bool P pt pf h true ≡ pt
-  catch-false : ∀ (P : Bool → Set ℓ) pt pf h
-              → catch-Bool P pt pf h false ≡ pf
-  catch-exc   : ∀ (P : Bool → Set ℓ) pt pf h e
-              → catch-Bool P pt pf h (raise e) ≡ h e
+  exceptionPropagation :
+    {A B : Set} (f : A → B) (e : Exc) →
+    mapExceptional f (raise {A = A} e) ≡ raise {A = B} e
+  exceptionPropagation f e = refl
 
-{-# REWRITE catch-true catch-false catch-exc #-}
+  catchExceptionalBool :
+    (P : Exceptional Bool → Set) →
+    P (returned True) →
+    P (returned False) →
+    ((e : Exc) → P (failed e)) →
+    (b : Exceptional Bool) → P b
+  catchExceptionalBool P onTrue onFalse onException (returned True) =
+    onTrue
+  catchExceptionalBool P onTrue onFalse onException (returned False) =
+    onFalse
+  catchExceptionalBool P onTrue onFalse onException (failed e) =
+    onException e
 
 record ⊤ {ℓ} : Prop ℓ where constructor tt
 
