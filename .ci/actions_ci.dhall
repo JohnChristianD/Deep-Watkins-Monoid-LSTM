@@ -1,3 +1,82 @@
+{-
+PROJECT CONTRACT — canonical documentation, constraints, and workflow plan
+
+Proof placement:
+  * Non-graph-search theorem proofs live only in
+    FullCoupled/CanonicalLearnerMonolith.agda and
+    FullCoupled/TheoremsMonolith.agda.
+  * Graph-search/e-graph definitions and regressions live in the graph-specific
+    Agda2HS modules and graph checker.
+  * Do not add standalone non-graph-search proof modules, reflection helpers,
+    proof sidecars, or custom prover dependencies.
+
+Real arithmetic:
+  * Use the official viktorcsimma/acorn library for Krebbers–Spitters-style
+    exact reals. Its compiler dependency is pinned to
+    viktorcsimma/agda2hs/a3c83ad3be876ce0c7aa31157f3107843bf2f465, which
+    requires Agda 2.6.4.x. Build that isolated Acorn package through its pinned
+    Nixpkgs snapshot. Do not invent an abstract Cauchy interface and call it
+    Acorn or CoRN. A successful build does not prove all upstream definitions:
+    audit the upstream Tool.Cheat use separately.
+  * The graph runtime continues to use the project's pinned Agda 2.8/Agda2HS
+    toolchain. Do not mix compiled Haskell artifacts across incompatible GHC
+    package sets.
+
+Graph semantics:
+  * Distinguish the Agda import DAG, law-dependency paths, and symbolic e-graph.
+    None is a proof term or evidence that a theorem's statement is true.
+  * Production graphAStarFirst stays eager A*. Its current score is
+    999999*g + 1000000*h, ties insert incoming-first, and best-g is indexed by
+    law ID. These choices mirror parts of JAxtar's standard A* semantics, not
+    JAxtar's batched JAX execution.
+  * Deferred A* is not production until Agda proves its full contract is not
+    inferior on the supported graph class, including path validity, duplicate
+    and cycle behavior, result cost, and fuel exhaustion. Benchmark before
+    claiming faster execution. Finite regressions do not prove general
+    optimality.
+  * DAG report counting uses topological dynamic programming. Factorial fuel in
+    a path search can still be expensive; the CI pass is correctness evidence
+    for checked fixtures, not a runtime performance benchmark.
+
+Constructive foundations:
+  * Treat Markov's principle, Church's thesis, and choice principles as named
+    assumptions with explicit scopes. Do not introduce excluded middle or
+    strong computability principles globally. RUSS is an axiom/profile choice,
+    not a synonym for classical logic.
+  * Existing reflection automation such as apply-cong remains inside the
+    theorem monolith. Generated proof terms still have to type-check.
+  * Prune a theorem only when its proof/dependency relation shows it is
+    duplicate or dominated; don't infer redundancy from similar names.
+
+Lua/Elm:
+  * Keep Fennel for orchestration and use the pinned Luafun module directly.
+    Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
+    typed coverage for Luafun requires a maintained declaration file.
+  * .ci/lua/agda_graph.fnl produces GeneratedAgdaGraph.elm. Luafun applies to
+    that Fennel generator; Elm itself does not load the Lua library.
+  * Pages/Elm must be validated by the existing Nix presentation lane.
+
+Only this file owns project policy text and lane commands. The GitHub workflow
+YAML files are runners which invoke these Dhall lanes; do not maintain a second
+set of prose requirements in Markdown.
+-}
+
+let policyGate = ''
+  set -euo pipefail
+  # Canonical contract and proof-placement policy.
+  test -f .ci/actions_ci.dhall
+  test ! -e .ci/pure-formal-stack.md
+  test ! -e .ci/graph-search-contract.md
+  test ! -e .ci/discovery/graph-search-spec.md
+  test ! -e FullCoupled/ReflectionAutomation.agda
+  test ! -e FullCoupled/FiniteTabularUAP.agda
+  test ! -e FullCoupled/CircleHITInterface.agda
+  grep -Fq 'github:viktorcsimma/acorn/' flake.nix
+  grep -Fq 'github:viktorcsimma/agda2hs/a3c83ad3be876ce0c7aa31157f3107843bf2f465' flake.nix
+  grep -Fq 'graphAStarFirst :' FullCoupled/Agda2HsSemanticSearch.agda
+  ! grep -Fq 'graphAStarFirstDeferred' FullCoupled/Agda2HsSemanticSearch.agda
+'';
+
 let Lane = < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >
 
 let lane : Lane = env:CI_LANE
@@ -533,4 +612,4 @@ DHALL
     echo 'agda-all=pass'
   ''} lane
 
-in script
+in policyGate ++ "\n" ++ script
