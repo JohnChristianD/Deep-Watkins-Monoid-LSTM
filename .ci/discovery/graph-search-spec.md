@@ -62,31 +62,8 @@ leaves no further child, that is a dead end, not success.
   the bounded exhaustive fallback. This preserves exact report counts without
   exponential path-list construction and insertion sorting. Reports say DFS /
   maximal dependency chains, never A*.
-- `graphAStarFirst` is the production best-first single-plan search. It now uses
-  JAxtar-style **deferred A*** queue entries: an outgoing dependency is queued
-  with lower-bound priority `999999*g`; only when that edge is popped is the
-  child path materialised and its heuristic evaluated, after which it is
-  reinserted with the exact score. This can avoid heuristic work for siblings
-  that are never explored; performance benefit is not assumed without a
-  benchmark. Eager `graphAStarFirstEager` remains as a differential reference.
-  Ready-node scores preserve JAxtar's default integer scaling of
-  `f = (1 - 10^-6)g + h`: `999999*g + 1000000*h`. Path cost is
-  `g = length(path)`; the heuristic is 0 for a leaf (or unknown node) and 1
-  for a node with dependencies. A deferred edge's lower-bound key omits h and
-  is therefore no greater than its materialised score. Goal testing runs only
-  on ready nodes. Equal-score insertion is incoming-first (`<=`). Best-g
-  deduplication remains keyed by active law ID and stale entries are skipped.
-  Deferred search uses twice the legacy `3*n!` fuel budget to account for
-  its separate pending-edge and ready-node queue phases; exhaustion is still a
-  resource bound, not a no-path theorem. Small Agda regressions compare the
-  deferred result with eager A* and reduce the lower-bound policy to `True`.
-- As in JAxtar's strict `optimal_mask` policy, a best-g table is keyed by the
-  active law ID. Enqueue only when a candidate has a strictly lower g-cost;
-  equal/worse duplicates are discarded and stale queue entries are skipped.
-  The Agda version is a scalar list-based search, not JAxtar's batched JAX GPU
-  implementation, hash table, or parent-array implementation. Its state,
-  cost, score, deduplication, and tie-breaking policy are specified separately
-  from implementation-level vectorization.
+- `graphAStarFirst` is the default eager, single-plan best-first search. It retains JAxtar's default discrete score `999999*g + 1000000*h`, incoming-first tie insertion, strict best-`g` duplicate filtering, and stale-entry skipping. As above, it is an integer-scaled version of `(1 - 10^-6)g + h`; small regression fixtures verify selected behavior, not a general optimality theorem.
+- `graphAStarFirstDeferred` is an opt-in JAxtar-inspired deferred-evaluation variant. It queues a pending edge using the lower bound `999999*g`; only when popped does it materialise the path, evaluate the heuristic, and reinsert the ready node with its exact priority. `graphAStarFirstEager` is kept as the differential reference. Agda regression fixtures check the lower-bound ordering and compare the deferred and eager selected paths on the direct-leaf-versus-longer-branch fixture. The implementation is a scalar Agda list queue, not JAxtar's batched JAX implementation; **no performance improvement is claimed without a benchmark on the real graph**.
 - Best-first search rejects repeated IDs and uses fuel `3 * factorial(n)`.
   Non-empty simple ordered paths are bounded by
   `sum(n!/(n-k)!, k=1..n) < 3*n!`. Fuel exhaustion returns `Nothing`; alone
