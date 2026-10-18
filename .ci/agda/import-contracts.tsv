@@ -211,7 +211,6 @@ sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Ord.Order
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Size	open import Agda.Builtin.Size public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law public	open import Haskell.Law public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Equality public	open import Haskell.Law.Equality public	1
-sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Extensionality public	open import Haskell.Law.Extensionality public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Functor.FromMonad public	open import Haskell.Law.Functor.FromMonad public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Semigroup.List public	open import Haskell.Law.Semigroup.List public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Nat public	open import Haskell.Law.Nat public	1
