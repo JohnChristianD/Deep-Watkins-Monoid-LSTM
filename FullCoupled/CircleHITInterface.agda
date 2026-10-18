@@ -44,12 +44,15 @@ postulate
     (loop* : transport P loop base* ≡ base*) →
     Circle-elim P base* loop* base ≡ base*
 
+-- Register the point computation before declaring the path computation: the
+-- latter's expected type reduces to the supplied loop coherence only after
+-- this specific equation has entered definitional equality.
+{-# REWRITE Circle-elim-base #-}
+
+postulate
   Circle-elim-loop :
     {ℓ : Level} (P : Circle → Set ℓ) (base* : P base)
     (loop* : transport P loop base* ≡ base*) →
     apd (Circle-elim P base* loop*) loop ≡ loop*
 
--- These are the only registered computation rules for this restricted
--- Circle interface. They are additional definitional equations, not proofs
--- that Agda's kernel natively constructs or reduces higher inductive types.
-{-# REWRITE Circle-elim-base Circle-elim-loop #-}
+{-# REWRITE Circle-elim-loop #-}
