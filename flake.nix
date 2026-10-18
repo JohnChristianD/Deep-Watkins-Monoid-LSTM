@@ -522,7 +522,7 @@
                 done
                 # Validate Prop-to-Set transport as constructor elimination, not an axiom.
                 grep -Fq "transportR P refl value = value" "$tmp/ConstructivePropTransport.agda"
-                grep -Fq "transportR-refl = refl" "$tmp/ConstructivePropTransport.agda"
+                grep -Fq "transportR-refl P value = refl" "$tmp/ConstructivePropTransport.agda"
                 if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/ConstructivePropTransport.agda"; then
                   echo "unexpected transport postulate" >&2
                   exit 1
