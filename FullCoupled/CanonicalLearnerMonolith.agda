@@ -1,5 +1,4 @@
 {-# OPTIONS
---lossy-unification
 --sized-types
 --exact-split
 --no-projection-like
