@@ -43,19 +43,14 @@ Do not call every traversal “A*”.
 ### `graphAStarFirst`: eager A* baseline
 
 - Seed: one initial `GraphNode`.
-- Path cost: `g(n) = length(path)`; a singleton seed starts at one, and each dependency edge adds one. Relative ordering matches edge-count cost from a fixed seed because the seed-prefix contribution is constant.
-- Heuristic: `h(n) = 0` when the current head has no dependencies (or the ID is unknown); otherwise `h(n) = 1`.
-- Priority: `999999*g(n) + 1000000*h(n)`, an exact integer scaling of JAxtar's default `(1 - 10^-6)g + h`. Insertion places an equal-score candidate before an older entry (`<=`). As documented elsewhere, this small heuristic plus JAxtar's near-unit cost weight is an ordering policy; the finite fixtures do not prove a general shortest-path theorem.
-- Duplicate policy: `graphAStarCanImprove` enqueues only strictly cheaper g-costs keyed by the active law ID, and stale queue entries are skipped.
-- Goal: first `graphMaximalDependencyChain` accepted from the ordered frontier.
-- Fuel: `3 * factorial(number of graph laws)`. Accepted paths are simple; exhaustion returns `Nothing`, not a proof no path exists.
+- Path cost: `g(n) = length(path)`; a singleton seed starts at one, and each dependency edge adds one.
+- Heuristic: `h(n) = 0` when the current head has no dependencies; otherwise `h(n) = 1`.
+- Priority: JAxtar's default integer-scaled score `999999*g(n) + 1000000*h(n)`, representing `(1 - 10^-6)g + h`. Equal-score incoming nodes precede existing nodes (`<=`).
+- Deduplication: the best-`g` table is keyed by active law ID; only strictly cheaper duplicates are accepted, and stale entries are skipped.
+- Fuel: `3 * factorial(number of graph laws)`. Exhaustion returns `Nothing`; it does not prove there is no valid path.
+- Finite regressions test score order, duplicate handling, cycles, and one shortest-path fixture. They do not establish general optimality on every cyclic graph.
 
-### `graphAStarFirstDeferred`: opt-in deferred-evaluation variant
-
-- Pending edge entry: `(parent path, child ID, child g)`, with lower-bound priority `999999*g`. When popped, it is materialised as a ready node and reinserted with the exact score above. Only ready nodes are checked for the goal.
-- Uses the same strict best-g table and stale-entry rule. Equal-score insertions remain incoming-first.
-- Fuel is twice the eager budget to allow pending-edge and ready-node phases.
-- `graphAStarFirstEager` stays available as the differential reference. The Agda fixtures compare outputs on the direct-leaf-versus-longer-branch graph and check the lower-bound priority relation. This does not establish performance gains; the implementation lacks JAxtar's batched JAX pipeline, and the deferred variant is not made the default absent a benchmark.
+Deferred A* is **not implemented as the production search**. It may replace eager search only after Agda establishes non-inferiority for the supported graph domain, including path/goal validity, duplicate and cycle semantics, returned path cost, and fuel exhaustion. A matching finite fixture and an admissible pending-edge priority alone are not a general proof. No speed advantage is assumed without a benchmark on the actual theorem graph.
 
 ### `autonomousCanonicalGraphSearch`: bounded enumeration
 
