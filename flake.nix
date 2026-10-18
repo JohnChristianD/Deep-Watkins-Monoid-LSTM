@@ -725,6 +725,12 @@ PY
                 grep -Fq "tabularQExact target state action = refl" FullCoupled/FiniteTabularUAP.agda
                 grep -Fq "finiteTabularUniformApproximation" FullCoupled/FiniteTabularUAP.agda
 
+                # Check the restricted Circle recursor separately in a
+                # --without-K profile; never import it into the legacy monolith.
+                "${agdaCommand system}/bin/agda" -i . FullCoupled/CircleHITInterface.agda
+                grep -Fq -- "--without-K" FullCoupled/CircleHITInterface.agda
+                grep -Fq "Circle-elim-loop" FullCoupled/CircleHITInterface.agda
+
                 # This lane checks only the Agda2HS runtime module closure.
                 # Historical theorem monoliths are outside this kernel-checked target.
                 for source in \
