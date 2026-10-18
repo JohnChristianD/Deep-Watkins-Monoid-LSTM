@@ -13,6 +13,8 @@ graphSearchContractPassed =
     && Search.graphAStarTieBreakRegression
     && Search.graphAStarBestGRegression
     && Search.graphAStarShortestPathRegression
+    && Search.graphAStarDeferredPriorityLowerBoundRegression
+    && Search.graphAStarDeferredMatchesEagerRegression
     && Search.multiCapabilityCoverageRegression
     && Search.nodeHeuristicLowerBoundRegression
     && Search.graphCycleIsRejectedRegression
@@ -80,6 +82,12 @@ main = do
   putStrLn
     ("graph-astar-shortest-path="
       ++ show Search.graphAStarShortestPathRegression)
+  putStrLn
+    ("graph-astar-deferred-lower-bound="
+      ++ show Search.graphAStarDeferredPriorityLowerBoundRegression)
+  putStrLn
+    ("graph-astar-deferred-matches-eager="
+      ++ show Search.graphAStarDeferredMatchesEagerRegression)
   putStrLn
     ("learner-dependency-closure="
       ++ show Search.learnerLogicalGraphRegression)
