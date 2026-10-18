@@ -722,7 +722,7 @@ PY
                 # Check the qualified Reflection macro independently before
                 # consuming it in the finite tabular approximation theorem.
                 "${agdaCli system}/bin/agda" -i . FullCoupled/ReflectionAutomation.agda
-                grep -Fq "Reflection.unify goal (quoteTerm refl)" FullCoupled/ReflectionAutomation.agda
+                grep -Fq "Reflection.unify goal (Reflection.con (quote refl) [])" FullCoupled/ReflectionAutomation.agda
                 grep -Fq "identityBeta x = byDefinitionalRefl" FullCoupled/ReflectionAutomation.agda
 
                 # Kernel-check the finite discrete UAP baseline. The exact
