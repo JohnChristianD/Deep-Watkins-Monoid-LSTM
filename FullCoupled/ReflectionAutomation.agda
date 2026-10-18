@@ -17,7 +17,7 @@ import Agda.Builtin.Reflection as Reflection
 
 macro
   byDefinitionalRefl : Reflection.Term → Reflection.TC ⊤
-  byDefinitionalRefl goal = Reflection.unify goal (quoteTerm refl)
+  byDefinitionalRefl goal = Reflection.unify goal (Reflection.con (quote refl) [])
 
 -- A small compile-time regression: the β-reduction makes this equality
 -- definitional, so the macro solves it without a handwritten proof clause.
