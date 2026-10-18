@@ -465,10 +465,16 @@
                     sub(/^  /, "")
                     print
                     # Bind rewriting to Prelude equality without adding an Agda.Builtin import.
-                    if ($0 == "open import Haskell.Prelude using (Nat; zero; suc; Bool; true; false; List; []; _∷_; _≡_)")
+                    if ($0 == "open import Haskell.Prelude using (Nat; zero; suc; Bool; True; False; List; []; _∷_; _≡_)")
                       print "{-# BUILTIN REWRITE _≡_ #-}"
                   }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
+                printf '%s\\n' '{-# OPTIONS --confluence-check #-}' 'module ConstructiveExceptionSemantics where' > "$tmp/ConstructiveExceptionSemantics.agda"
+                awk '
+                  /^module ConstructiveExceptionSemantics where$/ { capture=1; next }
+                  /^record ⊤/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '
                   /^module ScottStracheyDomains where$/ { capture=1; print; next }
                   /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
@@ -493,7 +499,9 @@
                 test -s "$tmp/CanonicalBellmanOrderTheory.agda"
                 test -s "$tmp/LawvereDiagonal.agda"
                 test -s "$tmp/ConstructiveComputabilityPostulates.agda"
+                test -s "$tmp/ConstructiveExceptionSemantics.agda"
                 for extracted in \
+                  "$tmp/ConstructiveExceptionSemantics.agda" \\
                   "$tmp/ScottStracheyDomains.agda" \
                   "$tmp/BetaOptimalityBoundary.agda" \
                   "$tmp/LawvereDiagonal.agda" \
@@ -504,6 +512,14 @@
                     exit 1
                   fi
                 done
+                # Validate executable exception semantics without polymorphic bottom.
+                grep -Fq "mapExceptional" "$tmp/ConstructiveExceptionSemantics.agda"
+                grep -Fq "exceptionPropagation" "$tmp/ConstructiveExceptionSemantics.agda"
+                grep -Fq "catchExceptionalBool" "$tmp/ConstructiveExceptionSemantics.agda"
+                if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/ConstructiveExceptionSemantics.agda"; then
+                  echo "unexpected exception-semantics postulate" >&2
+                  exit 1
+                fi
                 # Validate the constructive foundations separately from the legacy monolith.
                 grep -Fq "russianMarkovPrinciple" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "churchThesis" "$tmp/ConstructiveComputabilityPostulates.agda"
@@ -531,12 +547,14 @@
                 grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
                 grep -Fq "neuralBellmanValueIsSupremumOfQStar" "$tmp/CanonicalBellmanOrderTheory.agda"
+                agda2hs-agda -i "$tmp" "$tmp/ConstructiveExceptionSemantics.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
                 agda2hs-agda -i "$tmp" "$tmp/ConstructiveComputabilityPostulates.agda"
                 agda2hs-agda -i "$tmp" "$tmp/BetaOptimalityBoundary.agda"
                 agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
                 agda2hs-agda -i "$tmp" "$tmp/LawvereDiagonal.agda"
-                echo "constructive-computability=kernel-and-confluence-checked (Markov; Church; countable choice; Bishop witnesses; Scott-Ershov contract; Henkin builder; no explicit excluded middle)"
+                echo "constructive-computability=kernel-and-confluence-checked (Markov; Church; proposition-level countable choice; executable data choice; Scott-Ershov contract; Henkin builder; no explicit excluded middle)"
+                echo "exceptions=kernel-checked (typed failure values, total catch, no polymorphic bottom)"
                 echo "scott-strachey-domain-check=pass (Scott domains, compositionality/strictness regression, and Lawvere boundary kernel-checked)"
                 echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
                 echo "bellman-order-theory=kernel-checked (Tarski, omega-Kleene, neural MDP Bellman, exact-Q greedy optimality)"
