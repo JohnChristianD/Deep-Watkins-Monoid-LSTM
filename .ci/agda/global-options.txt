@@ -2,11 +2,13 @@
 --sized-types
 --no-projection-like
 --erased-matches
+--erase-record-parameters
 --prop
 --confluence-check
 --two-level
 --level-universe
 --auto-inline
 --polarity
+--large-indices
 --no-forced-argument-recursion
 --no-guardedness
