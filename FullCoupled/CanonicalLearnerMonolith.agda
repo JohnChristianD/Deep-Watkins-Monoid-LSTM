@@ -1,5 +1,4 @@
 {-# OPTIONS
---lossy-unification
 --sized-types
 --exact-split
 --no-projection-like
@@ -17,7 +16,6 @@
 --no-forced-argument-recursion
 --with-K
 --no-guardedness
---injective-type-constructors
 #-}
 
 ------------------------------------------------------------------------
