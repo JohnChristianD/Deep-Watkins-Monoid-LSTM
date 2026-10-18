@@ -1279,7 +1279,7 @@ graphPathCountLookup target ((name , count) ∷ counts) =
 
 graphPathCountDependencies :
   List String -> List (String × Nat) -> Maybe Nat
-graphPathCountDependencies [] _ = Just (incrementSearchNat 0)
+graphPathCountDependencies [] _ = Just 0
 graphPathCountDependencies (dependency ∷ dependencies) counts =
   case graphPathCountLookup dependency counts of λ where
     Nothing -> Nothing
@@ -1299,10 +1299,16 @@ graphPathCountTable (name ∷ names) laws counts =
   case graphLawForName name laws of λ where
     Nothing -> Nothing
     (Just law) ->
-      case graphPathCountDependencies (graphLawDependencies law) counts of λ where
-        Nothing -> Nothing
-        (Just count) ->
-          graphPathCountTable names laws ((name , count) ∷ counts)
+      case graphLawDependencies law of λ where
+        [] ->
+          graphPathCountTable names laws
+            ((name , incrementSearchNat 0) ∷ counts)
+        (dependency ∷ dependencies) ->
+          case graphPathCountDependencies
+            (dependency ∷ dependencies) counts of λ where
+              Nothing -> Nothing
+              (Just count) ->
+                graphPathCountTable names laws ((name , count) ∷ counts)
 
 graphPathCountTableForLaws :
   List GraphLaw -> Maybe (List (String × Nat))
