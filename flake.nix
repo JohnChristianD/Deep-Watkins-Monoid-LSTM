@@ -356,7 +356,7 @@ PY
               text = ''
                 set -euo pipefail
                 test -x "\${acornRealLibrary system}/bin/AcornShell"
-                echo "official-acorn-reals=nix-build-pass"
+                echo "official-acorn-source-build=nix-pass"\n                echo "acorn-proof-boundary=Tool.Cheat-postulate-present"
                 echo "acorn-compiler=have-it-both-ways/a3c83ad3be876ce0c7aa31157f3107843bf2f465"
                 echo "agda-api=2.6.4.x"
               '';
