@@ -469,7 +469,7 @@
                       print "{-# BUILTIN REWRITE _≡_ #-}"
                   }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
-                printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude' 'variable' '  A : Set' '  P : A → Set' '  x y : A' 'data _≐_ {A : Set} (x : A) : A → Prop where' '  refl≐ : x ≐ x' > "$tmp/ConstructivePropTransport.agda"
+                printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude' 'variable' '  A : Set' '  P : A → Set' '  x y : A' 'data _≐_ {A : Set} (x : A) : A → Set where' '  refl≐ : x ≐ x' > "$tmp/ConstructivePropTransport.agda"
                 awk '
                   /^transportR :/ { capture=1 }
                   /^variable$/ { if (capture) capture=0 }
@@ -520,7 +520,7 @@
                     exit 1
                   fi
                 done
-                # Validate Prop-to-Set transport as constructor elimination, not an axiom.
+                # Validate computational path transport as constructor elimination, not an axiom.
                 grep -Fq "transportR P refl≐ value = value" "$tmp/ConstructivePropTransport.agda"
                 grep -Fq "transportR-refl P value = refl" "$tmp/ConstructivePropTransport.agda"
                 if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/ConstructivePropTransport.agda"; then
