@@ -469,11 +469,11 @@
                       print "{-# BUILTIN REWRITE _≡_ #-}"
                   }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
-                printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude' 'variable' '  ℓ : Level' '  A : Set ℓ' '  P : A → Set ℓ' '  x y : A' > "$tmp/ConstructivePropTransport.agda"
+                printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude' 'variable' '  A : Set' '  P : A → Set' '  x y : A' 'data _≐_ {A : Set} (x : A) : A → Prop where' '  refl≐ : x ≐ x' > "$tmp/ConstructivePropTransport.agda"
                 awk '
-                  /^data _≐_/ { capture=1 }
+                  /^transportR :/ { capture=1 }
                   /^variable$/ { if (capture) capture=0 }
-                  capture { print }
+                  capture { gsub(/Set ℓ/, "Set"); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructivePropTransport.agda"
                 printf '%s\n' '{-# OPTIONS --confluence-check #-}' 'module ConstructiveExceptionSemantics where' > "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '
@@ -521,7 +521,7 @@
                   fi
                 done
                 # Validate Prop-to-Set transport as constructor elimination, not an axiom.
-                grep -Fq "transportR P refl value = value" "$tmp/ConstructivePropTransport.agda"
+                grep -Fq "transportR P refl≐ value = value" "$tmp/ConstructivePropTransport.agda"
                 grep -Fq "transportR-refl P value = refl" "$tmp/ConstructivePropTransport.agda"
                 if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/ConstructivePropTransport.agda"; then
                   echo "unexpected transport postulate" >&2
