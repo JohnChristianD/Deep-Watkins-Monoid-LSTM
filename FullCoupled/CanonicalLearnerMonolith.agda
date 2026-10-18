@@ -100,13 +100,15 @@ module ConstructiveComputabilityPostulates where
 
   open SigmaWitness public
 
-  -- A proposition-valued existential: its contents are not an executable
-  -- projection into Set, unlike SigmaWitness above.
-  record PropWitness (A : Set) (P : A → Prop) : Prop where
-    constructor prop-witness
-    field
-      propWitnessValue : A
-      propWitnessEvidence : P propWitnessValue
+  -- Impredicative proposition-valued existential. Elimination stays in
+  -- Prop, so it records existence without turning erased evidence into data.
+  PropExists : {A : Set} → (A → Prop) → Prop
+  PropExists {A} P = (R : Prop) → ((x : A) → P x → R) → R
+
+  propExistsIntro :
+    {A : Set} {P : A → Prop} →
+    (x : A) → P x → PropExists P
+  propExistsIntro x evidence R eliminate = eliminate x evidence
 
   ----------------------------------------------------------------------
   -- A concrete computation relation for Church's Thesis.
@@ -249,10 +251,8 @@ module ConstructiveComputabilityPostulates where
     russianCountableChoice :
       (A : Nat → Set) →
       (P : (n : Nat) → A n → Prop) →
-      ((n : Nat) → PropWitness (A n) (P n)) →
-      PropWitness
-        ((n : Nat) → A n)
-        (λ choose → (n : Nat) → P n (choose n))
+      ((n : Nat) → PropExists (P n)) →
+      PropExists (λ choose → (n : Nat) → P n (choose n))
 
   ----------------------------------------------------------------------
   -- A data-level version of countable choice is a theorem: if every index
@@ -304,11 +304,10 @@ module ConstructiveComputabilityPostulates where
   -- for this particular domain, not a theorem about every ordered set.
   ----------------------------------------------------------------------
 
-  infix 4 _⊑d_ _≪d_
-
   -- A Scott-Ershov domain is explicit data, not an axiom that every carrier
-  -- has a compact basis. This prevents instantiating the interface at an
-  -- empty or otherwise unsuitable carrier and deriving arbitrary results.
+  -- has a compact basis. The approximation sequence is defined from its
+  -- effective index and compact-code enumerator, so its computation is real
+  -- definitional reduction rather than a rewrite rule over a record projection.
   record ScottErshovEffectiveDomainData
     (D : Set)
     (_⊑d_ : D → D → Set)
@@ -320,22 +319,20 @@ module ConstructiveComputabilityPostulates where
         (n : Nat) → _≪d_ (compactCode n) (compactCode n)
 
       approximationIndex : D → Nat → Nat
-      compactApproximation : D → Nat → D
-      compactApproximationComputes :
-        (x : D) (n : Nat) →
-        compactApproximation x n ≡ compactCode (approximationIndex x n)
 
-      compactApproximationBelow :
+      approximationBelow :
         (x : D) (n : Nat) →
-        _⊑d_ (compactApproximation x n) x
+        _⊑d_ (compactCode (approximationIndex x n)) x
 
-      compactApproximationIncreasing :
+      approximationIncreasing :
         (x : D) (n : Nat) →
-        _⊑d_ (compactApproximation x n) (compactApproximation x (suc n))
+        _⊑d_
+          (compactCode (approximationIndex x n))
+          (compactCode (approximationIndex x (suc n)))
 
-      compactApproximationLeast :
+      approximationLeast :
         (x y : D) →
-        ((n : Nat) → _⊑d_ (compactApproximation x n) y) →
+        ((n : Nat) → _⊑d_ (compactCode (approximationIndex x n)) y) →
         _⊑d_ x y
 
   module ScottErshovEffectiveDomain
@@ -357,18 +354,12 @@ module ConstructiveComputabilityPostulates where
       ScottErshovEffectiveDomainData.approximationIndex domain
 
     compactApproximation : D → Nat → D
-    compactApproximation =
-      ScottErshovEffectiveDomainData.compactApproximation domain
+    compactApproximation x n = compactCode (approximationIndex x n)
 
     compactApproximationComputes :
       (x : D) (n : Nat) →
       compactApproximation x n ≡ compactCode (approximationIndex x n)
-    compactApproximationComputes =
-      ScottErshovEffectiveDomainData.compactApproximationComputes domain
-
-    -- Computation reduces an approximation to its effective compact code.
-    -- The rule is available only with a concrete domain-data witness.
-    {-# REWRITE compactApproximationComputes #-}
+    compactApproximationComputes x n = refl
 
     compactApproximationIsCompact :
       (x : D) (n : Nat) →
@@ -380,20 +371,20 @@ module ConstructiveComputabilityPostulates where
       (x : D) (n : Nat) →
       _⊑d_ (compactApproximation x n) x
     compactApproximationBelow =
-      ScottErshovEffectiveDomainData.compactApproximationBelow domain
+      ScottErshovEffectiveDomainData.approximationBelow domain
 
     compactApproximationIncreasing :
       (x : D) (n : Nat) →
       _⊑d_ (compactApproximation x n) (compactApproximation x (suc n))
     compactApproximationIncreasing =
-      ScottErshovEffectiveDomainData.compactApproximationIncreasing domain
+      ScottErshovEffectiveDomainData.approximationIncreasing domain
 
     compactApproximationLeast :
       (x y : D) →
       ((n : Nat) → _⊑d_ (compactApproximation x n) y) →
       _⊑d_ x y
     compactApproximationLeast =
-      ScottErshovEffectiveDomainData.compactApproximationLeast domain
+      ScottErshovEffectiveDomainData.approximationLeast domain
 
   ----------------------------------------------------------------------
   -- Henkin construction with consistency and witness hypotheses explicit.
