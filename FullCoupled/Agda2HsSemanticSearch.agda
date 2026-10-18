@@ -988,6 +988,133 @@ graphAStarEnqueueImprovements laws (node ∷ nodes) known frontier =
       else
         graphAStarEnqueueImprovements laws nodes known frontier
 
+-- Deferred A*: queue an outgoing edge using the child g-cost as a lower
+-- bound, but construct the child path and evaluate h only when that edge is
+-- popped. This mirrors JAxtar's deferred-evaluation policy without pretending
+-- that this list-based Agda implementation has JAxtar's JAX batching.
+data GraphAStarQueueItem : Type where
+  GraphAStarReadyNode : GraphAStarNode -> GraphAStarQueueItem
+  GraphAStarDeferredChild : List String -> String -> Nat -> GraphAStarQueueItem
+
+graphAStarDeferredPriority : List GraphLaw -> GraphAStarQueueItem -> Nat
+graphAStarDeferredPriority laws (GraphAStarReadyNode node) =
+  graphAStarScore laws node
+graphAStarDeferredPriority laws (GraphAStarDeferredChild _ _ cost) =
+  cost * 999999
+
+graphAStarDeferredInsert :
+  List GraphLaw ->
+  GraphAStarQueueItem ->
+  List GraphAStarQueueItem ->
+  List GraphAStarQueueItem
+graphAStarDeferredInsert laws item [] = item ∷ []
+graphAStarDeferredInsert laws item (head ∷ tail) =
+  if graphAStarDeferredPriority laws item <= graphAStarDeferredPriority laws head then
+    item ∷ head ∷ tail
+  else
+    head ∷ graphAStarDeferredInsert laws item tail
+
+graphAStarDeferredDependencies : List GraphLaw -> List String -> List String
+graphAStarDeferredDependencies laws [] = []
+graphAStarDeferredDependencies laws (current ∷ _) =
+  case graphLawForName current laws of λ where
+    Nothing -> []
+    (Just law) -> graphLawDependencies law
+
+graphAStarEnqueueDeferredChildren :
+  List GraphLaw ->
+  List String ->
+  List String ->
+  Nat ->
+  List GraphAStarBestCost ->
+  List GraphAStarQueueItem ->
+  List GraphAStarBestCost × List GraphAStarQueueItem
+graphAStarEnqueueDeferredChildren laws plan [] childCost known frontier =
+  known , frontier
+graphAStarEnqueueDeferredChildren laws plan (child ∷ children) childCost known frontier =
+  if graphContains child plan then
+    graphAStarEnqueueDeferredChildren laws plan children childCost known frontier
+  else
+    if graphAStarCanImprove child childCost known then
+      graphAStarEnqueueDeferredChildren
+        laws
+        plan
+        children
+        childCost
+        (graphAStarRememberCost child childCost known)
+        (graphAStarDeferredInsert
+          laws
+          (GraphAStarDeferredChild plan child childCost)
+          frontier)
+    else
+      graphAStarEnqueueDeferredChildren laws plan children childCost known frontier
+
+-- A deferred item uses a lower-bound queue key. When popped, it is materialised
+-- as a ready node and reinserted with the exact JAxtar-scaled f score. Goal
+-- testing occurs only for ready nodes, never for an unevaluated edge.
+graphAStarFirstDeferredWithFuel :
+  List ⊤ ->
+  List GraphLaw ->
+  List GraphAStarQueueItem ->
+  List GraphAStarBestCost ->
+  Maybe (List String)
+graphAStarFirstDeferredWithFuel [] laws frontier known = Nothing
+graphAStarFirstDeferredWithFuel (_ ∷ fuel) laws [] known = Nothing
+graphAStarFirstDeferredWithFuel (_ ∷ fuel) laws
+  (GraphAStarDeferredChild parent child childCost ∷ frontier) known =
+    case graphAStarKnownCost child known of λ where
+      Nothing ->
+        graphAStarFirstDeferredWithFuel fuel laws frontier known
+      (Just bestG) ->
+        if childCost == bestG then
+          graphAStarFirstDeferredWithFuel
+            fuel
+            laws
+            (graphAStarDeferredInsert
+              laws
+              (GraphAStarReadyNode
+                (MkGraphAStarNode (child ∷ parent) childCost))
+              frontier)
+            known
+        else
+          graphAStarFirstDeferredWithFuel fuel laws frontier known
+graphAStarFirstDeferredWithFuel (_ ∷ fuel) laws
+  (GraphAStarReadyNode node ∷ frontier) known =
+    case graphFirst (graphAStarPlan node) of λ where
+      Nothing ->
+        graphAStarFirstDeferredWithFuel fuel laws frontier known
+      (Just current) ->
+        case graphAStarKnownCost current known of λ where
+          Nothing ->
+            graphAStarFirstDeferredWithFuel fuel laws frontier known
+          (Just bestG) ->
+            case graphAStarPathCost node == bestG of λ where
+              False ->
+                -- Skip stale deferred/ready entries after a better g was found.
+                graphAStarFirstDeferredWithFuel fuel laws frontier known
+              True ->
+                case graphMaximalDependencyChain (graphAStarPlan node) laws of λ where
+                  True -> Just (graphAStarPlan node)
+                  False ->
+                    let
+                      (known' , frontier') =
+                        graphAStarEnqueueDeferredChildren
+                          laws
+                          (graphAStarPlan node)
+                          (graphAStarDeferredDependencies laws (graphAStarPlan node))
+                          (incrementSearchNat (graphAStarPathCost node))
+                          known
+                          frontier
+                    in graphAStarFirstDeferredWithFuel fuel laws frontier' known'
+
+-- Each accepted child can be popped once as a deferred edge and once as a
+-- ready node. Double the legacy 3*n! operational budget accordingly. As before,
+-- exhaustion is a resource bound, not proof that no path exists.
+graphAStarDeferredFuelBound : List GraphLaw -> List ⊤
+graphAStarDeferredFuelBound laws =
+  let fuel = factorialFuel laws
+  in fuel ++ fuel ++ fuel ++ fuel ++ fuel ++ fuel
+
 graphAStarFirstWithFuel :
   List ⊤ ->
   List GraphLaw ->
@@ -1032,11 +1159,12 @@ graphAStarFuelBound laws =
   let fuel = factorialFuel laws
   in fuel ++ fuel ++ fuel
 
-graphAStarFirst :
+-- Retain eager standard A* as a differential reference implementation.
+graphAStarFirstEager :
   List GraphLaw ->
   GraphNode ->
   Maybe (List String)
-graphAStarFirst laws seed =
+graphAStarFirstEager laws seed =
   case graphFirst (graphNodePlan seed) of λ where
     Nothing -> Nothing
     (Just root) ->
@@ -1045,6 +1173,33 @@ graphAStarFirst laws seed =
         (graphAStarFuelBound laws)
         laws
         (MkGraphAStarNode (graphNodePlan seed) initialCost ∷ [])
+        (MkGraphAStarBest root initialCost ∷ [])
+
+-- Preserve standard eager A* as the production default. The lower-bound
+-- deferred variant stays opt-in until real graph benchmarks justify promoting
+-- it; it is not assumed to be faster merely because it delays evaluation.
+graphAStarFirst :
+  List GraphLaw ->
+  GraphNode ->
+  Maybe (List String)
+graphAStarFirst laws seed = graphAStarFirstEager laws seed
+
+-- JAxtar-style deferred A*: queue child IDs and their parent paths with a
+-- lower-bound score; materialise the successor path and exact score on pop.
+graphAStarFirstDeferred :
+  List GraphLaw ->
+  GraphNode ->
+  Maybe (List String)
+graphAStarFirstDeferred laws seed =
+  case graphFirst (graphNodePlan seed) of λ where
+    Nothing -> Nothing
+    (Just root) ->
+      let initialCost = graphNodeScore seed in
+      graphAStarFirstDeferredWithFuel
+        (graphAStarDeferredFuelBound laws)
+        laws
+        (GraphAStarReadyNode
+          (MkGraphAStarNode (graphNodePlan seed) initialCost) ∷ [])
         (MkGraphAStarBest root initialCost ∷ [])
 
 graphAStarTieBreakRegression : Bool
@@ -1066,6 +1221,24 @@ graphAStarTieBreakRegression =
 graphAStarTieBreakRegressionChecked :
   graphAStarTieBreakRegression ≡ True
 graphAStarTieBreakRegressionChecked = refl
+
+graphAStarDeferredPriorityLowerBoundRegression : Bool
+graphAStarDeferredPriorityLowerBoundRegression =
+  let
+    laws =
+      MkGraphLaw "A" ("B" ∷ []) ∷
+      MkGraphLaw "B" ("C" ∷ []) ∷
+      MkGraphLaw "C" [] ∷
+      []
+    pending = GraphAStarDeferredChild ("A" ∷ []) "B" 2
+    ready = GraphAStarReadyNode (MkGraphAStarNode ("B" ∷ "A" ∷ []) 2)
+  in
+  graphAStarDeferredPriority laws pending == 1999998
+    && graphAStarDeferredPriority laws pending < graphAStarDeferredPriority laws ready
+
+graphAStarDeferredPriorityLowerBoundRegressionChecked :
+  graphAStarDeferredPriorityLowerBoundRegression ≡ True
+graphAStarDeferredPriorityLowerBoundRegressionChecked = refl
 
 graphStringPathEqual : List String -> List String -> Bool
 graphStringPathEqual [] [] = True
@@ -1095,6 +1268,32 @@ graphAStarShortestPathRegression =
 graphAStarShortestPathRegressionChecked :
   graphAStarShortestPathRegression ≡ True
 graphAStarShortestPathRegressionChecked = refl
+
+
+graphAStarDeferredMatchesEagerRegression : Bool
+graphAStarDeferredMatchesEagerRegression =
+  let
+    laws =
+      MkGraphLaw "A" ("B" ∷ "C" ∷ []) ∷
+      MkGraphLaw "B" ("D" ∷ []) ∷
+      MkGraphLaw "C" [] ∷
+      MkGraphLaw "D" [] ∷
+      []
+    seed = MkGraphNode ("A" ∷ [])
+  in
+  case graphAStarFirstDeferred laws seed of λ where
+    Nothing ->
+      case graphAStarFirstEager laws seed of λ where
+        Nothing -> True
+        (Just _) -> False
+    (Just deferred) ->
+      case graphAStarFirstEager laws seed of λ where
+        Nothing -> False
+        (Just eager) -> graphStringPathEqual deferred eager
+
+graphAStarDeferredMatchesEagerRegressionChecked :
+  graphAStarDeferredMatchesEagerRegression ≡ True
+graphAStarDeferredMatchesEagerRegressionChecked = refl
 
 graphPathMember : List String -> List (List String) -> Bool
 graphPathMember _ [] = False
@@ -2660,8 +2859,19 @@ main = do
 {-# COMPILE AGDA2HS graphAStarExpandNode #-}
 {-# COMPILE AGDA2HS graphAStarEnqueueImprovements #-}
 {-# COMPILE AGDA2HS graphAStarFirst #-}
+{-# COMPILE AGDA2HS graphAStarFirstEager #-}
 {-# COMPILE AGDA2HS graphAStarFuelBound #-}
 {-# COMPILE AGDA2HS graphAStarFirstWithFuel #-}
+{-# COMPILE AGDA2HS GraphAStarQueueItem #-}
+{-# COMPILE AGDA2HS graphAStarDeferredPriority #-}
+{-# COMPILE AGDA2HS graphAStarDeferredInsert #-}
+{-# COMPILE AGDA2HS graphAStarDeferredDependencies #-}
+{-# COMPILE AGDA2HS graphAStarEnqueueDeferredChildren #-}
+{-# COMPILE AGDA2HS graphAStarDeferredFuelBound #-}
+{-# COMPILE AGDA2HS graphAStarFirstDeferredWithFuel #-}
+{-# COMPILE AGDA2HS graphAStarFirstDeferred #-}
+{-# COMPILE AGDA2HS graphAStarDeferredPriorityLowerBoundRegression #-}
+{-# COMPILE AGDA2HS graphAStarDeferredMatchesEagerRegression #-}
 {-# COMPILE AGDA2HS autonomousGraphSearchFromRoot #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearch #-}
 {-# COMPILE AGDA2HS autonomousCanonicalGraphSearchCount #-}
