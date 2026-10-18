@@ -48,7 +48,6 @@ open import Haskell.Prelude public
 open import Haskell.Law public
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public
-open import Haskell.Law.Extensionality public
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
