@@ -40,16 +40,17 @@ The former behavior recursed with `(dependency ∷ plan)`, causing later sibling
 
 Do not call every traversal “A*”.
 
-### `graphAStarFirst`: one best-first maximal chain
+### `graphAStarFirst`: deferred A* for one best-first maximal chain
 
 - Seed: one initial `GraphNode`.
-- Path cost: `g(n) = length(path)`; a singleton seed starts at one, and each dependency extension adds one. This has the same ordering as edge-count cost from the fixed seed because the seed-prefix contribution is constant.
-- Heuristic: `h(n) = 0` when the current head has no dependencies; otherwise `h(n) = 1`.
-- Priority: the JAxtar-compatible integer score `999999*g(n) + 1000000*h(n)`, an exact integer scaling of `(1 - 10^-6)g + h`. Insertion places an equal-score candidate before an older entry (`<=`).
-- Goal: first `graphMaximalDependencyChain` accepted from the ordered frontier.
-- Fuel: `3 * factorial(number of graph laws)`. This is the explicit finite simple-path search bound for the current implementation. Exhaustion returns `Nothing`; callers must preserve that result, not convert it to success.
+- Path cost: `g(n) = length(path)`; a singleton seed starts at one, and each dependency edge adds one. Relative ordering matches edge-count cost from a fixed seed because the seed-prefix contribution is constant.
+- Exact ready-node priority: `999999*g(n) + 1000000*h(n)`, an integer scaling of JAxtar's default `(1 - 10^-6)g + h`. The heuristic is 0 for a leaf (or unknown node) and 1 for a node with dependencies.
+- Deferred queue entries represent an edge as `(parent path, child ID, child g)` and use `999999*g` as a lower-bound priority. Only when that entry is popped is the child path materialised and its heuristic evaluated; the ready node is then reinserted with its exact score. Only ready nodes can satisfy the goal test.
+- Queue insertion uses incoming-first ties (`<=`). A best-g table is keyed by the active law ID; only strictly cheaper candidates are enqueued and stale entries are skipped.
+- Fuel: twice the eager `3 * factorial(number of graph laws)` budget, to account for pending-edge and ready-node phases. Exhaustion remains a resource bound, not a no-path theorem.
+- `graphAStarFirstEager` remains as a differential reference. Agda regressions check the deferred key's lower-bound property and compare the selected result with eager A* on the shortest-path fixture. No runtime speedup is claimed without a benchmark.
 
-The heuristic is intentionally small and only supports current best-first ordering. Do not claim a general shortest-path optimality theorem without proving that the heuristic and goal definition satisfy A* assumptions.
+The heuristic supports the graph's defined best-first ordering; these finite regressions do not by themselves establish a general optimality theorem for every graph shape and fuel limit.
 
 ### `autonomousCanonicalGraphSearch`: bounded enumeration
 
