@@ -68,6 +68,9 @@ record EGraph : Type where
 
 open EGraph public
 
+emptyGraph : EGraph
+emptyGraph = MkEGraph 0 [] []
+
 record Substitution : Type where
   no-eta-equality; pattern
   constructor MkSubstitution
@@ -743,9 +746,6 @@ rightAssocExpr (id ∷ []) = lawExpr id
 rightAssocExpr (a ∷ b ∷ rest) =
   ExprApp "proof-compose"
     (lawExpr a ∷ rightAssocExpr (b ∷ rest) ∷ [])
-
-emptyGraph : EGraph
-emptyGraph = MkEGraph 0 [] []
 
 record EGraphRegression : Type where
   no-eta-equality; pattern
