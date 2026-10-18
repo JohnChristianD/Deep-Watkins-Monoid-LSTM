@@ -1,24 +1,8 @@
 {
-  description = "Pure Agda2HS extraction with separate Acorn, XDS-Agda, and MiniVehicle checks";
+  description = "Agda2HS graph search with Nixpkgs and Lua/Luafun support";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/0439f75413ace6c42e4c722cafd4d6e5401de648";
-    acorn = {
-      url = "github:acornprover/acorn/91f29ff1d25aff15afbde214dd9b620f817a9567";
-      flake = false;
-    };
-    acornlib = {
-      url = "github:acornprover/acornlib/7df4882d379d1cd0dc31136ea903b95ebe0d270e";
-      flake = false;
-    };
-    xdsAgda = {
-      url = "github:pdmosses/xds-agda/8e2acdbf4ae910b1a3e855d6bfd5271ff4a3fcff";
-      flake = false;
-    };
-    miniVehicle = {
-      url = "github:vehicle-lang/vehicle-formalisation/289f1940f9b11c293211ba2bc9fdf5c4c24e2b0a";
-      flake = false;
-    };
     luafun = {
       url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
       flake = false;
@@ -28,10 +12,6 @@
   outputs = {
     self,
     nixpkgs,
-    acorn,
-    acornlib,
-    xdsAgda,
-    miniVehicle,
     luafun
   }:
     let
@@ -210,25 +190,6 @@ PY
           p.streamly-core
         ]);
 
-      acornProver = system:
-        let
-          pkgs = pkgsFor system;
-        in
-        pkgs.rustPlatform.buildRustPackage {
-          pname = "acorn";
-          version = "0.2.6";
-          src = acorn;
-          cargoLock.lockFile = "${acorn}/Cargo.lock";
-          postUnpack = ''
-            cp -a ${acornlib} "$sourceRoot/acornlib"
-          '';
-          nativeBuildInputs = [ pkgs.pkg-config ];
-          buildInputs = [ pkgs.onnxruntime pkgs.openssl ];
-          ORT_STRATEGY = "system";
-          ORT_LIB_LOCATION = "${pkgs.onnxruntime}/lib";
-          doCheck = false;
-        };
-
       agdaCli = system:
         let
           pkgs = pkgsFor system;
@@ -338,7 +299,6 @@ PY
           agda = agdaCli system;
           agda2hs = agda2hsWithCanonicalGhc system;
           agda-emacs = agdaEmacs system;
-          acorn-prover = acornProver system;
           ci = pkgs.dhall;
           default = pkgs.dhall;
         });
@@ -455,53 +415,6 @@ PY
           in {
             type = "app";
             program = "${script}/bin/streamly-tools-check";
-          };
-
-          acorn-smoke = let
-            script = pkgs.writeShellApplication {
-              name = "acorn-smoke";
-              runtimeInputs = [ (acornProver system) ];
-              text = ''
-                set -euo pipefail
-                acorn --version
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/acorn-smoke";
-          };
-
-          xds-agda-check = let
-            script = pkgs.writeShellApplication {
-              name = "xds-agda-check";
-              runtimeInputs = [ (agdaWithStandardLibrary system) pkgs.coreutils ];
-              text = ''
-                set -euo pipefail
-                agda --version
-                agda -i "${xdsAgda}/agda" "${xdsAgda}/agda/LC/Tests.lagda"
-                agda -i "${xdsAgda}/agda" "${xdsAgda}/agda/PCF/Checks.lagda"
-                agda -i "${xdsAgda}/agda" "${xdsAgda}/agda/Scm/Soundness-Tests.lagda"
-                echo "xds-agda-check=pass"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/xds-agda-check";
-          };
-
-          mini-vehicle-check = let
-            script = pkgs.writeShellApplication {
-              name = "mini-vehicle-check";
-              runtimeInputs = [ (agdaWithStandardLibrary system) pkgs.coreutils ];
-              text = ''
-                set -euo pipefail
-                agda -i "${miniVehicle}/src" "${miniVehicle}/src/Everything.agda"
-                echo "mini-vehicle-check=pass"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/mini-vehicle-check";
           };
 
           scott-strachey-domain-check = let
@@ -723,23 +636,8 @@ PY
                 rm -rf "$out"
                 mkdir -p "$out"
 
-                # Check the qualified Reflection macro independently before
-                # consuming it in the finite tabular approximation theorem.
-                "${agdaCli system}/bin/agda" -i . FullCoupled/ReflectionAutomation.agda
-                grep -Fq "Reflection.unify goal (Reflection.con (quote refl) [])" FullCoupled/ReflectionAutomation.agda
-                grep -Fq "identityBeta x = byDefinitionalRefl" FullCoupled/ReflectionAutomation.agda
-
-                # Kernel-check the finite discrete UAP baseline. The exact
-                # table theorem is intentionally not a density claim for LSTM.
-                "${agdaCli system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
-                grep -Fq "tabularQExact target state action = byDefinitionalRefl" FullCoupled/FiniteTabularUAP.agda
-                grep -Fq "finiteTabularUniformApproximation" FullCoupled/FiniteTabularUAP.agda
-
-                # Check the restricted Circle recursor separately in a
-                # --without-K profile; never import it into the legacy monolith.
-                "${agdaCli system}/bin/agda" -i . FullCoupled/CircleHITInterface.agda
-                grep -Fq -- "--without-K" FullCoupled/CircleHITInterface.agda
-                grep -Fq "Circle-elim-loop" FullCoupled/CircleHITInterface.agda
+                # Non-graph-search theorem work belongs in the two monoliths.
+                # This target proves only the graph/e-graph search contract.
 
                 # This lane checks only the Agda2HS runtime module closure.
                 # Historical theorem monoliths are outside this kernel-checked target.
