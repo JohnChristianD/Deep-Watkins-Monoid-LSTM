@@ -649,20 +649,6 @@ autonomousGraphSearch edges =
   in
   graphSortPlans candidates
 
-autonomousGraphSearchCount :
-  List (String × String) ->
-  Nat
-autonomousGraphSearchCount edges =
-  listLengthNat (autonomousGraphSearch edges)
-
-autonomousGraphSearchReport :
-  List (String × String) ->
-  String
-autonomousGraphSearchReport edges =
-  "agda2hs autonomous theorem-graph DFS: "
-  ++ show (autonomousGraphSearchCount edges)
-  ++ " maximal dependency chains"
-
 stripDotPrefix : String -> String
 stripDotPrefix ('"' ∷ rest) = stripDotPrefix rest
 stripDotPrefix text = text
@@ -741,23 +727,6 @@ autonomousCanonicalGraphSearch :
   List (List String)
 autonomousCanonicalGraphSearch source =
   autonomousGraphSearchFromRoot canonicalGraphRoot (parseDotEdges source)
-
-autonomousCanonicalGraphSearchCount :
-  String ->
-  Nat
-autonomousCanonicalGraphSearchCount source =
-  listLengthNat (autonomousCanonicalGraphSearch source)
-
-autonomousCanonicalGraphReport : String -> String
-autonomousCanonicalGraphReport source =
-  let edges = parseDotEdges source
-      plans = autonomousCanonicalGraphSearch source
-  in
-  "theorem-graph-edges="
-    ++ show (length edges)
-    ++ " autonomous-depth-first-chains="
-    ++ show (length plans)
-
 
 autonomousGraphSearchRegression : Bool
 autonomousGraphSearchRegression =
@@ -1289,6 +1258,130 @@ graphDependencyClosure root laws =
           reachable
           laws
           []
+
+------------------------------------------------------------------------
+-- Count maximal dependency chains without materializing every path.
+--
+-- The emitted Agda module graph is acyclic. In topological order, every
+-- dependency count is already available: leaves contribute one chain and
+-- each other node contributes the sum of its direct dependencies' counts.
+-- This preserves exact chain counts while avoiding exponential path-list
+-- construction and quadratic insertion sorting on shared import DAGs.
+-- Cyclic/non-topologically-sortable inputs retain the bounded DFS fallback.
+------------------------------------------------------------------------
+
+graphPathCountLookup :
+  String -> List (String × Nat) -> Maybe Nat
+graphPathCountLookup target [] = Nothing
+graphPathCountLookup target ((name , count) ∷ counts) =
+  if target == name then Just count
+  else graphPathCountLookup target counts
+
+graphPathCountDependencies :
+  List String -> List (String × Nat) -> Maybe Nat
+graphPathCountDependencies [] _ = Just (incrementSearchNat 0)
+graphPathCountDependencies (dependency ∷ dependencies) counts =
+  case graphPathCountLookup dependency counts of λ where
+    Nothing -> Nothing
+    (Just dependencyCount) ->
+      case graphPathCountDependencies dependencies counts of λ where
+        Nothing -> Nothing
+        (Just remainingCount) ->
+          Just (dependencyCount + remainingCount)
+
+graphPathCountTable :
+  List String ->
+  List GraphLaw ->
+  List (String × Nat) ->
+  Maybe (List (String × Nat))
+graphPathCountTable [] _ counts = Just counts
+graphPathCountTable (name ∷ names) laws counts =
+  case graphLawForName name laws of λ where
+    Nothing -> Nothing
+    (Just law) ->
+      case graphPathCountDependencies (graphLawDependencies law) counts of λ where
+        Nothing -> Nothing
+        (Just count) ->
+          graphPathCountTable names laws ((name , count) ∷ counts)
+
+graphPathCountTableForLaws :
+  List GraphLaw -> Maybe (List (String × Nat))
+graphPathCountTableForLaws laws =
+  case graphTopologicalSort
+    (graphDepthFuel laws)
+    (map graphLawName laws)
+    laws
+    [] of λ where
+      Nothing -> Nothing
+      (Just topologicalNames) ->
+        graphPathCountTable topologicalNames laws []
+
+graphPathCountSum : List (String × Nat) -> Nat
+graphPathCountSum [] = 0
+graphPathCountSum ((_ , count) ∷ counts) =
+  count + graphPathCountSum counts
+
+graphPathCountAt : String -> List (String × Nat) -> Nat
+graphPathCountAt target counts =
+  case graphPathCountLookup target counts of λ where
+    Nothing -> 0
+    (Just count) -> count
+
+autonomousGraphSearchCount :
+  List (String × String) ->
+  Nat
+autonomousGraphSearchCount edges =
+  let laws = graphLawsFromEdges edges
+  in case graphPathCountTableForLaws laws of λ where
+    Nothing -> listLengthNat (autonomousGraphSearch edges)
+    (Just counts) -> graphPathCountSum counts
+
+autonomousGraphSearchReport :
+  List (String × String) ->
+  String
+autonomousGraphSearchReport edges =
+  "agda2hs autonomous theorem-graph DFS: "
+  ++ show (autonomousGraphSearchCount edges)
+  ++ " maximal dependency chains"
+
+autonomousCanonicalGraphSearchCount :
+  String ->
+  Nat
+autonomousCanonicalGraphSearchCount source =
+  let edges = parseDotEdges source
+      laws = ensureGraphLaw canonicalGraphRoot (graphLawsFromEdges edges)
+  in case graphPathCountTableForLaws laws of λ where
+    Nothing -> listLengthNat (autonomousCanonicalGraphSearch source)
+    (Just counts) -> graphPathCountAt canonicalGraphRoot counts
+
+autonomousCanonicalGraphReport : String -> String
+autonomousCanonicalGraphReport source =
+  let edges = parseDotEdges source
+      chains = autonomousCanonicalGraphSearchCount source
+  in
+  "theorem-graph-edges="
+    ++ show (length edges)
+    ++ " autonomous-depth-first-chains="
+    ++ show chains
+
+graphPathCountRegression : Bool
+graphPathCountRegression =
+  let laws =
+        graphLawsFromEdges
+          (("A" , "B") ∷ ("A" , "C") ∷ [])
+  in
+  case graphPathCountTableForLaws laws of λ where
+    Nothing -> False
+    (Just counts) ->
+      graphPathCountAt "A" counts
+        == incrementSearchNat (incrementSearchNat 0)
+      && graphPathCountSum counts
+        == incrementSearchNat
+          (incrementSearchNat
+            (incrementSearchNat (incrementSearchNat 0)))
+
+graphPathCountRegressionChecked : graphPathCountRegression ≡ True
+graphPathCountRegressionChecked = refl
 
 graphPrecedes : String -> String -> List String -> Bool
 graphPrecedes target later [] = False
@@ -2363,6 +2456,7 @@ main = do
   putStrLn ("graph-two-leaf-paths=" ++ show graphTwoLeafBranchesRegression)
   putStrLn ("graph-best-first-tie=" ++ show graphAStarTieBreakRegression)
   putStrLn ("graph-cycle-rejected=" ++ show graphCycleIsRejectedRegression)
+  putStrLn ("graph-path-count-dp=" ++ show graphPathCountRegression)
   putStrLn ("canonical-plan=" ++ show canonicalPlan)
   putStrLn (semanticLawExtractionReport semanticLaws)
   putStrLn (requiredPlanReport requiredNames semanticLaws)
@@ -2435,6 +2529,13 @@ main = do
 {-# COMPILE AGDA2HS graphFindReady #-}
 {-# COMPILE AGDA2HS graphTopologicalSort #-}
 {-# COMPILE AGDA2HS graphDependencyClosure #-}
+{-# COMPILE AGDA2HS graphPathCountLookup #-}
+{-# COMPILE AGDA2HS graphPathCountDependencies #-}
+{-# COMPILE AGDA2HS graphPathCountTable #-}
+{-# COMPILE AGDA2HS graphPathCountTableForLaws #-}
+{-# COMPILE AGDA2HS graphPathCountSum #-}
+{-# COMPILE AGDA2HS graphPathCountAt #-}
+{-# COMPILE AGDA2HS graphPathCountRegression #-}
 {-# COMPILE AGDA2HS graphPrecedes #-}
 {-# COMPILE AGDA2HS graphClosureDependenciesValid #-}
 {-# COMPILE AGDA2HS graphClosureMemberValid #-}
