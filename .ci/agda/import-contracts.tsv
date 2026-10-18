@@ -209,8 +209,8 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS insertAll #-}
 sync	FullCoupled/Agda2HsGraphSearchCheck.agda	open import Haskell.Prelude	open import Haskell.Prelude	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Ord.Ordering	open import Haskell.Law.Ord.Ordering public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Agda.Builtin.Size	open import Agda.Builtin.Size public	1
-sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law public	open import Haskell.Law public	1
-sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Equality public	open import Haskell.Law.Equality public	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law public hiding (trustMe)	open import Haskell.Law public hiding (trustMe)	1
+sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Equality public hiding (trustMe)	open import Haskell.Law.Equality public hiding (trustMe)	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Functor.FromMonad public	open import Haskell.Law.Functor.FromMonad public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Semigroup.List public	open import Haskell.Law.Semigroup.List public	1
 sync	FullCoupled/CanonicalLearnerMonolith.agda	open import Haskell.Law.Nat public	open import Haskell.Law.Nat public	1
