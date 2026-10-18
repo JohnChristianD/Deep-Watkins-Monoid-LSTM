@@ -81,7 +81,7 @@ module ConstructiveComputabilityPostulates where
   -- no excluded-middle axiom in this module. The outer monolith's Prop-valued
   -- observational equality/rewrite rules remain limited extensionality; no
   -- identity-level function-extensionality postulate is added.
-  open import Haskell.Prelude using (Nat; suc; _≡_)
+  open import Haskell.Prelude using (Nat; zero; suc; Bool; true; false; List; []; _∷_; _≡_)
 
   data EmptyComputability : Set where
 
