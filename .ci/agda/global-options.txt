@@ -3,7 +3,5 @@
 --erased-matches
 --prop
 --confluence-check
---two-level
 --lossy-unification
 --sized-types
---no-guardedness
