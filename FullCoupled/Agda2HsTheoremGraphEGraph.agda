@@ -665,6 +665,8 @@ scottErshovDenotationalSemanticsPostulateRule =
     (PatternApp "domain-denotational-semantics"
       (PatternApp "ScottErshovDomainSemantics" [] ∷ []))
 
+-- Non-gating sanity fixture for symbolic rewrite plumbing only. This
+-- is not a second constructive certification profile or a theorem of RUSS.
 bishopConstructivismPostulateRule : RewriteRule
 bishopConstructivismPostulateRule =
   MkRewriteRule

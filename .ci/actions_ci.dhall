@@ -35,24 +35,79 @@ Graph semantics:
     a path search can still be expensive; the CI pass is correctness evidence
     for checked fixtures, not a runtime performance benchmark.
 
-Constructive foundations:
-  * Current status: the repository is NOT yet certified globally Russian- or
-    Bishop-constructive. The learner monolith postulates Markov's principle,
-    Church's thesis for its register-machine model, and proposition-valued
-    countable choice. The theorem monolith also contains Circle/quotient/
-    observational-equality interfaces and a Brouwer-relative Nash boundary;
-    these assumptions and their rewrite rules need an explicit consistency and
-    dependency audit before making a global constructive claim.
-  * Treat Markov's principle, Church's thesis, and choice principles as named
-    assumptions with explicit scopes. Do not introduce excluded middle or
-    strong computability principles globally. RUSS is an axiom/profile choice,
-    not a synonym for classical logic. Bishop-style existence should carry a
-    witness and evidence, not a bare existential postulate.
-  * Existing reflection automation such as apply-cong remains inside the
-    theorem monolith. Generated proof terms still have to type-check.
-  * Prune a theorem only when its proof/dependency relation shows it is
-    duplicate or dominated; don't infer redundancy from similar names.
+Constructive foundations — Russian constructivism (RUSS) only:
+  * Status: NOT GLOBALLY CERTIFIED. Certification requires a checked theorem-
+    dependency inventory, not just references, builds, or source-text searches.
+  * RUSS uses intuitionistic logic with scoped recursive/computability
+    assumptions. Markov's principle and register-machine Church's thesis are
+    explicit assumptions, not a blanket grant of classical logic. Proposition-
+    valued countable choice is an additional project assumption whose
+    compatibility with the chosen RUSS formalization must be justified.
+    Do not add excluded middle, LPO, or LLPO as global axioms.
+  * Audit every project-owned postulate and primitive, every REWRITE rule,
+    Agda builtin/reflection/TC interface, termination/positivity/universe
+    option, imported trusted theorem, unresolved meta, and transitive theorem
+    dependency. Every exported theorem must depend only on declared RUSS
+    assumptions and separately justified Agda/compiler primitives. Any
+    unclassified trust boundary blocks global certification.
+  * The learner monolith includes Markov, register-machine Church's thesis,
+    proposition-valued countable choice, Circle/HIT, quotient and observational
+    equality interfaces plus rewrite rules. The theorem monolith contains Agda
+    reflection/TC compatibility postulates and imports external ordinal
+    and TypeTopology modules. These are known boundaries, not a complete
+    dependency proof. Successful builds are necessary but insufficient.
+  * Bishop-style witness-bearing/intuitionistic expectations are a non-gating
+    sanity check only. The symbolic Bishop e-graph fixture remains for that
+    purpose, not as a second certification profile or release gate.
+  * The former O(n^2) signature-matching redundancy scan was removed because
+    identical signature text does not prove logical implication. Delete theorem
+    statements only after typed proof/dependency review and repository-wide
+    reference analysis establish genuine redundancy.
 
+  References:
+    - Stanford Encyclopedia, Constructive Mathematics:
+      https://plato.stanford.edu/entries/mathematics-constructive/
+    - Stanford Encyclopedia, Reverse Mathematics:
+      https://plato.stanford.edu/entries/reverse-mathematics/
+    - Jesper Cockx, Rewriting type theory:
+      https://jesper.sikanda.be/posts/rewriting-type-theory.html
+    - Agda 2.8 Postulates:
+      https://agda.readthedocs.io/en/v2.8.0/language/postulates.html
+    - Agda 2.8 Safe Agda:
+      https://agda.readthedocs.io/en/v2.8.0/language/safe-agda.html
+    - Agda 2.8 Rewriting:
+      https://agda.readthedocs.io/en/v2.8.0/language/rewriting.html
+    - Hackage Agda package:
+      https://hackage-content.haskell.org/package/Agda
+    - Hackage agda2hs package:
+      https://hackage-content.haskell.org/package/agda2hs-1.4
+    - agda2hs documentation:
+      https://agda.github.io/agda2hs/
+    - Martín Escardó, research papers and Agda developments:
+      https://martinescardo.github.io/papers/index.html
+    - Martín Escardó and collaborators, TypeTopology Agda development:
+      https://martinescardo.github.io/agda-new/
+    - Nicolai Kraus et al., Type-Theoretic Approaches to Ordinals:
+      https://arxiv.org/abs/2208.03844
+    - Nicolai Kraus et al., Connecting Constructive Notions of Ordinals in HoTT:
+      https://arxiv.org/abs/2104.02549
+    - nLab, Russian constructivism:
+      https://ncatlab.org/nlab/show/Russian%2Bconstructivism
+    - Wikibooks, Supplementary mathematics / Calculus:
+      https://en.wikibooks.org/wiki/Supplementary_mathematics/Calculus
+    - Stanford Fall 2024 archived edition:
+      https://plato.stanford.edu/archives/fall2024/entries/mathematics-constructive/
+    - Internet Archive Wayback Machine:
+      https://web.archive/
+
+  Source notes:
+    Stanford is the principal conceptual source for RUSS, Markov's principle and
+    Church's thesis. Cockx and Agda docs describe kernel/rewrite boundaries, not
+    RUSS by themselves. Hackage/Agda2HS docs describe tool semantics. Escardó/
+    Kraus provide constructive type-theory and Agda context, not certification
+    of this repository. "Han" is ambiguous without a first name, title, or URL;
+    no unrelated source is attributed. The live Wayback CDX request was
+    inaccessible, so no particular archive snapshot is claimed as inspected.
 Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
@@ -233,7 +288,7 @@ let script = merge {
     grep -Fq 'egraph-regression=True egraph-associativity-regression=True' "$report"
     grep -Fq 'canonical-search-egraph-closed=True' "$report"
     grep -Fq 'haskell-minus-one-A*=2 proof-backed laws; legacy monolith excluded from pure build' "$report"
-    grep -E '^agda2hs-semantic-port=[1-9][0-9]* signature-candidate edges; 5 known redundancy candidates; [1-9][0-9]*/[1-9][0-9]* required plans e-graph-closed; learner-obligations=[0-9]+/[0-9]+; learner-static-graph=(True|False)$' "$report"
+    grep -E '^agda2hs-semantic-port=heuristic-signature-scan-disabled; [1-9][0-9]*/[1-9][0-9]* required plans dependency-closed; bulk-plan-e-graph-saturation=skipped; learner-obligation-roots=[0-9]+; learner-static-graph=(True|False)$' "$report"
     grep -Fq 'proofKernel=Agda' "$manifest"
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
