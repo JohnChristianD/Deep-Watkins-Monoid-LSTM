@@ -68,10 +68,26 @@ Constructive foundations — Russian constructivism (RUSS) only:
   Foundational and implementation references:
     - Stanford Encyclopedia of Philosophy, Constructive Mathematics:
       https://plato.stanford.edu/entries/mathematics-constructive/
-    - Stanford Encyclopedia, Reverse Mathematics:
+    - Stanford Encyclopedia of Philosophy, Reverse Mathematics:
       https://plato.stanford.edu/entries/reverse-mathematics/
+    - Douglas Bridges and Fred Richman (1987), Russian Constructive Mathematics,
+      Chapter 3 of Varieties of Constructive Mathematics, Cambridge University
+      Press, pp. 49–74:
+      https://doi.org/10.1017/CBO9780511565663.004
+    - Pierre-Marie Pédrot (2020), Russian Constructivism in a Prefascist Theory,
+      LICS 2020:
+      https://doi.org/10.1145/3373718.3394740
+    - Pierre-Marie Pédrot (2024), Upon This Quote I Will Build My Church Thesis,
+      LICS 2024:
+      https://doi.org/10.1145/3661814.3662070
+    - Pédrot's mechanized development for the Church-thesis paper:
+      https://github.com/ppedrot/quote-mltt-lics24
     - Jesper Cockx, Rewriting type theory:
       https://jesper.sikanda.be/posts/rewriting-type-theory.html
+    - Agda's official source, tests, and documentation repository:
+      https://github.com/agda/agda
+    - Jesper Cockx and contributors, Agda Core formalization:
+      https://github.com/jespercockx/agda-core
     - Agda 2.8 Postulates:
       https://agda.readthedocs.io/en/v2.8.0/language/postulates.html
     - Agda 2.8 Safe Agda:
@@ -87,7 +103,7 @@ Constructive foundations — Russian constructivism (RUSS) only:
     - Martín Escardó, research papers and Agda developments:
       https://martinescardo.github.io/papers/index.html
     - Martín Escardó and collaborators, TypeTopology Agda development:
-      https://martinescardo.github.io/agda-new/
+      https://github.com/martinescardo/TypeTopology
     - Nicolai Kraus, Fredrik Nordvall Forsberg, Chuangjie Xu,
       Type-Theoretic Approaches to Ordinals:
       https://arxiv.org/abs/2208.03844
@@ -96,23 +112,28 @@ Constructive foundations — Russian constructivism (RUSS) only:
       https://arxiv.org/abs/2104.02549
     - nLab, Russian constructivism:
       https://ncatlab.org/nlab/show/Russian%2Bconstructivism
-    - Wikibooks, Supplementary mathematics / Calculus:
+    - Wikibooks, Supplementary mathematics / Calculus (informal background):
       https://en.wikibooks.org/wiki/Supplementary_mathematics/Calculus
     - Stanford Encyclopedia archived edition (Fall 2024):
       https://plato.stanford.edu/archives/fall2024/entries/mathematics-constructive/
-    - Internet Archive Wayback Machine:
+    - Internet Archive Wayback Machine (snapshot lookup):
       https://web.archive.org/
 
   Source-scope notes:
-    Stanford provides the conceptual account of RUSS, including Markov's
-    principle and Church's thesis. Agda/Cockx sources describe proof-kernel
-    trust boundaries, not RUSS itself. Hackage/Agda2HS docs describe extraction
-    and toolchain boundaries. Escardó/Kraus provide constructive type-theory
-    and Agda context; these works are not themselves a certification of this
-    repository. "Han" is ambiguous from surname alone, so no unrelated work
-    has been attributed to that name. The Wayback CDX endpoint was not
-    accessible during this run, so no particular Wayback snapshot is claimed
-    to have been inspected.
+    Stanford and Bridges/Richman provide conceptual and mathematical context for
+    varieties of constructive mathematics, including RUSS. Pédrot's 2020 paper
+    is directly about Russian constructivism; the 2024 paper studies internal
+    Church's thesis in a dependent type theory with quotation. Neither paper
+    proves this repository's chosen axiom package consistent. Agda's versioned
+    manual and source repository describe checker behavior, postulates, and
+    rewrite-rule trust boundaries; Cockx's work is relevant to type theory and
+    rewriting, not a certification result for this project. Hackage and Agda2HS
+    describe the host/compiler/extraction boundary. Escardó and Kraus provide
+    constructive type-theory and Agda context, not this repository's dependency
+    proof. Wikibooks is an informal cross-check, not a scholarly authority.
+    The SEP Fall 2024 archive is a versioned SEP edition. The Wayback service is
+    listed for independent snapshot lookup, but no specific Wayback snapshot was
+    verified because its CDX endpoint was not accessible during this run.
 Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
@@ -293,7 +314,7 @@ let script = merge {
     grep -Fq 'egraph-regression=True egraph-associativity-regression=True' "$report"
     grep -Fq 'canonical-search-egraph-closed=True' "$report"
     grep -Fq 'haskell-minus-one-A*=2 proof-backed laws; legacy monolith excluded from pure build' "$report"
-    grep -E '^agda2hs-semantic-port=heuristic-signature-scan-disabled; [1-9][0-9]*/[1-9][0-9]* required plans e-graph-closed; learner-obligation-roots=[0-9]+; learner-static-graph=(True|False)
+    grep -E '^agda2hs-semantic-port=heuristic-signature-scan-disabled; [1-9][0-9]*/[1-9][0-9]* required plans e-graph-closed; learner-obligation-roots=[0-9]+; learner-static-graph=(True|False)$' "$report"
     grep -Fq 'proofKernel=Agda' "$manifest"
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
