@@ -52,6 +52,56 @@ Constructive foundations:
     theorem monolith. Generated proof terms still have to type-check.
   * Prune a theorem only when its proof/dependency relation shows it is
     duplicate or dominated; don't infer redundancy from similar names.
+  * Certification is profile-specific, not a single blended Boolean. Record
+    separate BISH and RUSS dependency results for each exported theorem:
+      - BISH: intuitionistic core and witness-bearing existence; no unapproved
+        Markov principle or RUSS computability axiom may enter a theorem's
+        transitive proof dependencies.
+      - RUSS: intuitionistic logic plus the explicitly declared recursive/
+        computability principles; MP, Church's thesis, and choice must remain
+        scoped, named, and tracked in the proof-dependency graph.
+    A theorem may be certified under both profiles only if it has two audited
+    dependency derivations. An axiom appearing somewhere in a monolith is a
+    blocker for global certification until dependency closure proves which
+    declarations actually depend on it; do not guess reachability.
+  * Required global audit: enumerate every project-owned postulate and
+    primitive, every REWRITE rule, builtin/TC escape interface, unsafe option,
+    imported trusted theorem/module, and unresolved meta; map each theorem's
+    transitive dependencies to those sources; keep witness/existence claims
+    distinct from executable computation. A successful build is necessary,
+    not sufficient. Any unclassified axiom or missing dependency edge leaves
+    global certification BLOCKED.
+  * Current source inspection confirms named RUSS postulates under
+    ConstructiveComputabilityPostulates (Markov's principle, register-machine
+    Church's thesis, proposition-valued countable choice), plus learner-side
+    Circle, quotient, and observational-equality interfaces with rewrite rules;
+    TheoremsMonolith has Agda reflection/TC builtin interfaces. This is a
+    verified inventory of known trust boundaries, not a complete dependency
+    graph and not a global certification.
+  * Foundational references used to define the profiles:
+      - Stanford Encyclopedia, Constructive Mathematics:
+        https://plato.stanford.edu/entries/mathematics-constructive/
+      - Stanford Encyclopedia, Fall 2024 archived edition:
+        https://plato.stanford.edu/archives/fall2024/entries/mathematics-constructive/
+      - Stanford Encyclopedia, Reverse Mathematics, Fall 2024 edition:
+        https://plato.stanford.edu/archives/sum2024/entries/reverse-mathematics/
+      - Bridges and Richman, Varieties of Constructive Mathematics, chapter 1:
+        https://www.cambridge.org/core/books/abs/varieties-of-constructive-mathematics/foundations-of-constructive-mathematics/0E529B7DDCD54FC6FD12EB2B0B3389EF
+      - Bridges and Richman, chapter 3 (RUSS):
+        https://www.cambridge.org/core/books/abs/varieties-of-constructive-mathematics/russian-constructive-mathematics/070A460B0528EC7D95B85A7EFCD48DD0
+      - Bridges and Richman, chapter 6 (contrasting varieties):
+        https://www.cambridge.org/core/books/abs/varieties-of-constructive-mathematics/contrasting-varieties/F7C6BBB9223A2CD602E8586A448EE29A
+      - nLab, Russian constructivism:
+        https://ncatlab.org/nlab/show/Russian%2Bconstructivism
+      - nLab, Bishop's constructive mathematics:
+        https://ncatlab.org/nlab/show/Bishop%27s+constructive+mathematics
+      - Wikibooks, Supplementary mathematics / Calculus, constructive analysis:
+        https://en.wikibooks.org/wiki/Supplementary_mathematics/Calculus
+    Wikibooks' page gives a broad existence-witness/LEM summary but is not a
+    sufficiently detailed authority for distinguishing BISH from RUSS. An
+    Internet Archive Wayback snapshot could not be retrieved during this audit;
+    it must not be cited as having been inspected. The Stanford Fall 2024 page
+    above is the publisher's own archive, not an Internet Archive snapshot.
 
 Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
