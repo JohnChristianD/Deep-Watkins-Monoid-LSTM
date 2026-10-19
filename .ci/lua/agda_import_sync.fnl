@@ -217,6 +217,10 @@
       (assert (= actual-count expected-count)
         (.. path ": expected exact line '" expected "' " expected-count " time(s), found " actual-count)))
 
+(local global-profile (read-file ".ci/global.txt"))
+(assert (= global-profile "profile=all\n")
+  ".ci/global.txt must select the single all-profile CI track")
+
 (local options-path ".ci/agda/global-options.txt")
 (local options (read-file options-path))
 (assert (= (count-substring options "\n") 3) "shared Agda CLI options must have exactly three entries")
