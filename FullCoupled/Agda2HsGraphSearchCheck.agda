@@ -4,6 +4,18 @@ module FullCoupled.Agda2HsGraphSearchCheck where
 open import Haskell.Prelude
 import FullCoupled.Agda2HsSemanticSearch as Search
 
+-- Keep this regression in the executable graph-check module: it exercises the
+-- public DP API without depending on a generated cross-module Bool binding.
+graphPathCountRejectsCycleRegression : Bool
+graphPathCountRejectsCycleRegression =
+  let
+    edges = ("A" , "B") ∷ ("B" , "A") ∷ []
+    laws = Search.graphLawsFromEdges edges
+  in
+  case Search.graphPathCountTableForLaws laws of λ where
+    Nothing -> Search.autonomousGraphSearchCount edges == 0
+    (Just _) -> False
+
 -- This checker imports only the Agda2HS runtime modules. It does not import
 -- TheoremsMonolith or any TypeTopology module.
 graphSearchContractPassed : Bool
@@ -19,7 +31,7 @@ graphSearchContractPassed =
     && Search.nodeHeuristicLowerBoundRegression
     && Search.graphCycleIsRejectedRegression
     && Search.graphDependencyClosureRegression
-    && Search.graphPathCountRejectsCycleRegression
+    && graphPathCountRejectsCycleRegression
     && Search.graphDependencyClosureRejectsCycleRegression
     && Search.graphDependencyClosureRejectsMissingRegression
     && Search.graphDependencyClosureRepeatedDependenciesRegression
@@ -61,7 +73,7 @@ main = do
       ++ show Search.graphDependencyClosureRegression)
   putStrLn
     ("graph-path-count-cycle-rejected="
-      ++ show Search.graphPathCountRejectsCycleRegression)
+      ++ show graphPathCountRejectsCycleRegression)
   putStrLn
     ("graph-closure-cycle-rejected="
       ++ show Search.graphDependencyClosureRejectsCycleRegression)
@@ -111,5 +123,6 @@ main = do
     ("graph-search-contract="
       ++ show graphSearchContractPassed)
 
+{-# COMPILE AGDA2HS graphPathCountRejectsCycleRegression #-}
 {-# COMPILE AGDA2HS graphSearchContractPassed #-}
 {-# COMPILE AGDA2HS main #-}
