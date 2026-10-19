@@ -61,11 +61,19 @@ Constructive foundations — Russian constructivism (RUSS) only:
     assumptions and separately justified Agda/compiler primitives. Any
     unclassified trust boundary blocks global certification.
   * The learner monolith includes Markov, register-machine Church's thesis,
-    proposition-valued countable choice, Circle/HIT, quotient and observational
-    equality interfaces plus rewrite rules. The theorem monolith contains Agda
-    reflection/TC compatibility postulates and imports external ordinal
-    and TypeTopology modules. These are known boundaries, not a complete
-    dependency proof. Successful builds are necessary but insufficient.
+    and proposition-valued countable choice. The theorem monolith contains
+    Agda reflection/TC compatibility postulates and imports external ordinal
+    and TWA modules. These remain trust boundaries, not a consistency proof;
+    successful builds are necessary but insufficient.
+  * Both monoliths explicitly use --with-K. Keep their proof path non-cubical:
+    no Cubical imports or Cubical modes. Agda's --cubical option enables
+    --without-K, which conflicts with this project's selected path. Some
+    Agda option combinations are more nuanced, so this is a project mode
+    decision, not a claim that every Cubical development is incompatible with
+    every use of K.
+  * Impredicative higher-inductive encodings remain literature-only. Their
+    compatibility with --with-K and the project's RUSS assumptions is unproved;
+    no Circle/HIT rewriting module belongs in the current semantic graph.
   * Maintain one Russian-constructivist review track; do not add a second
     constructive foundation profile or gate. Audit actual assumptions and
     dependencies rather than classifying a school of thought as a proof rule.
@@ -75,90 +83,74 @@ Constructive foundations — Russian constructivism (RUSS) only:
     reference analysis establish genuine redundancy.
 
   References:
-    - Stanford Encyclopedia, Constructive Mathematics:
-      https://plato.stanford.edu/entries/mathematics-constructive/
-    - Stanford Encyclopedia, Reverse Mathematics:
-      https://plato.stanford.edu/entries/reverse-mathematics/
+    - Stanford Fall 2024 archived edition of Constructive Mathematics:
+      https://plato.stanford.edu/archives/fall2024/entries/mathematics-constructive/
     - Douglas Bridges and Fred Richman, Varieties of Constructive Mathematics,
       Chapter 3, "Russian Constructive Mathematics" (Cambridge University Press):
       https://doi.org/10.1017/CBO9780511565663.004
-    - Pierre-Marie Pédrot and Nicolas Tabareau, "Failure is not an option —
-      an exceptional type theory":
-      https://doi.org/10.1007/978-3-319-89884-1_9
-    - Agda compiler source and project history (Agda development team):
-      https://github.com/agda/agda
     - Hannes Diener, Constructive Reverse Mathematics (2018):
       https://arxiv.org/abs/1804.05495
-    - Hannes Diener, publications and constructive-mathematics research:
-      https://www.math.canterbury.ac.nz/~h.diener/publications.html
-    - XDS-Agda, mechanised Scott–Strachey denotational semantics (Mosses, Cockx, Reus):
-      https://pdmosses.github.io/xds-agda/
-    - The Taming of the Rew: rewriting rules, confluence and subject reduction (Cockx, Tabareau, Winterhalter):
-      https://doi.org/10.1145/3434341
-    - Cubical Agda, Synthetic Homotopy Theory examples (including the circle):
-      https://agda.github.io/cubical/Cubical.Papers.Synthetic.html
-    - Cubical Agda, circle higher-inductive type:
-      https://agda.github.io/cubical/Cubical.HITs.S1.Base.html
-    - Awodey, Frey and Speight, Impredicative Encodings of (Higher) Inductive Types:
-      https://arxiv.org/abs/1802.02820
-    - Stefano Volpe, Higher Inductive Types Via Impredicative Encodings (2025):
-      https://eprints.illc.uva.nl/id/eprint/2381/
-    - MtacAR, monadic typed tactic programming in Agda by reflection (external research prototype):
-      https://github.com/L-TChen/MtacAR
-    - Streamly Hackage package, Haskell streaming/runtime API:
-      https://hackage-content.haskell.org/package/streamly
-    - RIO, Haskell application prelude/runtime conventions:
-      https://github.com/commercialhaskell/rio
-    - Axiomatic Method and Category Theory, Lawvere/Hegel comparative context only:
-      https://philomatica.org/wp-content/uploads/2012/12/catax.pdf
-    - Jesper Cockx, Rewriting type theory:
-      https://jesper.sikanda.be/posts/rewriting-type-theory.html
+    - Leon Henkin, The Completeness of the First-Order Functional Calculus (1949):
+      https://www.cambridge.org/core/journals/journal-of-symbolic-logic/article/abs/completeness-of-the-firstorder-functional-calculus/2F7FFE04841B89975F5EA447A01481CD
+    - F. William Lawvere, Diagonal Arguments and Cartesian Closed Categories (1969):
+      https://doi.org/10.1007/BFB0080769
+    - Pierre-Marie Pédrot and Nicolas Tabareau, Failure is not an option — an exceptional type theory:
+      https://doi.org/10.1007/978-3-319-89884-1_9
+    - Agda compiler source and project history:
+      https://github.com/agda/agda
     - Agda 2.8 Postulates:
       https://agda.readthedocs.io/en/v2.8.0/language/postulates.html
     - Agda 2.8 Safe Agda:
       https://agda.readthedocs.io/en/v2.8.0/language/safe-agda.html
     - Agda 2.8 Rewriting:
       https://agda.readthedocs.io/en/v2.8.0/language/rewriting.html
-    - Hackage Agda package:
-      https://hackage-content.haskell.org/package/Agda
+    - Agda Without-K and identity-elimination options:
+      https://agda.readthedocs.io/en/v2.8.0/language/without-k.html
+    - The Taming of the Rew, rewriting rules, confluence and subject reduction:
+      https://doi.org/10.1145/3434341
+    - XDS-Agda, mechanised Scott–Strachey denotational semantics:
+      https://pdmosses.github.io/xds-agda/
+    - nLab, domain theory (only for the existing Scott–Ershov semantics context):
+      https://ncatlab.org/nlab/show/domain%2Btheory
+    - Higher Inductive Types Via Impredicative Encodings (research candidate only):
+      https://eprints.illc.uva.nl/id/eprint/2381/
+    - MtacAR, monadic typed tactic programming in Agda by reflection (research prototype only):
+      https://github.com/L-TChen/MtacAR
+    - Streamly Hackage package, used for Haskell stream-processing context:
+      https://hackage-content.haskell.org/package/streamly
     - Hackage agda2hs package:
       https://hackage-content.haskell.org/package/agda2hs-1.4
     - agda2hs documentation:
       https://agda.github.io/agda2hs/
-    - Martín Escardó, research papers and Agda developments:
-      https://martinescardo.github.io/papers/index.html
-    - Martín Escardó and collaborators, TypeTopology Agda development:
+    - Martín Escardó and collaborators, TypeTopology Agda development (external theorem context):
       https://martinescardo.github.io/agda-new/
     - Nicolai Kraus et al., Type-Theoretic Approaches to Ordinals:
       https://arxiv.org/abs/2208.03844
-    - Nicolai Kraus et al., Connecting Constructive Notions of Ordinals in HoTT:
-      https://arxiv.org/abs/2104.02549
-    - nLab, Russian constructivism:
-      https://ncatlab.org/nlab/show/Russian%2Bconstructivism
-    - Wikibooks, Supplementary mathematics / Calculus:
-      https://en.wikibooks.org/wiki/Supplementary_mathematics/Calculus
-    - Stanford Fall 2024 archived edition:
-      https://plato.stanford.edu/archives/fall2024/entries/mathematics-constructive/
-    - Internet Archive Wayback Machine:
-      https://web.archive/
 
   Source notes:
-    Stanford is the principal conceptual source for RUSS, Markov's principle and
-    Church's thesis. Cambridge's Bridges/Richman chapter is a primary
-    conceptual source for RUSS; Diener's constructive reverse mathematics
-    informs axiom-strength comparisons but does not certify this repository.
-    Neither source certifies this repository's RUSS assumptions. XDS-Agda
-    is a denotational-semantics experiment with explicit postulates, not a
-    global consistency result. "The Taming of the Rew" motivates confluence and
-    subject-reduction checks; circle rewriting and impredicative HIT encodings
-    are tracked as review obligations, not imported into the current agda2hs
-    kernel. MtacAR is an external reflection example, not a new tactic
-    dependency. Streamly/RIO are Haskell runtime references, not proof axioms.
-    The Lawvere/Hegel paper is comparative context only. "Han" remains
-    unresolved without a first name, title, or URL; no source is invented.
-    Escardó/Kraus provide constructive type-theory and Agda context, not
-    certification of this repository. The live Wayback CDX request was
-    inaccessible, so no particular archive snapshot is claimed as inspected.
+    The archived Stanford entry and Bridges/Richman chapter ground the RUSS
+    discussion; Diener's paper supplies reverse-mathematics comparisons, not
+    certification of this repository.
+    Henkin's first-order completeness construction and Lawvere's fixed-point
+    theorem are distinct results joined only as an audit-closure target; no
+    implication between them is asserted without a separate proof.
+    XDS-Agda formalises Scott–Strachey semantics but declares postulates, so it
+    is context rather than trusted proof evidence. nLab domain theory is
+    relevant to the existing Scott–Ershov denotational-semantics section.
+    "The Taming of the Rew" motivates checking rewrite confluence and subject
+    reduction. Agda manuals/repository and agda2hs documentation describe the
+    implementation, rewrite, and extraction trust boundaries.
+    MtacAR is a research prototype, not an imported dependency or a certificate
+    of the project's reflection/TC postulates. The impredicative-HIT paper is
+    a candidate for study only; compatibility with --with-K and RUSS remains
+    unproved. The project deliberately avoids Cubical mode/imports in its
+    --with-K proof path; Agda's --cubical option enables --without-K.
+    Streamly is used by the flake; RIO was removed because it is not an active
+    dependency. TypeTopology and ordinal papers are external-context pointers,
+    not evidence that transitive dependencies have a checked --with-K closure.
+    The archived Stanford entry is a dated source, not independent corroboration.
+    Global RUSS certification remains blocked until every trusted interface and
+    transitive dependency is classified.
 Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
@@ -188,6 +180,14 @@ let policyGate = ''
   grep -Fq 'graphAStarFirst laws seed = graphAStarFirstEager laws seed' FullCoupled/Agda2HsSemanticSearch.agda
   grep -Fq 'graphAStarDeferredPriorityLowerBoundRegressionChecked' FullCoupled/Agda2HsSemanticSearch.agda
   grep -Fq 'graphAStarDeferredMatchesEagerRegressionChecked' FullCoupled/Agda2HsSemanticSearch.agda
+  grep -Fq -- '--with-K' FullCoupled/CanonicalLearnerMonolith.agda
+  grep -Fq -- '--with-K' FullCoupled/TheoremsMonolith.agda
+  ! grep -Eq '^[[:space:]]*--cubical(=|$)' FullCoupled/CanonicalLearnerMonolith.agda
+  ! grep -Eq '^[[:space:]]*--cubical(=|$)' FullCoupled/TheoremsMonolith.agda
+  ! grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Cubical([.]|[[:space:]]|$)' FullCoupled/CanonicalLearnerMonolith.agda
+  ! grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Cubical([.]|[[:space:]]|$)' FullCoupled/TheoremsMonolith.agda
+  ! grep -Fq 'GuardedCubical' FullCoupled/TheoremsMonolith.agda
+  ! grep -Fq 'cubical=no-glue' FullCoupled/TheoremsMonolith.agda
 ''
 
 let Lane = < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >
@@ -222,6 +222,7 @@ let script = merge {
     grep -Fq 'graphDependencyOrderRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
     grep -Fq 'graphTwoLeafBranchesRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
     grep -Fq 'graphCycleIsRejectedRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
+    grep -Fq 'sourceOnlyLegacyBoundaryRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
     echo "TheoremsMonolith=source-inventory-only"
     '',
   AgdaSafe = ''
