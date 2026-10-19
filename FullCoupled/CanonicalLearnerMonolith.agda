@@ -473,6 +473,78 @@ module ConstructiveComputabilityPostulates where
       (haBooleanOr (haOccursTerm variable input)
         (haBooleanOr (haOccursTerm variable trace) (haOccursTerm variable output)))
 
+  -- Named-variable substitution is available only at capture-safe
+  -- instances. Instead of silently alpha-renaming, the derivation rules ask
+  -- for a decidable freshness check before using substitution.
+  haBooleanNot : Bool → Bool
+  haBooleanNot True = False
+  haBooleanNot False = True
+
+  haBooleanAnd : Bool → Bool → Bool
+  haBooleanAnd True True = True
+  haBooleanAnd _ _ = False
+
+  haSubstitutionCaptureSafe :
+    Nat → HATerm → HAFormula → Bool
+  haSubstitutionCaptureSafe variable replacement haFalsehood = True
+  haSubstitutionCaptureSafe variable replacement (haEquality left right) = True
+  haSubstitutionCaptureSafe variable replacement (haLessOrEqual left right) = True
+  haSubstitutionCaptureSafe variable replacement (haMachineComputes code input trace output) = True
+  haSubstitutionCaptureSafe variable replacement (haConjunction left right) =
+    haBooleanAnd
+      (haSubstitutionCaptureSafe variable replacement left)
+      (haSubstitutionCaptureSafe variable replacement right)
+  haSubstitutionCaptureSafe variable replacement (haDisjunction left right) =
+    haBooleanAnd
+      (haSubstitutionCaptureSafe variable replacement left)
+      (haSubstitutionCaptureSafe variable replacement right)
+  haSubstitutionCaptureSafe variable replacement (haImplication left right) =
+    haBooleanAnd
+      (haSubstitutionCaptureSafe variable replacement left)
+      (haSubstitutionCaptureSafe variable replacement right)
+  haSubstitutionCaptureSafe variable replacement (haUniversal binder body)
+    with natEquality variable binder
+  ... | True = True
+  ... | False =
+    haBooleanAnd
+      (haBooleanNot
+        (haBooleanAnd
+          (haOccursTerm binder replacement)
+          (haOccursFormula variable body)))
+      (haSubstitutionCaptureSafe variable replacement body)
+  haSubstitutionCaptureSafe variable replacement (haExistential binder body)
+    with natEquality variable binder
+  ... | True = True
+  ... | False =
+    haBooleanAnd
+      (haBooleanNot
+        (haBooleanAnd
+          (haOccursTerm binder replacement)
+          (haOccursFormula variable body)))
+      (haSubstitutionCaptureSafe variable replacement body)
+  haSubstitutionCaptureSafe variable replacement
+    (haBoundedUniversal binder bound body)
+    with natEquality variable binder
+  ... | True = True
+  ... | False =
+    haBooleanAnd
+      (haBooleanNot
+        (haBooleanAnd
+          (haOccursTerm binder replacement)
+          (haOccursFormula variable body)))
+      (haSubstitutionCaptureSafe variable replacement body)
+  haSubstitutionCaptureSafe variable replacement
+    (haBoundedExistential binder bound body)
+    with natEquality variable binder
+  ... | True = True
+  ... | False =
+    haBooleanAnd
+      (haBooleanNot
+        (haBooleanAnd
+          (haOccursTerm binder replacement)
+          (haOccursFormula variable body)))
+      (haSubstitutionCaptureSafe variable replacement body)
+
   data HAInContext (formula : HAFormula) : List HAFormula → Set where
     haHere :
       {context : List HAFormula} →
@@ -611,10 +683,12 @@ module ConstructiveComputabilityPostulates where
       {context : List HAFormula} {variable : Nat} {body : HAFormula} →
       HADerivation context (haUniversal variable body) →
       (term : HATerm) →
+      haSubstitutionCaptureSafe variable term body ≡ True →
       HADerivation context (haSubstituteFormula variable term body)
     haExistentialIntroduction :
       {context : List HAFormula} {variable : Nat} {body : HAFormula} →
       (term : HATerm) →
+      haSubstitutionCaptureSafe variable term body ≡ True →
       HADerivation context (haSubstituteFormula variable term body) →
       HADerivation context (haExistential variable body)
     haExistentialElimination :
@@ -640,6 +714,8 @@ module ConstructiveComputabilityPostulates where
       {context : List HAFormula} {variable : Nat}
       {formula : HAFormula} {left right : HATerm} →
       HADerivation context (haEquality left right) →
+      haSubstitutionCaptureSafe variable left formula ≡ True →
+      haSubstitutionCaptureSafe variable right formula ≡ True →
       HADerivation context (haSubstituteFormula variable left formula) →
       HADerivation context (haSubstituteFormula variable right formula)
     haZeroNotSuccessor :
@@ -677,6 +753,8 @@ module ConstructiveComputabilityPostulates where
           (haAdditionTerm (haMultiplicationTerm left right) left))
     haInduction :
       {context : List HAFormula} (variable : Nat) (body : HAFormula) →
+      haSubstitutionCaptureSafe variable haZeroTerm body ≡ True →
+      haSubstitutionCaptureSafe variable (haSuccessorTerm (haVariable variable)) body ≡ True →
       HADerivation context (haSubstituteFormula variable haZeroTerm body) →
       HADerivation context
         (haUniversal variable
@@ -686,7 +764,40 @@ module ConstructiveComputabilityPostulates where
       HADerivation context (haUniversal variable body)
     haBoundedUniversalIntroduction :
       {context : List HAFormula} {variable : Nat}
-      {bound     haMarkovPrinciple :
+      {bound : HATerm} {body : HAFormula} →
+      haOccursTerm variable bound ≡ False →
+      HADerivation context
+        (haUniversal variable
+          (haImplication
+            (haLessOrEqual (haVariable variable) bound) body)) →
+      HADerivation context (haBoundedUniversal variable bound body)
+    haBoundedUniversalElimination :
+      {context : List HAFormula} {variable : Nat}
+      {bound : HATerm} {body : HAFormula} →
+      HADerivation context (haBoundedUniversal variable bound body) →
+      (term : HATerm) →
+      haSubstitutionCaptureSafe variable term body ≡ True →
+      HADerivation context
+        (haImplication
+          (haLessOrEqual term bound)
+          (haSubstituteFormula variable term body))
+    haBoundedExistentialIntroduction :
+      {context : List HAFormula} {variable : Nat}
+      {bound : HATerm} {body : HAFormula} →
+      HADerivation context
+        (haExistential variable
+          (haConjunction
+            (haLessOrEqual (haVariable variable) bound) body)) →
+      HADerivation context (haBoundedExistential variable bound body)
+    haBoundedExistentialElimination :
+      {context : List HAFormula} {variable : Nat}
+      {bound : HATerm} {body : HAFormula} →
+      HADerivation context (haBoundedExistential variable bound body) →
+      HADerivation context
+        (haExistential variable
+          (haConjunction
+            (haLessOrEqual (haVariable variable) bound) body))
+    haMarkovPrinciple :
       {context : List HAFormula} (variable : Nat) {body : HAFormula} →
       HAIsDeltaZero body →
       HADerivation context (haMarkovPrincipleFormula variable body)
@@ -712,42 +823,6 @@ module ConstructiveComputabilityPostulates where
       HADerivation context
         (haExtendedChurchThesis0Formula
           input output code trace antecedent consequent)
-
-urchThesis0 :
-      {context : List HAFormula}
-      {input output code trace : Nat}
-      {antecedent consequent : HAFormula} →
-      HAAlmostNegative antecedent →
-      HAContextFresh input context →
-      HAContextFresh code context →
-      HAContextFresh trace context →
-      haOccursFormula output antecedent ≡ False →
-      haOccursFormula code antecedent ≡ False →
-      haOccursFormula trace antecedent ≡ False →
-      haOccursFormula code consequent ≡ False →
-      haOccursFormula trace consequent ≡ False →
-      natEquality input output ≡ False →
-      natEquality input code ≡ False →
-      natEquality input trace ≡ False →
-      natEquality output code ≡ False →
-      natEquality output trace ≡ False →
-      natEquality code trace ≡ False →
-      HADerivation context
-        (haUniversal input
-          (haImplication antecedent (haExistential output consequent))) →
-      HADerivation context
-        (haExistential code
-          (haUniversal input
-            (haImplication antecedent
-              (haExistential output
-                (haExistential trace
-                  (haConjunction
-                    (haMachineComputes
-                      (haVariable code)
-                      (haVariable input)
-                      (haVariable trace)
-                      (haVariable output))
-                    consequent)))))
 
   data ConstructiveArithmeticSchema : Set where
     markovPrincipleSchema : ConstructiveArithmeticSchema
