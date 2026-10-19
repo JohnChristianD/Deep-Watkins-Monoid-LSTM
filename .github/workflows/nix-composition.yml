@@ -102,6 +102,20 @@ jobs:
         timeout-minutes: 15
         run: nix run .#streamly-tools-check
 
+      - name: Build and smoke-test reproducible Forth/Scheme tools
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          nix build .#ccforth
+          ./result/bin/ccforth -version
+          nix develop .#forth -c bash -e -c '
+            set -euo pipefail
+            gforth --version
+            groff --version
+            guile --version
+            ccforth -version
+          '
+
       - name: Run semantic lanes in one Nix environment
         timeout-minutes: 25
         run: |
