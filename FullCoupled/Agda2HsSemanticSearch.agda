@@ -2102,7 +2102,6 @@ runtimeRequiredNames =
   "graphCycleIsRejectedRegressionChecked" ∷
   "learnerLogicalGraphRegressionChecked" ∷
   "learnerSemanticBridgeRegressionChecked" ∷
-  "sourceOnlyLegacyBoundaryRegression" ∷
   "canonicalSearchPlanEGraphClosed" ∷
   "graphAStarPlanEGraphClosed" ∷
   []
