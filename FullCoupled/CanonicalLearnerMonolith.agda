@@ -257,6 +257,40 @@ module ConstructiveComputabilityPostulates where
   haNegation : HAFormula → HAFormula
   haNegation formula = haImplication formula haFalsehood
 
+  -- Explicit object-language bottom and Markov schema (MP₀).
+  HA-bottom : HAFormula
+  HA-bottom = haFalsehood
+
+  haMarkovPrincipleFormula : Nat → HAFormula → HAFormula
+  haMarkovPrincipleFormula variable body =
+    haImplication
+      (haUniversal variable (haDisjunction body (haNegation body)))
+      (haImplication
+        (haNegation (haNegation (haExistential variable body)))
+        (haExistential variable body))
+
+  -- The ECT₀ axiom schema. The T-predicate is represented by the explicit
+  -- machine-computation atom; its arithmetisation and soundness bridge are
+  -- deliberately separate obligations rather than silently postulated.
+  haExtendedChurchThesis0Formula :
+    Nat → Nat → Nat → Nat → HAFormula → HAFormula → HAFormula
+  haExtendedChurchThesis0Formula input output code trace antecedent consequent =
+    haImplication
+      (haUniversal input
+        (haImplication antecedent (haExistential output consequent)))
+      (haExistential code
+        (haUniversal input
+          (haImplication antecedent
+            (haExistential output
+              (haExistential trace
+                (haConjunction
+                  (haMachineComputes
+                    (haVariable code)
+                    (haVariable input)
+                    (haVariable trace)
+                    (haVariable output))
+                  consequent)))))
+
   haBooleanOr : Bool → Bool → Bool
   haBooleanOr True _ = True
   haBooleanOr False right = right
@@ -591,49 +625,34 @@ module ConstructiveComputabilityPostulates where
       HADerivation context (haUniversal variable body)
     haBoundedUniversalIntroduction :
       {context : List HAFormula} {variable : Nat}
-      {bound : HATerm} {body : HAFormula} →
-      haOccursTerm variable bound ≡ False →
-      HADerivation context
-        (haUniversal variable
-          (haImplication
-            (haLessOrEqual (haVariable variable) bound) body)) →
-      HADerivation context (haBoundedUniversal variable bound body)
-    haBoundedUniversalElimination :
-      {context : List HAFormula} {variable : Nat}
-      {bound : HATerm} {body : HAFormula} →
-      HADerivation context (haBoundedUniversal variable bound body) →
-      (term : HATerm) →
-      HADerivation context
-        (haImplication
-          (haLessOrEqual term bound)
-          (haSubstituteFormula variable term body))
-    haBoundedExistentialIntroduction :
-      {context : List HAFormula} {variable : Nat}
-      {bound : HATerm} {body : HAFormula} →
-      HADerivation context
-        (haExistential variable
-          (haConjunction
-            (haLessOrEqual (haVariable variable) bound) body)) →
-      HADerivation context (haBoundedExistential variable bound body)
-    haBoundedExistentialElimination :
-      {context : List HAFormula} {variable : Nat}
-      {bound : HATerm} {body : HAFormula} →
-      HADerivation context (haBoundedExistential variable bound body) →
-      HADerivation context
-        (haExistential variable
-          (haConjunction
-            (haLessOrEqual (haVariable variable) bound) body))
-    haMarkovPrinciple :
-      {context : List HAFormula} (variable : Nat) (body : HAFormula) →
+      {bound     haMarkovPrinciple :
+      {context : List HAFormula} (variable : Nat) {body : HAFormula} →
       HAIsDeltaZero body →
-      HADerivation context
-        (haImplication
-          (haUniversal variable
-            (haDisjunction body (haNegation body)))
-          (haImplication
-            (haNegation (haNegation (haExistential variable body)))
-            (haExistential variable body)))
+      HADerivation context (haMarkovPrincipleFormula variable body)
     haExtendedChurchThesis0 :
+      {context : List HAFormula}
+      {input output code trace : Nat}
+      {antecedent consequent : HAFormula} →
+      HAAlmostNegative antecedent →
+      HAContextFresh input context →
+      HAContextFresh code context →
+      HAContextFresh trace context →
+      haOccursFormula output antecedent ≡ False →
+      haOccursFormula code antecedent ≡ False →
+      haOccursFormula trace antecedent ≡ False →
+      haOccursFormula code consequent ≡ False →
+      haOccursFormula trace consequent ≡ False →
+      natEquality input output ≡ False →
+      natEquality input code ≡ False →
+      natEquality input trace ≡ False →
+      natEquality output code ≡ False →
+      natEquality output trace ≡ False →
+      natEquality code trace ≡ False →
+      HADerivation context
+        (haExtendedChurchThesis0Formula
+          input output code trace antecedent consequent)
+
+urchThesis0 :
       {context : List HAFormula}
       {input output code trace : Nat}
       {antecedent consequent : HAFormula} →
