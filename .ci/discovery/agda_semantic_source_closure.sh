@@ -2,7 +2,8 @@
 set -euo pipefail
 
 dot_file="${1:?Agda dependency graph DOT file}"
-output_manifest="${2:?output source manifest}"
+output_manifest="${2:?output runtime source manifest}"
+inventory_manifest="${output_manifest}.source-inventory"
 root_source="${3:?root Agda source file}"
 shift 3
 roots=("$@")
@@ -47,15 +48,22 @@ done
 : > "$tmp/modules"
 sed -n 's/.*"\([^"]*\)".*/\1/p' "$dot_file" | sort -u > "$tmp/modules"
 
+# Keep all tracked project Agda sources in a source-only inventory. The runtime
+# semantic extractor receives only the graph root and imports listed by DOT.
+# This avoids scanning unrelated legacy monoliths and tutorial files when
+# constructing declaration dependencies (the extractor otherwise compares
+# each declaration with the full declaration inventory).
+: > "$inventory_manifest"
+while IFS= read -r -d '' file; do
+  printf '%s\n' "$PWD/$file" >> "$inventory_manifest"
+done < <(git -C "$PWD" ls-files -z '*.agda' '*.lagda')
+sort -u -o "$inventory_manifest" "$inventory_manifest"
+test -s "$inventory_manifest"
+
 : > "$output_manifest"
 root_module=$(awk '/^[[:space:]]*module[[:space:]]+/ { print $2; exit }' "$root_source")
 [ -n "$root_module" ] || { echo "cannot determine root module name" >&2; exit 1; }
 printf '%s\n' "${module_files[$root_module]}" >> "$output_manifest"
-
-# Legacy sources are inventoried as text only, not included in the kernel-checked closure.
-while IFS= read -r -d '' file; do
-  printf '%s\n' "$PWD/$file" >> "$output_manifest"
-done < <(git -C "$PWD" ls-files -z '*.agda' '*.lagda')
 
 unresolved=0
 while IFS= read -r module; do
@@ -69,7 +77,9 @@ done < "$tmp/modules"
 
 sort -u -o "$output_manifest" "$output_manifest"
 test -s "$output_manifest"
+test -s "$inventory_manifest"
 
-printf 'agda-semantic-source-inventory=pass\n'
-printf 'resolved-source-count=%s\n' "$(wc -l < "$output_manifest")"
+printf 'agda-runtime-source-closure=pass\n'
+printf 'runtime-closure-source-count=%s\n' "$(wc -l < "$output_manifest")"
+printf 'tracked-source-inventory-count=%s\n' "$(wc -l < "$inventory_manifest")"
 printf 'unresolved-dot-symbol-count=%s\n' "$unresolved"

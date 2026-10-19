@@ -736,6 +736,11 @@ PY
                   "$PWD/FullCoupled/Agda2HsSemanticSearch.agda" \
                   "${agda2hsBaseLib system}"
                 test -s "$out/.semantic-source-files"
+                test -s "$out/.semantic-source-files.source-inventory"
+                grep -Fxq "$PWD/FullCoupled/CanonicalLearnerMonolith.agda" "$out/.semantic-source-files.source-inventory"
+                grep -Fxq "$PWD/FullCoupled/TheoremsMonolith.agda" "$out/.semantic-source-files.source-inventory"
+                ! grep -Fq "$PWD/FullCoupled/CanonicalLearnerMonolith.agda" "$out/.semantic-source-files"
+                ! grep -Fq "$PWD/FullCoupled/TheoremsMonolith.agda" "$out/.semantic-source-files"
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticExtractor.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsSemanticSearch.agda
                 "${agdaCommand system}/bin/agda2hs-agda" FullCoupled/Agda2HsTheoremGraphEGraph.agda

@@ -39,10 +39,12 @@ Constructive foundations — Russian constructivism (RUSS) only:
   * Status: NOT GLOBALLY CERTIFIED. Certification is a theorem-dependency
     claim, not a literature-survey claim or a source-text grep.
   * RUSS uses intuitionistic logic with a scoped recursive/computability
-    interpretation. Markov's principle, Church's thesis for the register-
-    machine model, and proposition-valued countable choice are named profile
-    assumptions, not a blanket grant of classical logic. Do not add excluded
-    middle, LPO, or LLPO as global axioms.
+    interpretation. Markov's principle and the register-machine form of
+    Church's thesis are explicit profile assumptions, not a blanket grant of
+    classical logic. Proposition-valued countable choice is an additional
+    project assumption whose compatibility with the chosen RUSS formalization
+    must be justified separately; it does not follow merely from MP or CT.
+    Do not add excluded middle, LPO, or LLPO as global axioms.
   * Audit every project-owned postulate and primitive, every REWRITE rule,
     Agda builtin/reflection/TC interface, termination/positivity/universe
     option, imported trusted theorem, unresolved meta, and theorem dependency
@@ -55,8 +57,9 @@ Constructive foundations — Russian constructivism (RUSS) only:
     Agda reflection and TC builtin compatibility postulates. These are known
     trust boundaries, not a complete dependency proof. A successful build is
     necessary but cannot establish RUSS certification by itself.
-  * Do not maintain a parallel Bishop certification track; keep this audit
-    focused on RUSS.
+  * Bishop-style witness-bearing and intuitionistic expectations are a
+    non-gating sanity check only. The symbolic Bishop e-graph fixture is kept
+    for that purpose; it is not a second certification profile or release gate.
   * Remove the previous O(n^2) source-signature redundancy scan. Equal
     signature text is not proof that one theorem follows from another. Delete
     a theorem only after typed proof/dependency review establishes redundancy
