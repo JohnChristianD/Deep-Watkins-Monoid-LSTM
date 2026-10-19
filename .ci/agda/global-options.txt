@@ -1,3 +1,9 @@
 --erasure
 --verbose=1
 --no-projection-like
+--level-universe
+--two-level
+--confluence-check
+--prop
+--sized-types
+--profile=all
