@@ -1466,7 +1466,9 @@ graphDependencyClosure root laws =
 -- each other node contributes the sum of its direct dependencies' counts.
 -- This preserves exact chain counts while avoiding exponential path-list
 -- construction and quadratic insertion sorting on shared import DAGs.
--- Cyclic/non-topologically-sortable inputs retain the bounded DFS fallback.
+-- Cyclic/non-topologically-sortable inputs are reported as zero here.
+-- Never fall back to enumerating every path on an arbitrary graph: that can
+-- take exponential time and was the source of the CI timeout.
 ------------------------------------------------------------------------
 
 graphPathCountLookup :
@@ -1538,7 +1540,7 @@ autonomousGraphSearchCount :
 autonomousGraphSearchCount edges =
   let laws = graphLawsFromEdges edges
   in case graphPathCountTableForLaws laws of λ where
-    Nothing -> listLengthNat (autonomousGraphSearch edges)
+    Nothing -> 0
     (Just counts) -> graphPathCountSum counts
 
 autonomousGraphSearchReport :
@@ -1556,7 +1558,7 @@ autonomousCanonicalGraphSearchCount source =
   let edges = parseDotEdges source
       laws = ensureGraphLaw canonicalGraphRoot (graphLawsFromEdges edges)
   in case graphPathCountTableForLaws laws of λ where
-    Nothing -> listLengthNat (autonomousCanonicalGraphSearch source)
+    Nothing -> 0
     (Just counts) -> graphPathCountAt canonicalGraphRoot counts
 
 autonomousCanonicalGraphReport : String -> String
