@@ -254,12 +254,73 @@ module ConstructiveComputabilityPostulates where
     haBoundedExistential : Nat → HATerm → HAFormula → HAFormula
     haMachineComputes : HATerm → HATerm → HATerm → HATerm → HAFormula
 
+  ----------------------------------------------------------------------
+  -- Structural quotation for the object language and machine programs.
+  -- These are first-order syntax codes, not a claimed model of Agda's
+  -- primitive Reflection API. That stronger interpretation is a separate
+  -- presheaf-model obligation.
+  ----------------------------------------------------------------------
+
+  data HAQuotation : Set where
+    quotedTerm : HATerm → HAQuotation
+    quotedFormula : HAFormula → HAQuotation
+    quotedProgram : RecursiveProgram → HAQuotation
+
+  data HAUnquoteResult (A : Set) : Set where
+    unquoted : A → HAUnquoteResult A
+    notQuotedAtThisType : HAUnquoteResult A
+
+  quoteHATermSyntax : HATerm → HAQuotation
+  quoteHATermSyntax = quotedTerm
+
+  quoteHAFormulaSyntax : HAFormula → HAQuotation
+  quoteHAFormulaSyntax = quotedFormula
+
+  quoteProgramSyntax : RecursiveProgram → HAQuotation
+  quoteProgramSyntax = quotedProgram
+
+  unquoteHATermSyntax : HAQuotation → HAUnquoteResult HATerm
+  unquoteHATermSyntax (quotedTerm term) = unquoted term
+  unquoteHATermSyntax (quotedFormula _) = notQuotedAtThisType
+  unquoteHATermSyntax (quotedProgram _) = notQuotedAtThisType
+
+  unquoteHAFormulaSyntax : HAQuotation → HAUnquoteResult HAFormula
+  unquoteHAFormulaSyntax (quotedTerm _) = notQuotedAtThisType
+  unquoteHAFormulaSyntax (quotedFormula formula) = unquoted formula
+  unquoteHAFormulaSyntax (quotedProgram _) = notQuotedAtThisType
+
+  unquoteProgramSyntax : HAQuotation → HAUnquoteResult RecursiveProgram
+  unquoteProgramSyntax (quotedTerm _) = notQuotedAtThisType
+  unquoteProgramSyntax (quotedFormula _) = notQuotedAtThisType
+  unquoteProgramSyntax (quotedProgram program) = unquoted program
+
+  quoteHATermRoundTrip :
+    (term : HATerm) →
+    unquoteHATermSyntax (quoteHATermSyntax term) ≡ unquoted term
+  quoteHATermRoundTrip term = refl
+
+  quoteHAFormulaRoundTrip :
+    (formula : HAFormula) →
+    unquoteHAFormulaSyntax (quoteHAFormulaSyntax formula) ≡ unquoted formula
+  quoteHAFormulaRoundTrip formula = refl
+
+  quoteProgramRoundTrip :
+    (program : RecursiveProgram) →
+    unquoteProgramSyntax (quoteProgramSyntax program) ≡ unquoted program
+  quoteProgramRoundTrip program = refl
+
+  -- Concrete evaluation remains an inductive relation with explicit traces.
+  evaluatesProgram :
+    (program : RecursiveProgram) (input output : Nat) → Set
+  evaluatesProgram program input output =
+    ComputationTrace program input output
+
   haNegation : HAFormula → HAFormula
   haNegation formula = haImplication formula haFalsehood
 
   -- Explicit object-language bottom and Markov schema (MP₀).
-  HA-bottom : HAFormula
-  HA-bottom = haFalsehood
+  haBottom : HAFormula
+  haBottom = haFalsehood
 
   haMarkovPrincipleFormula : Nat → HAFormula → HAFormula
   haMarkovPrincipleFormula variable body =
@@ -289,7 +350,7 @@ module ConstructiveComputabilityPostulates where
                     (haVariable input)
                     (haVariable trace)
                     (haVariable output))
-                  consequent)))))
+                  consequent))))))
 
   haBooleanOr : Bool → Bool → Bool
   haBooleanOr True _ = True
