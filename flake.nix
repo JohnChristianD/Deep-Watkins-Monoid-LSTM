@@ -29,6 +29,70 @@
           inherit system;
         };
 
+      # ccforth is not in the pinned Nixpkgs revision. Package the upstream
+      # v0.3.2 release archive with a fixed SHA-256 per supported system.
+      # This keeps the tool in the Nix store and avoids runtime go-install.
+      ccforth = system:
+        let
+          pkgs = pkgsFor system;
+          release = {
+            "x86_64-linux" = {
+              file = "ccforth_0.3.2_linux_amd64.tar.gz";
+              hash = "5cd2a960474d7ff693853040551fd48c0e8623024ec877302822cd1e275695a7";
+            };
+            "aarch64-linux" = {
+              file = "ccforth_0.3.2_linux_arm64.tar.gz";
+              hash = "f5c566f7b6dcd295431bf8eb50f5702532d1177e42bcaf6b175109449db7e722";
+            };
+            "x86_64-darwin" = {
+              file = "ccforth_0.3.2_darwin_amd64.tar.gz";
+              hash = "36f90a77fe85f3291945201c2ddad75a00afeb5e5ecaacdfb683cd5d79657b4f";
+            };
+            "aarch64-darwin" = {
+              file = "ccforth_0.3.2_darwin_arm64.tar.gz";
+              hash = "8bece38e0d547754fa2a73fcb7d94510910dc2511f72183fea8dcebe0f222af0";
+            };
+          }.\${system} or (throw "ccforth v0.3.2 has no release archive for \${system}");
+          archive = pkgs.fetchurl {
+            url = "https://github.com/ncw/ccforth/releases/download/v0.3.2/\${release.file}";
+            sha256 = release.hash;
+          };
+        in
+        pkgs.stdenvNoCC.mkDerivation {
+          pname = "ccforth";
+          version = "0.3.2";
+          src = archive;
+          dontConfigure = true;
+          dontBuild = true;
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out/bin"
+            binary="$(find . -type f -name ccforth -print -quit)"
+            test -n "$binary" || {
+              echo "ccforth executable missing from pinned upstream archive" >&2
+              exit 1
+            }
+            install -m 755 "$binary" "$out/bin/ccforth"
+            runHook postInstall
+          '';
+          doInstallCheck = true;
+          installCheckPhase = ''
+            "$out/bin/ccforth" -version
+          '';
+          meta = {
+            description = "Forth 2012 to C compiler";
+            homepage = "https://github.com/ncw/ccforth";
+            license = pkgs.lib.licenses.mit;
+            mainProgram = "ccforth";
+            platforms = [
+              "x86_64-linux"
+              "aarch64-linux"
+              "x86_64-darwin"
+              "aarch64-darwin"
+            ];
+          };
+        };
+
       agda2hsTool = system:
         (pkgsFor system).haskellPackages.agda2hs;
 
@@ -995,6 +1059,22 @@ PY
             ];
           };
 
+          # Forth and Scheme experimentation. ccforth is a fixed-hash Nix
+          # package; its C backend is supplied by the Nix stdenv compiler.
+          forth = pkgs.mkShell {
+            packages = [
+              (ccforth system)
+              pkgs.gforth
+              pkgs.groff
+              pkgs.guile
+              pkgs.stdenv.cc
+              pkgs.coreutils
+              pkgs.findutils
+              pkgs.gnugrep
+              pkgs.gnused
+            ];
+          };
+
           agda-ci = pkgs.mkShellNoCC {
             packages = [
               pkgs.dhall
@@ -1068,6 +1148,10 @@ PY
               (agdaCommand system)
               (agdaEmacs system)
               pkgs.stdenv.cc
+              (ccforth system)
+              pkgs.gforth
+              pkgs.groff
+              pkgs.guile
               pkgs.elmPackages.elm
             ];
             shellHook = ''
