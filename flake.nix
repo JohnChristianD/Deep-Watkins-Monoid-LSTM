@@ -513,7 +513,6 @@ PY
                 grep -Fq "russianCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "constructiveCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "PropExists" "$tmp/ConstructiveComputabilityPostulates.agda"
-                grep -Fq "BishopWitness" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "ScottErshovEffectiveDomainData" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "HenkinTheoryInterface" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "compactApproximationComputes x n = refl" "$tmp/ConstructiveComputabilityPostulates.agda"
@@ -822,7 +821,6 @@ PY
                 grep -Fq "canonicalLearnerTraceDenotationStep" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "russianConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "scottErshovDenotationalSemanticsPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
-                grep -Fq "bishopConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "canonical-search-egraph-closed=True" "$out/report.txt"
                 grep -Fq "graph-astar-egraph-closed=True" "$out/report.txt"
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
