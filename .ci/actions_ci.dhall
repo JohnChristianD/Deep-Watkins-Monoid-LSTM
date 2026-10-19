@@ -31,9 +31,11 @@ Graph semantics:
     and cycle behavior, result cost, and fuel exhaustion. Benchmark before
     claiming faster execution. Finite regressions do not prove general
     optimality.
-  * DAG report counting and dependency closure use topological dynamic
-    programming after acyclicity is established. Path enumeration remains
-    fuel-bounded; CI fixtures establish correctness, not runtime performance.
+  * DAG chain counting uses topological dynamic programming, avoiding
+    exponential path-list construction. Dependency closure separately gathers
+    reachable nodes and topologically orders them, rejecting missing names
+    and cycles. Path enumeration remains fuel-bounded; CI fixtures establish
+    correctness, not runtime performance.
   * Keep eager A* for first-path search when a heuristic is useful. JAxtar
     provides batched JAX A*/Q* for accelerator-backed, neural-heuristic search;
     Mctx provides JAX Monte Carlo tree search over learned policy/value and
