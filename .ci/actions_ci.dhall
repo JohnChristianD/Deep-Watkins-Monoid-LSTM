@@ -66,9 +66,9 @@ Constructive foundations — Russian constructivism (RUSS) only:
     reflection/TC compatibility postulates and imports external ordinal
     and TypeTopology modules. These are known boundaries, not a complete
     dependency proof. Successful builds are necessary but insufficient.
-  * Bishop-style witness-bearing/intuitionistic expectations are a non-gating
-    sanity check only. The symbolic Bishop e-graph fixture remains for that
-    purpose, not as a second certification profile or release gate.
+  * Maintain one Russian-constructivist review track; do not add a second
+    constructive foundation profile or gate. Audit actual assumptions and
+    dependencies rather than classifying a school of thought as a proof rule.
   * The former O(n^2) signature-matching redundancy scan was removed because
     identical signature text does not prove logical implication. Delete theorem
     statements only after typed proof/dependency review and repository-wide
@@ -91,6 +91,26 @@ Constructive foundations — Russian constructivism (RUSS) only:
       https://arxiv.org/abs/1804.05495
     - Hannes Diener, publications and constructive-mathematics research:
       https://www.math.canterbury.ac.nz/~h.diener/publications.html
+    - XDS-Agda, mechanised Scott–Strachey denotational semantics (Mosses, Cockx, Reus):
+      https://pdmosses.github.io/xds-agda/
+    - The Taming of the Rew: rewriting rules, confluence and subject reduction (Cockx, Tabareau, Winterhalter):
+      https://doi.org/10.1145/3434341
+    - Cubical Agda, Synthetic Homotopy Theory examples (including the circle):
+      https://agda.github.io/cubical/Cubical.Papers.Synthetic.html
+    - Cubical Agda, circle higher-inductive type:
+      https://agda.github.io/cubical/Cubical.HITs.S1.Base.html
+    - Awodey, Frey and Speight, Impredicative Encodings of (Higher) Inductive Types:
+      https://arxiv.org/abs/1802.02820
+    - Stefano Volpe, Higher Inductive Types Via Impredicative Encodings (2025):
+      https://eprints.illc.uva.nl/id/eprint/2381/
+    - MtacAR, monadic typed tactic programming in Agda by reflection (external research prototype):
+      https://github.com/L-TChen/MtacAR
+    - Streamly Hackage package, Haskell streaming/runtime API:
+      https://hackage-content.haskell.org/package/streamly
+    - RIO, Haskell application prelude/runtime conventions:
+      https://github.com/commercialhaskell/rio
+    - Axiomatic Method and Category Theory, Lawvere/Hegel comparative context only:
+      https://philomatica.org/wp-content/uploads/2012/12/catax.pdf
     - Jesper Cockx, Rewriting type theory:
       https://jesper.sikanda.be/posts/rewriting-type-theory.html
     - Agda 2.8 Postulates:
@@ -126,16 +146,19 @@ Constructive foundations — Russian constructivism (RUSS) only:
     Stanford is the principal conceptual source for RUSS, Markov's principle and
     Church's thesis. Cambridge's Bridges/Richman chapter is a primary
     conceptual source for RUSS; Diener's constructive reverse mathematics
-    informs axiom-strength comparisons and the non-gating Bishop sanity check.
-    Neither source certifies this repository's RUSS assumptions. Pédrot and
-    Tabareau provide related type-theory context, while Cockx and Agda docs
-    describe kernel/rewrite boundaries. The official Agda repository anchors
-    claims about implementation and history. Hackage/Agda2HS docs describe
-    tool semantics. Escardó/Kraus provide constructive type-theory and Agda
-    context, not certification of this repository. "Han" is ambiguous without
-    a first name, title, or URL; no unrelated source is attributed. The live
-    Wayback CDX request was inaccessible, so no particular archive snapshot
-    is claimed as inspected.
+    informs axiom-strength comparisons but does not certify this repository.
+    Neither source certifies this repository's RUSS assumptions. XDS-Agda
+    is a denotational-semantics experiment with explicit postulates, not a
+    global consistency result. "The Taming of the Rew" motivates confluence and
+    subject-reduction checks; circle rewriting and impredicative HIT encodings
+    are tracked as review obligations, not imported into the current agda2hs
+    kernel. MtacAR is an external reflection example, not a new tactic
+    dependency. Streamly/RIO are Haskell runtime references, not proof axioms.
+    The Lawvere/Hegel paper is comparative context only. "Han" remains
+    unresolved without a first name, title, or URL; no source is invented.
+    Escardó/Kraus provide constructive type-theory and Agda context, not
+    certification of this repository. The live Wayback CDX request was
+    inaccessible, so no particular archive snapshot is claimed as inspected.
 Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but

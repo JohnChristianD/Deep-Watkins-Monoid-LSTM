@@ -644,7 +644,7 @@ emptyLeftRule =
        []))
     (PatternVar "A")
 
--- Symbolic tags for the three requested constructive/domain traditions.
+-- Symbolic tags for the requested constructive/domain frameworks.
 -- These normalize named assumptions for graph search; they are not added
 -- Agda kernel axioms and do not alone prove learner optimality.
 russianConstructivismPostulateRule : RewriteRule
@@ -665,17 +665,6 @@ scottErshovDenotationalSemanticsPostulateRule =
     (PatternApp "domain-denotational-semantics"
       (PatternApp "ScottErshovDomainSemantics" [] ∷ []))
 
--- Non-gating sanity fixture for symbolic rewrite plumbing only. This
--- is not a second constructive certification profile or a theorem of RUSS.
-bishopConstructivismPostulateRule : RewriteRule
-bishopConstructivismPostulateRule =
-  MkRewriteRule
-    "bishop-constructivism-postulate"
-    (PatternApp "constructivist-postulate"
-      (PatternApp "BishopConstructivism" [] ∷ []))
-    (PatternApp "constructive-proof-method"
-      (PatternApp "BishopConstructivism" [] ∷ []))
-
 semanticRewriteRules : List RewriteRule
 semanticRewriteRules =
   associativityRule ∷
@@ -683,7 +672,6 @@ semanticRewriteRules =
   emptyLeftRule ∷
   russianConstructivismPostulateRule ∷
   scottErshovDenotationalSemanticsPostulateRule ∷
-  bishopConstructivismPostulateRule ∷
   []
 
 constructivistPostulateRegression : Bool
@@ -701,24 +689,15 @@ constructivistPostulateRegression =
     scottErshovNormalized =
       ExprApp "domain-denotational-semantics"
         (ExprApp "ScottErshovDomainSemantics" [] ∷ [])
-    bishop =
-      ExprApp "constructivist-postulate"
-        (ExprApp "BishopConstructivism" [] ∷ [])
-    bishopNormalized =
-      ExprApp "constructive-proof-method"
-        (ExprApp "BishopConstructivism" [] ∷ [])
     (russianId , g1) = addExpr russian emptyGraph
     (russianNormalizedId , g2) = addExpr russianNormalized g1
     (scottErshovId , g3) = addExpr scottErshov g2
     (scottErshovNormalizedId , g4) = addExpr scottErshovNormalized g3
-    (bishopId , g5) = addExpr bishop g4
-    (bishopNormalizedId , g6) = addExpr bishopNormalized g5
-    (saturated , report) = saturateUntilStable semanticRewriteRules g6
+    (saturated , report) = saturateUntilStable semanticRewriteRules g4
   in
   saturationComplete report
     && equivalent russianId russianNormalizedId saturated
     && equivalent scottErshovId scottErshovNormalizedId saturated
-    && equivalent bishopId bishopNormalizedId saturated
 
 constructivistPostulateRegression-proof :
   constructivistPostulateRegression ≡ True
@@ -1038,7 +1017,6 @@ eGraphAssociativityRegression-proof = refl
 {-# COMPILE AGDA2HS emptyLeftRule #-}
 {-# COMPILE AGDA2HS russianConstructivismPostulateRule #-}
 {-# COMPILE AGDA2HS scottErshovDenotationalSemanticsPostulateRule #-}
-{-# COMPILE AGDA2HS bishopConstructivismPostulateRule #-}
 {-# COMPILE AGDA2HS constructivistPostulateRegression #-}
 {-# COMPILE AGDA2HS equivalent #-}
 {-# COMPILE AGDA2HS merge #-}
