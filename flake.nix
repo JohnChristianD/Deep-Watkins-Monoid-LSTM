@@ -765,7 +765,25 @@ PY
                   -main-is FullCoupled.Agda2HsSemanticSearch.main \
                   -o "$out/agda2hs-semantic-search" \
                   "$out/FullCoupled/Agda2HsSemanticSearch.hs"
-                "$out/agda2hs-semantic-search" > "$out/report.txt"
+                progress="$out/progress.txt"
+                rm -f "$progress"
+                "$out/agda2hs-semantic-search" > "$out/report.txt" &
+                search_pid=$!
+                last_stage=""
+                while kill -0 "$search_pid" 2>/dev/null; do
+                  if test -f "$progress"; then
+                    stage=$(cat "$progress")
+                    if [ "$stage" != "$last_stage" ]; then
+                      printf 'semantic-search-progress=%s\\n' "$stage"
+                      last_stage="$stage"
+                    fi
+                  fi
+                  sleep 2
+                done
+                wait "$search_pid"
+                if test -f "$progress"; then
+                  printf 'semantic-search-progress=%s\\n' "$(cat "$progress")"
+                fi
                 cat "$out/report.txt"
                 grep -Fq "True" "$out/report.txt"
                 grep -E '^theorem-graph-edges=[1-9][0-9]* autonomous-depth-first-chains=[1-9][0-9]*$' "$out/report.txt"
