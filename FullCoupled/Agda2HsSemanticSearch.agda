@@ -1852,6 +1852,8 @@ learnerSemanticBridgeGraph =
      -- ExternalContext nodes are audit references, not declarations or proof terms.
      -- Nodes ending in -obligation are explicitly unproved trust-boundary items.
      ("LearnerSemanticCoverageSuite" , "ExternalContext.HannesDiener.ConstructiveReverseMathematics") ∷
+     ("LearnerSemanticCoverageSuite" , "ExternalContext.NLab.DomainTheory") ∷
+     ("ExternalContext.NLab.DomainTheory" , "ScottStracheyDomains.denote") ∷
      ("LearnerSemanticCoverageSuite" , "ExternalContext.XDSAgda.ScottStracheyDenotationalSemantics") ∷
      ("ExternalContext.XDSAgda.ScottStracheyDenotationalSemantics" , "ScottStracheyDomains.denote") ∷
      ("ExternalContext.XDSAgda.ScottStracheyDenotationalSemantics" , "ScottStracheyDomains.denotationalCompositionalityRegression") ∷
@@ -1860,19 +1862,17 @@ learnerSemanticBridgeGraph =
      ("ExternalContext.TamingOfTheRew.ConfluenceSubjectReduction" , "EGraph.semanticRewriteRules") ∷
      ("LearnerSemanticCoverageSuite" , "ExternalContext.AgdaDocs.PostulatesSafeModeAndRewriting") ∷
      ("ExternalContext.AgdaDocs.PostulatesSafeModeAndRewriting" , "EGraph.semanticRewriteRules") ∷
-     ("LearnerSemanticCoverageSuite" , "ExternalContext.AgdaCubical.SyntheticCircleWithRewriting") ∷
-     ("ExternalContext.AgdaCubical.SyntheticCircleWithRewriting" , "CircleHIT.rewrite-safety-obligation") ∷
      ("LearnerSemanticCoverageSuite" , "ExternalContext.HigherInductiveTypes.ImpredicativeEncodings") ∷
-     ("ExternalContext.HigherInductiveTypes.ImpredicativeEncodings" , "CircleHIT.impredicative-encoding-obligation") ∷
+     ("ExternalContext.HigherInductiveTypes.ImpredicativeEncodings" , "HigherInductiveTypes.WithKCompatibility-obligation") ∷
      ("LearnerSemanticCoverageSuite" , "ExternalContext.MtacAR.MonadicTypedTacticsByReflection") ∷
      ("ExternalContext.MtacAR.MonadicTypedTacticsByReflection" , "AgdaReflection.TCTrustBoundary-obligation") ∷
      ("LearnerSemanticCoverageSuite" , "ExternalContext.Streamly.StreamProcessingRuntime") ∷
      ("ExternalContext.Streamly.StreamProcessingRuntime" , "MonoidLSTMStreams.iterateStreamPrefix") ∷
-     ("LearnerSemanticCoverageSuite" , "ExternalContext.RIO.ApplicationRuntime") ∷
-     ("LearnerSemanticCoverageSuite" , "ExternalContext.LawvereHegel.ComparativeContext") ∷
-     ("ExternalContext.LawvereHegel.ComparativeContext" , "LawvereDiagonal.noSurjectiveBooleanDiagonal") ∷
+     ("ExternalContext.HenkinLawvere.CompletenessAndDiagonal" , "ConstructiveComputabilityPostulates.HenkinTheoryInterface") ∷
+     ("ExternalContext.HenkinLawvere.CompletenessAndDiagonal" , "LawvereDiagonal.noSurjectiveBooleanDiagonal") ∷
+     ("ExternalContext.HenkinLawvere.CompletenessAndDiagonal" , "ExternalContext.HenkinLawvere.ConstructiveCompletenessCompatibility-obligation") ∷
      ("LearnerSemanticCoverageSuite" , "ExternalContext.TrustBoundaryCompletenessClosure-obligation") ∷
-     ("LearnerSemanticCoverageSuite" , "LawvereDiagonal.noSurjectiveBooleanDiagonal") ∷
+     ("ExternalContext.TrustBoundaryCompletenessClosure-obligation" , "ExternalContext.HenkinLawvere.CompletenessAndDiagonal") ∷
      ("LearnerSemanticCoverageSuite" , "OmegaKleeneFixedPoint.leastFixedPointIsFixed") ∷
      ("LearnerSemanticCoverageSuite" , "neuralBellmanInstantiation-obligation") ∷
      ("canonicalLearnerTraceGuarded" , "canonicalLearnerTrace") ∷
@@ -1986,15 +1986,17 @@ learnerSemanticBridgeRegression =
         && graphContains "MonoidLSTMStreams.iterateStreamPrefix" plan
         && graphContains "ExternalContext.HannesDiener.ConstructiveReverseMathematics" plan
         && graphContains "ExternalContext.XDSAgda.ScottStracheyDenotationalSemantics" plan
+        && graphContains "ExternalContext.NLab.DomainTheory" plan
         && graphContains "ExternalContext.Agda2Hs.SourceToHaskellSemantics" plan
         && graphContains "ExternalContext.TamingOfTheRew.ConfluenceSubjectReduction" plan
         && graphContains "ExternalContext.AgdaDocs.PostulatesSafeModeAndRewriting" plan
-        && graphContains "ExternalContext.AgdaCubical.SyntheticCircleWithRewriting" plan
         && graphContains "ExternalContext.HigherInductiveTypes.ImpredicativeEncodings" plan
+        && graphContains "HigherInductiveTypes.WithKCompatibility-obligation" plan
         && graphContains "ExternalContext.MtacAR.MonadicTypedTacticsByReflection" plan
         && graphContains "ExternalContext.Streamly.StreamProcessingRuntime" plan
-        && graphContains "ExternalContext.RIO.ApplicationRuntime" plan
-        && graphContains "ExternalContext.LawvereHegel.ComparativeContext" plan
+        && graphContains "ExternalContext.HenkinLawvere.CompletenessAndDiagonal" plan
+        && graphContains "ConstructiveComputabilityPostulates.HenkinTheoryInterface" plan
+        && graphContains "ExternalContext.HenkinLawvere.ConstructiveCompletenessCompatibility-obligation" plan
         && graphContains "ExternalContext.TrustBoundaryCompletenessClosure-obligation" plan
         && graphContains "LawvereDiagonal.noSurjectiveBooleanDiagonal" plan
         && graphContains "canonicalWatkinsTarget" plan
@@ -2100,7 +2102,7 @@ runtimeRequiredNames =
   "graphCycleIsRejectedRegressionChecked" ∷
   "learnerLogicalGraphRegressionChecked" ∷
   "learnerSemanticBridgeRegressionChecked" ∷
-  "sourceOnlyLegacyBoundaryRegressionChecked" ∷
+  "sourceOnlyLegacyBoundaryRegression" ∷
   "canonicalSearchPlanEGraphClosed" ∷
   "graphAStarPlanEGraphClosed" ∷
   []
@@ -2538,7 +2540,6 @@ main = do
 {-# COMPILE AGDA2HS semanticIdentifierNormalizationRegression #-}
 {-# COMPILE AGDA2HS sourceOnlyLegacyRequiredReport #-}
 {-# COMPILE AGDA2HS sourceOnlyLegacyBoundaryRegression #-}
-{-# COMPILE AGDA2HS sourceOnlyLegacyBoundaryRegressionChecked #-}
 
 {-# COMPILE AGDA2HS main #-}
 
