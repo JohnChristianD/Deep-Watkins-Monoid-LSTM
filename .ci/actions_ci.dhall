@@ -35,74 +35,77 @@ Graph semantics:
     a path search can still be expensive; the CI pass is correctness evidence
     for checked fixtures, not a runtime performance benchmark.
 
-Constructive foundations:
-  * Current status: the repository is NOT yet certified globally Russian- or
-    Bishop-constructive. The learner monolith postulates Markov's principle,
-    Church's thesis for its register-machine model, and proposition-valued
-    countable choice. The theorem monolith also contains Circle/quotient/
-    observational-equality interfaces and a Brouwer-relative Nash boundary;
-    these assumptions and their rewrite rules need an explicit consistency and
-    dependency audit before making a global constructive claim.
-  * Treat Markov's principle, Church's thesis, and choice principles as named
-    assumptions with explicit scopes. Do not introduce excluded middle or
-    strong computability principles globally. RUSS is an axiom/profile choice,
-    not a synonym for classical logic. Bishop-style existence should carry a
-    witness and evidence, not a bare existential postulate.
-  * Existing reflection automation such as apply-cong remains inside the
-    theorem monolith. Generated proof terms still have to type-check.
-  * Prune a theorem only when its proof/dependency relation shows it is
-    duplicate or dominated; don't infer redundancy from similar names.
-  * Certification is profile-specific, not a single blended Boolean. Record
-    separate BISH and RUSS dependency results for each exported theorem:
-      - BISH: intuitionistic core and witness-bearing existence; no unapproved
-        Markov principle or RUSS computability axiom may enter a theorem's
-        transitive proof dependencies.
-      - RUSS: intuitionistic logic plus the explicitly declared recursive/
-        computability principles; MP, Church's thesis, and choice must remain
-        scoped, named, and tracked in the proof-dependency graph.
-    A theorem may be certified under both profiles only if it has two audited
-    dependency derivations. An axiom appearing somewhere in a monolith is a
-    blocker for global certification until dependency closure proves which
-    declarations actually depend on it; do not guess reachability.
-  * Required global audit: enumerate every project-owned postulate and
-    primitive, every REWRITE rule, builtin/TC escape interface, unsafe option,
-    imported trusted theorem/module, and unresolved meta; map each theorem's
-    transitive dependencies to those sources; keep witness/existence claims
-    distinct from executable computation. A successful build is necessary,
-    not sufficient. Any unclassified axiom or missing dependency edge leaves
-    global certification BLOCKED.
-  * Current source inspection confirms named RUSS postulates under
-    ConstructiveComputabilityPostulates (Markov's principle, register-machine
-    Church's thesis, proposition-valued countable choice), plus learner-side
-    Circle, quotient, and observational-equality interfaces with rewrite rules;
-    TheoremsMonolith has Agda reflection/TC builtin interfaces. This is a
-    verified inventory of known trust boundaries, not a complete dependency
-    graph and not a global certification.
-  * Foundational references used to define the profiles:
-      - Stanford Encyclopedia, Constructive Mathematics:
-        https://plato.stanford.edu/entries/mathematics-constructive/
-      - Stanford Encyclopedia, Fall 2024 archived edition:
-        https://plato.stanford.edu/archives/fall2024/entries/mathematics-constructive/
-      - Stanford Encyclopedia, Reverse Mathematics, Fall 2024 edition:
-        https://plato.stanford.edu/archives/sum2024/entries/reverse-mathematics/
-      - Bridges and Richman, Varieties of Constructive Mathematics, chapter 1:
-        https://www.cambridge.org/core/books/abs/varieties-of-constructive-mathematics/foundations-of-constructive-mathematics/0E529B7DDCD54FC6FD12EB2B0B3389EF
-      - Bridges and Richman, chapter 3 (RUSS):
-        https://www.cambridge.org/core/books/abs/varieties-of-constructive-mathematics/russian-constructive-mathematics/070A460B0528EC7D95B85A7EFCD48DD0
-      - Bridges and Richman, chapter 6 (contrasting varieties):
-        https://www.cambridge.org/core/books/abs/varieties-of-constructive-mathematics/contrasting-varieties/F7C6BBB9223A2CD602E8586A448EE29A
-      - nLab, Russian constructivism:
-        https://ncatlab.org/nlab/show/Russian%2Bconstructivism
-      - nLab, Bishop's constructive mathematics:
-        https://ncatlab.org/nlab/show/Bishop%27s+constructive+mathematics
-      - Wikibooks, Supplementary mathematics / Calculus, constructive analysis:
-        https://en.wikibooks.org/wiki/Supplementary_mathematics/Calculus
-    Wikibooks' page gives a broad existence-witness/LEM summary but is not a
-    sufficiently detailed authority for distinguishing BISH from RUSS. An
-    Internet Archive Wayback snapshot could not be retrieved during this audit;
-    it must not be cited as having been inspected. The Stanford Fall 2024 page
-    above is the publisher's own archive, not an Internet Archive snapshot.
+Constructive foundations — Russian constructivism (RUSS) only:
+  * Status: NOT GLOBALLY CERTIFIED. Certification is a theorem-dependency
+    claim, not a literature-survey claim or a source-text grep.
+  * RUSS uses intuitionistic logic together with a specifically scoped
+    recursive/computability interpretation. Markov's principle, Church's
+    thesis for the register-machine model, and proposition-valued countable
+    choice are named profile assumptions, not a blanket grant of classical
+    logic. Do not add excluded middle, LPO, or LLPO as global axioms.
+  * Audit every project-owned postulate and primitive, every REWRITE rule,
+    Agda builtin/reflection/TC interface, termination/positivity/universe
+    option, imported trusted theorem, unresolved meta, and all theorem
+    dependency edges. Prove that all exported theorem paths terminate only
+    at the declared RUSS assumptions or at separately justified Agda/compiler
+    primitives. Any unclassified trust boundary blocks global certification.
+  * The learner monolith has explicit Markov, register-machine Church's thesis,
+    proposition-valued countable choice, Circle/HIT, quotient and observational
+    equality interfaces plus rewrite rules. The theorem monolith contains
+    Agda reflection and TC builtin compatibility postulates. These are known
+    trust boundaries, not a complete dependency proof. A successful build is
+    necessary but cannot establish RUSS certification by itself.
+  * Do not maintain a parallel Bishop certification track. Use no claims about
+    Bishop certification as a release gate; keep this audit focused on RUSS.
+  * Remove the previous O(n^2) source-signature "redundancy" scan. Equal
+    signature text is not proof that one theorem follows from another. Delete
+    theorem statements only when a typed proof/dependency review establishes
+    logical redundancy and repository-wide reference analysis shows no
+    external use.
 
+  Foundational and implementation references:
+    - Stanford Encyclopedia of Philosophy, Constructive Mathematics:
+      https://plato.stanford.edu/entries/mathematics-constructive/
+    - Stanford Encyclopedia, Reverse Mathematics:
+      https://plato.stanford.edu/entries/reverse-mathematics/
+    - Jesper Cockx, Rewriting type theory:
+      https://jesper.sikanda.be/posts/rewriting-type-theory.html
+    - Agda 2.8 Postulates:
+      https://agda.readthedocs.io/en/v2.8.0/language/postulates.html
+    - Agda 2.8 Safe Agda:
+      https://agda.readthedocs.io/en/v2.8.0/language/safe-agda.html
+    - Agda 2.8 Rewriting:
+      https://agda.readthedocs.io/en/v2.8.0/language/rewriting.html
+    - Hackage Agda package:
+      https://hackage-content.haskell.org/package/Agda
+    - Hackage agda2hs package:
+      https://hackage-content.haskell.org/package/agda2hs-1.4
+    - agda2hs documentation:
+      https://agda.github.io/agda2hs/
+    - Martin Escardo and collaborators, Type-Theoretic Approaches to Ordinals:
+      https://arxiv.org/abs/2208.03844
+    - Nicolai Kraus, Fredrik Nordvall Forsberg, Chuangjie Xu, Connecting
+      Constructive Notions of Ordinals in HoTT:
+      https://arxiv.org/abs/2104.02549
+    - nLab, Russian constructivism:
+      https://ncatlab.org/nlab/show/Russian%2Bconstructivism
+    - Wikibooks, Supplementary mathematics / Calculus:
+      https://en.wikibooks.org/wiki/Supplementary_mathematics/Calculus
+    - Stanford Encyclopedia archived edition (Fall 2024):
+      https://plato.stanford.edu/archives/fall2024/entries/mathematics-constructive/
+    - Internet Archive Wayback Machine:
+      https://web.archive.org/
+
+  Source-scope notes:
+    The Stanford Encyclopedia is the primary conceptual source for distinguishing
+    RUSS and the role of Markov's principle/Church's thesis. Agda/Cockx sources
+    define proof-kernel trust boundaries, not RUSS itself. Hackage/Agda2HS docs
+    specify extraction/toolchain boundaries only. Escardo/Kraus provide
+    constructive type-theory and Agda context, not a direct certification of
+    this repository. "Han" is ambiguous from surname alone; no relevant work
+    was attributed without a title or URL. A live Wayback CDX snapshot request
+    was not accessible during this run, so no particular Wayback capture is
+    claimed to have been inspected.
 Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
@@ -283,7 +286,394 @@ let script = merge {
     grep -Fq 'egraph-regression=True egraph-associativity-regression=True' "$report"
     grep -Fq 'canonical-search-egraph-closed=True' "$report"
     grep -Fq 'haskell-minus-one-A*=2 proof-backed laws; legacy monolith excluded from pure build' "$report"
-    grep -E '^agda2hs-semantic-port=[1-9][0-9]* signature-candidate edges; 5 known redundancy candidates; [1-9][0-9]*/[1-9][0-9]* required plans e-graph-closed; learner-obligations=[0-9]+/[0-9]+; learner-static-graph=(True|False)$' "$report"
+    grep -E '^agda2hs-semantic-port=heuristic-signature-scan-disabled; [1-9][0-9]*/[1-9][0-9]* required plans e-graph-closed; learner-obligation-roots=[0-9]+; learner-static-graph=(True|False)
+    grep -Fq 'proofKernel=Agda' "$manifest"
+    grep -Fq 'searchKernel=Agda2Hs' "$manifest"
+    grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
+    nix run .#agda2hs-graph-search-check
+    nix run .#scott-strachey-domain-check
+    nix run .#monoid-lstm-stream-check
+    echo 'agda-semantic-discovery=pass'
+    '',  EconlibCrossrepo = ''
+    set -euo pipefail
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    git clone --quiet --depth 1 https://github.com/danlyng/Econlib.git "$tmp/Econlib"
+    econlib_rev=$(git -C "$tmp/Econlib" rev-parse HEAD)
+
+    upstream_economy="$tmp/Econlib/Econlib/Equilibrium/Economy.lean"
+    upstream_existence="$tmp/Econlib/Econlib/Equilibrium/Existence.lean"
+    upstream_markov="$tmp/Econlib/EconlibExamples/Equilibrium/MarkovStationary.lean"
+    local_theorem="FullCoupled/TheoremsMonolith.agda"
+
+    grep -Fq 'structure WalrasianEquilibrium' "$upstream_economy"
+    grep -Fq 'theorem exists_equilibrium' "$upstream_existence"
+    grep -Fq 'Nonempty E.WalrasianEquilibrium' "$upstream_existence"
+    grep -Fq 'stationary Walrasian equilibrium' "$upstream_markov"
+
+    grep -Fq 'GeneralizedWalrasianData' "$local_theorem"
+    grep -Fq 'MegaGeneralizedWalrasianEquilibrium' "$local_theorem"
+    grep -Fq 'GeneralizedWalrasianExistence' "$local_theorem"
+    grep -Fq 'CanonicalLearnerHodgeMaxwellCompositionTheorem' "$local_theorem"
+    grep -Fq 'CanonicalLearnerHodgeMaxwellCompositionTheorem' "$local_theorem"
+
+    adapter_present=false
+    adapter_dhall=False
+    if grep -Eiq 'Econlib|exists_equilibrium' "$local_theorem"; then
+      adapter_present=true
+      adapter_dhall=True
+    fi
+
+    mkdir -p .ci/discovery
+    {
+      printf '%s\n' '{'
+      printf '  econlib_repo = "danlyng/Econlib",\n'
+      printf '  econlib_commit = "%s",\n' "$econlib_rev"
+      printf '  upstream_static_existence = "Economy.exists_equilibrium",\n'
+      printf '  upstream_equilibrium_object = "Economy.WalrasianEquilibrium",\n'
+      printf '  local_mega_equilibrium_target = "GeneralizedWalrasianExistence",\n'
+      printf '  local_composition_target = "CanonicalLearnerHodgeMaxwellCompositionTheorem",\n'
+      printf '  local_mega_edge = "MegaGeneralizedWalrasianEquilibrium",\n'
+      printf '  adapter_present = %s,\n' "$adapter_present"
+      printf '  composition_path = ["Econlib::Economy.exists_equilibrium", "Actions::MegaGeneralizedWalrasianEquilibrium", "Actions::CanonicalLearnerHodgeMaxwellCompositionTheorem"],\n'
+      printf '  graph_status = "composition-ready; explicit cross-language adapter still required"\n'
+      printf '%s\n' '}'    } > .ci/discovery/econlib-crossrepo-sync.dhall
+
+    dhall text --file .ci/discovery/econlib-crossrepo-sync.dhall >/dev/null
+    grep -Fq 'upstream_static_existence = "Economy.exists_equilibrium"' .ci/discovery/econlib-crossrepo-sync.dhall
+    grep -Fq 'local_composition_target = "CanonicalLearnerHodgeMaxwellCompositionTheorem"' .ci/discovery/econlib-crossrepo-sync.dhall
+    echo "econlib-crossrepo-sync=pass"
+    echo "econlib-commit=$econlib_rev"
+    echo "adapter-present=$adapter_present"
+    '',
+  EconlibEquilibriumSearch = ''
+    set -euo pipefail
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    git clone --quiet --depth 1 https://github.com/danlyng/Econlib.git "$tmp/Econlib"
+    econlib_rev=$(git -C "$tmp/Econlib" rev-parse HEAD)
+
+    root="$tmp/Econlib"
+    local_theorem="FullCoupled/TheoremsMonolith.agda"
+
+    files=(
+      "$root/Econlib/Equilibrium/Economy.lean"
+      "$root/Econlib/Equilibrium/Existence.lean"
+      "$root/Econlib/Equilibrium/AggregateAccounting.lean"
+      "$root/Econlib/Probability/Markov/Ergodic.lean"
+      "$root/Econlib/GameTheory/ExtensiveForm/Core/Strategy.lean"
+      "$root/Econlib/GameTheory/ExtensiveForm/Refinements/BeliefSystem.lean"
+      "$root/Econlib/GameTheory/ExtensiveForm/Refinements/SequentialEquilibrium.lean"
+    )
+    for f in "''${files[@]}"; do
+      [ -f "$f" ] || { echo "missing upstream graph file: $f"; exit 1; }
+    done
+
+    grep -Fq 'RegularEconomy' "$root/Econlib/Equilibrium/Existence.lean"
+    grep -Fq 'theorem exists_equilibrium' "$root/Econlib/Equilibrium/Existence.lean"
+    grep -Fq 'WalrasianEquilibrium' "$root/Econlib/Equilibrium/Economy.lean"
+    grep -Fq 'StationaryWalrasianEquilibrium' "$root/Econlib/Equilibrium/AggregateAccounting.lean"
+    grep -Fq 'exists_stationary' "$root/Econlib/Probability/Markov/Ergodic.lean"
+    grep -Fq 'theorem geometric_convergence_to' "$root/Econlib/Probability/Markov/Ergodic.lean"
+    grep -Fq '0 < P.transition' "$root/Econlib/Probability/Markov/Ergodic.lean"
+
+    grep -Fq 'BehavioralStrategy' "$root/Econlib/GameTheory/ExtensiveForm/Core/Strategy.lean"
+    grep -Fq 'BeliefSystem' "$root/Econlib/GameTheory/ExtensiveForm/Refinements/BeliefSystem.lean"
+    grep -Fq 'SequentialEquilibrium' "$root/Econlib/GameTheory/ExtensiveForm/Refinements/SequentialEquilibrium.lean"
+
+    grep -Fq 'GeneralizedWalrasianData' "$local_theorem"
+    grep -Fq 'GeneralizedWalrasianExistence' "$local_theorem"
+    grep -Fq 'MegaGeneralizedWalrasianEquilibrium' "$local_theorem"
+    grep -Fq 'CanonicalLearnerHodgeMaxwellCompositionTheorem' "$local_theorem"
+
+    pomdp_named=false
+    pomdp_named_dhall=False
+    grep -Riq 'POMDP|partially observable' "$root/Econlib" && pomdp_named=true && pomdp_named_dhall=True || true
+
+    mkdir -p .ci/discovery
+    {
+      printf '%s\n' '{'
+      printf '  econlib_repo = "danlyng/Econlib",\n'
+      printf '  econlib_commit = "%s",\n' "$econlib_rev"
+      printf '  benchmark_regular_assumption = "Econlib::RegularEconomy",\n'
+      printf '  benchmark_static_existence = "Econlib::Economy.exists_equilibrium",\n'
+      printf '  non_iid_transition = "arbitrary Markov/kernel transition",\n'
+      printf '  stationary_law_node = "FiniteMarkovChain.exists_stationary",\n'
+      printf '  stationary_law_convergence_node = "FiniteMarkovChain.geometric_convergence_to",\n'
+      printf '  stationary_law_convergence_condition = "strictly positive transition probabilities",\n'
+      printf '  stationary_equilibrium_node = "MarkovExchangeEconomy.StationaryWalrasianEquilibrium",\n'
+      printf '  local_mega_edge = "MegaGeneralizedWalrasianEquilibrium",\n'
+      printf '  local_composition = "CanonicalLearnerHodgeMaxwellCompositionTheorem",\n'
+      printf '  partial_observation_nodes = ["BehavioralStrategy", "BeliefSystem", "SequentialEquilibrium"],\n'
+      printf '  pomdp_named_in_econlib = %s,\n' "$pomdp_named"
+      printf '  composition_path = ["Econlib::RegularEconomy", "Econlib::Economy.exists_equilibrium", "Actions::MegaGeneralizedWalrasianEquilibrium", "Actions::CanonicalLearnerHodgeMaxwellCompositionTheorem"],\n'
+      printf '  pomdp_bridge_status = "local POMDP belief-policy closure remains explicit; no filtering or optimality is inferred"\n'
+      printf '%s\n' '}'
+    } > .ci/discovery/econlib-equilibrium-graph.dhall
+
+    dhall text --file .ci/discovery/econlib-equilibrium-graph.dhall >/dev/null
+    grep -Fq 'benchmark_regular_assumption = "Econlib::RegularEconomy"' .ci/discovery/econlib-equilibrium-graph.dhall
+    grep -Fq 'non_iid_transition = "arbitrary Markov/kernel transition"' .ci/discovery/econlib-equilibrium-graph.dhall
+    grep -Fq 'pomdp_bridge_status = "local POMDP belief-policy closure remains explicit; no filtering or optimality is inferred"' .ci/discovery/econlib-equilibrium-graph.dhall
+    echo "econlib-equilibrium-search=pass"
+    echo "econlib-commit=$econlib_rev"
+    echo "pomdp-named-in-upstream=$pomdp_named"
+    '',
+  StrictExistenceImpossibility = ''
+    set -euo pipefail
+    grep -Fq 'megaNoEquilibriumGeneralizedWalrasian' FullCoupled/TheoremsMonolith.agda
+    grep -Fq 'noUnconditionalMegaGeneralizedWalrasianExistence' FullCoupled/TheoremsMonolith.agda
+    echo 'strict-existence-impossibility-graph=source-inventory-only'
+    '',  StationaryCycleImpossibility = ''
+    set -euo pipefail
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    git clone --quiet --depth 1 https://github.com/danlyng/Econlib.git "$tmp/Econlib"
+
+    theorem=FullCoupled/TheoremsMonolith.agda    ergodic="$tmp/Econlib/Econlib/Probability/Markov/Ergodic.lean"
+
+    grep -Fq 'canonicalNoNontrivialFiniteCycle-theorem' "$theorem"
+    grep -Fq 'canonicalNoFiniteStepConvergenceToFixedPoint' "$theorem"
+    grep -Fq 'isomorphismNoFiniteCycleTransport' "$theorem"
+    grep -Fq 'exists_stationary' "$ergodic"
+    grep -Fq 'theorem geometric_convergence_to' "$ergodic"
+    grep -Fq '0 < P.transition' "$ergodic"
+
+    mkdir -p .ci/discovery
+    cat > .ci/discovery/stationary-cycle-impossibility-graph.dhall <<'DHALL'
+{
+  rule = "FINITE_DETERMINISTIC_CYCLE_HAS_STATIONARY_WITNESS_BUT_IS_EXCLUDED",
+  terminalStatus = "IMPOSSIBILITY",
+  requiresExactFiniteDeterministicProjection = True,
+  stationaryDistributionWitness = {
+    type = "uniform_cycle_measure",
+    statement = "For a deterministic cycle of length m>0, the uniform probability law on the cycle is stationary for the induced deterministic Markov kernel.",
+    use = "witness_only"
+  },
+  upstreamStationaryLaw = {
+    theorem = "Econlib::FiniteMarkovChain.exists_stationary",
+    role = "independent finite-state existence fact; it does not imply that a cycle exists"
+  },
+  convergenceGuard = {
+    theorem = "Econlib::FiniteMarkovChain.geometric_convergence_to",
+    condition = "strictly positive transition probabilities",
+    role = "separate conditional convergence result; not used to claim convergence of an arbitrary deterministic cycle"
+  },
+  nodes = [
+    "Agda::finiteOrbit-collision",
+    "deterministic finite recurrent cycle",
+    "uniform cycle stationary law",
+    "Econlib::FiniteMarkovChain.exists_stationary",
+    "Econlib::FiniteMarkovChain.geometric_convergence_to",
+    "Agda::canonicalNoNontrivialFiniteCycle-theorem",
+    "Agda::canonicalNoFiniteStepConvergenceToFixedPoint"
+  ],
+  edges = [
+    { source = "finiteOrbit-collision", target = "eventual periodic orbit", reason = None Text },
+    { source = "eventual periodic orbit", target = "deterministic finite recurrent cycle", reason = None Text },
+    { source = "deterministic finite recurrent cycle", target = "uniform cycle stationary law", reason = None Text },
+    { source = "Econlib::FiniteMarkovChain.exists_stationary", target = "stationary distribution", reason = Some "independent existence witness" },
+    { source = "Econlib::FiniteMarkovChain.geometric_convergence_to", target = "quantitative convergence", reason = Some "requires strict positivity" },
+    { source = "deterministic finite recurrent cycle", target = "canonicalNoNontrivialFiniteCycle-theorem", reason = Some "contradiction" },
+    { source = "period-1 recurrent cycle", target = "canonicalNoFiniteStepConvergenceToFixedPoint", reason = Some "contradiction" }
+  ],
+  logicGuard = "stationary-law existence is not itself an obstruction; the obstruction is the canonical no-cycle theorem",
+  isomorphismTransportNode = "Agda::isomorphismNoFiniteCycleTransport",
+  isomorphismTransportRole = "exact conjugacy preserves finite-cycle exclusion on the isomorphic state space",
+  status = "strict graph: no third terminal status"
+}
+DHALL
+    dhall text --file .ci/discovery/stationary-cycle-impossibility-graph.dhall >/dev/null
+    grep -Fq 'terminalStatus = "IMPOSSIBILITY"' .ci/discovery/stationary-cycle-impossibility-graph.dhall
+    grep -Fq 'stationaryDistributionWitness = {' .ci/discovery/stationary-cycle-impossibility-graph.dhall
+    grep -Fq 'type = "uniform_cycle_measure"' .ci/discovery/stationary-cycle-impossibility-graph.dhall
+    grep -Fq 'logicGuard = "stationary-law existence is not itself an obstruction; the obstruction is the canonical no-cycle theorem"' .ci/discovery/stationary-cycle-impossibility-graph.dhall
+    grep -Fq 'requiresExactFiniteDeterministicProjection = True' .ci/discovery/stationary-cycle-impossibility-graph.dhall
+    grep -Fq 'status = "strict graph: no third terminal status"' .ci/discovery/stationary-cycle-impossibility-graph.dhall
+    ! grep -Eiq 'frontier|unknown|vague|unresolved|pending' .ci/discovery/stationary-cycle-impossibility-graph.dhall
+    echo "stationary-cycle-impossibility-graph=pass"
+    '',
+  IsomorphismTransport = ''
+    set -euo pipefail
+    grep -Fq 'isomorphismEqualityTransport' FullCoupled/TheoremsMonolith.agda
+    grep -Fq 'isomorphismDisequalityTransport' FullCoupled/TheoremsMonolith.agda
+    grep -Fq 'isomorphismIterateConjugacy' FullCoupled/TheoremsMonolith.agda
+    grep -Fq 'isomorphismNoFiniteCycleTransport' FullCoupled/TheoremsMonolith.agda
+    echo 'isomorphism-transport-closure=source-inventory-only'
+    '',  SemanticContract = ''
+    set -euo pipefail
+    theorem=FullCoupled/TheoremsMonolith.agda
+    learner=FullCoupled/CanonicalLearnerMonolith.agda
+    nix run .#agda-import-sync -- --check
+    required='
+    canonical-recurrent-prefix-monoid-homomorphism
+    canonicalF4-prefix-monoid-homomorphism
+    
+    canonicalGRUF4-prefix-monoid-homomorphism
+    canonicalFullStep-GRUF4-prefix-bridge
+    freeMonoidActionHomomorphism-from-square
+    canonicalCount-freeMonoidActionHomomorphism
+    canonicalNoNontrivialFiniteCycle-theorem
+    StateIsomorphism
+    canonicalDeterministicFiniteStepDivergenceInevitability
+    canonicalNoFiniteStepConvergenceToFixedPoint
+    CanonicalGlobalTokenEncodingConjugacyTheorem
+    canonical-global-token-encoding-conjugacy
+    CanonicalIntegerGRUTokenEncodingLeftInverse
+    canonical-integer-gru-token-encoding-left-inverse
+    canonicalIntegerGRUTokenEncodingInjective
+    canonicalIntegerGRUTokenEncoding-continuous-discrete
+    CanonicalIntegerGRUGlobalConjugateTheorem
+    canonical-integer-gru-global-conjugate-theorem
+    CanonicalGlobalTokenLMCompositionTheorem
+    canonical-global-token-lm-composition-theorem
+    canonicalToken-prefix-monoid-homomorphism
+    canonicalTokenLogitTrace-append
+    CanonicalExactRNNLMTheorem
+    canonical-exact-rnn-lm-theorem
+    CanonicalIntegerHaarScaledOrthogonalityTheorem
+    canonical-integer-haar-scaled-orthogonality-theorem
+    CanonicalHaarRecurrentCompositionTheorem
+    canonical-haar-recurrent-composition-theorem
+    CanonicalLearnerPermutationCompositionImpossibilityTheorem
+    canonical-learner-permutation-composition-impossibility-theorem
+    CanonicalFullCompositionGraphTheorem
+    canonical-full-composition-graph-theorem
+    CanonicalAStarCostGuidanceTheorem
+    CanonicalEndogenousEGraphAStarTransportClosureTheorem
+    eGraphAStarConvergenceSemanticClosure
+    eGraphAStarEventualStableFromRank
+    eGraphAStarStablePathPersists
+    eGraph-path-trans
+    CanonicalIntegerLayerNormEGraphAStarTheorem
+    integerLayerNorm-a-star-semantic-closure
+    canonical-a-star-cost-guidance-theorem
+    recurrentPrefix-scan-lifts-conjugacy
+    canonical-recurrent-scan-conjugacy-theorem
+    CanonicalFullLearnerConnectedScanConjugacyTheorem
+    canonical-full-learner-connected-scan-conjugacy-theorem
+    canonicalExactCompositionTuringCompletenessContract-impossible
+    CanonicalFiniteCycleExclusionIsomorphismTheorem
+    CanonicalOperatorCompositionTheorem
+    canonical-operator-composition-theorem
+    CanonicalPureNonOrangeBypassCompletionTheorem
+    CanonicalStationarySubcompositionTheorem
+    ExactContractComputabilityBoundaryTheorem
+    exact-contract-computability-boundary-theorem
+    megaParetoOptimal
+    MegaSecondWelfareTheoremBoundaryCounterexample
+    megaSecondWelfareTheorem-boundary-counterexample
+    megaNoStrictAffordableAlternative-is-demand-optimality
+    nLabMaxwellEulerLagrangeShell-equivalence
+    nLabMaxwellFourLawOneStepClosed
+    nLabMaxwellIterateConjugacyClosed
+    CanonicalGlobalTokenEncodingConjugacyTheorem
+    CanonicalGlobalTokenLMCompositionTheorem
+    
+    CanonicalExactRNNLMTheorem
+    canonicalLearnerBairdSevenStar
+    canonicalGRUStatisticalEncodeLeftInverse
+    leftInverse-implies-injective
+    canonicalGRUStatisticalEncodeInjective
+    JAXExecutionMirrorReproof
+    jaxVmapAffine
+    jaxAssociativePrefixSum
+    jaxRecurrentScan
+    jaxLexicographicScoreOrder
+    jaxSparseSupportSize
+    jaxSparseSupportTopK
+    jaxSparsemaxPolicyIndex
+    jaxIntegerLayerNormCenteredNumerators
+    jaxIntegerLayerNormRadicand
+    jaxBatchedIntegerLayerNormRadicand
+    jaxSignedGate
+    jaxGRUHiddenStep
+    jaxBatchedGRUHiddenStep
+    jaxTsallis2NearSparsityFraction
+    jaxSupportSparsityFraction
+    jaxJittedScanSum
+    JAXExecutionMirrorReproof
+    discreteExactUniversalUAPFromLeftInverse
+    '
+    while IFS= read -r symbol; do
+      [ -z "$symbol" ] || grep -Fq "$symbol" "$theorem" || { echo "missing theorem symbol: $symbol"; exit 1; }
+    done <<< "$required"
+    [ ! -f .ci/discovery/learner_semantic_manifest.m ] || { echo "generated semantic lookup table present"; exit 1; }
+    [ ! -f .ci/discovery/learner-semantic-laws.tsv ] || { echo "generated semantic law artifact present"; exit 1; }
+    grep -Eiq 'walsh|rope|target-network|target_network|target network|normalization|regularization' "$learner" && { echo "forbidden semantic term present"; exit 1; } || true
+    grep -Fq 'open import FullCoupled.CanonicalLearnerMonolith as C' "$theorem" || { echo "non-canonical theorem source"; exit 1; }
+    grep -Fq 'neuralPolicyGreedyTwoEpsilonRegret' "$learner" || { echo "missing two-epsilon greedy regret theorem"; exit 1; }
+    '',
+  Surface = ''
+    set -euo pipefail
+    count=$(git ls-files '*Monolith.agda' | wc -l)
+    [ "$count" -eq 2 ] || { echo "expected exactly two Agda monoliths, found $count"; exit 1; }
+    agda_count=$(git ls-files '*.agda' | wc -l)
+    [ "$agda_count" -eq 15 ] || { echo "expected exactly fifteen tracked Agda sources, found $agda_count"; exit 1; }
+    [ -f FullCoupled/CanonicalLearnerMonolith.agda ] || { echo "missing canonical learner monolith"; exit 1; }
+    [ -f FullCoupled/TheoremsMonolith.agda ] || { echo "missing theorem monolith"; exit 1; }
+    imports=$(git ls-files '*.agda' | xargs grep -hE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+' || true)
+    ! printf '%s\n' "$imports" | grep -E '(^|[[:space:]])(Fin|.*[.]Fin)([.]|[[:space:]]|$)|(^|[[:space:]])(Vec|.*[.]Vec)([.]|[[:space:]]|$)|(^|[[:space:]])Data[.]|(^|[[:space:]])Agda[.]Prelude([[:space:]]|$)' || { echo "forbidden Fin/Vec/stdlib/agda-prelude import present"; exit 1; }
+    [ -f .ci/actions_ci.dhall ] || { echo "missing Dhall orchestrator"; exit 1; }
+    ! git ls-files '*.json' | grep -q . || { echo "JSON source/artifact remains"; exit 1; }
+    ! find .ci/discovery -type f -name '*.json' -print -quit | grep -q . || { echo "generated JSON artifact remains"; exit 1; }
+    retired='evolutionary-search|evolutionary algorithm|sparsemax2pair|fixedtemperaturesparsemax|actionscore|policyleftweight|tsts|gresher'
+    md_link_found=0
+    while IFS= read -r md; do
+      if grep -Eq '\\]\\(|https?://' "$md"; then
+        echo "Markdown link found outside the Elm presentation: $md"
+        md_link_found=1
+      fi
+    done < <(git ls-files '*.md' '*.markdown')
+    [ "$md_link_found" -eq 0 ] || { echo "Markdown links are forbidden outside Elm sites"; exit 1; }
+    ! git ls-files -z | xargs -0 grep -Eil "$retired" 2>/dev/null | grep -q . || { echo "retired semantic term present"; exit 1; }
+    ! grep -nE '(^|[[:space:];])pkgs\.python3([[:space:]]|$)|(^|[[:space:];])python3([[:space:]]|$)|(^|[[:space:];])python([[:space:]]|$)|pkgs\.pythonPackages' flake.nix .ci/*.sh .ci/*.dhall .ci/lua/*.fnl 2>/dev/null || { echo "non-JAX Python toolchain reference present"; exit 1; }
+    ! grep -nE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+(MLTT\\.Fin|Data\\.Fin|Fin\\.Base|Data\\.Vec|Vec\\.Base)([[:space:]]|$)' -- *.agda FullCoupled/**/*.agda 2>/dev/null || { echo "Fin/Vec imports are forbidden; use Nat/List/Set instead"; exit 1; }
+    # Canonical proof/data surface: use Nat, Int/Integer, Rational, List, and Set-like structures.
+    # Keep Fin and Vec out of the project-owned Agda API; transitive library internals remain library concerns.
+    ! git ls-files '*.agda' -z | xargs -0 grep -nE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+((Fin|Vec)(\.|[[:space:]]|$)|[^[:space:]]+\.(Fin|Vec)(\.|[[:space:]]|$))' 2>/dev/null || { echo "Fin/Vec import introduced into project Agda sources"; exit 1; }
+    ! grep -nE 'Exotic/ERL/FullCoupled|Exotic/FullCoupled' FullCoupled/*.agda README.md site/Main.elm docs/*.md 2>/dev/null || { echo "stale Exotic source path present"; exit 1; }
+    '',
+  Versions = ''
+    set -euo pipefail
+    ghc --numeric-version
+    test -n "$(ghc --numeric-version)"
+    "$AGDA_COMMAND" --version
+    nix run .#fennel-smoke
+    dhall --version
+    z3 --version
+    emacs --version
+    emacs --batch --eval '(require (quote agda2-mode))'
+    '',
+  AutoMerge = ''
+    set -euo pipefail
+    : "''${GH_TOKEN:?GH_TOKEN is required}"
+    : "''${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
+    : "''${PR_NUMBER:?PR_NUMBER is required}"
+    gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
+    '',
+  All = ''
+    set -euo pipefail
+    nix run .#fennel-smoke
+    "$AGDA_COMMAND" --version
+    ghc --numeric-version
+    dhall --version
+    emacs --version
+    emacs --batch --eval '(require (quote agda2-mode))'
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSurface.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticExtractor.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsTheoremGraphEGraph.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticSearch.agda
+    "$AGDA_COMMAND" -i . FullCoupled/Agda2HsGraphSearchCheck.agda
+    nix run .#agda2hs-graph-search-check
+    nix run .#scott-strachey-domain-check
+    nix run .#monoid-lstm-stream-check
+    nix run .#agda2hs-semantic-search
+    echo 'agda-all=pass'
+  ''} lane
+
+in policyGate ++ "\n" ++ script
+ "$report"
     grep -Fq 'proofKernel=Agda' "$manifest"
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
