@@ -33,6 +33,24 @@ grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.n
   exit 1
 }
 
+# The repository-wide CI profile is an explicit, validated input.
+grep -Fxq 'profile=all' .ci/global.txt || {
+  echo "expected profile=all in .ci/global.txt" >&2
+  exit 1
+}
+
+# Fennel-synced monolith options prefer lossy unification over auto-inline.
+for monolith in FullCoupled/CanonicalLearnerMonolith.agda FullCoupled/TheoremsMonolith.agda; do
+  grep -Fxq -- '--lossy-unification' <(sed -n '1,/^#-}/p' "$monolith") || {
+    echo "expected --lossy-unification in $monolith options" >&2
+    exit 1
+  }
+  ! grep -Fxq -- '--auto-inline' <(sed -n '1,/^#-}/p' "$monolith") || {
+    echo "obsolete --auto-inline option remains in $monolith" >&2
+    exit 1
+  }
+done
+
 # One Dhall file owns policy text, workflow lanes and executable policy gates.
 test -f .ci/actions_ci.dhall
 ! test -e .ci/pure-formal-stack.md
