@@ -49,6 +49,26 @@ for forbidden in \
     exit 1
   }
 done
+
+# The monoliths deliberately opt into --with-K. Enforce this project's
+# non-cubical source path; this does not characterize all possible Agda setups.
+for monolith in FullCoupled/CanonicalLearnerMonolith.agda FullCoupled/TheoremsMonolith.agda; do
+  grep -Fq -- '--with-K' "$monolith" || {
+    echo "expected --with-K option in $monolith" >&2
+    exit 1
+  }
+  ! grep -Eq '^[[:space:]]*--cubical(=|$)' "$monolith" || {
+    echo "Cubical mode conflicts with selected --with-K path: $monolith" >&2
+    exit 1
+  }
+  ! grep -Eq '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+Cubical([.]|[[:space:]]|$)' "$monolith" || {
+    echo "direct Cubical import is not permitted in selected --with-K path: $monolith" >&2
+    exit 1
+  }
+done
+! grep -Fq 'GuardedCubical' FullCoupled/TheoremsMonolith.agda
+! grep -Fq 'cubical=no-glue' FullCoupled/TheoremsMonolith.agda
+
 grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.nix
 grep -Fq 'name = "fennel-smoke";' flake.nix
 grep -Fq 'name = "streamly-tools-check";' flake.nix
