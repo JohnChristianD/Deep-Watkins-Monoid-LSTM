@@ -1,3 +1,2 @@
---erasure
+--erasured-matches
 --no-projection-like
---verbose=1
