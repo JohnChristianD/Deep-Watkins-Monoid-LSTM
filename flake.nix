@@ -62,6 +62,7 @@
           pname = "ccforth";
           version = "0.3.2";
           src = archive;
+          sourceRoot = ".";
           dontConfigure = true;
           dontBuild = true;
           installPhase = ''
