@@ -25,13 +25,8 @@ grep -Fq 'github:NixOS/nixpkgs/' flake.nix
   exit 1
 }
 input_count=$(grep -Ec '^[[:space:]]+([[:alnum:]_-]+[.])?url[[:space:]]*=[[:space:]]*"github:' flake.nix)
-[ "$input_count" -eq 5 ] || { echo "expected pinned main/Acorn Nixpkgs, official Acorn, its required Agda2HS fork, and Luafun inputs; found $input_count" >&2; exit 1; }
+[ "$input_count" -eq 2 ] || { echo "expected only pinned Nixpkgs and Luafun inputs; found $input_count" >&2; exit 1; }
 grep -Fq 'nixpkgs.url = "github:NixOS/nixpkgs/' flake.nix
-grep -Fq 'acornNixpkgs.url = "github:NixOS/nixpkgs/205fd4226592cc83fd4c0885a3e4c9c400efabb5"' flake.nix
-grep -Fq 'github:viktorcsimma/acorn/21b7624dbfb4ddd75418a0b037620ae4c8883cb2' flake.nix
-grep -Fq 'github:viktorcsimma/agda2hs/a3c83ad3be876ce0c7aa31157f3107843bf2f465' flake.nix
-grep -Fq 'acorn-reals = acornRealLibrary system;' flake.nix
-grep -Fq 'name = "acorn-real-check";' flake.nix
 grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.nix
 ! grep -Eiq 'acornprover|acornlib|xds-agda|xdsAgda|miniVehicle|vehicle-formalisation' flake.nix || {
   echo "unexpected auxiliary prover/semantics dependency in flake.nix" >&2
