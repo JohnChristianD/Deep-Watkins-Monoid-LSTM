@@ -1,9 +1,9 @@
---erasure
---verbose=1
+--erased-matches
 --no-projection-like
 --level-universe
 --two-level
 --confluence-check
 --prop
 --sized-types
---profile=all
+--profile=internal
+--profile=conversion
