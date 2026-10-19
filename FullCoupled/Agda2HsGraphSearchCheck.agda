@@ -19,6 +19,7 @@ graphSearchContractPassed =
     && Search.nodeHeuristicLowerBoundRegression
     && Search.graphCycleIsRejectedRegression
     && Search.graphDependencyClosureRegression
+    && Search.graphPathCountRejectsCycleRegression
     && Search.graphDependencyClosureRejectsCycleRegression
     && Search.graphDependencyClosureRejectsMissingRegression
     && Search.graphDependencyClosureRepeatedDependenciesRegression
@@ -58,6 +59,9 @@ main = do
   putStrLn
     ("graph-closure-diamond="
       ++ show Search.graphDependencyClosureRegression)
+  putStrLn
+    ("graph-path-count-cycle-rejected="
+      ++ show Search.graphPathCountRejectsCycleRegression)
   putStrLn
     ("graph-closure-cycle-rejected="
       ++ show Search.graphDependencyClosureRejectsCycleRegression)

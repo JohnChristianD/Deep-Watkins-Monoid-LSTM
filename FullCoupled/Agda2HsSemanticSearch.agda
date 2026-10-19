@@ -1466,7 +1466,9 @@ graphDependencyClosure root laws =
 -- each other node contributes the sum of its direct dependencies' counts.
 -- This preserves exact chain counts while avoiding exponential path-list
 -- construction and quadratic insertion sorting on shared import DAGs.
--- Cyclic/non-topologically-sortable inputs retain the bounded DFS fallback.
+-- Cyclic/non-topologically-sortable inputs are reported as zero here.
+-- Never fall back to enumerating every path on an arbitrary graph: that can
+-- take exponential time and was the source of the CI timeout.
 ------------------------------------------------------------------------
 
 graphPathCountLookup :
@@ -1538,16 +1540,21 @@ autonomousGraphSearchCount :
 autonomousGraphSearchCount edges =
   let laws = graphLawsFromEdges edges
   in case graphPathCountTableForLaws laws of λ where
-    Nothing -> listLengthNat (autonomousGraphSearch edges)
+    Nothing -> 0
     (Just counts) -> graphPathCountSum counts
 
 autonomousGraphSearchReport :
   List (String × String) ->
   String
 autonomousGraphSearchReport edges =
-  "agda2hs autonomous theorem-graph DFS: "
-  ++ show (autonomousGraphSearchCount edges)
-  ++ " maximal dependency chains"
+  let laws = graphLawsFromEdges edges
+  in case graphPathCountTableForLaws laws of λ where
+    Nothing ->
+      "autonomous dependency-chain count unavailable: cycle or missing node; exhaustive fallback disabled"
+    (Just counts) ->
+      "agda2hs autonomous theorem-graph DFS: "
+      ++ show (graphPathCountSum counts)
+      ++ " maximal dependency chains"
 
 autonomousCanonicalGraphSearchCount :
   String ->
@@ -1556,18 +1563,21 @@ autonomousCanonicalGraphSearchCount source =
   let edges = parseDotEdges source
       laws = ensureGraphLaw canonicalGraphRoot (graphLawsFromEdges edges)
   in case graphPathCountTableForLaws laws of λ where
-    Nothing -> listLengthNat (autonomousCanonicalGraphSearch source)
+    Nothing -> 0
     (Just counts) -> graphPathCountAt canonicalGraphRoot counts
 
 autonomousCanonicalGraphReport : String -> String
 autonomousCanonicalGraphReport source =
-  let edges = parseDotEdges source
-      chains = autonomousCanonicalGraphSearchCount source
+  let
+    edges = parseDotEdges source
+    laws = ensureGraphLaw canonicalGraphRoot (graphLawsFromEdges edges)
   in
   "theorem-graph-edges="
     ++ show (length edges)
     ++ " autonomous-depth-first-chains="
-    ++ show chains
+    ++ (case graphPathCountTableForLaws laws of λ where
+      Nothing -> "unavailable"
+      (Just counts) -> show (graphPathCountAt canonicalGraphRoot counts))
 
 graphPathCountRegression : Bool
 graphPathCountRegression =
@@ -1587,6 +1597,23 @@ graphPathCountRegression =
 
 graphPathCountRegressionChecked : graphPathCountRegression ≡ True
 graphPathCountRegressionChecked = refl
+
+-- A cyclic input is rejected by topological DP and never falls back to
+-- enumerating all simple paths. This is the regression for the former CI
+-- timeout mode.
+graphPathCountRejectsCycleRegression : Bool
+graphPathCountRejectsCycleRegression =
+  let
+    edges = ("A" , "B") ∷ ("B" , "A") ∷ []
+    laws = graphLawsFromEdges edges
+  in
+  case graphPathCountTableForLaws laws of λ where
+    Nothing -> autonomousGraphSearchCount edges == 0
+    (Just _) -> False
+
+graphPathCountRejectsCycleRegressionChecked :
+  graphPathCountRejectsCycleRegression ≡ True
+graphPathCountRejectsCycleRegressionChecked = refl
 
 graphPrecedes : String -> String -> List String -> Bool
 graphPrecedes target later [] = False
@@ -2787,6 +2814,7 @@ main = do
 {-# COMPILE AGDA2HS graphPathCountSum #-}
 {-# COMPILE AGDA2HS graphPathCountAt #-}
 {-# COMPILE AGDA2HS graphPathCountRegression #-}
+{-# COMPILE AGDA2HS graphPathCountRejectsCycleRegression #-}
 {-# COMPILE AGDA2HS graphPrecedes #-}
 {-# COMPILE AGDA2HS graphClosureDependenciesValid #-}
 {-# COMPILE AGDA2HS graphClosureMemberValid #-}

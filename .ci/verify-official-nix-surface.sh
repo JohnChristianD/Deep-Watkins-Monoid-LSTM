@@ -24,13 +24,31 @@ grep -Fq 'github:NixOS/nixpkgs/' flake.nix
   echo "TypeTopology must not be in the active flake" >&2
   exit 1
 }
-input_count=$(grep -Ec '^[[:space:]]+(nixpkgs\.)?url[[:space:]]*=[[:space:]]*"github:' flake.nix)
-[ "$input_count" -eq 6 ] || { echo "expected six pinned inputs, found $input_count" >&2; exit 1; }
+input_count=$(grep -Ec '^[[:space:]]+([[:alnum:]_-]+[.])?url[[:space:]]*=[[:space:]]*"github:' flake.nix)
+[ "$input_count" -eq 2 ] || { echo "expected only pinned Nixpkgs and Luafun inputs; found $input_count" >&2; exit 1; }
 grep -Fq 'nixpkgs.url = "github:NixOS/nixpkgs/' flake.nix
-grep -Fq 'github:acornprover/acorn/' flake.nix
-grep -Fq 'github:acornprover/acornlib/' flake.nix
-grep -Fq 'github:pdmosses/xds-agda/' flake.nix
-grep -Fq 'github:vehicle-lang/vehicle-formalisation/' flake.nix
+grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.nix
+! grep -Eiq 'acornprover|acornlib|xds-agda|xdsAgda|miniVehicle|vehicle-formalisation' flake.nix || {
+  echo "unexpected auxiliary prover/semantics dependency in flake.nix" >&2
+  exit 1
+}
+
+# One Dhall file owns policy text, workflow lanes and executable policy gates.
+test -f .ci/actions_ci.dhall
+! test -e .ci/pure-formal-stack.md
+! test -e .ci/graph-search-contract.md
+! test -e .ci/discovery/graph-search-spec.md
+
+# Keep non-graph-search theorem material in the two designated monoliths.
+for forbidden in \
+  FullCoupled/ReflectionAutomation.agda \
+  FullCoupled/FiniteTabularUAP.agda \
+  FullCoupled/CircleHITInterface.agda; do
+  test ! -e "$forbidden" || {
+    echo "standalone non-graph-search proof module is forbidden: $forbidden" >&2
+    exit 1
+  }
+done
 grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.nix
 grep -Fq 'name = "fennel-smoke";' flake.nix
 grep -Fq 'name = "streamly-tools-check";' flake.nix
@@ -52,9 +70,6 @@ grep -Fq 'agda2hs_base_root' flake.nix || { echo "Agda2HS base source root must 
 
 grep -Fq 'pkgs.luajitPackages.buildLuaPackage' flake.nix
 grep -Fq 'pkgs.luajit.withPackages' flake.nix
-grep -Fq 'acorn-prover = acornProver system;' flake.nix
-grep -Fq 'name = "xds-agda-check";' flake.nix
-grep -Fq 'name = "mini-vehicle-check";' flake.nix
 grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
 grep -Fq 'name = "monoid-lstm-stream-check";' flake.nix
 echo 'official-nix-surface=pass'
