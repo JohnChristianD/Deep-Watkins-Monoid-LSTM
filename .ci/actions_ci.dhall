@@ -11,22 +11,13 @@ Proof placement:
     proof sidecars, or custom prover dependencies.
 
 Real arithmetic:
-  * Use the official viktorcsimma/acorn library for Krebbers–Spitters-style
-    exact reals. Its compiler dependency is pinned to
-    viktorcsimma/agda2hs/a3c83ad3be876ce0c7aa31157f3107843bf2f465, which
-    requires Agda 2.6.4.x. Build that isolated Acorn package through its pinned
-    Nixpkgs snapshot. Do not invent an abstract Cauchy interface and call it
-    Acorn or CoRN. A successful build does not prove all upstream definitions:
-    audit the upstream Tool.Cheat use separately.
-  * Upstream `src/Tool/Cheat.agda` declares the erased postulate
-    `cheat : ∀ {i} {a : Set i} → a` and explicitly says that importing it
-    makes the development unsafe until removed. Treat Acorn as the official
-    exact-real executable/library source, not as a fully kernel-certified
-    proof library. Its Agda2HS build and tests are useful evidence, but they do
-    not discharge the `cheat` assumptions.
-  * The graph runtime continues to use the project's pinned Agda 2.8/Agda2HS
-    toolchain. Do not mix compiled Haskell artifacts across incompatible GHC
-    package sets.
+  * Keep the Agda2HS compiler unmodified and sourced from Nixpkgs. The
+    Acorn exact-real library is not integrated: its upstream build pins a
+    modified Agda2HS fork and an older Agda API, which violates this project's
+    official-Nixpkgs-only toolchain rule. Do not substitute a hand-written
+    Cauchy interface and claim equivalence with Acorn/CoRN. Reconsider Acorn
+    only if it builds against the unmodified Nixpkgs Agda2HS package.
+  * Do not mix compiled Haskell artifacts across incompatible GHC package sets.
 
 Graph semantics:
   * Distinguish the Agda import DAG, law-dependency paths, and symbolic e-graph.
@@ -77,7 +68,6 @@ let policyGate = ''
   test ! -e FullCoupled/ReflectionAutomation.agda
   test ! -e FullCoupled/FiniteTabularUAP.agda
   test ! -e FullCoupled/CircleHITInterface.agda
-  grep -Fq 'github:viktorcsimma/acorn/' flake.nix
   grep -Fq 'github:viktorcsimma/agda2hs/a3c83ad3be876ce0c7aa31157f3107843bf2f465' flake.nix
   grep -Fq 'graphAStarFirst :' FullCoupled/Agda2HsSemanticSearch.agda
   grep -Fq 'graphAStarFirst laws seed = graphAStarFirstEager laws seed' FullCoupled/Agda2HsSemanticSearch.agda
@@ -238,7 +228,6 @@ let script = merge {
     grep -Fq 'proofKernel=Agda' "$manifest"
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
-    nix run .#acorn-real-check
     nix run .#agda2hs-graph-search-check
     nix run .#scott-strachey-domain-check
     nix run .#monoid-lstm-stream-check
@@ -604,7 +593,6 @@ DHALL
   All = ''
     set -euo pipefail
     nix run .#fennel-smoke
-    nix run .#acorn-real-check
     "$AGDA_COMMAND" --version
     ghc --numeric-version
     dhall --version
