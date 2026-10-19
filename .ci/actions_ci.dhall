@@ -73,7 +73,7 @@ Constructive foundations — Russian constructivism (RUSS) only:
     every use of K.
   * Impredicative higher-inductive encodings remain literature-only. Their
     compatibility with --with-K and the project's RUSS assumptions is unproved;
-    no Circle/HIT rewriting module belongs in the current semantic graph.
+    no such encoding is part of the current formal dependency graph.
   * Maintain one Russian-constructivist review track; do not add a second
     constructive foundation profile or gate. Audit actual assumptions and
     dependencies rather than classifying a school of thought as a proof rule.
@@ -145,8 +145,8 @@ Constructive foundations — Russian constructivism (RUSS) only:
     a candidate for study only; compatibility with --with-K and RUSS remains
     unproved. The project deliberately avoids Cubical mode/imports in its
     --with-K proof path; Agda's --cubical option enables --without-K.
-    Streamly is used by the flake; RIO was removed because it is not an active
-    dependency. TypeTopology and ordinal papers are external-context pointers,
+    Streamly is used by the flake for Haskell stream processing. TypeTopology
+    and ordinal papers are external-context pointers,
     not evidence that transitive dependencies have a checked --with-K closure.
     The archived Stanford entry is a dated source, not independent corroboration.
     Global RUSS certification remains blocked until every trusted interface and
