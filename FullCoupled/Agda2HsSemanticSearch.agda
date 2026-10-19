@@ -1838,14 +1838,14 @@ learnerSemanticBridgeGraph =
      ("LearnerSemanticCoverageSuite" , "CanonicalLearnerDenotation.canonicalLearnerTraceDenotationStep") ∷
      ("LearnerSemanticCoverageSuite" , "ConstructivistDomainRewriteSuite") ∷
      ("ConstructivistDomainRewriteSuite" , "EGraph.russianConstructivismPostulateRule") ∷
-     ("ConstructivistDomainRewriteSuite" , "EGraph.scottErshovDenotationalSemanticsPostulateRule") ∷
+     ("ConstructivistDomainRewriteSuite" , "EGraph.scottErshovEffectiveDomainRule") ∷
      ("ConstructivistDomainRewriteSuite" , "EGraph.constructivistPostulateRegression") ∷
      ("EGraph.constructivistPostulateRegression" , "EGraph.semanticRewriteRules") ∷
      ("EGraph.semanticRewriteRules" , "EGraph.associativityRule") ∷
      ("EGraph.semanticRewriteRules" , "EGraph.emptyRightRule") ∷
      ("EGraph.semanticRewriteRules" , "EGraph.emptyLeftRule") ∷
      ("EGraph.semanticRewriteRules" , "EGraph.russianConstructivismPostulateRule") ∷
-     ("EGraph.semanticRewriteRules" , "EGraph.scottErshovDenotationalSemanticsPostulateRule") ∷
+     ("EGraph.semanticRewriteRules" , "EGraph.scottErshovEffectiveDomainRule") ∷
      ("CanonicalLearnerDenotation.canonicalLearnerTraceDenotationStep" , "CanonicalLearnerDenotation.liftedCanonicalFullStep") ∷
      ("CanonicalLearnerDenotation.liftedCanonicalFullStep" , "ScottStracheyDomains.liftStrictMap") ∷
      ("CanonicalLearnerDenotation.canonicalLearnerDenotationBottom" , "ScottStracheyDomains.liftStrictMapBottom") ∷
@@ -1982,7 +1982,7 @@ learnerSemanticBridgeRegression =
         && graphContains "CanonicalLearnerDenotation.canonicalLearnerTraceDenotationStep" plan
         && graphContains "EGraph.constructivistPostulateRegression" plan
         && graphContains "EGraph.russianConstructivismPostulateRule" plan
-        && graphContains "EGraph.scottErshovDenotationalSemanticsPostulateRule" plan
+        && graphContains "EGraph.scottErshovEffectiveDomainRule" plan
         && graphContains "MonoidLSTMStreams.iterateStreamPrefix" plan
         && graphContains "ExternalContext.HannesDiener.ConstructiveReverseMathematics" plan
         && graphContains "ExternalContext.XDSAgda.ScottStracheyDenotationalSemantics" plan
