@@ -225,6 +225,615 @@ module ConstructiveComputabilityPostulates where
       computationFor : (input : Nat) → ComputationTrace program input (f input)
 
   ----------------------------------------------------------------------
+  -- First-order Heyting arithmetic syntax and its derivation rules.
+  --
+  -- This is an object language inside Agda, not an extra host-level axiom.
+  -- Quantifiers use named variables; substitution respects shadowing.
+  -- The computation atom denotes the arithmetic T-relation for finite
+  -- machine traces. Its representation theorem connecting numeric codes
+  -- to the register-machine trace below remains a separate proof obligation.
+  ----------------------------------------------------------------------
+
+  data HATerm : Set where
+    haVariable : Nat → HATerm
+    haZeroTerm : HATerm
+    haSuccessorTerm : HATerm → HATerm
+    haAdditionTerm : HATerm → HATerm → HATerm
+    haMultiplicationTerm : HATerm → HATerm → HATerm
+
+  data HAFormula : Set where
+    haFalsehood : HAFormula
+    haEquality : HATerm → HATerm → HAFormula
+    haLessOrEqual : HATerm → HATerm → HAFormula
+    haConjunction : HAFormula → HAFormula → HAFormula
+    haDisjunction : HAFormula → HAFormula → HAFormula
+    haImplication : HAFormula → HAFormula → HAFormula
+    haUniversal : Nat → HAFormula → HAFormula
+    haExistential : Nat → HAFormula → HAFormula
+    haBoundedUniversal : Nat → HATerm → HAFormula → HAFormula
+    haBoundedExistential : Nat → HATerm → HAFormula → HAFormula
+    haMachineComputes : HATerm → HATerm → HATerm → HATerm → HAFormula
+
+  ----------------------------------------------------------------------
+  -- Structural quotation for the object language and machine programs.
+  -- These are first-order syntax codes, not a claimed model of Agda's
+  -- primitive Reflection API. That stronger interpretation is a separate
+  -- presheaf-model obligation.
+  ----------------------------------------------------------------------
+
+  data HAQuotation : Set where
+    quotedTerm : HATerm → HAQuotation
+    quotedFormula : HAFormula → HAQuotation
+    quotedProgram : RecursiveProgram → HAQuotation
+
+  data HAUnquoteResult (A : Set) : Set where
+    unquoted : A → HAUnquoteResult A
+    notQuotedAtThisType : HAUnquoteResult A
+
+  quoteHATermSyntax : HATerm → HAQuotation
+  quoteHATermSyntax = quotedTerm
+
+  quoteHAFormulaSyntax : HAFormula → HAQuotation
+  quoteHAFormulaSyntax = quotedFormula
+
+  quoteProgramSyntax : RecursiveProgram → HAQuotation
+  quoteProgramSyntax = quotedProgram
+
+  unquoteHATermSyntax : HAQuotation → HAUnquoteResult HATerm
+  unquoteHATermSyntax (quotedTerm term) = unquoted term
+  unquoteHATermSyntax (quotedFormula _) = notQuotedAtThisType
+  unquoteHATermSyntax (quotedProgram _) = notQuotedAtThisType
+
+  unquoteHAFormulaSyntax : HAQuotation → HAUnquoteResult HAFormula
+  unquoteHAFormulaSyntax (quotedTerm _) = notQuotedAtThisType
+  unquoteHAFormulaSyntax (quotedFormula formula) = unquoted formula
+  unquoteHAFormulaSyntax (quotedProgram _) = notQuotedAtThisType
+
+  unquoteProgramSyntax : HAQuotation → HAUnquoteResult RecursiveProgram
+  unquoteProgramSyntax (quotedTerm _) = notQuotedAtThisType
+  unquoteProgramSyntax (quotedFormula _) = notQuotedAtThisType
+  unquoteProgramSyntax (quotedProgram program) = unquoted program
+
+  quoteHATermRoundTrip :
+    (term : HATerm) →
+    unquoteHATermSyntax (quoteHATermSyntax term) ≡ unquoted term
+  quoteHATermRoundTrip term = refl
+
+  quoteHAFormulaRoundTrip :
+    (formula : HAFormula) →
+    unquoteHAFormulaSyntax (quoteHAFormulaSyntax formula) ≡ unquoted formula
+  quoteHAFormulaRoundTrip formula = refl
+
+  quoteProgramRoundTrip :
+    (program : RecursiveProgram) →
+    unquoteProgramSyntax (quoteProgramSyntax program) ≡ unquoted program
+  quoteProgramRoundTrip program = refl
+
+  -- Concrete evaluation remains an inductive relation with explicit traces.
+  evaluatesProgram :
+    (program : RecursiveProgram) (input output : Nat) → Set
+  evaluatesProgram program input output =
+    ComputationTrace program input output
+
+  haNegation : HAFormula → HAFormula
+  haNegation formula = haImplication formula haFalsehood
+
+  -- Explicit object-language bottom and Markov schema (MP₀).
+  haBottom : HAFormula
+  haBottom = haFalsehood
+
+  haMarkovPrincipleFormula : Nat → HAFormula → HAFormula
+  haMarkovPrincipleFormula variable body =
+    haImplication
+      (haUniversal variable (haDisjunction body (haNegation body)))
+      (haImplication
+        (haNegation (haNegation (haExistential variable body)))
+        (haExistential variable body))
+
+  -- The ECT₀ axiom schema. The T-predicate is represented by the explicit
+  -- machine-computation atom; its arithmetisation and soundness bridge are
+  -- deliberately separate obligations rather than silently postulated.
+  haExtendedChurchThesis0Formula :
+    Nat → Nat → Nat → Nat → HAFormula → HAFormula → HAFormula
+  haExtendedChurchThesis0Formula input output code trace antecedent consequent =
+    haImplication
+      (haUniversal input
+        (haImplication antecedent (haExistential output consequent)))
+      (haExistential code
+        (haUniversal input
+          (haImplication antecedent
+            (haExistential output
+              (haExistential trace
+                (haConjunction
+                  (haMachineComputes
+                    (haVariable code)
+                    (haVariable input)
+                    (haVariable trace)
+                    (haVariable output))
+                  consequent))))))
+
+  haBooleanOr : Bool → Bool → Bool
+  haBooleanOr True _ = True
+  haBooleanOr False right = right
+
+  haSubstituteTerm : Nat → HATerm → HATerm → HATerm
+  haSubstituteTerm variable replacement (haVariable index)
+    with natEquality variable index
+  ... | True = replacement
+  ... | False = haVariable index
+  haSubstituteTerm variable replacement haZeroTerm = haZeroTerm
+  haSubstituteTerm variable replacement (haSuccessorTerm term) =
+    haSuccessorTerm (haSubstituteTerm variable replacement term)
+  haSubstituteTerm variable replacement (haAdditionTerm left right) =
+    haAdditionTerm
+      (haSubstituteTerm variable replacement left)
+      (haSubstituteTerm variable replacement right)
+  haSubstituteTerm variable replacement (haMultiplicationTerm left right) =
+    haMultiplicationTerm
+      (haSubstituteTerm variable replacement left)
+      (haSubstituteTerm variable replacement right)
+
+  haSubstituteFormula : Nat → HATerm → HAFormula → HAFormula
+  haSubstituteFormula variable replacement haFalsehood = haFalsehood
+  haSubstituteFormula variable replacement (haEquality left right) =
+    haEquality
+      (haSubstituteTerm variable replacement left)
+      (haSubstituteTerm variable replacement right)
+  haSubstituteFormula variable replacement (haLessOrEqual left right) =
+    haLessOrEqual
+      (haSubstituteTerm variable replacement left)
+      (haSubstituteTerm variable replacement right)
+  haSubstituteFormula variable replacement (haConjunction left right) =
+    haConjunction
+      (haSubstituteFormula variable replacement left)
+      (haSubstituteFormula variable replacement right)
+  haSubstituteFormula variable replacement (haDisjunction left right) =
+    haDisjunction
+      (haSubstituteFormula variable replacement left)
+      (haSubstituteFormula variable replacement right)
+  haSubstituteFormula variable replacement (haImplication left right) =
+    haImplication
+      (haSubstituteFormula variable replacement left)
+      (haSubstituteFormula variable replacement right)
+  haSubstituteFormula variable replacement (haUniversal binder body)
+    with natEquality variable binder
+  ... | True = haUniversal binder body
+  ... | False = haUniversal binder (haSubstituteFormula variable replacement body)
+  haSubstituteFormula variable replacement (haExistential binder body)
+    with natEquality variable binder
+  ... | True = haExistential binder body
+  ... | False = haExistential binder (haSubstituteFormula variable replacement body)
+  haSubstituteFormula variable replacement
+    (haBoundedUniversal binder bound body)
+    with natEquality variable binder
+  ... | True =
+    haBoundedUniversal binder (haSubstituteTerm variable replacement bound) body
+  ... | False =
+    haBoundedUniversal binder
+      (haSubstituteTerm variable replacement bound)
+      (haSubstituteFormula variable replacement body)
+  haSubstituteFormula variable replacement
+    (haBoundedExistential binder bound body)
+    with natEquality variable binder
+  ... | True =
+    haBoundedExistential binder (haSubstituteTerm variable replacement bound) body
+  ... | False =
+    haBoundedExistential binder
+      (haSubstituteTerm variable replacement bound)
+      (haSubstituteFormula variable replacement body)
+  haSubstituteFormula variable replacement
+    (haMachineComputes code input trace output) =
+    haMachineComputes
+      (haSubstituteTerm variable replacement code)
+      (haSubstituteTerm variable replacement input)
+      (haSubstituteTerm variable replacement trace)
+      (haSubstituteTerm variable replacement output)
+
+  haOccursTerm : Nat → HATerm → Bool
+  haOccursTerm variable (haVariable index) = natEquality variable index
+  haOccursTerm variable haZeroTerm = False
+  haOccursTerm variable (haSuccessorTerm term) = haOccursTerm variable term
+  haOccursTerm variable (haAdditionTerm left right) =
+    haBooleanOr (haOccursTerm variable left) (haOccursTerm variable right)
+  haOccursTerm variable (haMultiplicationTerm left right) =
+    haBooleanOr (haOccursTerm variable left) (haOccursTerm variable right)
+
+  haOccursFormula : Nat → HAFormula → Bool
+  haOccursFormula variable haFalsehood = False
+  haOccursFormula variable (haEquality left right) =
+    haBooleanOr (haOccursTerm variable left) (haOccursTerm variable right)
+  haOccursFormula variable (haLessOrEqual left right) =
+    haBooleanOr (haOccursTerm variable left) (haOccursTerm variable right)
+  haOccursFormula variable (haConjunction left right) =
+    haBooleanOr (haOccursFormula variable left) (haOccursFormula variable right)
+  haOccursFormula variable (haDisjunction left right) =
+    haBooleanOr (haOccursFormula variable left) (haOccursFormula variable right)
+  haOccursFormula variable (haImplication left right) =
+    haBooleanOr (haOccursFormula variable left) (haOccursFormula variable right)
+  haOccursFormula variable (haUniversal binder body)
+    with natEquality variable binder
+  ... | True = False
+  ... | False = haOccursFormula variable body
+  haOccursFormula variable (haExistential binder body)
+    with natEquality variable binder
+  ... | True = False
+  ... | False = haOccursFormula variable body
+  haOccursFormula variable (haBoundedUniversal binder bound body)
+    with natEquality variable binder
+  ... | True = haOccursTerm variable bound
+  ... | False =
+    haBooleanOr (haOccursTerm variable bound) (haOccursFormula variable body)
+  haOccursFormula variable (haBoundedExistential binder bound body)
+    with natEquality variable binder
+  ... | True = haOccursTerm variable bound
+  ... | False =
+    haBooleanOr (haOccursTerm variable bound) (haOccursFormula variable body)
+  haOccursFormula variable (haMachineComputes code input trace output) =
+    haBooleanOr (haOccursTerm variable code)
+      (haBooleanOr (haOccursTerm variable input)
+        (haBooleanOr (haOccursTerm variable trace) (haOccursTerm variable output)))
+
+  -- Named-variable substitution is available only at capture-safe
+  -- instances. Instead of silently alpha-renaming, the derivation rules ask
+  -- for a decidable freshness check before using substitution.
+  haBooleanNot : Bool → Bool
+  haBooleanNot True = False
+  haBooleanNot False = True
+
+  haBooleanAnd : Bool → Bool → Bool
+  haBooleanAnd True True = True
+  haBooleanAnd _ _ = False
+
+  haSubstitutionCaptureSafe :
+    Nat → HATerm → HAFormula → Bool
+  haSubstitutionCaptureSafe variable replacement haFalsehood = True
+  haSubstitutionCaptureSafe variable replacement (haEquality left right) = True
+  haSubstitutionCaptureSafe variable replacement (haLessOrEqual left right) = True
+  haSubstitutionCaptureSafe variable replacement (haMachineComputes code input trace output) = True
+  haSubstitutionCaptureSafe variable replacement (haConjunction left right) =
+    haBooleanAnd
+      (haSubstitutionCaptureSafe variable replacement left)
+      (haSubstitutionCaptureSafe variable replacement right)
+  haSubstitutionCaptureSafe variable replacement (haDisjunction left right) =
+    haBooleanAnd
+      (haSubstitutionCaptureSafe variable replacement left)
+      (haSubstitutionCaptureSafe variable replacement right)
+  haSubstitutionCaptureSafe variable replacement (haImplication left right) =
+    haBooleanAnd
+      (haSubstitutionCaptureSafe variable replacement left)
+      (haSubstitutionCaptureSafe variable replacement right)
+  haSubstitutionCaptureSafe variable replacement (haUniversal binder body)
+    with natEquality variable binder
+  ... | True = True
+  ... | False =
+    haBooleanAnd
+      (haBooleanNot
+        (haBooleanAnd
+          (haOccursTerm binder replacement)
+          (haOccursFormula variable body)))
+      (haSubstitutionCaptureSafe variable replacement body)
+  haSubstitutionCaptureSafe variable replacement (haExistential binder body)
+    with natEquality variable binder
+  ... | True = True
+  ... | False =
+    haBooleanAnd
+      (haBooleanNot
+        (haBooleanAnd
+          (haOccursTerm binder replacement)
+          (haOccursFormula variable body)))
+      (haSubstitutionCaptureSafe variable replacement body)
+  haSubstitutionCaptureSafe variable replacement
+    (haBoundedUniversal binder bound body)
+    with natEquality variable binder
+  ... | True = True
+  ... | False =
+    haBooleanAnd
+      (haBooleanNot
+        (haBooleanAnd
+          (haOccursTerm binder replacement)
+          (haOccursFormula variable body)))
+      (haSubstitutionCaptureSafe variable replacement body)
+  haSubstitutionCaptureSafe variable replacement
+    (haBoundedExistential binder bound body)
+    with natEquality variable binder
+  ... | True = True
+  ... | False =
+    haBooleanAnd
+      (haBooleanNot
+        (haBooleanAnd
+          (haOccursTerm binder replacement)
+          (haOccursFormula variable body)))
+      (haSubstitutionCaptureSafe variable replacement body)
+
+  data HAInContext (formula : HAFormula) : List HAFormula → Set where
+    haHere :
+      {context : List HAFormula} →
+      HAInContext formula (formula ∷ context)
+    haThere :
+      {other : HAFormula} {context : List HAFormula} →
+      HAInContext formula context →
+      HAInContext formula (other ∷ context)
+
+  data HAContextFresh (variable : Nat) : List HAFormula → Set where
+    haContextFreshNil : HAContextFresh variable []
+    haContextFreshCons :
+      {formula : HAFormula} {context : List HAFormula} →
+      haOccursFormula variable formula ≡ False →
+      HAContextFresh variable context →
+      HAContextFresh variable (formula ∷ context)
+
+  -- Delta-zero formula codes: no unbounded quantifier occurs. The arithmetic
+  -- order and machine-trace atoms are intended as primitive-recursive
+  -- predicates; bounded quantifiers remain explicitly marked in the syntax.
+  data HAIsDeltaZero : HAFormula → Set where
+    haDeltaFalsehood : HAIsDeltaZero haFalsehood
+    haDeltaEquality :
+      (left right : HATerm) →
+      HAIsDeltaZero (haEquality left right)
+    haDeltaLessOrEqual :
+      (left right : HATerm) →
+      HAIsDeltaZero (haLessOrEqual left right)
+    haDeltaMachineComputes :
+      (code input trace output : HATerm) →
+      HAIsDeltaZero (haMachineComputes code input trace output)
+    haDeltaConjunction :
+      {left right : HAFormula} →
+      HAIsDeltaZero left → HAIsDeltaZero right →
+      HAIsDeltaZero (haConjunction left right)
+    haDeltaDisjunction :
+      {left right : HAFormula} →
+      HAIsDeltaZero left → HAIsDeltaZero right →
+      HAIsDeltaZero (haDisjunction left right)
+    haDeltaImplication :
+      {left right : HAFormula} →
+      HAIsDeltaZero left → HAIsDeltaZero right →
+      HAIsDeltaZero (haImplication left right)
+    haDeltaBoundedUniversal :
+      {variable : Nat} {bound : HATerm} {body : HAFormula} →
+      HAIsDeltaZero body →
+      HAIsDeltaZero (haBoundedUniversal variable bound body)
+    haDeltaBoundedExistential :
+      {variable : Nat} {bound : HATerm} {body : HAFormula} →
+      HAIsDeltaZero body →
+      HAIsDeltaZero (haBoundedExistential variable bound body)
+
+  -- The ECT_0 domain restriction is explicit: no disjunction and no unbounded
+  -- existential is admitted except where its body is delta-zero.
+  data HAAlmostNegative : HAFormula → Set where
+    haAlmostFalsehood : HAAlmostNegative haFalsehood
+    haAlmostEquality :
+      (left right : HATerm) → HAAlmostNegative (haEquality left right)
+    haAlmostLessOrEqual :
+      (left right : HATerm) → HAAlmostNegative (haLessOrEqual left right)
+    haAlmostMachineComputes :
+      (code input trace output : HATerm) →
+      HAAlmostNegative (haMachineComputes code input trace output)
+    haAlmostConjunction :
+      {left right : HAFormula} →
+      HAAlmostNegative left → HAAlmostNegative right →
+      HAAlmostNegative (haConjunction left right)
+    haAlmostImplication :
+      {left right : HAFormula} →
+      HAAlmostNegative left → HAAlmostNegative right →
+      HAAlmostNegative (haImplication left right)
+    haAlmostUniversal :
+      {variable : Nat} {body : HAFormula} →
+      HAAlmostNegative body → HAAlmostNegative (haUniversal variable body)
+    haAlmostBoundedUniversal :
+      {variable : Nat} {bound : HATerm} {body : HAFormula} →
+      HAAlmostNegative body →
+      HAAlmostNegative (haBoundedUniversal variable bound body)
+    haAlmostExistentialDeltaZero :
+      {variable : Nat} {body : HAFormula} →
+      HAIsDeltaZero body → HAAlmostNegative (haExistential variable body)
+    haAlmostBoundedExistentialDeltaZero :
+      {variable : Nat} {bound : HATerm} {body : HAFormula} →
+      HAIsDeltaZero body →
+      HAAlmostNegative (haBoundedExistential variable bound body)
+
+  data HADerivation : List HAFormula → HAFormula → Set where
+    haAssumption :
+      {context : List HAFormula} {formula : HAFormula} →
+      HAInContext formula context → HADerivation context formula
+    haFalseElimination :
+      {context : List HAFormula} {formula : HAFormula} →
+      HADerivation context haFalsehood → HADerivation context formula
+    haImplicationIntroduction :
+      {context : List HAFormula} {left right : HAFormula} →
+      HADerivation (left ∷ context) right →
+      HADerivation context (haImplication left right)
+    haImplicationElimination :
+      {context : List HAFormula} {left right : HAFormula} →
+      HADerivation context (haImplication left right) →
+      HADerivation context left →
+      HADerivation context right
+    haConjunctionIntroduction :
+      {context : List HAFormula} {left right : HAFormula} →
+      HADerivation context left →
+      HADerivation context right →
+      HADerivation context (haConjunction left right)
+    haConjunctionEliminationLeft :
+      {context : List HAFormula} {left right : HAFormula} →
+      HADerivation context (haConjunction left right) →
+      HADerivation context left
+    haConjunctionEliminationRight :
+      {context : List HAFormula} {left right : HAFormula} →
+      HADerivation context (haConjunction left right) →
+      HADerivation context right
+    haDisjunctionIntroductionLeft :
+      {context : List HAFormula} {left right : HAFormula} →
+      HADerivation context left →
+      HADerivation context (haDisjunction left right)
+    haDisjunctionIntroductionRight :
+      {context : List HAFormula} {left right : HAFormula} →
+      HADerivation context right →
+      HADerivation context (haDisjunction left right)
+    haDisjunctionElimination :
+      {context : List HAFormula} {left right conclusion : HAFormula} →
+      HADerivation context (haDisjunction left right) →
+      HADerivation (left ∷ context) conclusion →
+      HADerivation (right ∷ context) conclusion →
+      HADerivation context conclusion
+    haUniversalIntroduction :
+      {context : List HAFormula} {variable : Nat} {body : HAFormula} →
+      HAContextFresh variable context →
+      HADerivation context body →
+      HADerivation context (haUniversal variable body)
+    haUniversalElimination :
+      {context : List HAFormula} {variable : Nat} {body : HAFormula} →
+      HADerivation context (haUniversal variable body) →
+      (term : HATerm) →
+      haSubstitutionCaptureSafe variable term body ≡ True →
+      HADerivation context (haSubstituteFormula variable term body)
+    haExistentialIntroduction :
+      {context : List HAFormula} {variable : Nat} {body : HAFormula} →
+      (term : HATerm) →
+      haSubstitutionCaptureSafe variable term body ≡ True →
+      HADerivation context (haSubstituteFormula variable term body) →
+      HADerivation context (haExistential variable body)
+    haExistentialElimination :
+      {context : List HAFormula} {variable : Nat} {body conclusion : HAFormula} →
+      HADerivation context (haExistential variable body) →
+      HADerivation (body ∷ context) conclusion →
+      HAContextFresh variable context →
+      haOccursFormula variable conclusion ≡ False →
+      HADerivation context conclusion
+    haEqualityReflexivity :
+      {context : List HAFormula} (term : HATerm) →
+      HADerivation context (haEquality term term)
+    haEqualitySymmetry :
+      {context : List HAFormula} {left right : HATerm} →
+      HADerivation context (haEquality left right) →
+      HADerivation context (haEquality right left)
+    haEqualityTransitivity :
+      {context : List HAFormula} {left middle right : HATerm} →
+      HADerivation context (haEquality left middle) →
+      HADerivation context (haEquality middle right) →
+      HADerivation context (haEquality left right)
+    haEqualitySubstitution :
+      {context : List HAFormula} {variable : Nat}
+      {formula : HAFormula} {left right : HATerm} →
+      HADerivation context (haEquality left right) →
+      haSubstitutionCaptureSafe variable left formula ≡ True →
+      haSubstitutionCaptureSafe variable right formula ≡ True →
+      HADerivation context (haSubstituteFormula variable left formula) →
+      HADerivation context (haSubstituteFormula variable right formula)
+    haZeroNotSuccessor :
+      {context : List HAFormula} (term : HATerm) →
+      HADerivation context
+        (haImplication (haEquality haZeroTerm (haSuccessorTerm term)) haFalsehood)
+    haSuccessorNotZero :
+      {context : List HAFormula} (term : HATerm) →
+      HADerivation context
+        (haImplication (haEquality (haSuccessorTerm term) haZeroTerm) haFalsehood)
+    haSuccessorInjective :
+      {context : List HAFormula} (left right : HATerm) →
+      HADerivation context
+        (haImplication
+          (haEquality (haSuccessorTerm left) (haSuccessorTerm right))
+          (haEquality left right))
+    haAdditionZero :
+      {context : List HAFormula} (term : HATerm) →
+      HADerivation context (haEquality (haAdditionTerm term haZeroTerm) term)
+    haAdditionSuccessor :
+      {context : List HAFormula} (left right : HATerm) →
+      HADerivation context
+        (haEquality
+          (haAdditionTerm left (haSuccessorTerm right))
+          (haSuccessorTerm (haAdditionTerm left right)))
+    haMultiplicationZero :
+      {context : List HAFormula} (term : HATerm) →
+      HADerivation context
+        (haEquality (haMultiplicationTerm term haZeroTerm) haZeroTerm)
+    haMultiplicationSuccessor :
+      {context : List HAFormula} (left right : HATerm) →
+      HADerivation context
+        (haEquality
+          (haMultiplicationTerm left (haSuccessorTerm right))
+          (haAdditionTerm (haMultiplicationTerm left right) left))
+    haInduction :
+      {context : List HAFormula} (variable : Nat) (body : HAFormula) →
+      haSubstitutionCaptureSafe variable haZeroTerm body ≡ True →
+      haSubstitutionCaptureSafe variable (haSuccessorTerm (haVariable variable)) body ≡ True →
+      HADerivation context (haSubstituteFormula variable haZeroTerm body) →
+      HADerivation context
+        (haUniversal variable
+          (haImplication body
+            (haSubstituteFormula variable
+              (haSuccessorTerm (haVariable variable)) body))) →
+      HADerivation context (haUniversal variable body)
+    haBoundedUniversalIntroduction :
+      {context : List HAFormula} {variable : Nat}
+      {bound : HATerm} {body : HAFormula} →
+      haOccursTerm variable bound ≡ False →
+      HADerivation context
+        (haUniversal variable
+          (haImplication
+            (haLessOrEqual (haVariable variable) bound) body)) →
+      HADerivation context (haBoundedUniversal variable bound body)
+    haBoundedUniversalElimination :
+      {context : List HAFormula} {variable : Nat}
+      {bound : HATerm} {body : HAFormula} →
+      HADerivation context (haBoundedUniversal variable bound body) →
+      (term : HATerm) →
+      haSubstitutionCaptureSafe variable term body ≡ True →
+      HADerivation context
+        (haImplication
+          (haLessOrEqual term bound)
+          (haSubstituteFormula variable term body))
+    haBoundedExistentialIntroduction :
+      {context : List HAFormula} {variable : Nat}
+      {bound : HATerm} {body : HAFormula} →
+      HADerivation context
+        (haExistential variable
+          (haConjunction
+            (haLessOrEqual (haVariable variable) bound) body)) →
+      HADerivation context (haBoundedExistential variable bound body)
+    haBoundedExistentialElimination :
+      {context : List HAFormula} {variable : Nat}
+      {bound : HATerm} {body : HAFormula} →
+      HADerivation context (haBoundedExistential variable bound body) →
+      HADerivation context
+        (haExistential variable
+          (haConjunction
+            (haLessOrEqual (haVariable variable) bound) body))
+    haMarkovPrinciple :
+      {context : List HAFormula} (variable : Nat) {body : HAFormula} →
+      HAIsDeltaZero body →
+      HADerivation context (haMarkovPrincipleFormula variable body)
+    haExtendedChurchThesis0 :
+      {context : List HAFormula}
+      {input output code trace : Nat}
+      {antecedent consequent : HAFormula} →
+      HAAlmostNegative antecedent →
+      HAContextFresh input context →
+      HAContextFresh code context →
+      HAContextFresh trace context →
+      haOccursFormula output antecedent ≡ False →
+      haOccursFormula code antecedent ≡ False →
+      haOccursFormula trace antecedent ≡ False →
+      haOccursFormula code consequent ≡ False →
+      haOccursFormula trace consequent ≡ False →
+      natEquality input output ≡ False →
+      natEquality input code ≡ False →
+      natEquality input trace ≡ False →
+      natEquality output code ≡ False →
+      natEquality output trace ≡ False →
+      natEquality code trace ≡ False →
+      HADerivation context
+        (haExtendedChurchThesis0Formula
+          input output code trace antecedent consequent)
+
+  data ConstructiveArithmeticSchema : Set where
+    markovPrincipleSchema : ConstructiveArithmeticSchema
+    extendedChurchThesis0Schema : ConstructiveArithmeticSchema
+
+  -- An untruncated marker for the object-language ECT_0 schema. Actual
+  -- machine-code soundness is not inferred from this marker.
+  churchThesis : ConstructiveArithmeticSchema
+  churchThesis = extendedChurchThesis0Schema
+
+  ----------------------------------------------------------------------
   -- Russian constructivism: explicit global axiom schemas.
   ----------------------------------------------------------------------
 
@@ -235,11 +844,6 @@ module ConstructiveComputabilityPostulates where
       ((n : Nat) → Decidable (P n)) →
       Neg (Neg (SigmaWitness Nat P)) →
       SigmaWitness Nat P
-
-    -- Church's Thesis for the concrete register-machine computation relation.
-    churchThesis :
-      (f : Nat → Nat) →
-      SigmaWitness RecursiveProgram (λ program → ComputesFunction program f)
 
     -- Countable choice for proposition-valued existential evidence.
     -- The witness is intentionally confined to Prop: this axiom does not

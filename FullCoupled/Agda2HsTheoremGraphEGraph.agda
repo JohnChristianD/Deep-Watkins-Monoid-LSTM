@@ -656,11 +656,11 @@ russianConstructivismPostulateRule =
     (PatternApp "constructive-framework"
       (PatternApp "RussianConstructivism" [] ∷ []))
 
-scottErshovDenotationalSemanticsPostulateRule : RewriteRule
-scottErshovDenotationalSemanticsPostulateRule =
+scottErshovEffectiveDomainRule : RewriteRule
+scottErshovEffectiveDomainRule =
   MkRewriteRule
-    "scott-ershov-denotational-semantics-postulate"
-    (PatternApp "constructivist-postulate"
+    "scott-ershov-effective-domain-data"
+    (PatternApp "scott-ershov-effective-domain-data"
       (PatternApp "ScottErshovDomainSemantics" [] ∷ []))
     (PatternApp "domain-denotational-semantics"
       (PatternApp "ScottErshovDomainSemantics" [] ∷ []))
@@ -671,7 +671,7 @@ semanticRewriteRules =
   emptyRightRule ∷
   emptyLeftRule ∷
   russianConstructivismPostulateRule ∷
-  scottErshovDenotationalSemanticsPostulateRule ∷
+  scottErshovEffectiveDomainRule ∷
   []
 
 constructivistPostulateRegression : Bool
@@ -684,7 +684,7 @@ constructivistPostulateRegression =
       ExprApp "constructive-framework"
         (ExprApp "RussianConstructivism" [] ∷ [])
     scottErshov =
-      ExprApp "constructivist-postulate"
+      ExprApp "scott-ershov-effective-domain-data"
         (ExprApp "ScottErshovDomainSemantics" [] ∷ [])
     scottErshovNormalized =
       ExprApp "domain-denotational-semantics"
@@ -1016,7 +1016,7 @@ eGraphAssociativityRegression-proof = refl
 {-# COMPILE AGDA2HS emptyRightRule #-}
 {-# COMPILE AGDA2HS emptyLeftRule #-}
 {-# COMPILE AGDA2HS russianConstructivismPostulateRule #-}
-{-# COMPILE AGDA2HS scottErshovDenotationalSemanticsPostulateRule #-}
+{-# COMPILE AGDA2HS scottErshovEffectiveDomainRule #-}
 {-# COMPILE AGDA2HS constructivistPostulateRegression #-}
 {-# COMPILE AGDA2HS equivalent #-}
 {-# COMPILE AGDA2HS merge #-}
