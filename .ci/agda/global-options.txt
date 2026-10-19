@@ -1,2 +1,2 @@
---erasured-matches
+--erased-matches
 --no-projection-like
