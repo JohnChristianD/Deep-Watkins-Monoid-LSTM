@@ -31,9 +31,17 @@ Graph semantics:
     and cycle behavior, result cost, and fuel exhaustion. Benchmark before
     claiming faster execution. Finite regressions do not prove general
     optimality.
-  * DAG report counting uses topological dynamic programming. Factorial fuel in
-    a path search can still be expensive; the CI pass is correctness evidence
-    for checked fixtures, not a runtime performance benchmark.
+  * DAG report counting and dependency closure use topological dynamic
+    programming after acyclicity is established. Path enumeration remains
+    fuel-bounded; CI fixtures establish correctness, not runtime performance.
+  * Keep eager A* for first-path search when a heuristic is useful. JAxtar
+    provides batched JAX A*/Q* for accelerator-backed, neural-heuristic search;
+    Mctx provides JAX Monte Carlo tree search over learned policy/value and
+    dynamics models. Neither replaces exact dependency closure or cycle
+    rejection. Do not add either runtime to the Agda/Nix graph checker without
+    a separate workload and reproducible benchmark.
+    References: https://github.com/tinker495/JAxtar and
+    https://github.com/google-deepmind/mctx.
 
 Constructive foundations — Russian constructivism (RUSS) only:
   * Status: NOT GLOBALLY CERTIFIED. Certification requires a checked theorem-
@@ -69,6 +77,10 @@ Constructive foundations — Russian constructivism (RUSS) only:
       https://plato.stanford.edu/entries/mathematics-constructive/
     - Stanford Encyclopedia, Reverse Mathematics:
       https://plato.stanford.edu/entries/reverse-mathematics/
+    - Hannes Diener, Constructive Reverse Mathematics (2018):
+      https://arxiv.org/abs/1804.05495
+    - Hannes Diener, publications and constructive-mathematics research:
+      https://www.math.canterbury.ac.nz/~h.diener/publications.html
     - Jesper Cockx, Rewriting type theory:
       https://jesper.sikanda.be/posts/rewriting-type-theory.html
     - Agda 2.8 Postulates:
@@ -102,10 +114,13 @@ Constructive foundations — Russian constructivism (RUSS) only:
 
   Source notes:
     Stanford is the principal conceptual source for RUSS, Markov's principle and
-    Church's thesis. Cockx and Agda docs describe kernel/rewrite boundaries, not
-    RUSS by themselves. Hackage/Agda2HS docs describe tool semantics. Escardó/
-    Kraus provide constructive type-theory and Agda context, not certification
-    of this repository. "Han" is ambiguous without a first name, title, or URL;
+    Church's thesis. Hannes Diener's constructive reverse mathematics work
+    informs axiom-strength comparisons and the non-gating Bishop sanity check;
+    it is not itself a certificate for this repository's RUSS assumptions.
+    Cockx and Agda docs describe kernel/rewrite boundaries, not RUSS by
+    themselves. Hackage/Agda2HS docs describe tool semantics. Escardó/Kraus
+    provide constructive type-theory and Agda context, not certification of
+    this repository. "Han" is ambiguous without a first name, title, or URL;
     no unrelated source is attributed. The live Wayback CDX request was
     inaccessible, so no particular archive snapshot is claimed as inspected.
 Lua/Elm:
