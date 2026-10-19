@@ -52,9 +52,9 @@
               file = "ccforth_0.3.2_darwin_arm64.tar.gz";
               hash = "8bece38e0d547754fa2a73fcb7d94510910dc2511f72183fea8dcebe0f222af0";
             };
-          }.\${system} or (throw "ccforth v0.3.2 has no release archive for \${system}");
+          }.${system} or (throw "ccforth v0.3.2 has no release archive for ${system}");
           archive = pkgs.fetchurl {
-            url = "https://github.com/ncw/ccforth/releases/download/v0.3.2/\${release.file}";
+            url = "https://github.com/ncw/ccforth/releases/download/v0.3.2/${release.file}";
             sha256 = release.hash;
           };
         in
