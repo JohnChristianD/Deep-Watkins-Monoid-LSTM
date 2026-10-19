@@ -774,7 +774,7 @@ PY
                   if test -f "$progress"; then
                     stage=$(cat "$progress")
                     if [ "$stage" != "$last_stage" ]; then
-                      printf 'semantic-search-progress=%s\\n' "$stage"
+                      printf 'semantic-search-progress=%s\n' "$stage"
                       last_stage="$stage"
                     fi
                   fi
@@ -782,7 +782,7 @@ PY
                 done
                 wait "$search_pid"
                 if test -f "$progress"; then
-                  printf 'semantic-search-progress=%s\\n' "$(cat "$progress")"
+                  printf 'semantic-search-progress=%s\n' "$(cat "$progress")"
                 fi
                 cat "$out/report.txt"
                 grep -Fq "True" "$out/report.txt"
