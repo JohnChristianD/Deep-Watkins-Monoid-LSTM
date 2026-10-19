@@ -9,7 +9,7 @@
 --rewriting
 --level-universe
 --cumulativity
---auto-inline
+--lossy-unification
 --polarity
 --flat-split
 --large-indices
