@@ -820,7 +820,7 @@ PY
                 grep -Fq "scottErshovNLabDenotationalSemanticsRegression" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "canonicalLearnerTraceDenotationStep" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "russianConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
-                grep -Fq "scottErshovDenotationalSemanticsPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
+                grep -Fq "scottErshovEffectiveDomainRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "canonical-search-egraph-closed=True" "$out/report.txt"
                 grep -Fq "graph-astar-egraph-closed=True" "$out/report.txt"
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
