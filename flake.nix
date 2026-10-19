@@ -364,6 +364,7 @@ PY
           agda = agdaCli system;
           agda2hs = agda2hsWithCanonicalGhc system;
           agda-emacs = agdaEmacs system;
+          ccforth = ccforth system;
           ci = pkgs.dhall;
           default = pkgs.dhall;
         });
