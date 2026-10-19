@@ -678,21 +678,29 @@ PY
                   "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
 
                 "$out/graph-search-check" > "$out/report.txt"
-                grep -Fxq "graph-two-leaf-branches=True" "$out/report.txt"
-                grep -Fxq "graph-dependency-order=True" "$out/report.txt"
-                grep -Fxq "graph-best-first-tie=True" "$out/report.txt"
-                grep -Fxq "graph-best-g-policy=True" "$out/report.txt"
-                grep -Fxq "graph-admissible-heuristic=True" "$out/report.txt"
-                grep -Fxq "graph-cycle-rejected=True" "$out/report.txt"
-                grep -Fxq "graph-closure-duplicate-dependencies=True" "$out/report.txt"
-                grep -Fxq "graph-duplicate-edge-normalization=True" "$out/report.txt"
-                grep -Fxq "graph-multi-parent-dag=True" "$out/report.txt"
-                grep -Fxq "graph-self-loop-rejected=True" "$out/report.txt"
-                grep -Fxq "graph-dot-parser-regression=True" "$out/report.txt"
-                grep -Fxq "graph-linear-chain=True" "$out/report.txt"
-                grep -Fxq "graph-search-contract=True" "$out/report.txt"
-                grep -Fxq "canonical-search-egraph-closed=True" "$out/report.txt"
-                grep -Fxq "graph-astar-egraph-closed=True" "$out/report.txt"
+                require_report_line() {
+                  local expected="$1"
+                  if ! grep -Fxq "$expected" "$out/report.txt"; then
+                    echo "graph regression missing or false: $expected" >&2
+                    cat "$out/report.txt" >&2
+                    exit 1
+                  fi
+                }
+                require_report_line "graph-two-leaf-branches=True"
+                require_report_line "graph-dependency-order=True"
+                require_report_line "graph-best-first-tie=True"
+                require_report_line "graph-best-g-policy=True"
+                require_report_line "graph-admissible-heuristic=True"
+                require_report_line "graph-cycle-rejected=True"
+                require_report_line "graph-closure-duplicate-dependencies=True"
+                require_report_line "graph-duplicate-edge-normalization=True"
+                require_report_line "graph-multi-parent-dag=True"
+                require_report_line "graph-self-loop-rejected=True"
+                require_report_line "graph-dot-parser-regression=True"
+                require_report_line "graph-linear-chain=True"
+                require_report_line "graph-search-contract=True"
+                require_report_line "canonical-search-egraph-closed=True"
+                require_report_line "graph-astar-egraph-closed=True"
 
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
