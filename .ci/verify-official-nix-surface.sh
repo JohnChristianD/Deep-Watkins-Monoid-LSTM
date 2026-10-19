@@ -108,6 +108,16 @@ grep -Fq 'agda2hs_base_root' flake.nix || { echo "Agda2HS base source root must 
 
 grep -Fq 'pkgs.luajitPackages.buildLuaPackage' flake.nix
 grep -Fq 'pkgs.luajit.withPackages' flake.nix
+# Fixed-hash ccforth plus Nixpkgs Forth, documentation, and Scheme tools.
+grep -Fq 'ccforth = system:' flake.nix
+grep -Fq 'ccforth_0.3.2_linux_amd64.tar.gz' flake.nix
+grep -Fq 'ccforth_0.3.2_linux_arm64.tar.gz' flake.nix
+grep -Fq 'ccforth_0.3.2_darwin_amd64.tar.gz' flake.nix
+grep -Fq 'ccforth_0.3.2_darwin_arm64.tar.gz' flake.nix
+grep -Fq 'pkgs.gforth' flake.nix
+grep -Fq 'pkgs.groff' flake.nix
+grep -Fq 'pkgs.guile' flake.nix
+grep -Fq 'forth = pkgs.mkShell' flake.nix
 grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
 grep -Fq 'name = "monoid-lstm-stream-check";' flake.nix
 echo 'official-nix-surface=pass'
