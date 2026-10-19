@@ -2265,214 +2265,10 @@ semanticSearchExecutableReport laws =
     ++ " egraph-constructivist-postulates="
     ++ show EGraph.constructivistPostulateRegression
 
-stringListEqual : List String -> List String -> Bool
-stringListEqual [] [] = True
-stringListEqual [] (_ ∷ _) = False
-stringListEqual (_ ∷ _) [] = False
-stringListEqual (x ∷ xs) (y ∷ ys) =
-  if x == y then
-    stringListEqual xs ys
-  else
-    False
-
-normalizedSignatureEqual : String -> String -> Bool
-normalizedSignatureEqual left right =
-  stringListEqual (words left) (words right)
-
-semanticLawIsRecordField :
-  Extractor.SemanticLaw ->
-  Bool
-semanticLawIsRecordField law =
-  case Extractor.semanticLawKind law of λ where
-    Extractor.SemanticRecordField -> True
-    Extractor.SemanticTopLevel -> False
-
-semanticLawIsReflexive :
-  Extractor.SemanticLaw ->
-  Bool
-semanticLawIsReflexive law =
-  Extractor.lawReflexive law
-
-semanticLawNamePresent :
-  String ->
-  List Extractor.SemanticLaw ->
-  Bool
-semanticLawNamePresent name [] = False
-semanticLawNamePresent name (law ∷ laws) =
-  if Extractor.semanticLawName law == name then
-    True
-  else
-    semanticLawNamePresent name laws
-
-record DominanceEdge : Type where
-  no-eta-equality; pattern
-  constructor MkDominanceEdge
-  field
-    dominanceContainer : String
-    dominanceTheorem : String
-    dominanceField : String
-
-open DominanceEdge public
-
--- Heuristic only: the scanner compares normalized source signature text
--- and verifies that the named record container exists. Equal text is evidence
--- for a review candidate, not a proof of logical implication or subsumption.
-recordFieldSignatureCandidate :
-  Extractor.SemanticLaw ->
-  Extractor.SemanticLaw ->
-  List Extractor.SemanticLaw ->
-  Bool
-recordFieldSignatureCandidate theorem fieldLaw knownLaws =
-  if semanticLawIsRecordField theorem then
-    False
-  else if semanticLawIsRecordField fieldLaw then
-    if semanticLawIsReflexive theorem then
-      False
-    else if normalizedSignatureEqual
-      (Extractor.semanticLawSignature theorem)
-      (Extractor.semanticLawSignature fieldLaw) then
-      if Extractor.semanticLawContainer fieldLaw == "" then
-        False
-      else
-        semanticLawNamePresent
-          (Extractor.semanticLawContainer fieldLaw)
-          knownLaws
-    else
-      False
-  else
-    False
-
-signatureCandidateEdgeFor :
-  Extractor.SemanticLaw ->
-  Extractor.SemanticLaw ->
-  List Extractor.SemanticLaw ->
-  Maybe DominanceEdge
-signatureCandidateEdgeFor theorem fieldLaw knownLaws =
-  if recordFieldSignatureCandidate theorem fieldLaw knownLaws then
-    Just
-      (MkDominanceEdge
-        (Extractor.semanticLawContainer fieldLaw)
-        (Extractor.semanticLawName theorem)
-        (Extractor.semanticLawName fieldLaw))
-  else
-    Nothing
-
-signatureCandidateEdgesForFields :
-  Extractor.SemanticLaw ->
-  List Extractor.SemanticLaw ->
-  List Extractor.SemanticLaw ->
-  List DominanceEdge
-signatureCandidateEdgesForFields theorem _ [] = []
-signatureCandidateEdgesForFields theorem knownLaws (fieldLaw ∷ remainingFields) =
-  case signatureCandidateEdgeFor theorem fieldLaw knownLaws of λ where
-    Nothing ->
-      signatureCandidateEdgesForFields theorem knownLaws remainingFields
-    (Just edge) ->
-      edge ∷ signatureCandidateEdgesForFields theorem knownLaws remainingFields
-
-signatureCandidateEdgesForTheorems :
-  List Extractor.SemanticLaw ->
-  List Extractor.SemanticLaw ->
-  List DominanceEdge
-signatureCandidateEdgesForTheorems _ [] = []
-signatureCandidateEdgesForTheorems knownLaws (law ∷ remainingLaws) =
-  signatureCandidateEdgesForFields law knownLaws knownLaws
-  ++ signatureCandidateEdgesForTheorems knownLaws remainingLaws
-
-dominanceEdgeEqual :
-  DominanceEdge ->
-  DominanceEdge ->
-  Bool
-dominanceEdgeEqual left right =
-  dominanceContainer left == dominanceContainer right
-  &&
-  dominanceTheorem left == dominanceTheorem right
-  &&
-  dominanceField left == dominanceField right
-
-dominanceEdgeMember :
-  DominanceEdge ->
-  List DominanceEdge ->
-  Bool
-dominanceEdgeMember _ [] = False
-dominanceEdgeMember edge (candidate ∷ rest) =
-  if dominanceEdgeEqual edge candidate then
-    True
-  else
-    dominanceEdgeMember edge rest
-
-dedupeSignatureCandidateEdges :
-  List DominanceEdge ->
-  List DominanceEdge ->
-  List DominanceEdge
-dedupeSignatureCandidateEdges [] seen = reverse seen
-dedupeSignatureCandidateEdges (edge ∷ edges) seen =
-  if dominanceEdgeMember edge seen then
-    dedupeSignatureCandidateEdges edges seen
-  else
-    dedupeSignatureCandidateEdges edges (edge ∷ seen)
-
-graphSignatureCandidateEdges :
-  List Extractor.SemanticLaw ->
-  List DominanceEdge
-graphSignatureCandidateEdges laws =
-  dedupeSignatureCandidateEdges
-    (signatureCandidateEdgesForTheorems laws laws)
-    []
-
-dedupeStringsWithSeen :
-  List String ->
-  List String ->
-  List String
-dedupeStringsWithSeen [] seen = reverse seen
-dedupeStringsWithSeen (value ∷ values) seen =
-  if planContains value seen then
-    dedupeStringsWithSeen values seen
-  else
-    dedupeStringsWithSeen values (value ∷ seen)
-
-dedupeStrings :
-  List String ->
-  List String
-dedupeStrings values = dedupeStringsWithSeen values []
-
-signatureMatchedTheoremCandidates :
-  List Extractor.SemanticLaw ->
-  List String
-signatureMatchedTheoremCandidates laws =
-  dedupeStrings
-    (map dominanceTheorem (graphSignatureCandidateEdges laws))
-
-knownRedundancyCandidateNames : List String
-knownRedundancyCandidateNames =
-  "integerLayerNorm-egraph-astar-eventual-semantic-closure" ∷
-  "integerLayerNorm-egraph-astar-infinite-stable-tail" ∷
-  "eGraphEconomicFixedPoint" ∷
-  "eGraphEconomicWalrasianEquilibrium" ∷
-  "eGraphEconomicComposition-injective" ∷
-  []
-
-allNamesPresent :
-  List String ->
-  List String ->
-  Bool
-allNamesPresent [] _ = True
-allNamesPresent (name ∷ names) candidates =
-  if planContains name candidates then
-    allNamesPresent names candidates
-  else
-    False
-
-knownRedundancyCandidatesPresent :
-  List Extractor.SemanticLaw ->
-  List String
-knownRedundancyCandidatesPresent laws =
-  let dominated = signatureMatchedTheoremCandidates laws
-  in
-  if allNamesPresent knownRedundancyCandidateNames dominated then
-    knownRedundancyCandidateNames
-  else
-    []
+-- Source-signature equality is not a logical implication proof. The prior
+-- all-pairs candidate scan was quadratic in every extracted declaration and
+-- was only a heuristic; remove it from the executable report path. Pruning is
+-- based on explicit proof/dependency audit, not textual signature matching.
 
 semanticPlanEGraphReport :
   List String ->
@@ -2690,11 +2486,7 @@ agdaSemanticPortReport :
   List Extractor.SemanticLaw ->
   String
 agdaSemanticPortReport laws =
-  "agda2hs-semantic-port="
-    ++ show (length (graphSignatureCandidateEdges laws))
-    ++ " signature-candidate edges; "
-    ++ show (length (knownRedundancyCandidatesPresent laws))
-    ++ " known redundancy candidates; "
+  "agda2hs-semantic-port=heuristic-signature-scan-disabled; "
     ++ show (requiredPlanEGraphCount requiredNames laws)
     ++ "/"
     ++ show (length requiredNames)
@@ -2705,10 +2497,13 @@ agdaSemanticPortReport laws =
 
 main : IO ⊤
 main = do
+  writeFile "build/agda2hs-semantic-search/progress.txt" "reading-graph"
   source <- readFile "build/agda2hs-semantic-search/semantic-search.dot"
+  writeFile "build/agda2hs-semantic-search/progress.txt" "extracting-source-laws"
   semanticLaws <-
     Extractor.readSemanticLaws
       "build/agda2hs-semantic-search/.semantic-source-files"
+  writeFile "build/agda2hs-semantic-search/progress.txt" "source-law-scan-complete"
   putStrLn semanticSearchReport
   putStrLn (autonomousGraphSearchReport (parseDotEdges source))
   putStrLn (autonomousCanonicalGraphReport source)
@@ -2729,8 +2524,11 @@ main = do
   putStrLn hybridInverseExactRealSearchReport
   putStrLn sourceOnlyLegacyRequiredReport
   putStrLn ("source-only-legacy-boundary=" ++ show sourceOnlyLegacyBoundaryRegression)
+  writeFile "build/agda2hs-semantic-search/progress.txt" "required-plan-report-complete; egraph-closure-starting"
   putStrLn (agdaSemanticPortReport semanticLaws)
+  writeFile "build/agda2hs-semantic-search/progress.txt" "signature-scan-removed; canonical-egraph-starting"
   putStrLn ("canonical-search-egraph-closed=" ++ show canonicalSearchPlanEGraphClosed)
+  writeFile "build/agda2hs-semantic-search/progress.txt" "complete"
 
 {-# COMPILE AGDA2HS normalizeIdentifierChar #-}
 {-# COMPILE AGDA2HS normalizeIdentifier #-}
@@ -2918,26 +2716,8 @@ main = do
 {-# COMPILE AGDA2HS learnerSemanticBridgeRegression #-}
 {-# COMPILE AGDA2HS learnerSemanticBridgeReport #-}
 {-# COMPILE AGDA2HS DominanceEdge #-}
-{-# COMPILE AGDA2HS graphSignatureCandidateEdges #-}
-{-# COMPILE AGDA2HS signatureMatchedTheoremCandidates #-}
 {-# COMPILE AGDA2HS stringListEqual #-}
-{-# COMPILE AGDA2HS normalizedSignatureEqual #-}
-{-# COMPILE AGDA2HS semanticLawIsRecordField #-}
-{-# COMPILE AGDA2HS semanticLawIsReflexive #-}
-{-# COMPILE AGDA2HS semanticLawNamePresent #-}
-{-# COMPILE AGDA2HS recordFieldSignatureCandidate #-}
-{-# COMPILE AGDA2HS signatureCandidateEdgeFor #-}
-{-# COMPILE AGDA2HS signatureCandidateEdgesForFields #-}
-{-# COMPILE AGDA2HS signatureCandidateEdgesForTheorems #-}
-{-# COMPILE AGDA2HS dominanceEdgeEqual #-}
-{-# COMPILE AGDA2HS dominanceEdgeMember #-}
-{-# COMPILE AGDA2HS dedupeSignatureCandidateEdges #-}
-{-# COMPILE AGDA2HS dedupeStringsWithSeen #-}
-{-# COMPILE AGDA2HS dedupeStrings #-}
-{-# COMPILE AGDA2HS allNamesPresent #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphReport #-}
-{-# COMPILE AGDA2HS knownRedundancyCandidateNames #-}
-{-# COMPILE AGDA2HS knownRedundancyCandidatesPresent #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}
 {-# COMPILE AGDA2HS canonicalSearchPlanEGraphClosed #-}
