@@ -82,7 +82,6 @@ require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS emptyRigh
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS emptyLeftRule #-}	{-# COMPILE AGDA2HS emptyLeftRule #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS russianConstructivismPostulateRule #-}	{-# COMPILE AGDA2HS russianConstructivismPostulateRule #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS scottErshovDenotationalSemanticsPostulateRule #-}	{-# COMPILE AGDA2HS scottErshovDenotationalSemanticsPostulateRule #-}	1
-require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS bishopConstructivismPostulateRule #-}	{-# COMPILE AGDA2HS bishopConstructivismPostulateRule #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS constructivistPostulateRegression #-}	{-# COMPILE AGDA2HS constructivistPostulateRegression #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS equivalent #-}	{-# COMPILE AGDA2HS equivalent #-}	1
 require	FullCoupled/Agda2HsTheoremGraphEGraph.agda	{-# COMPILE AGDA2HS merge #-}	{-# COMPILE AGDA2HS merge #-}	1
@@ -291,6 +290,7 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS GraphNode #-}
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS autonomousGraphSearch #-}	{-# COMPILE AGDA2HS autonomousGraphSearch #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS autonomousGraphSearchRegression #-}	{-# COMPILE AGDA2HS autonomousGraphSearchRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphDependencyOrderRegression #-}	{-# COMPILE AGDA2HS graphDependencyOrderRegression #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS sourceOnlyLegacyBoundaryRegressionChecked #-}	{-# COMPILE AGDA2HS sourceOnlyLegacyBoundaryRegressionChecked #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphTwoLeafBranchesRegression #-}	{-# COMPILE AGDA2HS graphTwoLeafBranchesRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarTieBreakRegression #-}	{-# COMPILE AGDA2HS graphAStarTieBreakRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphCycleIsRejectedRegression #-}	{-# COMPILE AGDA2HS graphCycleIsRejectedRegression #-}	1
