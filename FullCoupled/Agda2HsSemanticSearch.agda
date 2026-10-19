@@ -1590,6 +1590,23 @@ graphPathCountRegression =
 graphPathCountRegressionChecked : graphPathCountRegression ≡ True
 graphPathCountRegressionChecked = refl
 
+-- A cyclic input is rejected by topological DP and never falls back to
+-- enumerating all simple paths. This is the regression for the former CI
+-- timeout mode.
+graphPathCountRejectsCycleRegression : Bool
+graphPathCountRejectsCycleRegression =
+  let
+    edges = ("A" , "B") ∷ ("B" , "A") ∷ []
+    laws = graphLawsFromEdges edges
+  in
+  case graphPathCountTableForLaws laws of λ where
+    Nothing -> autonomousGraphSearchCount edges == 0
+    (Just _) -> False
+
+graphPathCountRejectsCycleRegressionChecked :
+  graphPathCountRejectsCycleRegression ≡ True
+graphPathCountRejectsCycleRegressionChecked = refl
+
 graphPrecedes : String -> String -> List String -> Bool
 graphPrecedes target later [] = False
 graphPrecedes target later (name ∷ rest) =
