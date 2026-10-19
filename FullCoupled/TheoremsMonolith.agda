@@ -5489,43 +5489,41 @@ GloballyEventuallyFixed update fixed =
   ∀ state → Σ ℕ (λ n → iterateUpdate update n state ＝ fixed)
 
 ------------------------------------------------------------------------
--- Guarded Cubical (no-Glue) dense-separation kernel.
+-- Guarded coinductive trace dense-separation kernel.
 --
--- This module deliberately stays inside the theorem monolith because the
--- monolith already has the correct guarded + guardedness + cubical=no-glue
--- options.  No full Cubical/Glue library is imported.
---
--- Density is represented explicitly by finite observational separation;
--- global injectivity follows from a left inverse; conjugacy transports the
--- guarded orbit exactly.  The emergent witness remains proof-relevant data.
+-- This is ordinary coinductive data and propositional equality under the
+-- monolith's --with-K option, not Cubical Agda. This proof path intentionally
+-- uses no Cubical mode or imports. Density is explicit finite observational
+-- separation; injectivity follows from a left inverse, and conjugacy transports
+-- the guarded orbit exactly. The emergent witness remains proof-relevant data.
 ------------------------------------------------------------------------
 
-record GuardedCubicalTrace (Feature : Set) : Set where
+record GuardedTrace (Feature : Set) : Set where
   coinductive
   no-eta-equality
   field
     traceHead : Feature
-    traceTail : GuardedCubicalTrace Feature
+    traceTail : GuardedTrace Feature
 
-guardedCubicalTraceStage :
+guardedTraceStage :
   ∀ {Feature : Set} →
   ℕ →
-  GuardedCubicalTrace Feature →
+  GuardedTrace Feature →
   Feature
-guardedCubicalTraceStage zero trace = GuardedCubicalTrace.traceHead trace
-guardedCubicalTraceStage (succ n) trace =
-  guardedCubicalTraceStage n (GuardedCubicalTrace.traceTail trace)
+guardedTraceStage zero trace = GuardedTrace.traceHead trace
+guardedTraceStage (succ n) trace =
+  guardedTraceStage n (GuardedTrace.traceTail trace)
 
-record GuardedCubicalDenseRepresentation
+record GuardedTraceDenseRepresentation
   (State Feature : Set) : Set₁ where
-  constructor guardedCubicalDenseRepresentation
+  constructor guardedTraceDenseRepresentation
   field
     observe :
       State →
-      GuardedCubicalTrace Feature
+      GuardedTrace Feature
 
     decode :
-      GuardedCubicalTrace Feature →
+      GuardedTrace Feature →
       State
 
     leftInverse :
@@ -5537,142 +5535,142 @@ record GuardedCubicalDenseRepresentation
       s ≢ t →
       Σ ℕ
         (λ n →
-          guardedCubicalTraceStage n (observe s) ≢
-          guardedCubicalTraceStage n (observe t))
+          guardedTraceStage n (observe s) ≢
+          guardedTraceStage n (observe t))
 
-guardedCubicalGlobalInjective :
+guardedTraceGlobalInjective :
   ∀ {State Feature : Set} →
-  (R : GuardedCubicalDenseRepresentation State Feature) →
+  (R : GuardedTraceDenseRepresentation State Feature) →
   ∀ {s t} →
-  GuardedCubicalDenseRepresentation.observe R s ＝ GuardedCubicalDenseRepresentation.observe R t →
+  GuardedTraceDenseRepresentation.observe R s ＝ GuardedTraceDenseRepresentation.observe R t →
   s ＝ t
-guardedCubicalGlobalInjective R {s} {t} eq =
+guardedTraceGlobalInjective R {s} {t} eq =
   trans
-    (sym (GuardedCubicalDenseRepresentation.leftInverse R s))
+    (sym (GuardedTraceDenseRepresentation.leftInverse R s))
     (trans
-      (ap (GuardedCubicalDenseRepresentation.decode R) eq)
-      (GuardedCubicalDenseRepresentation.leftInverse R t))
+      (ap (GuardedTraceDenseRepresentation.decode R) eq)
+      (GuardedTraceDenseRepresentation.leftInverse R t))
 
-guardedCubicalPointSeparation :
+guardedTracePointSeparation :
   ∀ {State Feature : Set} →
-  (R : GuardedCubicalDenseRepresentation State Feature) →
+  (R : GuardedTraceDenseRepresentation State Feature) →
   ∀ {s t} →
   s ≢ t →
-  GuardedCubicalDenseRepresentation.observe R s ≢ GuardedCubicalDenseRepresentation.observe R t
-guardedCubicalPointSeparation R neq collision =
-  neq (guardedCubicalGlobalInjective R collision)
+  GuardedTraceDenseRepresentation.observe R s ≢ GuardedTraceDenseRepresentation.observe R t
+guardedTracePointSeparation R neq collision =
+  neq (guardedTraceGlobalInjective R collision)
 
-record GuardedCubicalConjugacy
+record GuardedTraceConjugacy
   (State Feature : Set)
   (stateStep : State → State)
-  (featureStep : GuardedCubicalTrace Feature → GuardedCubicalTrace Feature)
-  (R : GuardedCubicalDenseRepresentation State Feature) : Set₁ where
-  constructor guardedCubicalConjugacy
+  (featureStep : GuardedTrace Feature → GuardedTrace Feature)
+  (R : GuardedTraceDenseRepresentation State Feature) : Set₁ where
+  constructor guardedTraceConjugacy
   field
     stepConjugacy :
       ∀ s →
-      GuardedCubicalDenseRepresentation.observe R (stateStep s) ＝
-      featureStep (GuardedCubicalDenseRepresentation.observe R s)
+      GuardedTraceDenseRepresentation.observe R (stateStep s) ＝
+      featureStep (GuardedTraceDenseRepresentation.observe R s)
 
 iterateGuardedFeature :
   ∀ {Feature : Set} →
-  (GuardedCubicalTrace Feature → GuardedCubicalTrace Feature) →
+  (GuardedTrace Feature → GuardedTrace Feature) →
   ℕ →
-  GuardedCubicalTrace Feature →
-  GuardedCubicalTrace Feature
+  GuardedTrace Feature →
+  GuardedTrace Feature
 iterateGuardedFeature step zero s = s
 iterateGuardedFeature step (succ n) s =
   step (iterateGuardedFeature step n s)
 
-guardedCubicalIterateConjugacy :
+guardedTraceIterateConjugacy :
   ∀ {State Feature : Set}
   {stateStep : State → State}
   {featureStep :
-    GuardedCubicalTrace Feature →
-    GuardedCubicalTrace Feature}
-  {R : GuardedCubicalDenseRepresentation State Feature}
+    GuardedTrace Feature →
+    GuardedTrace Feature}
+  {R : GuardedTraceDenseRepresentation State Feature}
   (C :
-    GuardedCubicalConjugacy
+    GuardedTraceConjugacy
       State
       Feature
       stateStep
       featureStep
       R) →
   ∀ n s →
-  GuardedCubicalDenseRepresentation.observe R (iterateUpdate stateStep n s) ＝
-  iterateGuardedFeature featureStep n (GuardedCubicalDenseRepresentation.observe R s)
-guardedCubicalIterateConjugacy
+  GuardedTraceDenseRepresentation.observe R (iterateUpdate stateStep n s) ＝
+  iterateGuardedFeature featureStep n (GuardedTraceDenseRepresentation.observe R s)
+guardedTraceIterateConjugacy
   {stateStep = stateStep}
   {featureStep = featureStep}
   C zero s = refl
-guardedCubicalIterateConjugacy
+guardedTraceIterateConjugacy
   {stateStep = stateStep}
   {featureStep = featureStep}
   C (succ n) s =
   trans
-    (GuardedCubicalConjugacy.stepConjugacy C (iterateUpdate stateStep n s))
+    (GuardedTraceConjugacy.stepConjugacy C (iterateUpdate stateStep n s))
     (ap
       featureStep
-      (guardedCubicalIterateConjugacy C n s))
+      (guardedTraceIterateConjugacy C n s))
 
-record GuardedCubicalDenseSeparationEmergentCompositionTheorem
+record GuardedTraceDenseSeparationEmergentCompositionTheorem
   (State Feature Emergent : Set)
   (stateStep : State → State)
-  (featureStep : GuardedCubicalTrace Feature → GuardedCubicalTrace Feature)
-  (R : GuardedCubicalDenseRepresentation State Feature)
+  (featureStep : GuardedTrace Feature → GuardedTrace Feature)
+  (R : GuardedTraceDenseRepresentation State Feature)
   (C :
-    GuardedCubicalConjugacy
+    GuardedTraceConjugacy
       State
       Feature
       stateStep
       featureStep
       R) : Set₁ where
-  constructor guardedCubicalDenseSeparationEmergentCompositionTheorem
+  constructor guardedTraceDenseSeparationEmergentCompositionTheorem
   field
     emergentWitness :
       Emergent
 
     globallyInjective :
       ∀ {s t} →
-      GuardedCubicalDenseRepresentation.observe R s ＝ GuardedCubicalDenseRepresentation.observe R t →
+      GuardedTraceDenseRepresentation.observe R s ＝ GuardedTraceDenseRepresentation.observe R t →
       s ＝ t
 
     densePointSeparation :
       ∀ {s t} →
       s ≢ t →
-      GuardedCubicalDenseRepresentation.observe R s ≢ GuardedCubicalDenseRepresentation.observe R t
+      GuardedTraceDenseRepresentation.observe R s ≢ GuardedTraceDenseRepresentation.observe R t
 
     denseStageSeparation :
       ∀ {s t} →
       s ≢ t →
       Σ ℕ
         (λ n →
-          guardedCubicalTraceStage n
-            (GuardedCubicalDenseRepresentation.observe R s) ≢
-          guardedCubicalTraceStage n
-            (GuardedCubicalDenseRepresentation.observe R t))
+          guardedTraceStage n
+            (GuardedTraceDenseRepresentation.observe R s) ≢
+          guardedTraceStage n
+            (GuardedTraceDenseRepresentation.observe R t))
 
     exactIterateConjugacy :
       ∀ n s →
-      GuardedCubicalDenseRepresentation.observe R (iterateUpdate stateStep n s) ＝
-      iterateGuardedFeature featureStep n (GuardedCubicalDenseRepresentation.observe R s)
+      GuardedTraceDenseRepresentation.observe R (iterateUpdate stateStep n s) ＝
+      iterateGuardedFeature featureStep n (GuardedTraceDenseRepresentation.observe R s)
 
-guardedCubicalDenseSeparationEmergentComposition :
+guardedTraceDenseSeparationEmergentComposition :
   ∀ {State Feature Emergent : Set}
   {stateStep : State → State}
   {featureStep :
-    GuardedCubicalTrace Feature →
-    GuardedCubicalTrace Feature}
-  {R : GuardedCubicalDenseRepresentation State Feature}
+    GuardedTrace Feature →
+    GuardedTrace Feature}
+  {R : GuardedTraceDenseRepresentation State Feature}
   {C :
-    GuardedCubicalConjugacy
+    GuardedTraceConjugacy
       State
       Feature
       stateStep
       featureStep
       R} →
   Emergent →
-  GuardedCubicalDenseSeparationEmergentCompositionTheorem
+  GuardedTraceDenseSeparationEmergentCompositionTheorem
     State
     Feature
     Emergent
@@ -5680,16 +5678,16 @@ guardedCubicalDenseSeparationEmergentComposition :
     featureStep
     R
     C
-guardedCubicalDenseSeparationEmergentComposition
+guardedTraceDenseSeparationEmergentComposition
   {R = R}
   {C = C}
   emergent =
-  guardedCubicalDenseSeparationEmergentCompositionTheorem
+  guardedTraceDenseSeparationEmergentCompositionTheorem
     emergent
-    (guardedCubicalGlobalInjective R)
-    (guardedCubicalPointSeparation R)
-    (GuardedCubicalDenseRepresentation.denseSeparation R)
-    (guardedCubicalIterateConjugacy C)
+    (guardedTraceGlobalInjective R)
+    (guardedTracePointSeparation R)
+    (GuardedTraceDenseRepresentation.denseSeparation R)
+    (guardedTraceIterateConjugacy C)
 
 ------------------------------------------------------------------------
 -- Generic GRU tail-stability convergence and identifiability kernel.
