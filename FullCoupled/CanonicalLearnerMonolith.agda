@@ -445,10 +445,6 @@ suc+ = refl
 
 {-# REWRITE +zero +suc #-}
 
-+comm : m + n ≡ n + m
-+comm {m = zero}  = refl
-+comm {m = suc m} = cong suc (+comm {m = m})
-
 map : (A → B) → List A → List B
 map f []       = []
 map f (x ∷ xs) = (f x) ∷ (map f xs)
