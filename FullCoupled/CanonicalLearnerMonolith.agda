@@ -323,12 +323,12 @@ module ConstructiveComputabilityPostulates where
   haBottom = haFalsehood
 
   haMarkovPrincipleFormula : Nat → HAFormula → HAFormula
-  haMarkovPrincipleFormula variable body =
+  haMarkovPrincipleFormula varIndex body =
     haImplication
-      (haUniversal variable (haDisjunction body (haNegation body)))
+      (haUniversal varIndex (haDisjunction body (haNegation body)))
       (haImplication
-        (haNegation (haNegation (haExistential variable body)))
-        (haExistential variable body))
+        (haNegation (haNegation (haExistential varIndex body)))
+        (haExistential varIndex body))
 
   -- The ECT₀ axiom schema. The T-predicate is represented by the explicit
   -- machine-computation atom; its arithmetisation and soundness bridge are
@@ -357,123 +357,123 @@ module ConstructiveComputabilityPostulates where
   haBooleanOr False right = right
 
   haSubstituteTerm : Nat → HATerm → HATerm → HATerm
-  haSubstituteTerm variable replacement (haVariable index)
-    with natEquality variable index
+  haSubstituteTerm varIndex replacement (haVariable index)
+    with natEquality varIndex index
   ... | True = replacement
   ... | False = haVariable index
-  haSubstituteTerm variable replacement haZeroTerm = haZeroTerm
-  haSubstituteTerm variable replacement (haSuccessorTerm term) =
-    haSuccessorTerm (haSubstituteTerm variable replacement term)
-  haSubstituteTerm variable replacement (haAdditionTerm left right) =
+  haSubstituteTerm varIndex replacement haZeroTerm = haZeroTerm
+  haSubstituteTerm varIndex replacement (haSuccessorTerm term) =
+    haSuccessorTerm (haSubstituteTerm varIndex replacement term)
+  haSubstituteTerm varIndex replacement (haAdditionTerm left right) =
     haAdditionTerm
-      (haSubstituteTerm variable replacement left)
-      (haSubstituteTerm variable replacement right)
-  haSubstituteTerm variable replacement (haMultiplicationTerm left right) =
+      (haSubstituteTerm varIndex replacement left)
+      (haSubstituteTerm varIndex replacement right)
+  haSubstituteTerm varIndex replacement (haMultiplicationTerm left right) =
     haMultiplicationTerm
-      (haSubstituteTerm variable replacement left)
-      (haSubstituteTerm variable replacement right)
+      (haSubstituteTerm varIndex replacement left)
+      (haSubstituteTerm varIndex replacement right)
 
   haSubstituteFormula : Nat → HATerm → HAFormula → HAFormula
-  haSubstituteFormula variable replacement haFalsehood = haFalsehood
-  haSubstituteFormula variable replacement (haEquality left right) =
+  haSubstituteFormula varIndex replacement haFalsehood = haFalsehood
+  haSubstituteFormula varIndex replacement (haEquality left right) =
     haEquality
-      (haSubstituteTerm variable replacement left)
-      (haSubstituteTerm variable replacement right)
-  haSubstituteFormula variable replacement (haLessOrEqual left right) =
+      (haSubstituteTerm varIndex replacement left)
+      (haSubstituteTerm varIndex replacement right)
+  haSubstituteFormula varIndex replacement (haLessOrEqual left right) =
     haLessOrEqual
-      (haSubstituteTerm variable replacement left)
-      (haSubstituteTerm variable replacement right)
-  haSubstituteFormula variable replacement (haConjunction left right) =
+      (haSubstituteTerm varIndex replacement left)
+      (haSubstituteTerm varIndex replacement right)
+  haSubstituteFormula varIndex replacement (haConjunction left right) =
     haConjunction
-      (haSubstituteFormula variable replacement left)
-      (haSubstituteFormula variable replacement right)
-  haSubstituteFormula variable replacement (haDisjunction left right) =
+      (haSubstituteFormula varIndex replacement left)
+      (haSubstituteFormula varIndex replacement right)
+  haSubstituteFormula varIndex replacement (haDisjunction left right) =
     haDisjunction
-      (haSubstituteFormula variable replacement left)
-      (haSubstituteFormula variable replacement right)
-  haSubstituteFormula variable replacement (haImplication left right) =
+      (haSubstituteFormula varIndex replacement left)
+      (haSubstituteFormula varIndex replacement right)
+  haSubstituteFormula varIndex replacement (haImplication left right) =
     haImplication
-      (haSubstituteFormula variable replacement left)
-      (haSubstituteFormula variable replacement right)
-  haSubstituteFormula variable replacement (haUniversal binder body)
-    with natEquality variable binder
+      (haSubstituteFormula varIndex replacement left)
+      (haSubstituteFormula varIndex replacement right)
+  haSubstituteFormula varIndex replacement (haUniversal binder body)
+    with natEquality varIndex binder
   ... | True = haUniversal binder body
-  ... | False = haUniversal binder (haSubstituteFormula variable replacement body)
-  haSubstituteFormula variable replacement (haExistential binder body)
-    with natEquality variable binder
+  ... | False = haUniversal binder (haSubstituteFormula varIndex replacement body)
+  haSubstituteFormula varIndex replacement (haExistential binder body)
+    with natEquality varIndex binder
   ... | True = haExistential binder body
-  ... | False = haExistential binder (haSubstituteFormula variable replacement body)
-  haSubstituteFormula variable replacement
+  ... | False = haExistential binder (haSubstituteFormula varIndex replacement body)
+  haSubstituteFormula varIndex replacement
     (haBoundedUniversal binder bound body)
-    with natEquality variable binder
+    with natEquality varIndex binder
   ... | True =
-    haBoundedUniversal binder (haSubstituteTerm variable replacement bound) body
+    haBoundedUniversal binder (haSubstituteTerm varIndex replacement bound) body
   ... | False =
     haBoundedUniversal binder
-      (haSubstituteTerm variable replacement bound)
-      (haSubstituteFormula variable replacement body)
-  haSubstituteFormula variable replacement
+      (haSubstituteTerm varIndex replacement bound)
+      (haSubstituteFormula varIndex replacement body)
+  haSubstituteFormula varIndex replacement
     (haBoundedExistential binder bound body)
-    with natEquality variable binder
+    with natEquality varIndex binder
   ... | True =
-    haBoundedExistential binder (haSubstituteTerm variable replacement bound) body
+    haBoundedExistential binder (haSubstituteTerm varIndex replacement bound) body
   ... | False =
     haBoundedExistential binder
-      (haSubstituteTerm variable replacement bound)
-      (haSubstituteFormula variable replacement body)
-  haSubstituteFormula variable replacement
+      (haSubstituteTerm varIndex replacement bound)
+      (haSubstituteFormula varIndex replacement body)
+  haSubstituteFormula varIndex replacement
     (haMachineComputes code input trace output) =
     haMachineComputes
-      (haSubstituteTerm variable replacement code)
-      (haSubstituteTerm variable replacement input)
-      (haSubstituteTerm variable replacement trace)
-      (haSubstituteTerm variable replacement output)
+      (haSubstituteTerm varIndex replacement code)
+      (haSubstituteTerm varIndex replacement input)
+      (haSubstituteTerm varIndex replacement trace)
+      (haSubstituteTerm varIndex replacement output)
 
   haOccursTerm : Nat → HATerm → Bool
-  haOccursTerm variable (haVariable index) = natEquality variable index
-  haOccursTerm variable haZeroTerm = False
-  haOccursTerm variable (haSuccessorTerm term) = haOccursTerm variable term
-  haOccursTerm variable (haAdditionTerm left right) =
-    haBooleanOr (haOccursTerm variable left) (haOccursTerm variable right)
-  haOccursTerm variable (haMultiplicationTerm left right) =
-    haBooleanOr (haOccursTerm variable left) (haOccursTerm variable right)
+  haOccursTerm varIndex (haVariable index) = natEquality varIndex index
+  haOccursTerm varIndex haZeroTerm = False
+  haOccursTerm varIndex (haSuccessorTerm term) = haOccursTerm varIndex term
+  haOccursTerm varIndex (haAdditionTerm left right) =
+    haBooleanOr (haOccursTerm varIndex left) (haOccursTerm varIndex right)
+  haOccursTerm varIndex (haMultiplicationTerm left right) =
+    haBooleanOr (haOccursTerm varIndex left) (haOccursTerm varIndex right)
 
   haOccursFormula : Nat → HAFormula → Bool
-  haOccursFormula variable haFalsehood = False
-  haOccursFormula variable (haEquality left right) =
-    haBooleanOr (haOccursTerm variable left) (haOccursTerm variable right)
-  haOccursFormula variable (haLessOrEqual left right) =
-    haBooleanOr (haOccursTerm variable left) (haOccursTerm variable right)
-  haOccursFormula variable (haConjunction left right) =
-    haBooleanOr (haOccursFormula variable left) (haOccursFormula variable right)
-  haOccursFormula variable (haDisjunction left right) =
-    haBooleanOr (haOccursFormula variable left) (haOccursFormula variable right)
-  haOccursFormula variable (haImplication left right) =
-    haBooleanOr (haOccursFormula variable left) (haOccursFormula variable right)
-  haOccursFormula variable (haUniversal binder body)
-    with natEquality variable binder
+  haOccursFormula varIndex haFalsehood = False
+  haOccursFormula varIndex (haEquality left right) =
+    haBooleanOr (haOccursTerm varIndex left) (haOccursTerm varIndex right)
+  haOccursFormula varIndex (haLessOrEqual left right) =
+    haBooleanOr (haOccursTerm varIndex left) (haOccursTerm varIndex right)
+  haOccursFormula varIndex (haConjunction left right) =
+    haBooleanOr (haOccursFormula varIndex left) (haOccursFormula varIndex right)
+  haOccursFormula varIndex (haDisjunction left right) =
+    haBooleanOr (haOccursFormula varIndex left) (haOccursFormula varIndex right)
+  haOccursFormula varIndex (haImplication left right) =
+    haBooleanOr (haOccursFormula varIndex left) (haOccursFormula varIndex right)
+  haOccursFormula varIndex (haUniversal binder body)
+    with natEquality varIndex binder
   ... | True = False
-  ... | False = haOccursFormula variable body
-  haOccursFormula variable (haExistential binder body)
-    with natEquality variable binder
+  ... | False = haOccursFormula varIndex body
+  haOccursFormula varIndex (haExistential binder body)
+    with natEquality varIndex binder
   ... | True = False
-  ... | False = haOccursFormula variable body
-  haOccursFormula variable (haBoundedUniversal binder bound body)
-    with natEquality variable binder
-  ... | True = haOccursTerm variable bound
+  ... | False = haOccursFormula varIndex body
+  haOccursFormula varIndex (haBoundedUniversal binder bound body)
+    with natEquality varIndex binder
+  ... | True = haOccursTerm varIndex bound
   ... | False =
-    haBooleanOr (haOccursTerm variable bound) (haOccursFormula variable body)
-  haOccursFormula variable (haBoundedExistential binder bound body)
-    with natEquality variable binder
-  ... | True = haOccursTerm variable bound
+    haBooleanOr (haOccursTerm varIndex bound) (haOccursFormula varIndex body)
+  haOccursFormula varIndex (haBoundedExistential binder bound body)
+    with natEquality varIndex binder
+  ... | True = haOccursTerm varIndex bound
   ... | False =
-    haBooleanOr (haOccursTerm variable bound) (haOccursFormula variable body)
-  haOccursFormula variable (haMachineComputes code input trace output) =
-    haBooleanOr (haOccursTerm variable code)
-      (haBooleanOr (haOccursTerm variable input)
-        (haBooleanOr (haOccursTerm variable trace) (haOccursTerm variable output)))
+    haBooleanOr (haOccursTerm varIndex bound) (haOccursFormula varIndex body)
+  haOccursFormula varIndex (haMachineComputes code input trace output) =
+    haBooleanOr (haOccursTerm varIndex code)
+      (haBooleanOr (haOccursTerm varIndex input)
+        (haBooleanOr (haOccursTerm varIndex trace) (haOccursTerm varIndex output)))
 
-  -- Named-variable substitution is available only at capture-safe
+  -- Named-varIndex substitution is available only at capture-safe
   -- instances. Instead of silently alpha-renaming, the derivation rules ask
   -- for a decidable freshness check before using substitution.
   haBooleanNot : Bool → Bool
@@ -486,64 +486,64 @@ module ConstructiveComputabilityPostulates where
 
   haSubstitutionCaptureSafe :
     Nat → HATerm → HAFormula → Bool
-  haSubstitutionCaptureSafe variable replacement haFalsehood = True
-  haSubstitutionCaptureSafe variable replacement (haEquality left right) = True
-  haSubstitutionCaptureSafe variable replacement (haLessOrEqual left right) = True
-  haSubstitutionCaptureSafe variable replacement (haMachineComputes code input trace output) = True
-  haSubstitutionCaptureSafe variable replacement (haConjunction left right) =
+  haSubstitutionCaptureSafe varIndex replacement haFalsehood = True
+  haSubstitutionCaptureSafe varIndex replacement (haEquality left right) = True
+  haSubstitutionCaptureSafe varIndex replacement (haLessOrEqual left right) = True
+  haSubstitutionCaptureSafe varIndex replacement (haMachineComputes code input trace output) = True
+  haSubstitutionCaptureSafe varIndex replacement (haConjunction left right) =
     haBooleanAnd
-      (haSubstitutionCaptureSafe variable replacement left)
-      (haSubstitutionCaptureSafe variable replacement right)
-  haSubstitutionCaptureSafe variable replacement (haDisjunction left right) =
+      (haSubstitutionCaptureSafe varIndex replacement left)
+      (haSubstitutionCaptureSafe varIndex replacement right)
+  haSubstitutionCaptureSafe varIndex replacement (haDisjunction left right) =
     haBooleanAnd
-      (haSubstitutionCaptureSafe variable replacement left)
-      (haSubstitutionCaptureSafe variable replacement right)
-  haSubstitutionCaptureSafe variable replacement (haImplication left right) =
+      (haSubstitutionCaptureSafe varIndex replacement left)
+      (haSubstitutionCaptureSafe varIndex replacement right)
+  haSubstitutionCaptureSafe varIndex replacement (haImplication left right) =
     haBooleanAnd
-      (haSubstitutionCaptureSafe variable replacement left)
-      (haSubstitutionCaptureSafe variable replacement right)
-  haSubstitutionCaptureSafe variable replacement (haUniversal binder body)
-    with natEquality variable binder
+      (haSubstitutionCaptureSafe varIndex replacement left)
+      (haSubstitutionCaptureSafe varIndex replacement right)
+  haSubstitutionCaptureSafe varIndex replacement (haUniversal binder body)
+    with natEquality varIndex binder
   ... | True = True
   ... | False =
     haBooleanAnd
       (haBooleanNot
         (haBooleanAnd
           (haOccursTerm binder replacement)
-          (haOccursFormula variable body)))
-      (haSubstitutionCaptureSafe variable replacement body)
-  haSubstitutionCaptureSafe variable replacement (haExistential binder body)
-    with natEquality variable binder
+          (haOccursFormula varIndex body)))
+      (haSubstitutionCaptureSafe varIndex replacement body)
+  haSubstitutionCaptureSafe varIndex replacement (haExistential binder body)
+    with natEquality varIndex binder
   ... | True = True
   ... | False =
     haBooleanAnd
       (haBooleanNot
         (haBooleanAnd
           (haOccursTerm binder replacement)
-          (haOccursFormula variable body)))
-      (haSubstitutionCaptureSafe variable replacement body)
-  haSubstitutionCaptureSafe variable replacement
+          (haOccursFormula varIndex body)))
+      (haSubstitutionCaptureSafe varIndex replacement body)
+  haSubstitutionCaptureSafe varIndex replacement
     (haBoundedUniversal binder bound body)
-    with natEquality variable binder
+    with natEquality varIndex binder
   ... | True = True
   ... | False =
     haBooleanAnd
       (haBooleanNot
         (haBooleanAnd
           (haOccursTerm binder replacement)
-          (haOccursFormula variable body)))
-      (haSubstitutionCaptureSafe variable replacement body)
-  haSubstitutionCaptureSafe variable replacement
+          (haOccursFormula varIndex body)))
+      (haSubstitutionCaptureSafe varIndex replacement body)
+  haSubstitutionCaptureSafe varIndex replacement
     (haBoundedExistential binder bound body)
-    with natEquality variable binder
+    with natEquality varIndex binder
   ... | True = True
   ... | False =
     haBooleanAnd
       (haBooleanNot
         (haBooleanAnd
           (haOccursTerm binder replacement)
-          (haOccursFormula variable body)))
-      (haSubstitutionCaptureSafe variable replacement body)
+          (haOccursFormula varIndex body)))
+      (haSubstitutionCaptureSafe varIndex replacement body)
 
   data HAInContext (formula : HAFormula) : List HAFormula → Set where
     haHere :
@@ -554,13 +554,13 @@ module ConstructiveComputabilityPostulates where
       HAInContext formula context →
       HAInContext formula (other ∷ context)
 
-  data HAContextFresh (variable : Nat) : List HAFormula → Set where
-    haContextFreshNil : HAContextFresh variable []
+  data HAContextFresh (varIndex : Nat) : List HAFormula → Set where
+    haContextFreshNil : HAContextFresh varIndex []
     haContextFreshCons :
       {formula : HAFormula} {context : List HAFormula} →
-      haOccursFormula variable formula ≡ False →
-      HAContextFresh variable context →
-      HAContextFresh variable (formula ∷ context)
+      haOccursFormula varIndex formula ≡ False →
+      HAContextFresh varIndex context →
+      HAContextFresh varIndex (formula ∷ context)
 
   -- Delta-zero formula codes: no unbounded quantifier occurs. The arithmetic
   -- order and machine-trace atoms are intended as primitive-recursive
@@ -589,13 +589,13 @@ module ConstructiveComputabilityPostulates where
       HAIsDeltaZero left → HAIsDeltaZero right →
       HAIsDeltaZero (haImplication left right)
     haDeltaBoundedUniversal :
-      {variable : Nat} {bound : HATerm} {body : HAFormula} →
+      {varIndex : Nat} {bound : HATerm} {body : HAFormula} →
       HAIsDeltaZero body →
-      HAIsDeltaZero (haBoundedUniversal variable bound body)
+      HAIsDeltaZero (haBoundedUniversal varIndex bound body)
     haDeltaBoundedExistential :
-      {variable : Nat} {bound : HATerm} {body : HAFormula} →
+      {varIndex : Nat} {bound : HATerm} {body : HAFormula} →
       HAIsDeltaZero body →
-      HAIsDeltaZero (haBoundedExistential variable bound body)
+      HAIsDeltaZero (haBoundedExistential varIndex bound body)
 
   -- The ECT_0 domain restriction is explicit: no disjunction and no unbounded
   -- existential is admitted except where its body is delta-zero.
@@ -617,19 +617,19 @@ module ConstructiveComputabilityPostulates where
       HAAlmostNegative left → HAAlmostNegative right →
       HAAlmostNegative (haImplication left right)
     haAlmostUniversal :
-      {variable : Nat} {body : HAFormula} →
-      HAAlmostNegative body → HAAlmostNegative (haUniversal variable body)
+      {varIndex : Nat} {body : HAFormula} →
+      HAAlmostNegative body → HAAlmostNegative (haUniversal varIndex body)
     haAlmostBoundedUniversal :
-      {variable : Nat} {bound : HATerm} {body : HAFormula} →
+      {varIndex : Nat} {bound : HATerm} {body : HAFormula} →
       HAAlmostNegative body →
-      HAAlmostNegative (haBoundedUniversal variable bound body)
+      HAAlmostNegative (haBoundedUniversal varIndex bound body)
     haAlmostExistentialDeltaZero :
-      {variable : Nat} {body : HAFormula} →
-      HAIsDeltaZero body → HAAlmostNegative (haExistential variable body)
+      {varIndex : Nat} {body : HAFormula} →
+      HAIsDeltaZero body → HAAlmostNegative (haExistential varIndex body)
     haAlmostBoundedExistentialDeltaZero :
-      {variable : Nat} {bound : HATerm} {body : HAFormula} →
+      {varIndex : Nat} {bound : HATerm} {body : HAFormula} →
       HAIsDeltaZero body →
-      HAAlmostNegative (haBoundedExistential variable bound body)
+      HAAlmostNegative (haBoundedExistential varIndex bound body)
 
   data HADerivation : List HAFormula → HAFormula → Set where
     haAssumption :
@@ -675,28 +675,28 @@ module ConstructiveComputabilityPostulates where
       HADerivation (right ∷ context) conclusion →
       HADerivation context conclusion
     haUniversalIntroduction :
-      {context : List HAFormula} {variable : Nat} {body : HAFormula} →
-      HAContextFresh variable context →
+      {context : List HAFormula} {varIndex : Nat} {body : HAFormula} →
+      HAContextFresh varIndex context →
       HADerivation context body →
-      HADerivation context (haUniversal variable body)
+      HADerivation context (haUniversal varIndex body)
     haUniversalElimination :
-      {context : List HAFormula} {variable : Nat} {body : HAFormula} →
-      HADerivation context (haUniversal variable body) →
+      {context : List HAFormula} {varIndex : Nat} {body : HAFormula} →
+      HADerivation context (haUniversal varIndex body) →
       (term : HATerm) →
-      haSubstitutionCaptureSafe variable term body ≡ True →
-      HADerivation context (haSubstituteFormula variable term body)
+      haSubstitutionCaptureSafe varIndex term body ≡ True →
+      HADerivation context (haSubstituteFormula varIndex term body)
     haExistentialIntroduction :
-      {context : List HAFormula} {variable : Nat} {body : HAFormula} →
+      {context : List HAFormula} {varIndex : Nat} {body : HAFormula} →
       (term : HATerm) →
-      haSubstitutionCaptureSafe variable term body ≡ True →
-      HADerivation context (haSubstituteFormula variable term body) →
-      HADerivation context (haExistential variable body)
+      haSubstitutionCaptureSafe varIndex term body ≡ True →
+      HADerivation context (haSubstituteFormula varIndex term body) →
+      HADerivation context (haExistential varIndex body)
     haExistentialElimination :
-      {context : List HAFormula} {variable : Nat} {body conclusion : HAFormula} →
-      HADerivation context (haExistential variable body) →
+      {context : List HAFormula} {varIndex : Nat} {body conclusion : HAFormula} →
+      HADerivation context (haExistential varIndex body) →
       HADerivation (body ∷ context) conclusion →
-      HAContextFresh variable context →
-      haOccursFormula variable conclusion ≡ False →
+      HAContextFresh varIndex context →
+      haOccursFormula varIndex conclusion ≡ False →
       HADerivation context conclusion
     haEqualityReflexivity :
       {context : List HAFormula} (term : HATerm) →
@@ -711,13 +711,13 @@ module ConstructiveComputabilityPostulates where
       HADerivation context (haEquality middle right) →
       HADerivation context (haEquality left right)
     haEqualitySubstitution :
-      {context : List HAFormula} {variable : Nat}
+      {context : List HAFormula} {varIndex : Nat}
       {formula : HAFormula} {left right : HATerm} →
       HADerivation context (haEquality left right) →
-      haSubstitutionCaptureSafe variable left formula ≡ True →
-      haSubstitutionCaptureSafe variable right formula ≡ True →
-      HADerivation context (haSubstituteFormula variable left formula) →
-      HADerivation context (haSubstituteFormula variable right formula)
+      haSubstitutionCaptureSafe varIndex left formula ≡ True →
+      haSubstitutionCaptureSafe varIndex right formula ≡ True →
+      HADerivation context (haSubstituteFormula varIndex left formula) →
+      HADerivation context (haSubstituteFormula varIndex right formula)
     haZeroNotSuccessor :
       {context : List HAFormula} (term : HATerm) →
       HADerivation context
@@ -752,55 +752,55 @@ module ConstructiveComputabilityPostulates where
           (haMultiplicationTerm left (haSuccessorTerm right))
           (haAdditionTerm (haMultiplicationTerm left right) left))
     haInduction :
-      {context : List HAFormula} (variable : Nat) (body : HAFormula) →
-      haSubstitutionCaptureSafe variable haZeroTerm body ≡ True →
-      haSubstitutionCaptureSafe variable (haSuccessorTerm (haVariable variable)) body ≡ True →
-      HADerivation context (haSubstituteFormula variable haZeroTerm body) →
+      {context : List HAFormula} (varIndex : Nat) (body : HAFormula) →
+      haSubstitutionCaptureSafe varIndex haZeroTerm body ≡ True →
+      haSubstitutionCaptureSafe varIndex (haSuccessorTerm (haVariable varIndex)) body ≡ True →
+      HADerivation context (haSubstituteFormula varIndex haZeroTerm body) →
       HADerivation context
-        (haUniversal variable
+        (haUniversal varIndex
           (haImplication body
-            (haSubstituteFormula variable
-              (haSuccessorTerm (haVariable variable)) body))) →
-      HADerivation context (haUniversal variable body)
+            (haSubstituteFormula varIndex
+              (haSuccessorTerm (haVariable varIndex)) body))) →
+      HADerivation context (haUniversal varIndex body)
     haBoundedUniversalIntroduction :
-      {context : List HAFormula} {variable : Nat}
+      {context : List HAFormula} {varIndex : Nat}
       {bound : HATerm} {body : HAFormula} →
-      haOccursTerm variable bound ≡ False →
+      haOccursTerm varIndex bound ≡ False →
       HADerivation context
-        (haUniversal variable
+        (haUniversal varIndex
           (haImplication
-            (haLessOrEqual (haVariable variable) bound) body)) →
-      HADerivation context (haBoundedUniversal variable bound body)
+            (haLessOrEqual (haVariable varIndex) bound) body)) →
+      HADerivation context (haBoundedUniversal varIndex bound body)
     haBoundedUniversalElimination :
-      {context : List HAFormula} {variable : Nat}
+      {context : List HAFormula} {varIndex : Nat}
       {bound : HATerm} {body : HAFormula} →
-      HADerivation context (haBoundedUniversal variable bound body) →
+      HADerivation context (haBoundedUniversal varIndex bound body) →
       (term : HATerm) →
-      haSubstitutionCaptureSafe variable term body ≡ True →
+      haSubstitutionCaptureSafe varIndex term body ≡ True →
       HADerivation context
         (haImplication
           (haLessOrEqual term bound)
-          (haSubstituteFormula variable term body))
+          (haSubstituteFormula varIndex term body))
     haBoundedExistentialIntroduction :
-      {context : List HAFormula} {variable : Nat}
+      {context : List HAFormula} {varIndex : Nat}
       {bound : HATerm} {body : HAFormula} →
       HADerivation context
-        (haExistential variable
+        (haExistential varIndex
           (haConjunction
-            (haLessOrEqual (haVariable variable) bound) body)) →
-      HADerivation context (haBoundedExistential variable bound body)
+            (haLessOrEqual (haVariable varIndex) bound) body)) →
+      HADerivation context (haBoundedExistential varIndex bound body)
     haBoundedExistentialElimination :
-      {context : List HAFormula} {variable : Nat}
+      {context : List HAFormula} {varIndex : Nat}
       {bound : HATerm} {body : HAFormula} →
-      HADerivation context (haBoundedExistential variable bound body) →
+      HADerivation context (haBoundedExistential varIndex bound body) →
       HADerivation context
-        (haExistential variable
+        (haExistential varIndex
           (haConjunction
-            (haLessOrEqual (haVariable variable) bound) body))
+            (haLessOrEqual (haVariable varIndex) bound) body))
     haMarkovPrinciple :
-      {context : List HAFormula} (variable : Nat) {body : HAFormula} →
+      {context : List HAFormula} (varIndex : Nat) {body : HAFormula} →
       HAIsDeltaZero body →
-      HADerivation context (haMarkovPrincipleFormula variable body)
+      HADerivation context (haMarkovPrincipleFormula varIndex body)
     haExtendedChurchThesis0 :
       {context : List HAFormula}
       {input output code trace : Nat}
