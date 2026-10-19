@@ -2530,6 +2530,7 @@ main = do
   putStrLn (agdaSemanticPortReport semanticLaws)
   writeFile "build/agda2hs-semantic-search/progress.txt" "signature-scan-removed; canonical-egraph-starting"
   putStrLn ("canonical-search-egraph-closed=" ++ show canonicalSearchPlanEGraphClosed)
+  putStrLn ("graph-astar-egraph-closed=" ++ show graphAStarPlanEGraphClosed)
   writeFile "build/agda2hs-semantic-search/progress.txt" "complete"
 
 {-# COMPILE AGDA2HS normalizeIdentifierChar #-}
