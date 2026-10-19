@@ -224,6 +224,18 @@ module ConstructiveComputabilityPostulates where
     field
       computationFor : (input : Nat) → ComputationTrace program input (f input)
 
+  record ComputesRelation
+    (program : RecursiveProgram)
+    (relation : Nat → Nat → Set) : Set where
+    field
+      computesRelatedOutput :
+        (input : Nat) →
+        SigmaWitness Nat
+          (λ output →
+            SigmaWitness
+              (ComputationTrace program input output)
+              (λ _ → relation input output))
+
   ----------------------------------------------------------------------
   -- First-order Heyting arithmetic syntax and its derivation rules.
   --
@@ -830,8 +842,8 @@ module ConstructiveComputabilityPostulates where
 
   -- An untruncated marker for the object-language ECT_0 schema. Actual
   -- machine-code soundness is not inferred from this marker.
-  churchThesis : ConstructiveArithmeticSchema
-  churchThesis = extendedChurchThesis0Schema
+  churchThesisSchema : ConstructiveArithmeticSchema
+  churchThesisSchema = extendedChurchThesis0Schema
 
   ----------------------------------------------------------------------
   -- Russian constructivism: explicit global axiom schemas.
@@ -845,6 +857,17 @@ module ConstructiveComputabilityPostulates where
       Neg (Neg (SigmaWitness Nat P)) →
       SigmaWitness Nat P
 
+    -- Untruncated computational ECT_0 interface for finite register-machine
+    -- traces. Program/output/trace/relation witnesses live in Set, not Prop.
+    -- This is an explicit trusted assumption, not a soundness, normalization,
+    -- or canonicity theorem for Agda's evaluator.
+    extendedChurchThesis0 :
+      (relation : Nat → Nat → Set) →
+      ((input output : Nat) → Decidable (relation input output)) →
+      ((input : Nat) → SigmaWitness Nat (relation input)) →
+      SigmaWitness RecursiveProgram
+        (λ program → ComputesRelation program relation)
+
     -- Countable choice for proposition-valued existential evidence.
     -- The witness is intentionally confined to Prop: this axiom does not
     -- pretend to compute a choice function from erased existence proofs.
@@ -853,6 +876,16 @@ module ConstructiveComputabilityPostulates where
       (P : (n : Nat) → A n → Prop) →
       ((n : Nat) → PropExists (P n)) →
       PropExists {A = (n : Nat) → A n} (λ choose → (n : Nat) → P n (choose n))
+
+  -- Keep the established identifier, now explicitly referring to ECT_0.
+  -- This preserves fully relevant Set-level program and trace witnesses.
+  churchThesis :
+    (relation : Nat → Nat → Set) →
+    ((input output : Nat) → Decidable (relation input output)) →
+    ((input : Nat) → SigmaWitness Nat (relation input)) →
+    SigmaWitness RecursiveProgram
+      (λ program → ComputesRelation program relation)
+  churchThesis = extendedChurchThesis0
 
   ----------------------------------------------------------------------
   -- A data-level version of countable choice is a theorem: if every index
