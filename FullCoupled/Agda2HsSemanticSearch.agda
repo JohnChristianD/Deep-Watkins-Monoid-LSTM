@@ -2814,6 +2814,7 @@ main = do
 {-# COMPILE AGDA2HS graphPathCountSum #-}
 {-# COMPILE AGDA2HS graphPathCountAt #-}
 {-# COMPILE AGDA2HS graphPathCountRegression #-}
+{-# COMPILE AGDA2HS graphPathCountRejectsCycleRegression #-}
 {-# COMPILE AGDA2HS graphPrecedes #-}
 {-# COMPILE AGDA2HS graphClosureDependenciesValid #-}
 {-# COMPILE AGDA2HS graphClosureMemberValid #-}
