@@ -1,5 +1,5 @@
 {
-  description = "Agda2HS graph search with the unmodified Nixpkgs Agda2HS toolchain and Lua/Luafun support";
+  description = "Agda2HS graph search using unmodified Nixpkgs Agda2HS with Lua/Luafun support";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/0439f75413ace6c42e4c722cafd4d6e5401de648";
@@ -299,6 +299,327 @@ PY
           agda = agdaCli system;
           agda2hs = agda2hsWithCanonicalGhc system;
           agda-emacs = agdaEmacs system;
+          ci = pkgs.dhall;
+          default = pkgs.dhall;
+        });
+
+      apps = forAllSystems (system:
+        let
+          pkgs = pkgsFor system;
+        in
+        {
+          ci = {
+            type = "app";
+            program = "${pkgs.dhall}/bin/dhall";
+          };
+          fennel-smoke = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-smoke";
+              runtimeInputs = [ (fennelRuntime system) pkgs.luajit pkgs.coreutils pkgs.gnugrep ];
+              text = ''
+                set -euo pipefail
+                LUA_PATH="${luafunModule system}/share/lua/5.1/?.lua;;" \
+                  luajit -e 'local fun = require("fun"); assert(type(fun.map) == "function")'
+                fennel --version
+                tmp=$(mktemp -d)
+                trap 'rm -rf "$tmp"' EXIT
+                printf '%s\n' \
+                  '(local fun (require :fun))' \
+                  '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) (ipairs [1 2 3]))))' \
+                  '(assert (= (table.concat mapped ",") "2,4,6"))' \
+                  '(print "fennel-luafun=pass")' > "$tmp/smoke.fnl"
+                test "$(fennel "$tmp/smoke.fnl")" = "fennel-luafun=pass"
+                echo "fennel-luajit-luafun-smoke=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/fennel-smoke";
+          };
+
+          agda-import-sync = let
+            script = pkgs.writeShellApplication {
+              name = "agda-import-sync";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_import_sync.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/agda-import-sync";
+          };
+
+          fennel-agda-graph = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-agda-graph";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_graph.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/fennel-agda-graph";
+          };
+
+          fennel-ascii-surface = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-ascii-surface";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/ascii_surface.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/fennel-ascii-surface";
+          };
+
+          fennel-surface = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-surface";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
+              text = ''
+                set -euo pipefail
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_surface.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/fennel-surface";
+          };
+
+          streamly-tools-check = let
+            script = pkgs.writeShellApplication {
+              name = "streamly-tools-check";
+              runtimeInputs = [ (streamlyGhc system) pkgs.coreutils pkgs.gnugrep ];
+              text = ''
+                set -euo pipefail
+                ghc --numeric-version
+                packages="$(ghc-pkg list)"
+                # streamly-process-0.3.1 is marked broken in this pinned nixpkgs.
+                # Keep the smoke check limited to evaluable Streamly core packages.
+                for package in streamly streamly-bytestring streamly-core; do
+                  grep -Fq -- "$package-" <<< "$packages" || {
+                    echo "missing Nix-provided Haskell package: $package" >&2
+                    exit 1
+                  }
+                done
+                echo "streamly-nix-packages=pass"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/streamly-tools-check";
+          };
+
+          scott-strachey-domain-check = let
+            script = pkgs.writeShellApplication {
+              name = "scott-strachey-domain-check";
+              runtimeInputs = [ (agdaCommand system) ];
+              text = ''
+                set -euo pipefail
+                tmp=$(mktemp -d)
+                trap 'rm -rf "$tmp"' EXIT
+                printf '%s\n' '{-# OPTIONS --prop --rewriting --confluence-check #-}' 'module ConstructiveComputabilityPostulates where' > "$tmp/ConstructiveComputabilityPostulates.agda"
+                awk '
+                  /^module ConstructiveComputabilityPostulates where$/ { capture=1; next }
+                  /^variable$/ { capture=0 }
+                  capture {
+                    sub(/^  /, "")
+                    print
+                    # Bind rewriting to Prelude equality without adding an Agda.Builtin import.
+                    if ($0 == "open import Haskell.Prelude using (Nat; zero; suc; Bool; True; False; List; []; _∷_; _≡_; refl)")
+                      print "{-# BUILTIN REWRITE _≡_ #-}"
+                  }
+                ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveComputabilityPostulates.agda"
+                printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude using (_≡_; refl)' 'variable' '  A : Set' '  P : A → Set' '  x y : A' 'data _≐_ {A : Set} (x : A) : A → Set where' '  refl≐ : x ≐ x' > "$tmp/ConstructivePropTransport.agda"
+                awk '
+                  /^transportR :/ { capture=1 }
+                  /^variable$/ { if (capture) capture=0 }
+                  capture { gsub(/Set ℓ/, "Set"); print }
+                ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructivePropTransport.agda"
+                printf '%s\n' '{-# OPTIONS --confluence-check #-}' 'module ConstructiveExceptionSemantics where' > "$tmp/ConstructiveExceptionSemantics.agda"
+                awk '
+                  /^module ConstructiveExceptionSemantics where$/ { capture=1; next }
+                  /^record ⊤/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveExceptionSemantics.agda"
+                awk '
+                  /^module ScottStracheyDomains where$/ { capture=1; print; next }
+                  # Do not sweep the subsequent top-level learner-denotation
+                  # module into this standalone extraction. Removing two-space
+                  # nesting from its continued module header makes invalid Agda.
+                  /^module / { if (capture) capture=0 }
+                  /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/TheoremsMonolith.agda > "$tmp/ScottStracheyDomains.agda"
+                awk '
+                  /^module BetaOptimalityBoundary where$/ { capture=1; print; next }
+                  /^module CanonicalBellmanOrderTheory where$/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/CanonicalLearnerMonolith.agda > "$tmp/BetaOptimalityBoundary.agda"
+                awk '
+                  /^module LawvereDiagonal where$/ { capture=1; print; next }
+                  /^-- Re-export policy semantics proved beside the canonical learner transition/ { capture=0 }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/TheoremsMonolith.agda > "$tmp/LawvereDiagonal.agda"
+                awk '
+                  /^module CanonicalBellmanOrderTheory where$/ { capture=1; print; next }
+                  capture { sub(/^  /, ""); print }
+                ' FullCoupled/CanonicalLearnerMonolith.agda > "$tmp/CanonicalBellmanOrderTheory.agda"
+                test -s "$tmp/ScottStracheyDomains.agda"
+                test -s "$tmp/BetaOptimalityBoundary.agda"
+                test -s "$tmp/CanonicalBellmanOrderTheory.agda"
+                test -s "$tmp/LawvereDiagonal.agda"
+                test -s "$tmp/ConstructiveComputabilityPostulates.agda"
+                test -s "$tmp/ConstructiveExceptionSemantics.agda"
+                test -s "$tmp/ConstructivePropTransport.agda"
+                for extracted in \
+                  "$tmp/ConstructivePropTransport.agda" \
+                  "$tmp/ConstructiveExceptionSemantics.agda" \
+                  "$tmp/ScottStracheyDomains.agda" \
+                  "$tmp/BetaOptimalityBoundary.agda" \
+                  "$tmp/LawvereDiagonal.agda" \
+                  "$tmp/ConstructiveComputabilityPostulates.agda"; do
+                  grep -Fq "open import Haskell.Prelude" "$extracted"
+                  if grep -Fq "Agda.Builtin." "$extracted"; then
+                    echo "forbidden Agda.Builtin import in $extracted" >&2
+                    exit 1
+                  fi
+                done
+                # Validate computational path transport as constructor elimination, not an axiom.
+                grep -Fq "transportR P refl≐ value = value" "$tmp/ConstructivePropTransport.agda"
+                grep -Fq "transportR-refl P value = refl" "$tmp/ConstructivePropTransport.agda"
+                if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/ConstructivePropTransport.agda"; then
+                  echo "unexpected transport postulate" >&2
+                  exit 1
+                fi
+                # Validate executable exception semantics without polymorphic bottom.
+                grep -Fq "mapExceptional" "$tmp/ConstructiveExceptionSemantics.agda"
+                grep -Fq "exceptionPropagation" "$tmp/ConstructiveExceptionSemantics.agda"
+                grep -Fq "catchExceptionalBool" "$tmp/ConstructiveExceptionSemantics.agda"
+                if grep -Eq '^[[:space:]]*postulate([[:space:]]|$)' "$tmp/ConstructiveExceptionSemantics.agda"; then
+                  echo "unexpected exception-semantics postulate" >&2
+                  exit 1
+                fi
+                # Validate the constructive foundations separately from the legacy monolith.
+                grep -Fq "russianMarkovPrinciple" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "churchThesis" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "russianCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "constructiveCountableChoice" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "PropExists" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "BishopWitness" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "ScottErshovEffectiveDomainData" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "HenkinTheoryInterface" "$tmp/ConstructiveComputabilityPostulates.agda"
+                grep -Fq "compactApproximationComputes x n = refl" "$tmp/ConstructiveComputabilityPostulates.agda"
+                test "$(grep -c '^postulate$' "$tmp/ConstructiveComputabilityPostulates.agda")" -eq 1
+                if grep -Eiq '(^|[^[:alnum:]_])(excludedMiddle|lawOfExcludedMiddle|excludedMiddleAxiom|LEM)([^[:alnum:]_]|$)' "$tmp/ConstructiveComputabilityPostulates.agda"; then
+                  echo "excluded-middle declaration in constructive computability interface" >&2
+                  exit 1
+                fi
+                if grep -Fq "functionExtensionality" "$tmp/ConstructiveComputabilityPostulates.agda"; then
+                  echo "unexpected function-extensionality postulate in constructive interface" >&2
+                  exit 1
+                fi
+                grep -Fq "lawvereFixedPoint" "$tmp/LawvereDiagonal.agda"
+                grep -Fq "noSurjectiveBooleanDiagonal" "$tmp/LawvereDiagonal.agda"
+                grep -Fq "denotationalCompositionalityRegression" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "denotationalBottomStrictnessRegression" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "scottErshovNLabDenotationalSemanticsRegression" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "liftStrictMapBottom" "$tmp/ScottStracheyDomains.agda"
+                grep -Fq "NeuralPolicyMDP" "$tmp/CanonicalBellmanOrderTheory.agda"
+                grep -Fq "neuralBellmanOptimalValueIsLeast" "$tmp/CanonicalBellmanOrderTheory.agda"
+                grep -Fq "neuralPolicyGreedyOptimalAtBellmanValue" "$tmp/CanonicalBellmanOrderTheory.agda"
+                grep -Fq "neuralBellmanValueIsSupremumOfQStar" "$tmp/CanonicalBellmanOrderTheory.agda"
+                agda2hs-agda -i "$tmp" "$tmp/ConstructivePropTransport.agda"
+                agda2hs-agda -i "$tmp" "$tmp/ConstructiveExceptionSemantics.agda"
+                agda2hs-agda -i "$tmp" "$tmp/ScottStracheyDomains.agda"
+                agda2hs-agda -i "$tmp" "$tmp/ConstructiveComputabilityPostulates.agda"
+                agda2hs-agda -i "$tmp" "$tmp/BetaOptimalityBoundary.agda"
+                agda2hs-agda -i "$tmp" "$tmp/CanonicalBellmanOrderTheory.agda"
+                agda2hs-agda -i "$tmp" "$tmp/LawvereDiagonal.agda"
+                echo "constructive-computability=kernel-and-confluence-checked (Markov; Church; proposition-level countable choice; executable data choice; Scott-Ershov contract; Henkin builder; no explicit excluded middle)"
+                echo "prop-transport=kernel-and-confluence-checked (single-constructor Prop elimination; definitional reflexivity)"
+                echo "exceptions=kernel-checked (typed failure values, total catch, no polymorphic bottom)"
+                echo "scott-strachey-domain-check=pass (Scott domains, compositionality/strictness regression, and Lawvere boundary kernel-checked)"
+                echo "beta-optimality=kernel-checked (exact-maximal implies beta-optimal; universal fixed-choice impossibility)"
+                echo "bellman-order-theory=kernel-checked (Tarski, omega-Kleene, neural MDP Bellman, exact-Q greedy optimality)"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/scott-strachey-domain-check";
+          };
+
+          monoid-lstm-stream-check = let
+            script = pkgs.writeShellApplication {
+              name = "monoid-lstm-stream-check";
+              runtimeInputs = [ (agdaCommand system) (agda2hsCommand system) (canonicalGhc system) pkgs.coreutils pkgs.gnugrep ];
+              text = ''
+                set -euo pipefail
+                repo_root=$PWD
+                out="$repo_root/build/monoid-lstm-stream-check"
+                rm -rf "$out"
+                mkdir -p "$out"
+                tmp=$(mktemp -d)
+                trap 'rm -rf "$tmp"' EXIT
+                mkdir -p "$tmp/FullCoupled"
+
+                # This test wrapper avoids compiling the legacy owner monolith
+                # (whose protected --level-universe import closure is incompatible
+                # with Haskell.Prelude). The actual source still owns the nested
+                # module; the wrapper has a unique top-level name to avoid collisions.
+                # Never create MonoidLSTMStreams.agda or MonoidLSTMStreams.hs.
+                source=FullCoupled/CanonicalLearnerMonolith.agda
+                target="$tmp/FullCoupled/StreamCheck.agda"
+                printf '%s\n' \
+                  '{-# OPTIONS --sized-types --no-guardedness #-}' \
+                  'module FullCoupled.StreamCheck where' > "$target"
+                awk '
+                  /^module MonoidLSTMStreams where$/ { capture=1; print; next }
+                  /^module MLS = MonoidLSTMStreams$/ { capture=0; exit }
+                  capture && /^------------------------------------------------------------------------/ { capture=0; exit }
+                  capture { sub(/^  /, ""); print }
+                ' "$source" >> "$target"
+
+                grep -Fq 'module FullCoupled.StreamCheck where' "$target"
+                grep -Fq 'module MonoidLSTMStreams where' "$target"
+                grep -Fq 'runningSumPrefixRegression = refl' "$target"
+                grep -Fq 'canonicalLearnerTracePrefix' "$source"
+                grep -Fq 'canonicalTotalCountAfter' "$source"
+                grep -Fq 'open import Haskell.Prim.Thunk' "$target"
+                if grep -Fq 'open import Agda.Builtin.Coinduction' "$target" ||
+                   grep -Fq 'import Agda.Builtin.Coinduction' "$target"; then
+                  echo "stream calculus must use Agda2HS Thunk coinduction" >&2
+                  exit 1
+                fi
+
+                # Run from the temporary root: the wrapper resolves module
+                # names through include roots, not the absolute target filename.
+                cd "$tmp"
+                agda2hs-agda -i . -i "$repo_root" FullCoupled/StreamCheck.agda
+                agda2hs-ci FullCoupled/StreamCheck.agda -o "$out"
+                test -s "$out/FullCoupled/StreamCheck.hs"
+                mkdir -p "$out/ghc"
+                ghc -fno-code -i"$out" -odir "$out/ghc" -hidir "$out/ghc" \
+                  "$out/FullCoupled/StreamCheck.hs"
+                if find "$tmp" "$out" -name 'MonoidLSTMStreams.agda' -o -name 'MonoidLSTMStreams.hs' | grep -q .; then
+                  echo "stream module must not become its own generated source/object" >&2
+                  exit 1
+                fi
+                echo "monoid-lstm-stream-check=pass (nested stream, owner-module Agda2HS/GHC smoke test)"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/monoid-lstm-stream-check";
+          };
+
           agda2hs-graph-search-check = let
             script = pkgs.writeShellApplication {
               name = "agda2hs-graph-search-check";
@@ -315,8 +636,23 @@ PY
                 rm -rf "$out"
                 mkdir -p "$out"
 
-                # Non-graph-search theorem work belongs in the two monoliths.
-                # This target proves only the graph/e-graph search contract.
+                # Check the qualified Reflection macro independently before
+                # consuming it in the finite tabular approximation theorem.
+                "${agdaCli system}/bin/agda" -i . FullCoupled/ReflectionAutomation.agda
+                grep -Fq "Reflection.unify goal (Reflection.con (quote refl) [])" FullCoupled/ReflectionAutomation.agda
+                grep -Fq "identityBeta x = byDefinitionalRefl" FullCoupled/ReflectionAutomation.agda
+
+                # Kernel-check the finite discrete UAP baseline. The exact
+                # table theorem is intentionally not a density claim for LSTM.
+                "${agdaCli system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
+                grep -Fq "tabularQExact target state action = byDefinitionalRefl" FullCoupled/FiniteTabularUAP.agda
+                grep -Fq "finiteTabularUniformApproximation" FullCoupled/FiniteTabularUAP.agda
+
+                # Check the restricted Circle recursor separately in a
+                # --without-K profile; never import it into the legacy monolith.
+                "${agdaCli system}/bin/agda" -i . FullCoupled/CircleHITInterface.agda
+                grep -Fq -- "--without-K" FullCoupled/CircleHITInterface.agda
+                grep -Fq "Circle-elim-loop" FullCoupled/CircleHITInterface.agda
 
                 # This lane checks only the Agda2HS runtime module closure.
                 # Historical theorem monoliths are outside this kernel-checked target.
