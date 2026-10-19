@@ -36,10 +36,18 @@ Graph semantics:
     for checked fixtures, not a runtime performance benchmark.
 
 Constructive foundations:
+  * Current status: the repository is NOT yet certified globally Russian- or
+    Bishop-constructive. The learner monolith postulates Markov's principle,
+    Church's thesis for its register-machine model, and proposition-valued
+    countable choice. The theorem monolith also contains Circle/quotient/
+    observational-equality interfaces and a Brouwer-relative Nash boundary;
+    these assumptions and their rewrite rules need an explicit consistency and
+    dependency audit before making a global constructive claim.
   * Treat Markov's principle, Church's thesis, and choice principles as named
     assumptions with explicit scopes. Do not introduce excluded middle or
     strong computability principles globally. RUSS is an axiom/profile choice,
-    not a synonym for classical logic.
+    not a synonym for classical logic. Bishop-style existence should carry a
+    witness and evidence, not a bare existential postulate.
   * Existing reflection automation such as apply-cong remains inside the
     theorem monolith. Generated proof terms still have to type-check.
   * Prune a theorem only when its proof/dependency relation shows it is
