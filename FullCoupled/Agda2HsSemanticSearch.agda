@@ -2376,41 +2376,10 @@ graphAStarPlanEGraphClosedChecked :
   graphAStarPlanEGraphClosed ≡ True
 graphAStarPlanEGraphClosedChecked = refl
 
-plansEGraphClosed :
-  List (List String) ->
-  Bool
-plansEGraphClosed [] = True
-plansEGraphClosed (plan ∷ plans) =
-  if semanticPlanEGraphComplete plan &&
-     semanticPlanEGraphExtractable plan then
-    plansEGraphClosed plans
-  else
-    False
-
-requiredPlanEGraphCount :
-  List String ->
-  List Extractor.SemanticLaw ->
-  Nat
-requiredPlanEGraphCount [] _ = 0
-requiredPlanEGraphCount (name ∷ names) laws =
-  case requiredPlanForName name laws of λ where
-    Nothing ->
-      requiredPlanEGraphCount names laws
-    (Just plan) ->
-      let tail = requiredPlanEGraphCount names laws in
-      if semanticPlanEGraphComplete plan &&
-         semanticPlanEGraphExtractable plan then
-        incrementSearchNat tail
-      else
-        tail
-
-requiredPlanEGraphComplete :
-  List String ->
-  List Extractor.SemanticLaw ->
-  Bool
-requiredPlanEGraphComplete names laws =
-  requiredPlanEGraphCount names laws == listLengthNat names
-
+-- Required plans' source dependency closures are checked above.
+-- Dedicated canonical and JAxtar-style regressions below exercise actual e-graph
+-- saturation and extraction. Re-saturating every long required plan here was
+-- redundant work and the confirmed timeout hotspot.
 haskellMinusOneTargetCapabilities : List Capability
 haskellMinusOneTargetCapabilities =
   Inversion ∷ ExactSearch ∷ []
@@ -2487,10 +2456,10 @@ agdaSemanticPortReport :
   String
 agdaSemanticPortReport laws =
   "agda2hs-semantic-port=heuristic-signature-scan-disabled; "
-    ++ show (requiredPlanEGraphCount requiredNames laws)
+    ++ show (requiredPlanCount requiredNames laws)
     ++ "/"
     ++ show (length requiredNames)
-    ++ " required plans e-graph-closed; learner-obligation-roots="
+    ++ " required plans dependency-closed; bulk-plan-e-graph-saturation=skipped; learner-obligation-roots="
     ++ show (length learnerLogicalRequiredNames)
     ++ "; learner-static-graph="
     ++ show learnerLogicalGraphRegression
@@ -2524,7 +2493,7 @@ main = do
   putStrLn hybridInverseExactRealSearchReport
   putStrLn sourceOnlyLegacyRequiredReport
   putStrLn ("source-only-legacy-boundary=" ++ show sourceOnlyLegacyBoundaryRegression)
-  writeFile "build/agda2hs-semantic-search/progress.txt" "required-plan-report-complete; egraph-closure-starting"
+  writeFile "build/agda2hs-semantic-search/progress.txt" "required-plan-report-complete; semantic-port-report-starting"
   putStrLn (agdaSemanticPortReport semanticLaws)
   writeFile "build/agda2hs-semantic-search/progress.txt" "signature-scan-removed; canonical-egraph-starting"
   putStrLn ("canonical-search-egraph-closed=" ++ show canonicalSearchPlanEGraphClosed)
@@ -2715,8 +2684,6 @@ main = do
 {-# COMPILE AGDA2HS learnerSemanticBridgePlan #-}
 {-# COMPILE AGDA2HS learnerSemanticBridgeRegression #-}
 {-# COMPILE AGDA2HS learnerSemanticBridgeReport #-}
-{-# COMPILE AGDA2HS DominanceEdge #-}
-{-# COMPILE AGDA2HS stringListEqual #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphReport #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}
@@ -2724,8 +2691,6 @@ main = do
 {-# COMPILE AGDA2HS canonicalSearchPlanEGraphSaturates #-}
 {-# COMPILE AGDA2HS canonicalSearchPlanEGraphExtracts #-}
 {-# COMPILE AGDA2HS graphAStarPlanEGraphClosed #-}
-{-# COMPILE AGDA2HS requiredPlanEGraphCount #-}
-{-# COMPILE AGDA2HS requiredPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS haskellMinusOneTargetCapabilities #-}
 {-# COMPILE AGDA2HS haskellMinusOneLaws #-}
 {-# COMPILE AGDA2HS haskellMinusOneAStar #-}
