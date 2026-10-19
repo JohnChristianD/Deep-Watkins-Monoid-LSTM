@@ -38,30 +38,29 @@ Graph semantics:
 Constructive foundations — Russian constructivism (RUSS) only:
   * Status: NOT GLOBALLY CERTIFIED. Certification is a theorem-dependency
     claim, not a literature-survey claim or a source-text grep.
-  * RUSS uses intuitionistic logic together with a specifically scoped
-    recursive/computability interpretation. Markov's principle, Church's
-    thesis for the register-machine model, and proposition-valued countable
-    choice are named profile assumptions, not a blanket grant of classical
-    logic. Do not add excluded middle, LPO, or LLPO as global axioms.
+  * RUSS uses intuitionistic logic with a scoped recursive/computability
+    interpretation. Markov's principle, Church's thesis for the register-
+    machine model, and proposition-valued countable choice are named profile
+    assumptions, not a blanket grant of classical logic. Do not add excluded
+    middle, LPO, or LLPO as global axioms.
   * Audit every project-owned postulate and primitive, every REWRITE rule,
     Agda builtin/reflection/TC interface, termination/positivity/universe
-    option, imported trusted theorem, unresolved meta, and all theorem
-    dependency edges. Prove that all exported theorem paths terminate only
-    at the declared RUSS assumptions or at separately justified Agda/compiler
-    primitives. Any unclassified trust boundary blocks global certification.
+    option, imported trusted theorem, unresolved meta, and theorem dependency
+    edge. Show that exported theorem paths terminate only at declared RUSS
+    assumptions or separately justified Agda/compiler primitives. Any
+    unclassified trust boundary blocks global certification.
   * The learner monolith has explicit Markov, register-machine Church's thesis,
     proposition-valued countable choice, Circle/HIT, quotient and observational
     equality interfaces plus rewrite rules. The theorem monolith contains
     Agda reflection and TC builtin compatibility postulates. These are known
     trust boundaries, not a complete dependency proof. A successful build is
     necessary but cannot establish RUSS certification by itself.
-  * Do not maintain a parallel Bishop certification track. Use no claims about
-    Bishop certification as a release gate; keep this audit focused on RUSS.
-  * Remove the previous O(n^2) source-signature "redundancy" scan. Equal
+  * Do not maintain a parallel Bishop certification track; keep this audit
+    focused on RUSS.
+  * Remove the previous O(n^2) source-signature redundancy scan. Equal
     signature text is not proof that one theorem follows from another. Delete
-    theorem statements only when a typed proof/dependency review establishes
-    logical redundancy and repository-wide reference analysis shows no
-    external use.
+    a theorem only after typed proof/dependency review establishes redundancy
+    and repository-wide reference analysis shows no external use.
 
   Foundational and implementation references:
     - Stanford Encyclopedia of Philosophy, Constructive Mathematics:
@@ -82,10 +81,15 @@ Constructive foundations — Russian constructivism (RUSS) only:
       https://hackage-content.haskell.org/package/agda2hs-1.4
     - agda2hs documentation:
       https://agda.github.io/agda2hs/
-    - Martin Escardo and collaborators, Type-Theoretic Approaches to Ordinals:
+    - Martín Escardó, research papers and Agda developments:
+      https://martinescardo.github.io/papers/index.html
+    - Martín Escardó and collaborators, TypeTopology Agda development:
+      https://martinescardo.github.io/agda-new/
+    - Nicolai Kraus, Fredrik Nordvall Forsberg, Chuangjie Xu,
+      Type-Theoretic Approaches to Ordinals:
       https://arxiv.org/abs/2208.03844
-    - Nicolai Kraus, Fredrik Nordvall Forsberg, Chuangjie Xu, Connecting
-      Constructive Notions of Ordinals in HoTT:
+    - Nicolai Kraus, Fredrik Nordvall Forsberg, Chuangjie Xu,
+      Connecting Constructive Notions of Ordinals in HoTT:
       https://arxiv.org/abs/2104.02549
     - nLab, Russian constructivism:
       https://ncatlab.org/nlab/show/Russian%2Bconstructivism
@@ -97,15 +101,15 @@ Constructive foundations — Russian constructivism (RUSS) only:
       https://web.archive.org/
 
   Source-scope notes:
-    The Stanford Encyclopedia is the primary conceptual source for distinguishing
-    RUSS and the role of Markov's principle/Church's thesis. Agda/Cockx sources
-    define proof-kernel trust boundaries, not RUSS itself. Hackage/Agda2HS docs
-    specify extraction/toolchain boundaries only. Escardo/Kraus provide
-    constructive type-theory and Agda context, not a direct certification of
-    this repository. "Han" is ambiguous from surname alone; no relevant work
-    was attributed without a title or URL. A live Wayback CDX snapshot request
-    was not accessible during this run, so no particular Wayback capture is
-    claimed to have been inspected.
+    Stanford provides the conceptual account of RUSS, including Markov's
+    principle and Church's thesis. Agda/Cockx sources describe proof-kernel
+    trust boundaries, not RUSS itself. Hackage/Agda2HS docs describe extraction
+    and toolchain boundaries. Escardó/Kraus provide constructive type-theory
+    and Agda context; these works are not themselves a certification of this
+    repository. "Han" is ambiguous from surname alone, so no unrelated work
+    has been attributed to that name. The Wayback CDX endpoint was not
+    accessible during this run, so no particular Wayback snapshot is claimed
+    to have been inspected.
 Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
