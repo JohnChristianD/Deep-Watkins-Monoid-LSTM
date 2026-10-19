@@ -1547,9 +1547,14 @@ autonomousGraphSearchReport :
   List (String × String) ->
   String
 autonomousGraphSearchReport edges =
-  "agda2hs autonomous theorem-graph DFS: "
-  ++ show (autonomousGraphSearchCount edges)
-  ++ " maximal dependency chains"
+  let laws = graphLawsFromEdges edges
+  in case graphPathCountTableForLaws laws of λ where
+    Nothing ->
+      "autonomous dependency-chain count unavailable: cycle or missing node; exhaustive fallback disabled"
+    (Just counts) ->
+      "agda2hs autonomous theorem-graph DFS: "
+      ++ show (graphPathCountSum counts)
+      ++ " maximal dependency chains"
 
 autonomousCanonicalGraphSearchCount :
   String ->
@@ -1563,13 +1568,16 @@ autonomousCanonicalGraphSearchCount source =
 
 autonomousCanonicalGraphReport : String -> String
 autonomousCanonicalGraphReport source =
-  let edges = parseDotEdges source
-      chains = autonomousCanonicalGraphSearchCount source
+  let
+    edges = parseDotEdges source
+    laws = ensureGraphLaw canonicalGraphRoot (graphLawsFromEdges edges)
   in
   "theorem-graph-edges="
     ++ show (length edges)
     ++ " autonomous-depth-first-chains="
-    ++ show chains
+    ++ (case graphPathCountTableForLaws laws of λ where
+      Nothing -> "unavailable"
+      (Just counts) -> show (graphPathCountAt canonicalGraphRoot counts))
 
 graphPathCountRegression : Bool
 graphPathCountRegression =
