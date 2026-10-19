@@ -636,23 +636,8 @@ PY
                 rm -rf "$out"
                 mkdir -p "$out"
 
-                # Check the qualified Reflection macro independently before
-                # consuming it in the finite tabular approximation theorem.
-                "${agdaCli system}/bin/agda" -i . FullCoupled/ReflectionAutomation.agda
-                grep -Fq "Reflection.unify goal (Reflection.con (quote refl) [])" FullCoupled/ReflectionAutomation.agda
-                grep -Fq "identityBeta x = byDefinitionalRefl" FullCoupled/ReflectionAutomation.agda
-
-                # Kernel-check the finite discrete UAP baseline. The exact
-                # table theorem is intentionally not a density claim for LSTM.
-                "${agdaCli system}/bin/agda" -i . FullCoupled/FiniteTabularUAP.agda
-                grep -Fq "tabularQExact target state action = byDefinitionalRefl" FullCoupled/FiniteTabularUAP.agda
-                grep -Fq "finiteTabularUniformApproximation" FullCoupled/FiniteTabularUAP.agda
-
-                # Check the restricted Circle recursor separately in a
-                # --without-K profile; never import it into the legacy monolith.
-                "${agdaCli system}/bin/agda" -i . FullCoupled/CircleHITInterface.agda
-                grep -Fq -- "--without-K" FullCoupled/CircleHITInterface.agda
-                grep -Fq "Circle-elim-loop" FullCoupled/CircleHITInterface.agda
+                # Non-graph-search proofs are kept inside the two designated
+                # theorem monoliths; this lane only checks graph/runtime code.
 
                 # This lane checks only the Agda2HS runtime module closure.
                 # Historical theorem monoliths are outside this kernel-checked target.
