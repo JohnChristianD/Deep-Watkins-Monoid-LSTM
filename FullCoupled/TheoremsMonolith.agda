@@ -298,6 +298,16 @@ open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int
 ------------------------------------------------------------------------
 module ConstructiveComputabilityPostulates = C.ConstructiveComputabilityPostulates
 
+open ConstructiveComputabilityPostulates public using
+  ( RussianRecursiveMathematicsBasis
+  ; russianRecursiveMathematicsAssumptions
+  ; russianMarkovPrinciple
+  ; extendedChurchThesis0
+  ; russianCountableChoice
+  ; churchThesis
+  ; constructiveCountableChoice
+  )
+
 module MLS = C.MonoidLSTMStreams
 open import Agda.Primitive using (Level)
 open import Agda.Builtin.Size using (Size; Size<_; ∞)
