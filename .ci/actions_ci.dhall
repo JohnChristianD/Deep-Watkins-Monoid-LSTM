@@ -46,8 +46,9 @@ Graph semantics:
     https://github.com/google-deepmind/mctx.
 
 Constructive foundations — Russian constructivism (RUSS) only:
-  * Status: a generated and CI-validated direct-monolith trust-surface
-    inventory is being produced. This is not a global consistency certificate:
+  * Status: the generated and CI-validated direct-monolith trust-surface
+    inventory is complete for this source revision. This is not a global
+    consistency certificate:
     transitive imported-theory closure, complete theorem dependency closure,
     and joint consistency remain unproved.
   * RUSS uses intuitionistic logic with scoped recursive/computability
@@ -289,8 +290,8 @@ let script = merge {
     grep -Fq 'import FullCoupled.Agda2HsSemanticExtractor as Extractor' FullCoupled/Agda2HsSemanticSearch.agda
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
-    grep -Fq 'module FullCoupled/CanonicalLearnerMonolith.agda' FullCoupled/CanonicalLearnerMonolith.agda
-    grep -Fq 'module FullCoupled/TheoremsMonolith.agda' FullCoupled/TheoremsMonolith.agda
+    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' FullCoupled/CanonicalLearnerMonolith.agda
+    grep -Fq 'module FullCoupled.TheoremsMonolith where' FullCoupled/TheoremsMonolith.agda
     dhall type --file .ci/presentation-contract.dhall >/dev/null
     dhall-to-json --file .ci/presentation-contract.dhall > "$tmp/presentation-contract.json"
     grep -Fq '"monolithContentGenerator": ".ci/lua/agda_graph.fnl"' "$tmp/presentation-contract.json"
@@ -310,7 +311,7 @@ let script = merge {
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     ! grep -Fq 'Mirth' site/Main.elm
     grep -Fq 'maximinPalette' site/Main.elm
-    grep -Fq 'data-module' site/Main.elm
+    grep -Fq 'data-selected' site/Main.elm
     output_dir="$tmp"
     if [ -n "$(printenv PAGES_OUTPUT_DIR 2>/dev/null || true)" ]; then
       output_dir="$(printenv PAGES_OUTPUT_DIR)"
