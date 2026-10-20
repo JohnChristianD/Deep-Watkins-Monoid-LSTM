@@ -30,7 +30,7 @@
   (string.gsub (string.gsub value "^%s+" "") "%s+$" ""))
 
 (local function lines-of [source]
-  (fun.totable (fun.map trim (fun.totable (string.gmatch source "[^\n]+")))))
+  (fun.totable (string.gmatch source "[^\n]+")))
 
 (local function starts [value prefix]
   (= (string.sub value 1 (# prefix)) prefix))
@@ -51,36 +51,42 @@
       (or (= line "postulate") (starts line "postulate ")))))
 
 (local function count-primitive-blocks [lines]
-  (count-where lines (fn [line] (= line "primitive"))))
+  (count-where lines (fn [line] (= (trim line) "primitive"))))
 
 (local function count-rewrite-pragmas [lines]
   (count-where lines
-    (fn [line] (starts line "{-# REWRITE"))))
+    (fn [line] (starts (trim line) "{-# REWRITE"))))
 
 (local function count-cubical-imports [lines]
   (count-where lines
     (fn [line]
-      (and (not (starts line "--"))
-           (or (starts line "open import Cubical.")
-               (starts line "import Cubical.")))))
+      (local item (trim line))
+      (and (not (starts item "--"))
+           (or (starts item "open import Cubical.")
+               (starts item "open import Cubical ")
+               (starts item "import Cubical.")
+               (starts item "import Cubical "))))))
 
 (local function direct-classical-postulate-count [lines]
   (var postulate-indent -1)
   (var count 0)
-  (each [_ line (ipairs lines)]
-    (local raw line)
-    (local indentation (string.len (string.match raw "^%s*") or ""))
+  (each [_ raw (ipairs lines)]
+    (local item (trim raw))
+    (local leading (or (string.match raw "^%s*") ""))
+    (local indentation (string.len leading))
     (local declaration nil)
     (when (and (>= postulate-indent 0)
                (<= indentation postulate-indent)
-               (not (= raw "postulate")))
+               (not (= item "postulate")))
       (set postulate-indent -1))
-    (if (= raw "postulate")
+    (if (= item "postulate")
         (set postulate-indent indentation)
-        (if (starts raw "postulate ")
-            (set declaration (trim (string.sub raw 11)))
-            (when (and (>= postulate-indent 0) (> indentation postulate-indent))
-              (set declaration raw))))
+        (if (starts item "postulate ")
+            (set declaration (trim (string.sub item 11)))
+            (when (and (>= postulate-indent 0)
+                       (> indentation postulate-indent)
+                       (not (starts item "--")))
+              (set declaration item))))
     (when declaration
       (when (or (starts declaration "ExcludedMiddle ")
                 (starts declaration "excludedMiddle ")
