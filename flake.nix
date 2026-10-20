@@ -440,9 +440,9 @@ PY
             program = "${script}/bin/agda-import-sync";
           };
 
-          fennel-agda-graph = let
+          fennel-monolith-content = let
             script = pkgs.writeShellApplication {
-              name = "fennel-agda-graph";
+              name = "fennel-monolith-content";
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
@@ -451,7 +451,7 @@ PY
             };
           in {
             type = "app";
-            program = "${script}/bin/fennel-agda-graph";
+            program = "${script}/bin/fennel-monolith-content";
           };
 
           fennel-ascii-surface = let
