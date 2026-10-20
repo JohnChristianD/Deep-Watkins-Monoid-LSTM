@@ -814,7 +814,7 @@ PY
               runtimeInputs = [
                 (agdaCommand system)
                 (agda2hsCommand system)
-                pkgs.haskellPackages.liquidhaskell
+                (canonicalGhc system)
                 pkgs.z3
                 pkgs.coreutils
                 pkgs.git
