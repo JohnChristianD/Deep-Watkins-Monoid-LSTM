@@ -226,7 +226,7 @@ let script = merge {
     # kernel-checked through Haskell.Prelude: Agda rejects that mixed option
     # closure. Keep source inventory separate from the pure executable kernel
     # surface until its universe/Prelude interfaces are migrated coherently.
-    grep -Fq 'module FullCoupled/CanonicalLearnerMonolith.agda' FullCoupled/CanonicalLearnerMonolith.agda
+    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' FullCoupled/CanonicalLearnerMonolith.agda
     grep -Fxq -- '--level-universe' .ci/agda/global-options.txt
     echo "pure-agda2hs-kernel-check=pass"
     echo "canonical-learner-monolith=source-inventory-only (option closure not kernel-checked)"
