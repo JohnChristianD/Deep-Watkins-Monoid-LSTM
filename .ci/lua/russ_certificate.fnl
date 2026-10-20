@@ -220,7 +220,6 @@
   (if theorems.hasConfluenceCheck "True" "False") (if theorems.hasTwoLevel "True" "False")
   (if theorems.hasSizedTypes "True" "False") theorems.classicalPostulates))
 (out:write "  ],\n")
-(out:write "  ],\n")
 (out:write "  rewriteRuleIdentifiers = [\n")
 (out:write (table.concat rendered-rewrite-rules ",\n"))
 (out:write "\n  ],\n")
