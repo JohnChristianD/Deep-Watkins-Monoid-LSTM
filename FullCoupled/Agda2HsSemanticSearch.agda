@@ -2152,6 +2152,151 @@ semanticLawSeedFilterRegressionChecked :
   semanticLawSeedFilterRegression ≡ True
 semanticLawSeedFilterRegressionChecked = refl
 
+-- Inconsistency probes are deliberately conservative: only a declaration whose
+-- complete signature is the canonical empty type is treated as a direct
+-- candidate. A function A -> ⊥ is merely a refutation of A; it is not itself
+-- an inhabitant of ⊥. Textual detection proposes audit targets, never proves
+-- that a source declaration is a kernel-checked inhabitant or that the theory
+-- is inconsistent.
+emptyTypeSignature : String -> Bool
+emptyTypeSignature signature =
+  let normalized = normalizeIdentifier (normalizeSignature signature)
+  in normalized == "⊥"
+       || normalized == "data.empty.⊥"
+       || normalized == "agda.builtin.empty.⊥"
+
+inconsistencyCandidateLaws :
+  List Extractor.SemanticLaw -> List Extractor.SemanticLaw
+inconsistencyCandidateLaws [] = []
+inconsistencyCandidateLaws (law ∷ laws) =
+  if semanticLawCanSeed law
+       && emptyTypeSignature (Extractor.semanticLawSignature law)
+  then law ∷ inconsistencyCandidateLaws laws
+  else inconsistencyCandidateLaws laws
+
+inconsistencyCandidateNames :
+  List Extractor.SemanticLaw -> List String
+inconsistencyCandidateNames laws =
+  map Extractor.semanticLawId (inconsistencyCandidateLaws laws)
+
+inconsistencyGoalName : String
+inconsistencyGoalName = "audit:inhabitant-of-Data.Empty.Bottom"
+
+-- A* starts at the explicit empty-type goal and explores each declaration
+-- whose complete result type is the empty type. The selected dependency path
+-- is only a route for auditing a candidate; dependency reachability is not
+-- itself a derivation in type theory.
+inconsistencyAStarPath :
+  List Extractor.SemanticLaw -> Maybe (List String)
+inconsistencyAStarPath laws =
+  let candidates = inconsistencyCandidateNames laws
+      graphLaws =
+        MkGraphLaw inconsistencyGoalName candidates
+          ∷ semanticGraphLaws laws
+  in
+  case candidates of λ where
+    [] -> Nothing
+    (_ ∷ _) ->
+      graphAStarFirst graphLaws
+        (MkGraphNode (inconsistencyGoalName ∷ []))
+
+inconsistencyCandidateOccursOnPath :
+  List String -> List String -> Bool
+inconsistencyCandidateOccursOnPath [] _ = False
+inconsistencyCandidateOccursOnPath (candidate ∷ candidates) path =
+  planContains candidate path
+    || inconsistencyCandidateOccursOnPath candidates path
+
+-- Encode the query and every candidate as explicit symbolic nodes. Saturation
+-- and extraction make the e-graph attempt reproducible and bounded, but they
+-- do not supply Agda typing evidence for any candidate expression.
+inconsistencyCandidateExprs : List String -> List EGraph.Expr
+inconsistencyCandidateExprs [] = []
+inconsistencyCandidateExprs (candidate ∷ candidates) =
+  EGraph.ExprApp "candidate-empty-type-inhabitant"
+    (EGraph.ExprAtom candidate ∷
+     EGraph.ExprAtom "Data.Empty.⊥" ∷ [])
+    ∷ inconsistencyCandidateExprs candidates
+
+inconsistencyQueryExpr : List String -> EGraph.Expr
+inconsistencyQueryExpr candidates =
+  EGraph.ExprApp "empty-type-inconsistency-goal"
+    (EGraph.ExprAtom "Data.Empty.⊥" ∷
+     inconsistencyCandidateExprs candidates)
+
+inconsistencyEGraphProbeComplete : List String -> Bool
+inconsistencyEGraphProbeComplete candidates =
+  let
+    (rootId , graph0) =
+      EGraph.addExpr (inconsistencyQueryExpr candidates) EGraph.emptyGraph
+    (graph , report) =
+      EGraph.saturateUntilStable EGraph.semanticRewriteRules graph0
+    extraction =
+      EGraph.extractBest rootId graph (EGraph.extractFuelFor graph)
+  in
+  EGraph.saturationComplete report
+    && case extraction of λ where
+      Nothing -> False
+      (Just result) -> EGraph.extractedCost result > 0
+
+inconsistencySearchAttemptFound : List Extractor.SemanticLaw -> Bool
+inconsistencySearchAttemptFound laws =
+  case inconsistencyAStarPath laws of λ where
+    Nothing -> False
+    (Just path) ->
+      inconsistencyCandidateOccursOnPath
+        (inconsistencyCandidateNames laws)
+        path
+
+inconsistencySearchReport : List Extractor.SemanticLaw -> String
+inconsistencySearchReport laws =
+  "empty-type-inconsistency-search=goal:Data.Empty.⊥ candidates="
+    ++ show (listLengthNat (inconsistencyCandidateNames laws))
+    ++ " astar-candidate-path="
+    ++ show (inconsistencySearchAttemptFound laws)
+    ++ " egraph-saturated-extracted="
+    ++ show (inconsistencyEGraphProbeComplete
+      (inconsistencyCandidateNames laws))
+    ++ " proof-status=diagnostic-only-not-a-consistency-proof"
+
+-- Regression fixture: a direct ⊥ signature is a candidate, but A -> ⊥ is
+-- not. The test exercises goal-directed A*, e-graph saturation, and extraction
+-- without adding an axiom or treating the fixture as evidence about the repo.
+inconsistencyProbeRegression : Bool
+inconsistencyProbeRegression =
+  let
+    fixture =
+      Extractor.MkSemanticLaw
+        "Regression.agda" "direct-empty-inhabitant"
+        False False "⊥" []
+        Extractor.SemanticTopLevel ""
+      ∷ Extractor.MkSemanticLaw
+          "Regression.agda" "negation-only"
+          False False "A → ⊥" []
+          Extractor.SemanticTopLevel ""
+      ∷ Extractor.MkSemanticLaw
+          "Regression.agda" "ordinary-value"
+          False False "Nat" []
+          Extractor.SemanticTopLevel ""
+      ∷ []
+    candidates = inconsistencyCandidateNames fixture
+    path = inconsistencyAStarPath fixture
+  in
+  emptyTypeSignature "⊥"
+    && emptyTypeSignature "Data.Empty.⊥"
+    && not (emptyTypeSignature "A → ⊥")
+    && not (emptyTypeSignature "Nat")
+    && listLengthNat candidates == incrementSearchNat 0
+    && inconsistencyCandidateOccursOnPath candidates
+         (case path of λ where
+           Nothing -> []
+           (Just selected) -> selected)
+    && inconsistencyEGraphProbeComplete candidates
+
+inconsistencyProbeRegressionChecked :
+  inconsistencyProbeRegression ≡ True
+inconsistencyProbeRegressionChecked = refl
+
 requiredPlanForName :
   String ->
   List Extractor.SemanticLaw ->
@@ -2523,6 +2668,7 @@ main = do
   putStrLn learnerSemanticBridgeReport
   putStrLn ("semantic-identifier-normalization=" ++ show semanticIdentifierNormalizationRegression)
   putStrLn (semanticSearchExecutableReport semanticLaws)
+  putStrLn (inconsistencySearchReport semanticLaws)
   putStrLn hybridInverseExactRealSearchReport
   putStrLn sourceOnlyLegacyRequiredReport
   putStrLn ("source-only-legacy-boundary=" ++ show sourceOnlyLegacyBoundaryRegression)
@@ -2718,6 +2864,17 @@ main = do
 {-# COMPILE AGDA2HS learnerSemanticBridgePlan #-}
 {-# COMPILE AGDA2HS learnerSemanticBridgeRegression #-}
 {-# COMPILE AGDA2HS learnerSemanticBridgeReport #-}
+{-# COMPILE AGDA2HS emptyTypeSignature #-}
+{-# COMPILE AGDA2HS inconsistencyCandidateLaws #-}
+{-# COMPILE AGDA2HS inconsistencyCandidateNames #-}
+{-# COMPILE AGDA2HS inconsistencyAStarPath #-}
+{-# COMPILE AGDA2HS inconsistencyCandidateOccursOnPath #-}
+{-# COMPILE AGDA2HS inconsistencyCandidateExprs #-}
+{-# COMPILE AGDA2HS inconsistencyQueryExpr #-}
+{-# COMPILE AGDA2HS inconsistencyEGraphProbeComplete #-}
+{-# COMPILE AGDA2HS inconsistencySearchAttemptFound #-}
+{-# COMPILE AGDA2HS inconsistencySearchReport #-}
+{-# COMPILE AGDA2HS inconsistencyProbeRegression #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphReport #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphComplete #-}
 {-# COMPILE AGDA2HS semanticPlanEGraphExtractable #-}
