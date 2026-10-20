@@ -1,6 +1,6 @@
 {-# OPTIONS
 --sized-types
---exact-split
+--no-postfix-projections
 --no-projection-like
 --erased-matches
 --prop
