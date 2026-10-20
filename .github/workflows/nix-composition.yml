@@ -108,14 +108,7 @@ jobs:
           set -euo pipefail
           nix build .#ccforth
           ./result/bin/ccforth -version
-          nix develop .#forth -c bash -e -c '
-            set -euo pipefail
-            gforth --version
-            groff --version
-            guile --version
-            scsh -c "(display \"scsh-ok\")(newline)"
-            ccforth -version
-          '
+          nix develop .#forth -c scsh .ci/scsh/forth-scheme-smoke.scsh
 
       - name: Run semantic lanes in one Nix environment
         timeout-minutes: 25
