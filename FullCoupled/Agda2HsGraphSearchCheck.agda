@@ -129,5 +129,4 @@ main = do
 
 {-# COMPILE AGDA2HS graphPathCountRejectsCycleRegression #-}
 {-# COMPILE AGDA2HS graphSearchContractPassed #-}
-{-# COMPILE AGDA2HS Search.inconsistencyProbeRegression #-}
 {-# COMPILE AGDA2HS main #-}
