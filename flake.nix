@@ -529,13 +529,19 @@ PY
                 printf '%s\n' '{-# OPTIONS --prop --confluence-check #-}' 'module ConstructivePropTransport where' 'open import Haskell.Prelude using (_≡_; refl)' 'variable' '  A : Set' '  P : A → Set' '  x y : A' 'data _≐_ {A : Set} (x : A) : A → Set where' '  refl≐ : x ≐ x' > "$tmp/ConstructivePropTransport.agda"
                 awk '
                   /^transportR :/ { capture=1 }
-                  /^variable$/ { if (capture) capture=0 }
+                  /^-- Executable exceptions are represented as values, never as inhabitants/ {
+                    if (capture) capture=0
+                  }
                   capture { gsub(/Set ℓ/, "Set"); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructivePropTransport.agda"
                 printf '%s\n' '{-# OPTIONS --confluence-check #-}' 'module ConstructiveExceptionSemantics where' > "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '
                   /^module ConstructiveExceptionSemantics where$/ { capture=1; next }
-                  /^record ⊤/ { capture=0 }
+                  # Stop when the extracted nested module returns to top-level
+                  # learner semantics. The former record-⊤ sentinel was pruned
+                  # as unused, so relying on it leaked the rest of the monolith
+                  # into this standalone Agda2HS extraction.
+                  /^Int : Set$/ { if (capture) capture=0 }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '

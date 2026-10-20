@@ -1122,6 +1122,22 @@ map-++ {xs = x ∷ xs} = cong (_∷_ _) (map-++ {xs = xs})
 
 {-# REWRITE map-id map-fuse map-++ #-}
 
+-- Constructive transport over the reflexive-only relation used as the
+-- equality substrate for potential quotient interfaces. This kernel lemma
+-- has no postulates or rewrite rules; the quotient eliminator itself is not
+-- assumed here.
+data _≐_ {A : Set ℓ} (x : A) : A → Set ℓ where
+  refl≐ : x ≐ x
+
+transportR : (P : A → Set ℓ) → x ≐ y → P x → P y
+transportR P refl≐ value = value
+
+transportR-refl :
+  (P : A → Set ℓ) (value : P x) →
+  transportR P refl≐ value ≡ value
+transportR-refl P value = refl
+
+
 
 
 -- Executable exceptions are represented as values, never as inhabitants
