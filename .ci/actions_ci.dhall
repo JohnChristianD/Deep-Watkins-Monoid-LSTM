@@ -60,11 +60,15 @@ Constructive foundations — Russian constructivism (RUSS) only:
     dependency. Every exported theorem must depend only on declared RUSS
     assumptions and separately justified Agda/compiler primitives. Any
     unclassified trust boundary blocks global certification.
-  * The learner monolith includes Markov, register-machine Church's thesis,
-    and proposition-valued countable choice. The theorem monolith contains
-    Agda reflection/TC compatibility postulates and imports external ordinal
-    and TWA modules. These remain trust boundaries, not a consistency proof;
-    successful builds are necessary but insufficient.
+  * The learner monolith now exposes one named
+    `russianRecursiveMathematicsAssumptions` record with projections for
+    Markov's principle, register-machine ECT₀, and proposition-valued
+    countable choice; the previous public names remain aliases. This gives
+    downstream theorems one explicit basis to depend on, but is a packaging
+    certificate only, not a consistency proof. The theorem monolith contains
+    a compiler-facing Reflection/TC subset and imports external ordinal and
+    TWA modules. These remain trust boundaries; successful builds are
+    necessary but insufficient.
   * Both monoliths explicitly use --with-K. Keep their proof path non-cubical:
     no Cubical imports or Cubical modes. Agda's --cubical option enables
     --without-K, which conflicts with this project's selected path. Some
