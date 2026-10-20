@@ -139,6 +139,8 @@ jobs:
           path: |
             .ci/discovery/theorem-monolith-egraph-sync.dhall
             .ci/discovery/economic-closure-graph.dhall
+            .ci/discovery/russ-global-certificate.dhall
+            build/agda2hs-semantic-search/report.txt
             build/agda-haskell/agda2hs-manifest.tsv
             build/agda-haskell/malonzo-files.txt
 
