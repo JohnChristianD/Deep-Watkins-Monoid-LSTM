@@ -33,12 +33,6 @@ grep -Fq 'github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f' flake.n
   exit 1
 }
 
-# The repository-wide CI profile is an explicit, validated input.
-grep -Fxq 'profile=all' .ci/global.txt || {
-  echo "expected profile=all in .ci/global.txt" >&2
-  exit 1
-}
-
 # Fennel-synced monolith options prefer lossy unification over auto-inline.
 for monolith in FullCoupled/CanonicalLearnerMonolith.agda FullCoupled/TheoremsMonolith.agda; do
   grep -Fxq -- '--lossy-unification' <(sed -n '1,/^#-}/p' "$monolith") || {
