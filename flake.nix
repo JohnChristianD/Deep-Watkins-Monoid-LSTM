@@ -927,6 +927,7 @@ PY
                 grep -Fq "egraph-hashcons-after-union=True" "$out/report.txt"
                 grep -Fq "egraph-constructivist-postulates=True" "$out/report.txt"
                 grep -Fq "empty-type-inconsistency-search=goal:Data.Empty.⊥ candidates=" "$out/report.txt"
+                grep -Fq "source-only-monolith-candidates=" "$out/report.txt"
                 grep -Fq "proof-status=diagnostic-only-not-a-consistency-proof" "$out/report.txt"
                 grep -Fq "inconsistencyProbeRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "scottErshovNLabDenotationalSemanticsRegression" FullCoupled/TheoremsMonolith.agda
