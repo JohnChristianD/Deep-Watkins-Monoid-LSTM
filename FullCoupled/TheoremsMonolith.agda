@@ -39,10 +39,13 @@ infixl 31 _*Int_
 _*Int_ : Int → Int → Int
 _*Int_ = _ℤ*_
 
--- Stable Agda 2.8.0.2 reflection compatibility surface.
--- Reuses TypeTopology's existing BOOL/NATURAL/LIST/SIGMA bindings instead
--- of importing Agda.Builtin.Reflection, whose dependency closure attempts
--- to install competing builtin owners.
+-- Compiler-facing subset of the Agda 2.8.0.2 Reflection ABI used below.
+-- Primitive signatures, builtin tags, and reflected syntax constructors
+-- mirror Agda.Builtin.Reflection; only the operations actually consumed by
+-- the theorem macros are declared here, avoiding duplicate builtin owners
+-- from importing that module into the existing Haskell.Prelude/TypeTopology
+-- closure. This is compile-time metaprogramming, not Agda2HS runtime code:
+-- the legacy theorem monolith is deliberately not sent through Agda2HS.
 postulate String : Set
 {-# BUILTIN STRING String #-}
 
@@ -119,10 +122,10 @@ module ReflectionCompat where
   {-# BUILTIN ARGARG arg #-}
 
   data Abs {a} (A : Set a) : Set a where
-    abs-arg : String → A → Abs A
+    abs : String → A → Abs A
 
   {-# BUILTIN ABS Abs #-}
-  {-# BUILTIN ABSABS abs-arg #-}
+  {-# BUILTIN ABSABS abs #-}
 
   data Literal : Set where
     nat : ℕ → Literal
@@ -147,7 +150,9 @@ module ReflectionCompat where
   data Pattern : Set
   data Clause : Set
 
-  Telescope = List (Σ String (λ _ → Arg Term))
+  -- As in Agda.Builtin.Reflection, Type is an alias for the reflected Term.
+  Type = Term
+  Telescope = List (Σ String (λ _ → Arg Type))
 
   data Term where
     var : ℕ → List (Arg Term) → Term
@@ -292,6 +297,16 @@ open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int
 -- canonical learner monolith. Keep the actual nested source module there.
 ------------------------------------------------------------------------
 module ConstructiveComputabilityPostulates = C.ConstructiveComputabilityPostulates
+
+open ConstructiveComputabilityPostulates public using
+  ( RussianRecursiveMathematicsBasis
+  ; russianRecursiveMathematicsAssumptions
+  ; russianMarkovPrinciple
+  ; extendedChurchThesis0
+  ; russianCountableChoice
+  ; churchThesis
+  ; constructiveCountableChoice
+  )
 
 module MLS = C.MonoidLSTMStreams
 open import Agda.Primitive using (Level)
