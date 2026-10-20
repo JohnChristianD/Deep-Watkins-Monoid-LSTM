@@ -46,20 +46,29 @@ Graph semantics:
     https://github.com/google-deepmind/mctx.
 
 Constructive foundations — Russian constructivism (RUSS) only:
-  * Status: NOT GLOBALLY CERTIFIED. Certification requires a checked theorem-
-    dependency inventory, not just references, builds, or source-text searches.
+  * Status: a generated and CI-validated direct-monolith trust-surface
+    inventory is being produced. This is not a global consistency certificate:
+    transitive imported-theory closure, complete theorem dependency closure,
+    and joint consistency remain unproved.
   * RUSS uses intuitionistic logic with scoped recursive/computability
-    assumptions. Markov's principle and register-machine Church's thesis are
-    explicit assumptions, not a blanket grant of classical logic. Proposition-
-    valued countable choice is an additional project assumption whose
-    compatibility with the chosen RUSS formalization must be justified.
-    Do not add excluded middle, LPO, or LLPO as global axioms.
-  * Audit every project-owned postulate and primitive, every REWRITE rule,
-    Agda builtin/reflection/TC interface, termination/positivity/universe
-    option, imported trusted theorem, unresolved meta, and transitive theorem
-    dependency. Every exported theorem must depend only on declared RUSS
-    assumptions and separately justified Agda/compiler primitives. Any
-    unclassified trust boundary blocks global certification.
+    assumptions. Markov's principle and register-machine ECT0 are explicit
+    assumptions, not a blanket grant of classical logic. Proposition-valued
+    countable choice is an additional project assumption whose compatibility
+    with the chosen RUSS formalization must be justified. Do not add excluded
+    middle, LPO, or LLPO as global axioms.
+  * The generated .ci/discovery/russ-global-certificate.dhall inventories
+    both monoliths by SHA-256, with-K/no-guardedness mode, direct postulate
+    statements, primitive blocks, rewrite pragmas, and explicit lexical checks
+    for named classical postulates and Cubical imports. Its scope and limits
+    are machine-readable and validated by the Discovery lane.
+  * The inventory distinguishes one postulated RUSS basis in the learner
+    monolith from the compiler-facing Reflection/TC ABI in the theorem
+    monolith. The declared rewrite rules are not additional RUSS axioms, but
+    still require confluence and subject-reduction justification.
+  * The A*/e-graph empty-type search is diagnostic only. A missing candidate,
+    a search timeout, or a failed attempt to synthesize bottom does not prove
+    consistency. Every external/transitive theorem dependency and Agda
+    compiler primitive remains a trust boundary until separately reviewed.
   * The learner monolith now exposes one named
     `russianRecursiveMathematicsAssumptions` record with projections for
     Markov's principle, register-machine ECT₀, and proposition-valued
@@ -353,9 +362,18 @@ let script = merge {
     grep -Fq 'proofKernel=Agda' "$manifest"
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
+    grep -Fq 'proof-status=diagnostic-only-not-a-consistency-proof' "$report"
+    nix run .#fennel-russ-certificate
+    dhall text --file .ci/discovery/russ-global-certificate.dhall >/dev/null
+    grep -Fq 'status = "DIRECT_SURFACE_INVENTORIED; TRANSITIVE_CONSISTENCY_NOT_PROVED"' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'directMonolithInventoryPassed = True' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'jointConsistencyProved = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'transitiveImportedDependencyClosureCertified = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     nix run .#agda2hs-graph-search-check
     nix run .#scott-strachey-domain-check
     nix run .#monoid-lstm-stream-check
+    echo 'russ-trust-surface-certificate=pass (joint consistency not claimed)'
     echo 'agda-semantic-discovery=pass'
     '',  EconlibCrossrepo = ''
     set -euo pipefail
