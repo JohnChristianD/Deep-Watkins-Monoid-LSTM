@@ -2209,8 +2209,14 @@ inconsistencyCandidateDeclNames (decl ∷ declarations) =
 readInconsistencySourceFiles : List String -> IO (List String)
 readInconsistencySourceFiles [] = pure []
 readInconsistencySourceFiles (sourceFile ∷ files) = do
-  declarations <- Extractor.readSourceDeclarations sourceFile
-  let candidates = inconsistencyCandidateDeclNames declarations
+  source <- readFile sourceFile
+  -- Dedent only for this lexical audit so declarations inside the two
+  -- canonical monoliths' nested modules are visible. This intentionally
+  -- produces candidate names, not parsed proof terms or typechecker evidence.
+  let declarations =
+        Extractor.parseLines sourceFile
+          (map Extractor.trimWhitespace (lines source))
+      candidates = inconsistencyCandidateDeclNames declarations
   rest <- readInconsistencySourceFiles files
   pure (pathAppend candidates rest)
 
