@@ -2229,6 +2229,37 @@ inconsistencyExtractionIsUsable Nothing = False
 inconsistencyExtractionIsUsable (Just result) =
   EGraph.extractedCost result > 0
 
+nonEmptyEGraphSubstitutions : List EGraph.Substitution -> Bool
+nonEmptyEGraphSubstitutions [] = False
+nonEmptyEGraphSubstitutions (_ ∷ _) = True
+
+emptyTypeCandidatePattern : EGraph.Pattern
+emptyTypeCandidatePattern =
+  EGraph.PatternApp "candidate-empty-type-inhabitant"
+    (EGraph.PatternVar "declaration" ∷
+     EGraph.PatternApp "Data.Empty.⊥" [] ∷ [])
+
+inconsistencyEGraphCandidateMatchOne : String -> Bool
+inconsistencyEGraphCandidateMatchOne candidate =
+  let
+    candidateExpr =
+      EGraph.ExprApp "candidate-empty-type-inhabitant"
+        (EGraph.ExprAtom candidate ∷
+         EGraph.ExprAtom "Data.Empty.⊥" ∷ [])
+    (rootId , graph0) = EGraph.addExpr candidateExpr EGraph.emptyGraph
+    (graph , report) =
+      EGraph.saturateUntilStable EGraph.semanticRewriteRules graph0
+    matches = EGraph.eMatch emptyTypeCandidatePattern rootId graph
+  in
+  EGraph.saturationComplete report
+    && nonEmptyEGraphSubstitutions matches
+
+inconsistencyEGraphCandidateMatches : List String -> Bool
+inconsistencyEGraphCandidateMatches [] = False
+inconsistencyEGraphCandidateMatches (candidate ∷ candidates) =
+  inconsistencyEGraphCandidateMatchOne candidate
+    || inconsistencyEGraphCandidateMatches candidates
+
 inconsistencyEGraphProbeComplete : List String -> Bool
 inconsistencyEGraphProbeComplete candidates =
   let
@@ -2257,6 +2288,9 @@ inconsistencySearchReport laws =
     ++ show (listLengthNat (inconsistencyCandidateNames laws))
     ++ " astar-candidate-path="
     ++ show (inconsistencySearchAttemptFound laws)
+    ++ " egraph-candidate-match="
+    ++ show (inconsistencyEGraphCandidateMatches
+      (inconsistencyCandidateNames laws))
     ++ " egraph-saturated-extracted="
     ++ show (inconsistencyEGraphProbeComplete
       (inconsistencyCandidateNames laws))
@@ -2294,6 +2328,7 @@ inconsistencyProbeRegression =
          (case path of λ where
            Nothing -> []
            (Just selected) -> selected)
+    && inconsistencyEGraphCandidateMatches candidates
     && inconsistencyEGraphProbeComplete candidates
 
 inconsistencyProbeRegressionChecked :
@@ -2874,6 +2909,10 @@ main = do
 {-# COMPILE AGDA2HS inconsistencyCandidateOccursOnPath #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateExprs #-}
 {-# COMPILE AGDA2HS inconsistencyExtractionIsUsable #-}
+{-# COMPILE AGDA2HS nonEmptyEGraphSubstitutions #-}
+{-# COMPILE AGDA2HS emptyTypeCandidatePattern #-}
+{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatchOne #-}
+{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatches #-}
 {-# COMPILE AGDA2HS inconsistencyQueryExpr #-}
 {-# COMPILE AGDA2HS inconsistencyEGraphProbeComplete #-}
 {-# COMPILE AGDA2HS inconsistencySearchAttemptFound #-}
