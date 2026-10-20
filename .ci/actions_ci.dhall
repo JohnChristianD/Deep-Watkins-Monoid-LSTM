@@ -704,6 +704,11 @@ DHALL
     : "''${GH_TOKEN:?GH_TOKEN is required}"
     : "''${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
     : "''${PR_NUMBER:?PR_NUMBER is required}"
+    label_present="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels | any(.[]; .name == "auto-merge-approved")')"
+    if [[ "$label_present" != "true" ]]; then
+      echo "auto-merge=skipped (requires the explicit auto-merge-approved label)"
+      exit 0
+    fi
     gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
     '',
   All = ''
