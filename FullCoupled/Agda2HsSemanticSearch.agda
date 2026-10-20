@@ -2991,6 +2991,7 @@ main = do
 {-# COMPILE AGDA2HS emptyTypeSignature #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateLaws #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateNames #-}
+{-# COMPILE AGDA2HS inconsistencyGoalName #-}
 {-# COMPILE AGDA2HS inconsistencySourceOnlyFiles #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateDeclNames #-}
 {-# COMPILE AGDA2HS readInconsistencySourceFiles #-}
