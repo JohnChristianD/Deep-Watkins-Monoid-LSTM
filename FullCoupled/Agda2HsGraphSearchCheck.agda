@@ -44,6 +44,7 @@ graphSearchContractPassed =
     && Search.autonomousGraphSearchRegression
     && Search.canonicalSearchPlanEGraphClosed
     && Search.graphAStarPlanEGraphClosed
+    && Search.inconsistencyProbeRegression
 
 main : IO ⊤
 main = do
@@ -122,7 +123,11 @@ main = do
   putStrLn
     ("graph-search-contract="
       ++ show graphSearchContractPassed)
+  putStrLn
+    ("empty-type-inconsistency-probe="
+      ++ show Search.inconsistencyProbeRegression)
 
 {-# COMPILE AGDA2HS graphPathCountRejectsCycleRegression #-}
 {-# COMPILE AGDA2HS graphSearchContractPassed #-}
+{-# COMPILE AGDA2HS Search.inconsistencyProbeRegression #-}
 {-# COMPILE AGDA2HS main #-}
