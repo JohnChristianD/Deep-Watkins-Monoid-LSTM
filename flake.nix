@@ -44,7 +44,7 @@
           nativeBuildInputs = map
             (input:
               if (input.pname or "") == "swig"
-                && builtins.hasInfix "forth" (input.version or "")
+                && builtins.match ".*forth.*" (input.version or "") != null
               then
                 input.overrideAttrs (swigOld: {
                   nativeBuildInputs =
