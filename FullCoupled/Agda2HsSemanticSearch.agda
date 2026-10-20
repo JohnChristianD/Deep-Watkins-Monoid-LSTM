@@ -2390,12 +2390,23 @@ inconsistencyProbeRegression =
       ∷ []
     candidates = inconsistencyCandidateNames fixture
     path = inconsistencyAStarPath fixture candidates
+    nestedSourceDeclarations =
+      Extractor.parseLines "Regression.agda"
+        (map Extractor.trimWhitespace
+          ("module Nested where" ∷
+           "  directFromNestedModule : ⊥" ∷
+           "  refutationOnly : A → ⊥" ∷
+           []))
+    nestedSourceCandidates =
+      inconsistencyCandidateDeclNames nestedSourceDeclarations
   in
   emptyTypeSignature "⊥"
     && emptyTypeSignature "Data.Empty.⊥"
     && not (emptyTypeSignature "A → ⊥")
     && not (emptyTypeSignature "Nat")
     && listLengthNat candidates == incrementSearchNat 0
+    && listLengthNat nestedSourceCandidates == incrementSearchNat 0
+    && planContains "Regression.agda#directFromNestedModule" nestedSourceCandidates
     && inconsistencyCandidateOccursOnPath candidates
          (case path of λ where
            Nothing -> []
