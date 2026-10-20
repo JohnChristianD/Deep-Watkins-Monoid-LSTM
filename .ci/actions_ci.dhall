@@ -159,8 +159,9 @@ Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
     typed coverage for Luafun requires a maintained declaration file.
-  * .ci/lua/agda_graph.fnl produces GeneratedAgdaGraph.elm. Luafun applies to
-    that Fennel generator; Elm itself does not load the Lua library.
+  * .ci/lua/agda_graph.fnl indexes declarations from exactly the two canonical
+    monoliths into GeneratedMonolithContent.elm. Elm renders that generated
+    catalog directly; it does not load Fennel or Lua at runtime.
   * Pages/Elm must be validated by the existing Nix presentation lane.
 
 Only this file owns project policy text and lane commands. The GitHub workflow
@@ -215,7 +216,7 @@ let script = merge {
     # kernel-checked through Haskell.Prelude: Agda rejects that mixed option
     # closure. Keep source inventory separate from the pure executable kernel
     # surface until its universe/Prelude interfaces are migrated coherently.
-    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith' FullCoupled/CanonicalLearnerMonolith.agda
+    grep -Fq 'module FullCoupled/CanonicalLearnerMonolith.agda' FullCoupled/CanonicalLearnerMonolith.agda
     grep -Fxq -- '--level-universe' .ci/agda/global-options.txt
     echo "pure-agda2hs-kernel-check=pass"
     echo "canonical-learner-monolith=source-inventory-only (option closure not kernel-checked)"
@@ -255,15 +256,15 @@ let script = merge {
     test -f .ci/lua/agda_surface.fnl
     test -f .ci/lua/ascii_surface.fnl
     nix run .#fennel-ascii-surface
-    nix run .#fennel-agda-graph -- "$tmp/src/GeneratedAgdaGraph.elm"
-    test -s "$tmp/src/GeneratedAgdaGraph.elm"
-    grep -Fq 'module GeneratedAgdaGraph exposing (Node, Edge, nodes, edges)' "$tmp/src/GeneratedAgdaGraph.elm"
-    grep -Fq 'FullCoupled.TheoremsMonolith' "$tmp/src/GeneratedAgdaGraph.elm"
+    nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
+    test -s "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'module GeneratedMonolithContent exposing (Entry, entries, sourceFiles)' "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'FullCoupled/TheoremsMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
     nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
     test -s "$tmp/src/GeneratedTheoremSurface.elm"
     grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'nodeLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'edgeLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'entryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'russEntryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
     if LC_ALL=C grep -n '[^[:print:][:space:]]' "$tmp/src/GeneratedTheoremSurface.elm"; then exit 1; fi
     echo "fennel-luajit-presentation=pass"
     '',
@@ -279,11 +280,11 @@ let script = merge {
     grep -Fq 'import FullCoupled.Agda2HsSemanticExtractor as Extractor' FullCoupled/Agda2HsSemanticSearch.agda
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
-    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith' FullCoupled/CanonicalLearnerMonolith.agda
-    grep -Fq 'module FullCoupled.TheoremsMonolith' FullCoupled/TheoremsMonolith.agda
+    grep -Fq 'module FullCoupled/CanonicalLearnerMonolith.agda' FullCoupled/CanonicalLearnerMonolith.agda
+    grep -Fq 'module FullCoupled/TheoremsMonolith.agda' FullCoupled/TheoremsMonolith.agda
     dhall type --file .ci/presentation-contract.dhall >/dev/null
     dhall-to-json --file .ci/presentation-contract.dhall > "$tmp/presentation-contract.json"
-    grep -Fq '"graphGenerator": ".ci/lua/agda_graph.fnl"' "$tmp/presentation-contract.json"
+    grep -Fq '"monolithContentGenerator": ".ci/lua/agda_graph.fnl"' "$tmp/presentation-contract.json"
     grep -Fq '"surfaceGenerator": ".ci/lua/agda_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq '"elmManifest": ".ci/elm-application.dhall"' "$tmp/presentation-contract.json"
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
@@ -294,12 +295,12 @@ let script = merge {
     grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/Main.elm
     ! grep -Eiq 'Writer|Julia[[:space:]]Mono|JuliaMono|Noto Emoji' site/Main.elm
     grep -Fq 'CAT02LMS' site/Main.elm
-    grep -Fq '.shell{min-height:100vh;display:block;max-width:76ch;' site/Main.elm
-    grep -Fq 'Formal-methods reading trail' site/Main.elm
-    grep -Fq 'Browse modules' site/Main.elm
-    grep -Fq 'Haskell denotational semantics' site/Main.elm
+    grep -Fq '.shell{min-height:100vh;max-width:88rem;margin:0 auto;' site/Main.elm
+    grep -Fq 'Russian constructivism (RUSS): trust-surface certificate' site/Main.elm
+    grep -Fq 'Declaration index' site/Main.elm
+    grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     ! grep -Fq 'Mirth' site/Main.elm
-    grep -Fq 'maximin' site/Main.elm
+    grep -Fq 'maximinPalette' site/Main.elm
     grep -Fq 'data-module' site/Main.elm
     output_dir="$tmp"
     if [ -n "$(printenv PAGES_OUTPUT_DIR 2>/dev/null || true)" ]; then
@@ -308,19 +309,19 @@ let script = merge {
     mkdir -p "$output_dir"
     mkdir -p "$tmp/src"
     cp site/Main.elm "$tmp/src/Main.elm"
-    echo "pages-stage=fennel-graph"
-    nix run .#fennel-agda-graph -- "$tmp/src/GeneratedAgdaGraph.elm"
-    echo "pages-stage=fennel-graph-done"
+    echo "pages-stage=monolith-content"
+    nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
+    echo "pages-stage=monolith-content-done"
     echo "pages-stage=fennel-surface"
     nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
     echo "pages-stage=fennel-surface-done"
-    test -s "$tmp/src/GeneratedAgdaGraph.elm"
+    test -s "$tmp/src/GeneratedMonolithContent.elm"
     test -s "$tmp/src/GeneratedTheoremSurface.elm"
     grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'nodeLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'FullCoupled.CanonicalLearnerMonolith' "$tmp/src/GeneratedAgdaGraph.elm"
-    grep -Fq 'FullCoupled.TheoremsMonolith' "$tmp/src/GeneratedAgdaGraph.elm"
-    grep -Fq 'imports' "$tmp/src/GeneratedAgdaGraph.elm"
+    grep -Fq 'entryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'FullCoupled/CanonicalLearnerMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'FullCoupled/TheoremsMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'sourceFiles : List String' "$tmp/src/GeneratedMonolithContent.elm"
     dhall-to-json --file "$GITHUB_WORKSPACE/.ci/elm-application.dhall" > "$tmp/elm.json"
     sed -i -e 's/"source_directories"/"source-directories"/g' -e 's/"elm_version"/"elm-version"/g' -e 's/"elm_dependencies"/"dependencies"/g' -e 's/"test_dependencies"/"test-dependencies"/g' "$tmp/elm.json"
     test -s "$tmp/elm.json"
@@ -668,7 +669,7 @@ DHALL
     [ ! -f .ci/discovery/learner_semantic_manifest.m ] || { echo "generated semantic lookup table present"; exit 1; }
     [ ! -f .ci/discovery/learner-semantic-laws.tsv ] || { echo "generated semantic law artifact present"; exit 1; }
     grep -Eiq 'walsh|rope|target-network|target_network|target network|normalization|regularization' "$learner" && { echo "forbidden semantic term present"; exit 1; } || true
-    grep -Fq 'open import FullCoupled.CanonicalLearnerMonolith as C' "$theorem" || { echo "non-canonical theorem source"; exit 1; }
+    grep -Fq 'open import FullCoupled/CanonicalLearnerMonolith.agda as C' "$theorem" || { echo "non-canonical theorem source"; exit 1; }
     grep -Fq 'neuralPolicyGreedyTwoEpsilonRegret' "$learner" || { echo "missing two-epsilon greedy regret theorem"; exit 1; }
     '',
   Surface = ''
