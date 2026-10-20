@@ -801,6 +801,7 @@ PY
                 require_report_line "graph-search-contract=True"
                 require_report_line "canonical-search-egraph-closed=True"
                 require_report_line "graph-astar-egraph-closed=True"
+                require_report_line "empty-type-inconsistency-probe=True"
 
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
@@ -925,6 +926,9 @@ PY
                 grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"
                 grep -Fq "egraph-hashcons-after-union=True" "$out/report.txt"
                 grep -Fq "egraph-constructivist-postulates=True" "$out/report.txt"
+                grep -Fq "empty-type-inconsistency-search=goal:Data.Empty.⊥ candidates=" "$out/report.txt"
+                grep -Fq "proof-status=diagnostic-only-not-a-consistency-proof" "$out/report.txt"
+                grep -Fq "inconsistencyProbeRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "scottErshovNLabDenotationalSemanticsRegression" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "canonicalLearnerTraceDenotationStep" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "russianConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
