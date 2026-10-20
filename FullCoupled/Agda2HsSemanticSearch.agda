@@ -2249,7 +2249,7 @@ inconsistencyAStarPath laws candidates =
   let
     graphLaws =
       MkGraphLaw inconsistencyGoalName candidates ∷
-      semanticGraphLaws laws ++ candidateOnlyGraphLaws candidates
+      (semanticGraphLaws laws ++ candidateOnlyGraphLaws candidates)
   in
   case candidates of λ where
     [] -> Nothing
