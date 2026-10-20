@@ -460,7 +460,7 @@ let script = merge {
       printf '  local_mega_edge = "MegaGeneralizedWalrasianEquilibrium",\n'
       printf '  local_composition = "CanonicalLearnerHodgeMaxwellCompositionTheorem",\n'
       printf '  partial_observation_nodes = ["BehavioralStrategy", "BeliefSystem", "SequentialEquilibrium"],\n'
-      printf '  pomdp_named_in_econlib = %s,\n' "$pomdp_named"
+      printf '  pomdp_named_in_econlib = %s,\n' "$pomdp_named_dhall"
       printf '  composition_path = ["Econlib::RegularEconomy", "Econlib::Economy.exists_equilibrium", "Actions::MegaGeneralizedWalrasianEquilibrium", "Actions::CanonicalLearnerHodgeMaxwellCompositionTheorem"],\n'
       printf '  pomdp_bridge_status = "local POMDP belief-policy closure remains explicit; no filtering or optimality is inferred"\n'
       printf '%s\n' '}'
