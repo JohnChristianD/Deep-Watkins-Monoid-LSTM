@@ -482,6 +482,21 @@ PY
             program = "${script}/bin/fennel-surface";
           };
 
+          fennel-russ-certificate = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-russ-certificate";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                mkdir -p .ci/discovery
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/russ_certificate.fnl
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/fennel-russ-certificate";
+          };
+
           streamly-tools-check = let
             script = pkgs.writeShellApplication {
               name = "streamly-tools-check";
