@@ -7,9 +7,9 @@
 --confluence-check
 --two-level
 --rewriting
---level-universe
---cumulativity
 --lossy-unification
+--experimental-lazy-instances
+--backtracking-instance-search
 --polarity
 --large-indices
 --no-forced-argument-recursion
