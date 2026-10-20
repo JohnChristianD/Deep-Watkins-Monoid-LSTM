@@ -391,7 +391,8 @@ let script = merge {
       printf '  adapter_present = %s,\n' "$adapter_present"
       printf '  composition_path = ["Econlib::Economy.exists_equilibrium", "Actions::MegaGeneralizedWalrasianEquilibrium", "Actions::CanonicalLearnerHodgeMaxwellCompositionTheorem"],\n'
       printf '  graph_status = "composition-ready; explicit cross-language adapter still required"\n'
-      printf '%s\n' '}'    } > .ci/discovery/econlib-crossrepo-sync.dhall
+      printf '%s\n' '}'
+    } > .ci/discovery/econlib-crossrepo-sync.dhall
 
     dhall text --file .ci/discovery/econlib-crossrepo-sync.dhall >/dev/null
     grep -Fq 'upstream_static_existence = "Economy.exists_equilibrium"' .ci/discovery/econlib-crossrepo-sync.dhall
