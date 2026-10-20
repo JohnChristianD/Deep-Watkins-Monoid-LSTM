@@ -814,7 +814,7 @@ PY
               runtimeInputs = [
                 (agdaCommand system)
                 (agda2hsCommand system)
-                (canonicalGhc system)
+                pkgs.haskellPackages.liquidhaskell
                 pkgs.z3
                 pkgs.coreutils
                 pkgs.git
@@ -966,7 +966,7 @@ PY
               runtimeInputs = [
                 (agdaCommand system)
                 (agda2hsCommand system)
-                pkgs.haskellPackages.liquidhaskell
+                (canonicalGhc system)
                 pkgs.z3
                 pkgs.coreutils
                 pkgs.findutils
@@ -1010,7 +1010,7 @@ PY
                 grep -Fxq "graph-cycle-rejected=True" "$out/graph-search-report.txt"
                 grep -Fxq "graph-linear-chain=True" "$out/graph-search-report.txt"
                 grep -Fxq "graph-search-contract=True" "$out/graph-search-report.txt"
-                liquid --version
+                "${canonicalGhc system}/bin/ghc-pkg" field liquidhaskell version
                 z3 --version
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
