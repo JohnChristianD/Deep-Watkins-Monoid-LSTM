@@ -167,20 +167,25 @@ jobs:
           '
 
   auto-merge:
-    name: Enable auto-merge after full verification
+    name: Enable auto-merge only after explicit approval
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     needs: [agda, semantic, pages, versions]
     runs-on: ubuntu-22.04
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     steps:
-      - name: Enable GitHub auto-merge
+      - name: Check explicit auto-merge approval
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          label_present="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels | any(.[]; .name == "auto-merge-approved")')"
+          if [[ "$label_present" != "true" ]]; then
+            echo "auto-merge=skipped (requires the explicit auto-merge-approved label)"
+            exit 0
+          fi
           gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
 
