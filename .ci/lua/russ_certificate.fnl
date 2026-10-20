@@ -99,6 +99,32 @@
         (set count (+ count 1)))))
   count)
 
+(local function import-inventory [path]
+  (local lines (lines-of (read-file path)))
+  (local modules [])
+  (each [_ raw (ipairs lines)]
+    (local item (trim raw))
+    (when (not (starts item "--"))
+      (local module-name
+        (or (string.match item "^open import ([^%s]+)")
+            (string.match item "^import ([^%s]+)")))
+      (when module-name
+        (table.insert modules (.. path " -> " module-name)))))
+  modules)
+
+(local function rewrite-identifiers [path]
+  (local lines (lines-of (read-file path)))
+  (local identifiers [])
+  (each [_ line (ipairs lines)]
+    (local marker (string.find line "{-# REWRITE " 1 true))
+    (when marker
+      (local ending (string.find line "#-}" marker true))
+      (when ending
+        (local body (string.sub line (+ marker 12) (- ending 1)))
+        (each [identifier (string.gmatch body "%S+")]
+          (table.insert identifiers identifier)))))
+  identifiers)
+
 (local function summary [path]
   (local source (read-file path))
   (local lines (lines-of source))
@@ -120,6 +146,21 @@
 (local learner (summary (. source-files 1)))
 (local theorems (summary (. source-files 2)))
 (local commit (read-line "git rev-parse HEAD"))
+(local imports [])
+(each [_ path (ipairs source-files)]
+  (each [_ imported (ipairs (import-inventory path))]
+    (table.insert imports imported)))
+(local rewrite-rules (rewrite-identifiers (. source-files 1)))
+(local rendered-imports
+  (fun.totable
+    (fun.map
+      (fn [imported] (string.format "    \\"%s\\"" imported))
+      imports)))
+(local rendered-rewrite-rules
+  (fun.totable
+    (fun.map
+      (fn [identifier] (string.format "    \\"%s\\"" identifier))
+      rewrite-rules)))
 
 (assert (= learner.postulates 1) "learner RUSS trust boundary changed: audit before updating certificate")
 (assert (= learner.rewritePragmas 2) "learner rewrite surface changed: audit before updating certificate")
@@ -151,6 +192,13 @@
   theorems.path theorems.sha theorems.postulates theorems.primitiveBlocks theorems.rewritePragmas theorems.cubicalImports
   (if theorems.withK "True" "False") (if theorems.noGuardedness "True" "False") theorems.classicalPostulates))
 (out:write "  ],\n")
+(out:write "  ],\n")
+(out:write "  rewriteRuleIdentifiers = [\n")
+(out:write (table.concat rendered-rewrite-rules ",\n"))
+(out:write "\n  ],\n")
+(out:write "  importedModulesBySource = [\n")
+(out:write (table.concat rendered-imports ",\n"))
+(out:write "\n  ],\n")
 (out:write "  russianBasis = {\n")
 (out:write "    singlePostulatedEntry = \"russianRecursiveMathematicsAssumptions\",\n")
 (out:write "    markovPrincipleProjection = \"russianMarkovPrinciple\",\n")
