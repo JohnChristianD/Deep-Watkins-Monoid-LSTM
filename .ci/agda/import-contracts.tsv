@@ -374,3 +374,7 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistency
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencySearchReport #-}	{-# COMPILE AGDA2HS inconsistencySearchReport #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyProbeRegression #-}	{-# COMPILE AGDA2HS inconsistencyProbeRegression #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyExtractionIsUsable #-}	{-# COMPILE AGDA2HS inconsistencyExtractionIsUsable #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nonEmptyEGraphSubstitutions #-}	{-# COMPILE AGDA2HS nonEmptyEGraphSubstitutions #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS emptyTypeCandidatePattern #-}	{-# COMPILE AGDA2HS emptyTypeCandidatePattern #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatchOne #-}	{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatchOne #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatches #-}	{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatches #-}	1
