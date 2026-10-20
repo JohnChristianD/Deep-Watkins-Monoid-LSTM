@@ -136,6 +136,11 @@
   , cubicalImports = (count-cubical-imports lines)
   , withK = (contains source "--with-K")
   , noGuardedness = (contains source "--no-guardedness")
+  , hasProp = (contains source "--prop")
+  , hasRewriting = (contains source "--rewriting")
+  , hasConfluenceCheck = (contains source "--confluence-check")
+  , hasTwoLevel = (contains source "--two-level")
+  , hasSizedTypes = (contains source "--sized-types")
   , classicalPostulates = (direct-classical-postulate-count lines)
   , hasRussianBasis = (contains source "russianRecursiveMathematicsAssumptions : RussianRecursiveMathematicsBasis")
   , hasMarkovProjection = (contains source "russianMarkovPrinciple")
@@ -146,6 +151,9 @@
 (local learner (summary (. source-files 1)))
 (local theorems (summary (. source-files 2)))
 (local commit (read-line "git rev-parse HEAD"))
+(local global-options-path ".ci/agda/global-options.txt")
+(local global-options (read-file global-options-path))
+(local global-options-hash (sha256 global-options-path))
 (local imports [])
 (each [_ path (ipairs source-files)]
   (each [_ imported (ipairs (import-inventory path))]
@@ -169,6 +177,13 @@
 (assert (= theorems.rewritePragmas 0) "theorem monolith rewrite surface changed: audit before updating certificate")
 (assert (and learner.withK theorems.withK) "both monoliths must retain --with-K")
 (assert (and learner.noGuardedness theorems.noGuardedness) "both monoliths must retain --no-guardedness")
+(assert (and learner.hasProp theorems.hasProp) "both monoliths must retain --prop")
+(assert (and learner.hasRewriting theorems.hasRewriting) "both monoliths must retain --rewriting")
+(assert (and learner.hasConfluenceCheck theorems.hasConfluenceCheck) "both monoliths must retain --confluence-check")
+(assert (and learner.hasTwoLevel theorems.hasTwoLevel) "both monoliths must retain --two-level")
+(assert (and learner.hasSizedTypes theorems.hasSizedTypes) "both monoliths must retain --sized-types")
+(assert (contains global-options "--level-universe") "global Agda options lost --level-universe")
+(assert (not (contains global-options "--cubical")) "global Agda options unexpectedly enable cubical mode")
 (assert (= learner.cubicalImports 0) "cubical import detected in learner monolith")
 (assert (= theorems.cubicalImports 0) "cubical import detected in theorem monolith")
 (assert (= learner.classicalPostulates 0) "named classical axiom declaration detected in learner monolith")
@@ -182,15 +197,28 @@
 (out:write "  certificateKind = \"direct-monolith-trust-surface-inventory\",\n")
 (out:write "  status = \"DIRECT_SURFACE_INVENTORIED; TRANSITIVE_CONSISTENCY_NOT_PROVED\",\n")
 (out:write (.. "  sourceCommit = \"" commit "\",\n"))
+(out:write "  globalAgdaConfiguration = {\n")
+(out:write (.. "    globalOptionsSha256 = \"" global-options-hash "\",\n"))
+(out:write "    hasLevelUniverse = True,\n")
+(out:write "    hasCubicalFlag = False,\n")
+(out:write "    preservesWithK = True,\n")
+(out:write "    preservesNoGuardedness = True\n")
+(out:write "  },\n")
 (out:write "  sources = [\n")
 (out:write (string.format
-  "    { path = \"%s\", sha256 = \"%s\", postulateStatements = %d, primitiveBlocks = %d, rewritePragmas = %d, cubicalImports = %d, withK = %s, noGuardedness = %s, namedClassicalPostulates = %d },\n"
+  "    { path = \"%s\", sha256 = \"%s\", postulateStatements = %d, primitiveBlocks = %d, rewritePragmas = %d, cubicalImports = %d, withK = %s, noGuardedness = %s, hasProp = %s, hasRewriting = %s, hasConfluenceCheck = %s, hasTwoLevel = %s, hasSizedTypes = %s, namedClassicalPostulates = %d },\n"
   learner.path learner.sha learner.postulates learner.primitiveBlocks learner.rewritePragmas learner.cubicalImports
-  (if learner.withK "True" "False") (if learner.noGuardedness "True" "False") learner.classicalPostulates))
+  (if learner.withK "True" "False") (if learner.noGuardedness "True" "False")
+  (if learner.hasProp "True" "False") (if learner.hasRewriting "True" "False")
+  (if learner.hasConfluenceCheck "True" "False") (if learner.hasTwoLevel "True" "False")
+  (if learner.hasSizedTypes "True" "False") learner.classicalPostulates))
 (out:write (string.format
-  "    { path = \"%s\", sha256 = \"%s\", postulateStatements = %d, primitiveBlocks = %d, rewritePragmas = %d, cubicalImports = %d, withK = %s, noGuardedness = %s, namedClassicalPostulates = %d }\n"
+  "    { path = \"%s\", sha256 = \"%s\", postulateStatements = %d, primitiveBlocks = %d, rewritePragmas = %d, cubicalImports = %d, withK = %s, noGuardedness = %s, hasProp = %s, hasRewriting = %s, hasConfluenceCheck = %s, hasTwoLevel = %s, hasSizedTypes = %s, namedClassicalPostulates = %d }\n"
   theorems.path theorems.sha theorems.postulates theorems.primitiveBlocks theorems.rewritePragmas theorems.cubicalImports
-  (if theorems.withK "True" "False") (if theorems.noGuardedness "True" "False") theorems.classicalPostulates))
+  (if theorems.withK "True" "False") (if theorems.noGuardedness "True" "False")
+  (if theorems.hasProp "True" "False") (if theorems.hasRewriting "True" "False")
+  (if theorems.hasConfluenceCheck "True" "False") (if theorems.hasTwoLevel "True" "False")
+  (if theorems.hasSizedTypes "True" "False") theorems.classicalPostulates))
 (out:write "  ],\n")
 (out:write "  ],\n")
 (out:write "  rewriteRuleIdentifiers = [\n")
@@ -208,7 +236,7 @@
 (out:write "  },\n")
 (out:write "  auditChecks = {\n")
 (out:write "    directMonolithInventoryPassed = True,\n")
-(out:write "    explicitExcludedMiddlePostulateFound = False,\n")
+(out:write "    explicitClassicalPostulateFound = False,\n")
 (out:write "    cubicalImportsFound = False,\n")
 (out:write "    learnerRewriteSurfaceCount = 2,\n")
 (out:write "    theoremReflectionPrimitiveBlocks = 2,\n")
