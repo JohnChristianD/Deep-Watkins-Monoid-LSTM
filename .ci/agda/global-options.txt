@@ -7,5 +7,5 @@
 --sized-types
 --no-forced-argument-recursion
 --lossy-unification
---exact-split
---profile=conversion
+--polarity
+--profile=internal
