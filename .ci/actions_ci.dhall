@@ -180,6 +180,10 @@ let policyGate = ''
   grep -Fq 'graphAStarFirst laws seed = graphAStarFirstEager laws seed' FullCoupled/Agda2HsSemanticSearch.agda
   grep -Fq 'graphAStarDeferredPriorityLowerBoundRegressionChecked' FullCoupled/Agda2HsSemanticSearch.agda
   grep -Fq 'graphAStarDeferredMatchesEagerRegressionChecked' FullCoupled/Agda2HsSemanticSearch.agda
+  grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
+  grep -Fq 'open ConstructiveComputabilityPostulates public using' FullCoupled/CanonicalLearnerMonolith.agda
+  grep -Fq 'Type = Term' FullCoupled/TheoremsMonolith.agda
+  grep -Fq 'abs : String → A → Abs A' FullCoupled/TheoremsMonolith.agda
   grep -Fq -- '--with-K' FullCoupled/CanonicalLearnerMonolith.agda
   grep -Fq -- '--with-K' FullCoupled/TheoremsMonolith.agda
   ! grep -Eq '^[[:space:]]*--cubical(=|$)' FullCoupled/CanonicalLearnerMonolith.agda
@@ -377,6 +381,10 @@ let script = merge {
       adapter_present=true
       adapter_dhall=True
     fi
+    case "$adapter_dhall" in
+      True|False) ;;
+      *) echo "invalid Dhall Boolean: $adapter_dhall"; exit 1 ;;
+    esac
 
     mkdir -p .ci/discovery
     {
