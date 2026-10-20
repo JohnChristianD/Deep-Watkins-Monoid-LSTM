@@ -270,6 +270,10 @@ let script = merge {
     test -s "$tmp/src/GeneratedMonolithContent.elm"
     grep -Fq 'module GeneratedMonolithContent exposing (Entry, entries, sourceFiles)' "$tmp/src/GeneratedMonolithContent.elm"
     grep -Fq 'FullCoupled/TheoremsMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'FullCoupled/CanonicalLearnerMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
+    if grep -E 'source = "[^"]+\.agda"' "$tmp/src/GeneratedMonolithContent.elm" | grep -Ev 'CanonicalLearnerMonolith\.agda|TheoremsMonolith\.agda'; then
+      echo 'presentation source inventory escaped the two monoliths' >&2; exit 1;
+    fi
     nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
     test -s "$tmp/src/GeneratedTheoremSurface.elm"
     grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
@@ -369,6 +373,10 @@ let script = merge {
     grep -Fq 'status = "DIRECT_SURFACE_INVENTORIED; TRANSITIVE_CONSISTENCY_NOT_PROVED"' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'directMonolithInventoryPassed = True' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'jointConsistencyProved = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'explicitClassicalPostulateFound = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'globalOptionsSha256' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'rewriteRuleIdentifiers' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'importedModulesBySource' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'transitiveImportedDependencyClosureCertified = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     nix run .#agda2hs-graph-search-check
