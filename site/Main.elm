@@ -767,7 +767,7 @@ view model =
         ]
 
 
-update : Msg -> Model -> Msg
+update : Msg -> Model -> Model
 update msg model =
     case msg of
         SetQuery value ->
