@@ -5,5 +5,7 @@
 --confluence-check
 --prop
 --sized-types
---profile=internal
+--no-forced-argument-recursion
+--lossy-unification
+--exact-split
 --profile=conversion
