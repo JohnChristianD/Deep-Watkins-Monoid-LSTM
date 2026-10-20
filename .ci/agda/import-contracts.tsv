@@ -384,3 +384,4 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS readInconsist
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS appendUniqueInconsistencyNames #-}	{-# COMPILE AGDA2HS appendUniqueInconsistencyNames #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS allInconsistencyCandidateNames #-}	{-# COMPILE AGDA2HS allInconsistencyCandidateNames #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS candidateOnlyGraphLaws #-}	{-# COMPILE AGDA2HS candidateOnlyGraphLaws #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyGoalName #-}	{-# COMPILE AGDA2HS inconsistencyGoalName #-}	1
