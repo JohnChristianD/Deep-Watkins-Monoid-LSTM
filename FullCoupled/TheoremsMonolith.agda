@@ -11,7 +11,6 @@
 --cumulativity
 --lossy-unification
 --polarity
---flat-split
 --large-indices
 --no-forced-argument-recursion
 --with-K
