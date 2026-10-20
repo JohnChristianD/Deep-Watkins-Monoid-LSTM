@@ -2170,7 +2170,7 @@ inconsistencyCandidateLaws :
 inconsistencyCandidateLaws [] = []
 inconsistencyCandidateLaws (law ∷ laws) =
   if semanticLawCanSeed law
-       && emptyTypeSignature (Extractor.semanticLawSignature law)
+       && emptyTypeSignature (Extractor.lawSignature law)
   then law ∷ inconsistencyCandidateLaws laws
   else inconsistencyCandidateLaws laws
 
@@ -2224,6 +2224,11 @@ inconsistencyQueryExpr candidates =
     (EGraph.ExprAtom "Data.Empty.⊥" ∷
      inconsistencyCandidateExprs candidates)
 
+inconsistencyExtractionIsUsable : Maybe EGraph.Extraction -> Bool
+inconsistencyExtractionIsUsable Nothing = False
+inconsistencyExtractionIsUsable (Just result) =
+  EGraph.extractedCost result > 0
+
 inconsistencyEGraphProbeComplete : List String -> Bool
 inconsistencyEGraphProbeComplete candidates =
   let
@@ -2235,9 +2240,7 @@ inconsistencyEGraphProbeComplete candidates =
       EGraph.extractBest rootId graph (EGraph.extractFuelFor graph)
   in
   EGraph.saturationComplete report
-    && case extraction of λ where
-      Nothing -> False
-      (Just result) -> EGraph.extractedCost result > 0
+    && inconsistencyExtractionIsUsable extraction
 
 inconsistencySearchAttemptFound : List Extractor.SemanticLaw -> Bool
 inconsistencySearchAttemptFound laws =
@@ -2870,6 +2873,7 @@ main = do
 {-# COMPILE AGDA2HS inconsistencyAStarPath #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateOccursOnPath #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateExprs #-}
+{-# COMPILE AGDA2HS inconsistencyExtractionIsUsable #-}
 {-# COMPILE AGDA2HS inconsistencyQueryExpr #-}
 {-# COMPILE AGDA2HS inconsistencyEGraphProbeComplete #-}
 {-# COMPILE AGDA2HS inconsistencySearchAttemptFound #-}
