@@ -8,4 +8,5 @@
 --no-forced-argument-recursion
 --lossy-unification
 --polarity
---profile=internal
+--no-postfix-projections
+--profile=modules
