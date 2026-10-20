@@ -9,6 +9,8 @@ record Counter : Type where
   field
     totalCount : Nat
 
+open Counter public
+
 stepCounter : Counter -> Counter
 stepCounter (MkCounter n) = MkCounter (n + 1)
 
