@@ -2160,7 +2160,7 @@ semanticLawSeedFilterRegressionChecked = refl
 -- is inconsistent.
 emptyTypeSignature : String -> Bool
 emptyTypeSignature signature =
-  let normalized = normalizeIdentifier (normalizeSignature signature)
+  let normalized = normalizeIdentifier (Extractor.normalizeSignature signature)
   in normalized == "⊥"
        || normalized == "data.empty.⊥"
        || normalized == "agda.builtin.empty.⊥"
