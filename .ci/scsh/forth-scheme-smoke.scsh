@@ -5,7 +5,7 @@
 (if (&& (gforth --version)
         (groff --version)
         (guile --version)
-        (scsh -c "(display \"scsh-child-ok\")(newline)")
+        (scsh -c "(begin (display \"scsh-child-ok\") (newline))")
         (ccforth -version))
     (begin
       (display "forth-scheme-smoke=pass")
