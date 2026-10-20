@@ -517,6 +517,11 @@ PY
                 printf '%s\n' '{-# OPTIONS --prop --rewriting --confluence-check #-}' 'module ConstructiveComputabilityPostulates where' > "$tmp/ConstructiveComputabilityPostulates.agda"
                 awk '
                   /^module ConstructiveComputabilityPostulates where$/ { capture=1; next }
+                  # Stop at the module boundary before the outer monolith's
+                  # public re-export. The first outer "variable" is too late:
+                  # it leaves a top-level "open ... public using" inside the
+                  # extracted standalone module, which Agda rejects.
+                  /^open ConstructiveComputabilityPostulates public using$/ { if (capture) capture=0 }
                   /^variable$/ { capture=0 }
                   capture {
                     sub(/^  /, "")
