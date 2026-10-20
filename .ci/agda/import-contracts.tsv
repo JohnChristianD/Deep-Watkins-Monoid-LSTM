@@ -362,3 +362,14 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarFue
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarFirst #-}	{-# COMPILE AGDA2HS graphAStarFirst #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS learnerObligationGraph #-}	{-# COMPILE AGDA2HS learnerObligationGraph #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS graphAStarBestGRegression #-}	{-# COMPILE AGDA2HS graphAStarBestGRegression #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS emptyTypeSignature #-}	{-# COMPILE AGDA2HS emptyTypeSignature #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyCandidateLaws #-}	{-# COMPILE AGDA2HS inconsistencyCandidateLaws #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyCandidateNames #-}	{-# COMPILE AGDA2HS inconsistencyCandidateNames #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyAStarPath #-}	{-# COMPILE AGDA2HS inconsistencyAStarPath #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyCandidateOccursOnPath #-}	{-# COMPILE AGDA2HS inconsistencyCandidateOccursOnPath #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyCandidateExprs #-}	{-# COMPILE AGDA2HS inconsistencyCandidateExprs #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyQueryExpr #-}	{-# COMPILE AGDA2HS inconsistencyQueryExpr #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyEGraphProbeComplete #-}	{-# COMPILE AGDA2HS inconsistencyEGraphProbeComplete #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencySearchAttemptFound #-}	{-# COMPILE AGDA2HS inconsistencySearchAttemptFound #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencySearchReport #-}	{-# COMPILE AGDA2HS inconsistencySearchReport #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyProbeRegression #-}	{-# COMPILE AGDA2HS inconsistencyProbeRegression #-}	1
