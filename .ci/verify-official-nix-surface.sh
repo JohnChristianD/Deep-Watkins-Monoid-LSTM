@@ -112,7 +112,7 @@ grep -Fq 'pkgs.gforth' flake.nix
 grep -Fq 'pkgs.groff' flake.nix
 grep -Fq 'pkgs.guile' flake.nix
 test -f .ci/scsh/forth-scheme-smoke.scsh
-grep -Fq 'nix develop .#forth -c scsh .ci/scsh/forth-scheme-smoke.scsh' .github/workflows/nix-composition.yml
+grep -Fq 'nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh' .github/workflows/nix-composition.yml
 ! grep -Fq 'nix develop .#forth -c bash' .github/workflows/nix-composition.yml || {
   echo "Forth/Scheme smoke checks should be orchestrated by scsh" >&2
   exit 1
