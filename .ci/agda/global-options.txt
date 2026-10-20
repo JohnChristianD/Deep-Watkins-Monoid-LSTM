@@ -9,4 +9,3 @@
 --lossy-unification
 --polarity
 --no-postfix-projections
---profile=modules
