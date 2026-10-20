@@ -2179,20 +2179,77 @@ inconsistencyCandidateNames :
 inconsistencyCandidateNames laws =
   map Extractor.semanticLawId (inconsistencyCandidateLaws laws)
 
+-- These two legacy monoliths are intentionally excluded from the Agda import
+-- closure and runtime dependency graph. Scan their signatures separately so
+-- the contradiction diagnostic covers the canonical theorem surface without
+-- pulling either monolith into the extracted program's import graph.
+inconsistencySourceOnlyFiles : List String
+inconsistencySourceOnlyFiles =
+  "FullCoupled/CanonicalLearnerMonolith.agda" ∷
+  "FullCoupled/TheoremsMonolith.agda" ∷
+  []
+
+inconsistencyCandidateDeclNames :
+  List Extractor.SemanticDecl -> List String
+inconsistencyCandidateDeclNames [] = []
+inconsistencyCandidateDeclNames (decl ∷ declarations) =
+  let isTopLevel =
+        case Extractor.declKind decl of λ where
+          Extractor.SemanticTopLevel -> True
+          Extractor.SemanticRecordField -> False
+      rest = inconsistencyCandidateDeclNames declarations
+  in
+  if isTopLevel
+       && Extractor.semanticSignature decl
+       && emptyTypeSignature (Extractor.declSignature decl)
+  then
+    (Extractor.sourceFile decl ++ "#" ++ Extractor.declName decl) ∷ rest
+  else rest
+
+readInconsistencySourceFiles : List String -> IO (List String)
+readInconsistencySourceFiles [] = pure []
+readInconsistencySourceFiles (sourceFile ∷ files) = do
+  declarations <- Extractor.readSourceDeclarations sourceFile
+  let candidates = inconsistencyCandidateDeclNames declarations
+  rest <- readInconsistencySourceFiles files
+  pure (pathAppend candidates rest)
+
+appendUniqueInconsistencyNames :
+  List String -> List String -> List String
+appendUniqueInconsistencyNames [] accumulated = accumulated
+appendUniqueInconsistencyNames (name ∷ names) accumulated =
+  if planContains name accumulated then
+    appendUniqueInconsistencyNames names accumulated
+  else
+    appendUniqueInconsistencyNames names
+      (pathAppend accumulated (name ∷ []))
+
+allInconsistencyCandidateNames :
+  List Extractor.SemanticLaw -> List String -> List String
+allInconsistencyCandidateNames laws sourceOnlyNames =
+  appendUniqueInconsistencyNames
+    sourceOnlyNames
+    (inconsistencyCandidateNames laws)
+
 inconsistencyGoalName : String
 inconsistencyGoalName = "audit:inhabitant-of-Data.Empty.Bottom"
 
--- A* starts at the explicit empty-type goal and explores each declaration
--- whose complete result type is the empty type. The selected dependency path
--- is only a route for auditing a candidate; dependency reachability is not
--- itself a derivation in type theory.
+candidateOnlyGraphLaws : List String -> List GraphLaw
+candidateOnlyGraphLaws [] = []
+candidateOnlyGraphLaws (name ∷ names) =
+  MkGraphLaw name [] ∷ candidateOnlyGraphLaws names
+
+-- A* starts at the explicit empty-type goal and explores every candidate's
+-- dependency path. Source-only monolith candidates get leaf nodes because
+-- their declarations are intentionally not loaded into the runtime graph.
+-- A returned path is an audit route, not a derivation in type theory.
 inconsistencyAStarPath :
-  List Extractor.SemanticLaw -> Maybe (List String)
-inconsistencyAStarPath laws =
-  let candidates = inconsistencyCandidateNames laws
-      graphLaws =
-        MkGraphLaw inconsistencyGoalName candidates
-          ∷ semanticGraphLaws laws
+  List Extractor.SemanticLaw -> List String -> Maybe (List String)
+inconsistencyAStarPath laws candidates =
+  let
+    graphLaws =
+      MkGraphLaw inconsistencyGoalName candidates ∷
+      semanticGraphLaws laws ++ candidateOnlyGraphLaws candidates
   in
   case candidates of λ where
     [] -> Nothing
@@ -2273,27 +2330,36 @@ inconsistencyEGraphProbeComplete candidates =
   EGraph.saturationComplete report
     && inconsistencyExtractionIsUsable extraction
 
-inconsistencySearchAttemptFound : List Extractor.SemanticLaw -> Bool
-inconsistencySearchAttemptFound laws =
-  case inconsistencyAStarPath laws of λ where
+inconsistencySearchAttemptFound :
+  List Extractor.SemanticLaw -> List String -> Bool
+inconsistencySearchAttemptFound laws sourceOnlyNames =
+  let candidates = allInconsistencyCandidateNames laws sourceOnlyNames
+  in
+  case inconsistencyAStarPath laws candidates of λ where
     Nothing -> False
     (Just path) ->
-      inconsistencyCandidateOccursOnPath
-        (inconsistencyCandidateNames laws)
-        path
+      inconsistencyCandidateOccursOnPath candidates path
 
-inconsistencySearchReport : List Extractor.SemanticLaw -> String
-inconsistencySearchReport laws =
+inconsistencySearchReport :
+  List Extractor.SemanticLaw -> List String -> String
+inconsistencySearchReport laws sourceOnlyNames =
+  let
+    runtimeNames = inconsistencyCandidateNames laws
+    candidates = allInconsistencyCandidateNames laws sourceOnlyNames
+    astarFound = inconsistencySearchAttemptFound laws sourceOnlyNames
+  in
   "empty-type-inconsistency-search=goal:Data.Empty.⊥ candidates="
-    ++ show (listLengthNat (inconsistencyCandidateNames laws))
+    ++ show (listLengthNat candidates)
+    ++ " runtime-candidates="
+    ++ show (listLengthNat runtimeNames)
+    ++ " source-only-monolith-candidates="
+    ++ show (listLengthNat sourceOnlyNames)
     ++ " astar-candidate-path="
-    ++ show (inconsistencySearchAttemptFound laws)
+    ++ show astarFound
     ++ " egraph-candidate-match="
-    ++ show (inconsistencyEGraphCandidateMatches
-      (inconsistencyCandidateNames laws))
+    ++ show (inconsistencyEGraphCandidateMatches candidates)
     ++ " egraph-saturated-extracted="
-    ++ show (inconsistencyEGraphProbeComplete
-      (inconsistencyCandidateNames laws))
+    ++ show (inconsistencyEGraphProbeComplete candidates)
     ++ " proof-status=diagnostic-only-not-a-consistency-proof"
 
 -- Regression fixture: a direct ⊥ signature is a candidate, but A -> ⊥ is
@@ -2317,7 +2383,7 @@ inconsistencyProbeRegression =
           Extractor.SemanticTopLevel ""
       ∷ []
     candidates = inconsistencyCandidateNames fixture
-    path = inconsistencyAStarPath fixture
+    path = inconsistencyAStarPath fixture candidates
   in
   emptyTypeSignature "⊥"
     && emptyTypeSignature "Data.Empty.⊥"
@@ -2706,7 +2772,10 @@ main = do
   putStrLn learnerSemanticBridgeReport
   putStrLn ("semantic-identifier-normalization=" ++ show semanticIdentifierNormalizationRegression)
   putStrLn (semanticSearchExecutableReport semanticLaws)
-  putStrLn (inconsistencySearchReport semanticLaws)
+  sourceOnlyCandidates <-
+    readInconsistencySourceFiles inconsistencySourceOnlyFiles
+  putStrLn
+    (inconsistencySearchReport semanticLaws sourceOnlyCandidates)
   putStrLn hybridInverseExactRealSearchReport
   putStrLn sourceOnlyLegacyRequiredReport
   putStrLn ("source-only-legacy-boundary=" ++ show sourceOnlyLegacyBoundaryRegression)
@@ -2905,6 +2974,12 @@ main = do
 {-# COMPILE AGDA2HS emptyTypeSignature #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateLaws #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateNames #-}
+{-# COMPILE AGDA2HS inconsistencySourceOnlyFiles #-}
+{-# COMPILE AGDA2HS inconsistencyCandidateDeclNames #-}
+{-# COMPILE AGDA2HS readInconsistencySourceFiles #-}
+{-# COMPILE AGDA2HS appendUniqueInconsistencyNames #-}
+{-# COMPILE AGDA2HS allInconsistencyCandidateNames #-}
+{-# COMPILE AGDA2HS candidateOnlyGraphLaws #-}
 {-# COMPILE AGDA2HS inconsistencyAStarPath #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateOccursOnPath #-}
 {-# COMPILE AGDA2HS inconsistencyCandidateExprs #-}
