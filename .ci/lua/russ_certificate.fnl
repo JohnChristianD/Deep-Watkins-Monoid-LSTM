@@ -48,7 +48,9 @@
 (local function count-postulate-statements [lines]
   (count-where lines
     (fn [line]
-      (or (= line "postulate") (starts line "postulate ")))))
+      (local item (trim line))
+      (and (not (starts item "--"))
+           (or (= item "postulate") (starts item "postulate "))))))
 
 (local function count-primitive-blocks [lines]
   (count-where lines (fn [line] (= (trim line) "primitive"))))
