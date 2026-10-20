@@ -32,6 +32,29 @@
       # ccforth is not in the pinned Nixpkgs revision. Package the upstream
       # v0.3.2 release archive with a fixed SHA-256 per supported system.
       # This keeps the tool in the Nix store and avoids runtime go-install.
+      # Gforth's bundled SWIG-Forth fork needs pcre-config during configure.
+      # Nixpkgs places PCRE in buildInputs, which does not guarantee the helper
+      # is on PATH for this native build tool. Add it explicitly as a native
+      # build input without changing upstream source or the pinned package set.
+      gforth = system:
+        let
+          pkgs = pkgsFor system;
+        in
+        pkgs.gforth.overrideAttrs (old: {
+          nativeBuildInputs = map
+            (input:
+              if (input.pname or "") == "swig"
+                && builtins.hasInfix "forth" (input.version or "")
+              then
+                input.overrideAttrs (swigOld: {
+                  nativeBuildInputs =
+                    (swigOld.nativeBuildInputs or [ ]) ++ [ pkgs.pcre ];
+                })
+              else
+                input)
+            old.nativeBuildInputs;
+        });
+
       ccforth = system:
         let
           pkgs = pkgsFor system;
@@ -1066,9 +1089,10 @@ PY
           forth = pkgs.mkShell {
             packages = [
               (ccforth system)
-              pkgs.gforth
+              (gforth system)
               pkgs.groff
               pkgs.guile
+              pkgs.scsh
               pkgs.stdenv.cc
               pkgs.coreutils
               pkgs.findutils
@@ -1151,9 +1175,10 @@ PY
               (agdaEmacs system)
               pkgs.stdenv.cc
               (ccforth system)
-              pkgs.gforth
+              (gforth system)
               pkgs.groff
               pkgs.guile
+              pkgs.scsh
               pkgs.elmPackages.elm
             ];
             shellHook = ''
