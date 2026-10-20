@@ -1,3 +1,5 @@
+#!/usr/bin/env scsh -s
+!#
 ;; Reproducible Forth/Scheme smoke checks, run by scsh itself.
 ;; The scsh && process form short-circuits on the first failed command.
 (if (&& (gforth --version)
