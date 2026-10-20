@@ -388,7 +388,7 @@ let script = merge {
       printf '  local_mega_equilibrium_target = "GeneralizedWalrasianExistence",\n'
       printf '  local_composition_target = "CanonicalLearnerHodgeMaxwellCompositionTheorem",\n'
       printf '  local_mega_edge = "MegaGeneralizedWalrasianEquilibrium",\n'
-      printf '  adapter_present = %s,\n' "$adapter_present"
+      printf '  adapter_present = %s,\n' "$adapter_dhall"
       printf '  composition_path = ["Econlib::Economy.exists_equilibrium", "Actions::MegaGeneralizedWalrasianEquilibrium", "Actions::CanonicalLearnerHodgeMaxwellCompositionTheorem"],\n'
       printf '  graph_status = "composition-ready; explicit cross-language adapter still required"\n'
       printf '%s\n' '}'
