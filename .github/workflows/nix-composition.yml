@@ -113,6 +113,7 @@ jobs:
             gforth --version
             groff --version
             guile --version
+            scsh -c '(display "scsh-ok")(newline)'
             ccforth -version
           '
 
