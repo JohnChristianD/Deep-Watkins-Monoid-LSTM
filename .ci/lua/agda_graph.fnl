@@ -1,8 +1,8 @@
 (local fun (require :fun))
 
--- The presentation is a reader for exactly the two canonical monoliths.
--- Do not enumerate the project-wide Agda import graph here: graph-search
--- helpers and tutorial/legacy modules are not part of the documented surface.
+; The presentation is a reader for exactly the two canonical monoliths.
+; Do not enumerate the project-wide Agda import graph here: graph-search
+; helpers and tutorial/legacy modules are not part of the documented surface.
 (local source-files
   [ "FullCoupled/CanonicalLearnerMonolith.agda"
     "FullCoupled/TheoremsMonolith.agda"
