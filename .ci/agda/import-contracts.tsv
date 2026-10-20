@@ -378,3 +378,9 @@ require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS nonEmptyEGrap
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS emptyTypeCandidatePattern #-}	{-# COMPILE AGDA2HS emptyTypeCandidatePattern #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatchOne #-}	{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatchOne #-}	1
 require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatches #-}	{-# COMPILE AGDA2HS inconsistencyEGraphCandidateMatches #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencySourceOnlyFiles #-}	{-# COMPILE AGDA2HS inconsistencySourceOnlyFiles #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS inconsistencyCandidateDeclNames #-}	{-# COMPILE AGDA2HS inconsistencyCandidateDeclNames #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS readInconsistencySourceFiles #-}	{-# COMPILE AGDA2HS readInconsistencySourceFiles #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS appendUniqueInconsistencyNames #-}	{-# COMPILE AGDA2HS appendUniqueInconsistencyNames #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS allInconsistencyCandidateNames #-}	{-# COMPILE AGDA2HS allInconsistencyCandidateNames #-}	1
+require	FullCoupled/Agda2HsSemanticSearch.agda	{-# COMPILE AGDA2HS candidateOnlyGraphLaws #-}	{-# COMPILE AGDA2HS candidateOnlyGraphLaws #-}	1
