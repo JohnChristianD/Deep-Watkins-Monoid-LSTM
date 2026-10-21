@@ -405,15 +405,14 @@ PY
           fennel-smoke = let
             script = pkgs.writeShellApplication {
               name = "fennel-smoke";
-              runtimeInputs = [ (fennelRuntime system) pkgs.luajit pkgs.coreutils pkgs.gnugrep ];
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
               text = ''
                 set -euo pipefail
-                LUA_PATH="${luafunModule system}/share/lua/5.1/?.lua;;" \
-                  luajit -e 'local fun = require("fun"); assert(type(fun.map) == "function")'
                 fennel --version
                 tmp=$(mktemp -d)
                 trap 'rm -rf "$tmp"' EXIT
                 printf '%s\n' \
+                  '(assert (string.match jit.version "LuaJIT"))' \\
                   '(local fun (require :fun))' \
                   '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) (ipairs [1 2 3]))))' \
                   '(assert (= (table.concat mapped ",") "2,4,6"))' \
@@ -433,7 +432,7 @@ PY
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
-                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_import_sync.fnl "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/fennel/agda_import_sync.fnl "$@"
               '';
             };
           in {
@@ -447,7 +446,7 @@ PY
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
-                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_graph.fnl "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/fennel/agda_graph.fnl "$@"
               '';
             };
           in {
@@ -461,7 +460,7 @@ PY
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
-                exec ${fennelRuntime system}/bin/fennel .ci/lua/ascii_surface.fnl "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/fennel/ascii_surface.fnl "$@"
               '';
             };
           in {
@@ -475,7 +474,7 @@ PY
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
               text = ''
                 set -euo pipefail
-                exec ${fennelRuntime system}/bin/fennel .ci/lua/agda_surface.fnl "$@"
+                exec ${fennelRuntime system}/bin/fennel .ci/fennel/agda_surface.fnl "$@"
               '';
             };
           in {
@@ -490,7 +489,7 @@ PY
               text = ''
                 set -euo pipefail
                 mkdir -p .ci/discovery
-                exec ${fennelRuntime system}/bin/fennel .ci/lua/russ_certificate.fnl
+                exec ${fennelRuntime system}/bin/fennel .ci/fennel/russ_certificate.fnl
               '';
             };
           in {
