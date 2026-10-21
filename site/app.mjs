@@ -1,177 +1,98 @@
-import pageSearchExports from "./jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs";
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
-(() => {
-  "use strict";
-  const learnerPath = "FullCoupled/CanonicalLearnerMonolith.agda";
-  const theoremPath = "FullCoupled/TheoremsMonolith.agda";
-  const data = window.MonolithContent;
+const [catalogPath, pageModelPath, templatePath, outputPath] = process.argv.slice(2);
+if (![catalogPath, pageModelPath, templatePath, outputPath].every(Boolean)) {
+  throw new Error("usage: node site/app.mjs CATALOG.mjs AGDA_PAGE_MODEL.mjs TEMPLATE.html OUTPUT.html");
+}
 
-  const pageSearchMatches = pageSearchExports.siteSearchMatches;
-  if (typeof document === "undefined") return;
-  const root = document.getElementById("app");
-  if (!root) return;
-  if (!data || !Array.isArray(data.entries) || !Array.isArray(data.sourceFiles)) {
-    root.textContent = "The generated declaration catalog is missing or invalid.";
-    return;
-  }
-  if (typeof pageSearchMatches !== "function") {
-    root.textContent = "The Agda-generated declaration search module is missing or invalid.";
-    return;
-  }
+const [catalogModule, agdaModule, template] = await Promise.all([
+  import(pathToFileURL(path.resolve(catalogPath)).href),
+  import(pathToFileURL(path.resolve(pageModelPath)).href),
+  readFile(templatePath, "utf8")
+]);
+const catalog = catalogModule.MonolithContent;
+const page = agdaModule.default;
+if (!catalog || !Object.isFrozen(catalog) ||
+    !Object.isFrozen(catalog.sourceFiles) || !Object.isFrozen(catalog.entries) ||
+    !catalog.entries.every(Object.isFrozen)) {
+  throw new Error("catalog must be deeply frozen build data");
+}
+if (!page || page.sitePageIsStatic !== true ||
+    typeof page.sitePageTitle !== "string" ||
+    typeof page.sitePageOverview !== "string") {
+  throw new Error("Agda-generated static page model is missing or invalid");
+}
+if (catalog.sourceFiles.length !== 2 ||
+    catalog.sourceFiles[0] !== "FullCoupled/CanonicalLearnerMonolith.agda" ||
+    catalog.sourceFiles[1] !== "FullCoupled/TheoremsMonolith.agda") {
+  throw new Error("Pages may index only the two canonical monoliths");
+}
 
-  const make = (tag, className, text) => {
-    const n = document.createElement(tag);
-    if (className) n.className = className;
-    if (text !== undefined && text !== null) n.textContent = String(text);
-    return n;
-  };
-  const link = (href, label, className) => {
-    const n = make("a", className, label);
-    n.href = href;
-    if (href.startsWith("https://")) { n.target = "_blank"; n.rel = "noreferrer"; }
-    return n;
-  };
-  const sourceUrl = (entry) =>
-    "https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/" +
-    entry.source + "#L" + entry.line;
-  const sourceLabel = (path) =>
-    path === learnerPath ? "Canonical learner semantics" : "Theorem and proof monolith";
-  const section = (id, heading, lede) => {
-    const n = make("section", "section");
-    n.id = id;
-    n.append(make("h2", "", heading));
-    if (lede) n.append(make("p", "section-lede", lede));
-    return n;
-  };
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+})[char]);
+const sourceUrl = (entry) =>
+  "https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/" +
+  entry.source + "#L" + entry.line;
+const labelFor = (source) => source === catalog.sourceFiles[0]
+  ? page.sitePageLearnerLabel
+  : page.sitePageTheoremLabel;
 
-  const shell = make("main", "shell");
-  const masthead = make("header", "masthead");
-  masthead.append(make("div", "brand", "The Monoid LSTM Project"));
-  masthead.append(make("p", "mast-note",
-    "Source-first documentation derived from the two canonical Agda monoliths."));
-  shell.append(masthead);
-  const layout = make("div", "layout");
-  const nav = make("nav", "side-nav");
-  nav.append(make("p", "nav-title", "Contents"));
-  const navList = make("ul", "nav-list");
-  [["Overview", "overview"], ["Source files", "sources"],
-   ["Russian constructivism", "russ"], ["Declaration index", "declarations"]]
-    .forEach(([label, id]) => {
-      const li = make("li"); li.append(link("#" + id, label)); navList.append(li);
-    });
-  nav.append(navList);
-  nav.append(link("https://www.gnu.org/",
-    "GNU.org · free software and formal tools", "source-link"));
-  nav.append(make("p", "nav-title", "Canonical files"));
-  data.sourceFiles.forEach((path) => nav.append(link(
-    "https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/" + path,
-    sourceLabel(path), "source-link")));
-  layout.append(nav);
+const sourceCards = catalog.sourceFiles.map((source) => {
+  const label = labelFor(source);
+  return `<article class="source-record">
+    <h3>${escapeHtml(label)}</h3>
+    <p><code>${escapeHtml(source)}</code></p>
+    <p><a href="https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/${escapeHtml(source)}">Read canonical source</a></p>
+  </article>`;
+}).join("\n");
 
-  const doc = make("div", "document");
-  const intro = make("section", "intro"); intro.id = "overview";
-  intro.append(make("div", "eyebrow", "Formal specification / proof surface"));
-  intro.append(make("h1", "", "The Monoid LSTM / Learner and Theorem Monoliths"));
-  intro.append(make("p", "lede",
-    "The learner monolith defines the coupled recurrent learner and its computational semantics; the theorem monolith contains results built over those definitions. This declaration index is regenerated from both canonical files only."));
-  const stats = make("div", "stats");
-  [[data.entries.filter((e) => e.source === learnerPath).length, "learner entries"],
-   [data.entries.filter((e) => e.source === theoremPath).length, "theorem entries"],
-   [data.entries.length, "indexed declarations"]].forEach(([count, label]) => {
-    const stat = make("div", "stat");
-    stat.append(make("strong", "", count), make("span", "", label)); stats.append(stat);
-  });
-  intro.append(stats); doc.append(intro);
+const declarationIndex = catalog.entries.map((entry) => `<article class="entry">
+  <h3>${escapeHtml(entry.name)}</h3>
+  <p class="signature">${escapeHtml(entry.signature || "(signature continues in source)")}</p>
+  <p class="entry-meta">${escapeHtml(entry.category)} · ${escapeHtml(entry.source)}:${entry.line}</p>
+  <p><a href="${escapeHtml(sourceUrl(entry))}">Open declaration in source</a></p>
+</article>`).join("\n");
 
-  const sources = section("sources", "The two canonical source files",
-    "Only the two source paths below are indexed. Unrelated Agda modules and graph-search helpers are excluded.");
-  [
-    [learnerPath, "Canonical learner monolith",
-     "Defines the coupled recurrent learner, state transitions, optimizer and policy semantics. Its named RUSS basis is the declared source of recursive and computability assumptions."],
-    [theoremPath, "Theorem monolith",
-     "Contains theorem statements and proof constructions over the learner definitions. Reflection/TC primitives and imported theorem libraries are explicit trust boundaries."]
-  ].forEach(([path, title, summary]) => {
-    const card = make("div", "source-record");
-    card.append(make("h3", "", title), make("p", "", summary));
-    card.append(link("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/" + path,
-      path, "source-link"));
-    sources.append(card);
-  });
-  doc.append(sources);
+const body = `<main class="shell">
+  <header class="masthead">
+    <p class="brand">The Monoid LSTM Project</p>
+    <p class="mast-note">Static documentation generated from the two canonical Agda monoliths.</p>
+  </header>
+  <article class="document">
+    <section class="intro" id="overview">
+      <p class="eyebrow">Formal specification / proof surface</p>
+      <h1>${escapeHtml(page.sitePageTitle)}</h1>
+      <p class="lede">${escapeHtml(page.sitePageOverview)}</p>
+      <p class="result-count">${catalog.entries.length} declarations · ${catalog.sourceFiles.length} canonical source files</p>
+    </section>
+    <section class="section" id="sources">
+      <h2>The two canonical source files</h2>
+      <p class="section-lede">Only these two monoliths are included in this presentation.</p>
+      ${sourceCards}
+    </section>
+    <section class="section" id="russ">
+      <h2>Russian constructivism (RUSS)</h2>
+      <p class="russ-status">${escapeHtml(page.sitePageConsistencyStatus)}</p>
+      <p>${escapeHtml(page.sitePageRUSSTrustBoundary)}</p>
+    </section>
+    <section class="section" id="declarations">
+      <h2>Complete declaration index</h2>
+      <p class="section-lede">A static, source-linked listing. There is no client-side search, filtering, or selection state.</p>
+      ${declarationIndex}
+    </section>
+    <footer class="footer">Declaration presence is not evidence of theorem correctness or global consistency.</footer>
+  </article>
+</main>`;
 
-  const russ = section("russ", "Russian constructivism (RUSS): trust-surface inventory",
-    "This is a lexical inventory of direct monolith declarations, not a global consistency proof. Kernel acceptance remains relative to imported theory, postulates, Reflection/TC primitives, rewrite system, and trusted checker. A model or relative-consistency argument for the complete transitive closure remains a separate obligation.");
-  const russNote = make("div", "russ-note");
-  russNote.append(make("strong", "trust-label", "Consistency not certified")); russ.append(russNote);
-  const russEntries = data.entries.filter((entry) => {
-    const c = entry.category.toLowerCase();
-    return c.includes("russ") || c.includes("trust boundary") ||
-      c.includes("reflection / tc primitive");
-  }).slice(0, 24);
-  russ.append(make("p", "", "Indexed direct trust entries: " + russEntries.length +
-    (russEntries.length === 24 ? " shown (up to 24 displayed)." : ".")));
-  russEntries.forEach((entry) => russ.append(make("p", "signature",
-    entry.source + ":" + entry.line + ": " + entry.name + " : " + entry.signature)));
-  doc.append(russ);
-
-  const declarations = section("declarations", "Declaration index",
-    "Search declaration names and type signatures. Use source-scope controls to include both monoliths or only one; source path and category are displayed as metadata, not searched.");
-  const tools = make("div", "tools");
-  const search = make("input");
-  search.type = "search"; search.setAttribute("aria-label", "Search monolith declarations");
-  search.placeholder = "Search declaration names or types"; tools.append(search);
-  const filterRow = make("div", "filter-row");
-  const scopes = [["all", "Both monoliths"], ["learner", "Learner monolith"],
-    ["theorem", "Theorem monolith"]];
-  let scope = "all"; let selected = null;
-  const buttons = new Map();
-  scopes.forEach(([value, label]) => {
-    const button = make("button", "", label); button.type = "button";
-    button.setAttribute("aria-pressed", String(value === scope));
-    button.dataset.active = String(value === scope);
-    button.addEventListener("click", () => {
-      scope = value; selected = null;
-      buttons.forEach((other, key) => {
-        const active = key === scope; other.dataset.active = String(active);
-        other.setAttribute("aria-pressed", String(active));
-      });
-      renderEntries();
-    });
-    buttons.set(value, button); filterRow.append(button);
-  });
-  tools.append(filterRow); declarations.append(tools);
-  const resultCount = make("p", "result-count", ""); declarations.append(resultCount);
-  const entryList = make("div", "entry-list"); declarations.append(entryList);
-  const searchLimit = 60;
-  function renderEntries() {
-    const matches = data.entries.filter((entry) =>
-      pageSearchMatches(search.value)(scope)(entry.name)(entry.signature)(entry.source));
-    resultCount.textContent = matches.length + " declarations matched; showing " +
-      Math.min(matches.length, searchLimit) + ".";
-    entryList.replaceChildren();
-    matches.slice(0, searchLimit).forEach((entry) => {
-      const card = make("div", "entry");
-      const expanded = selected === entry.id; card.dataset.selected = String(expanded);
-      const meta = make("div", "entry-meta");
-      meta.append(make("span", "entry-kind", entry.category));
-      meta.append(make("span", "", entry.source + ":" + entry.line)); card.append(meta);
-      const open = make("button", "entry-select", entry.name); open.type = "button";
-      open.setAttribute("aria-expanded", String(expanded));
-      open.addEventListener("click", () => { selected = expanded ? null : entry.id; renderEntries(); });
-      const heading = make("h3"); heading.append(open); card.append(heading);
-      card.append(make("p", "signature", entry.signature || "(signature continues below)"));
-      if (expanded) {
-        const details = make("div", "detail");
-        details.append(make("p", "", "Source: " + entry.source + " at line " + entry.line +
-          ". This entry is indexed from monolith text; its presence is not a type-checking or consistency claim."));
-        details.append(link(sourceUrl(entry), "Open declaration in source")); card.append(details);
-      }
-      entryList.append(card);
-    });
-  }
-  search.addEventListener("input", () => { selected = null; renderEntries(); });
-  renderEntries(); doc.append(declarations);
-  doc.append(make("footer", "footer",
-    "Generated from the two canonical Agda monoliths. Declaration presence is not evidence of theorem correctness or global consistency."));
-  layout.append(doc); shell.append(layout); root.replaceChildren(shell);
-})();
+if (!template.includes("<!-- GENERATED_CONTENT -->")) {
+  throw new Error("HTML template must contain the generated-content marker");
+}
+const html = template
+  .replace("<title>The Monoid LSTM Project - Learner and Theorem Monoliths</title>",
+    `<title>${escapeHtml(page.sitePageTitle)}</title>`)
+  .replace("<!-- GENERATED_CONTENT -->", body);
+await writeFile(outputPath, html.endsWith("\n") ? html : html + "\n", "utf8");
+console.log(`static-pages=pass declarations=${catalog.entries.length} runtime-javascript=none`);
