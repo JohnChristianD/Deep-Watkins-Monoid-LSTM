@@ -95,7 +95,7 @@
   (string.format "#%02X%02X%02X"
     (math.floor (+ (* 255.0 (clamp01 colour.r)) 0.5))
     (math.floor (+ (* 255.0 (clamp01 colour.g)) 0.5))
-    (math.floor (+ (* 255.0 (clamp01 colour.b)) 0.5))))
+    (math.floor (+ (* 255.0 (clamp01 colour.b)) 0.5)))))
 
 (local output-path (assert (. arg 1) "usage: palette_css.fnl OUTPUT.css"))
 (local output (assert (io.open output-path "w") (.. "cannot write " output-path)))
