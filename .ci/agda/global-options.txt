@@ -9,4 +9,4 @@
 --polarity
 --no-postfix-projections
 --experimental-lazy-instances
---js
+--backtracking-instance-searches
