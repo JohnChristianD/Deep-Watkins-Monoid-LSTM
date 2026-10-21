@@ -163,7 +163,12 @@ grep -Fq 'Agda >= 2.8' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'backendInteractTop' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'CaseInfo lazy _erased (CTData cty)' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'nix build -L .#agda2forth' .github/workflows/nix-composition.yml
-grep -Fq '"$tmp/ccforth/bin/ccforth" -entry MAIN -o "$tmp/forth/CcforthSubset-native" "$tmp/forth/CcforthSubset.fth"' .github/workflows/nix-composition.yml
+grep -Fq 'ccforth" -cc gcc -entry MAIN -o "$tmp/forth/CcforthSubset-native"' .github/workflows/nix-composition.yml
+grep -Fq 'pkgs.gcc' flake.nix
+! grep -Eiq 'pkgs\.llvmPackages|clang' flake.nix .github/workflows/nix-composition.yml || {
+  echo "Clang/LLVM is not part of the chosen GCC CCForth path" >&2
+  exit 1
+}
 grep -Fq 'GForth Agda2Forth smoke returned' .github/workflows/nix-composition.yml
 grep -Fq 'ccforth native-subset smoke returned' .github/workflows/nix-composition.yml
 grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
