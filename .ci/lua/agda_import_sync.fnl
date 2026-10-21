@@ -1,19 +1,19 @@
 (local fun (require :fun))
 
-(local function read-file [path]
+(fn read-file [path]
   (local file (assert (io.open path "r") (.. "cannot read " path)))
   (local content (file:read "*a"))
   (file:close)
   content)
 
-(local function write-file [path content]
+(fn write-file [path content]
   (local temporary (.. path ".tmp"))
   (local file (assert (io.open temporary "w") (.. "cannot write " temporary)))
   (file:write content)
   (file:close)
   (assert (os.rename temporary path) (.. "cannot replace " path)))
 
-(local function read-lines [command]
+(fn read-lines [command]
   (local pipe (assert (io.popen command "r") (.. "cannot run " command)))
   (local lines [])
   (each [line (pipe:lines)]
@@ -22,7 +22,7 @@
   (assert ok (.. "command failed: " command))
   lines)
 
-(local function non-comment-lines [content]
+(fn non-comment-lines [content]
   (fun.totable
     (fun.filter
       (fn [line]
@@ -30,26 +30,26 @@
              (not (string.match line "^%s*#"))))
       (fun.totable (string.gmatch content "[^\n]+")))))
 
-(local function count-exact-line [content expected]
+(fn count-exact-line [content expected]
   (var count 0)
   (each [line (string.gmatch content "[^\n]+")]
     (when (= line expected)
       (set count (+ count 1))))
   count)
 
-(local function has-prefix [line prefix]
+(fn has-prefix [line prefix]
   (and (= (string.sub line 1 (# prefix)) prefix)
        (or (= (# line) (# prefix))
            (= (string.sub line (+ (# prefix) 1) (+ (# prefix) 1)) " "))))
 
-(local function count-prefix-lines [content prefix]
+(fn count-prefix-lines [content prefix]
   (var count 0)
   (each [line (string.gmatch content "[^\n]+")]
     (when (has-prefix line prefix)
       (set count (+ count 1))))
   count)
 
-(local function sync-import [path prefix expected expected-count]
+(fn sync-import [path prefix expected expected-count]
   (local original (read-file path))
   (local lines (fun.totable (string.gmatch original "[^\n]+")))
   (local rendered [])
@@ -67,7 +67,7 @@
     (write-file path output)
     (print (.. "agda-import-sync=updated " path " [" prefix "]"))))
 
-(local function count-substring [source needle]
+(fn count-substring [source needle]
   (var count 0)
   (var cursor 1)
   (while true
@@ -79,7 +79,7 @@
         (break)))
   count)
 
-(local function cubical-marker [line]
+(fn cubical-marker [line]
   (or
     (string.match line "^%s*open%s+import%s+Cubical%.")
     (string.match line "^%s*open%s+import%s+Cubical%s")
@@ -102,14 +102,14 @@
     (string.find line "primSubOut" 1 true)
     (string.find line "primSubIn" 1 true)))
 
-(local function redundant-prelude-builtin [imported]
+(fn redundant-prelude-builtin [imported]
   (or (= imported "Agda.Builtin.Equality")
       (= imported "Agda.Builtin.Nat")
       (= imported "Agda.Builtin.Bool")
       (= imported "Agda.Builtin.List")
       (= imported "Agda.Builtin.Unit")))
 
-(local function check-redundant-prelude-builtins [files]
+(fn check-redundant-prelude-builtins [files]
   (var hits 0)
   (each [_ path (ipairs files)]
     (local content (read-file path))
@@ -129,7 +129,7 @@
   (print (.. "agda-prelude-builtin-migration=clean (" (# files)
              " tracked Agda sources)")))
 
-(local function check-cubical-free [files]
+(fn check-cubical-free [files]
   (var hits 0)
   (each [_ path (ipairs files)]
     (local content (read-file path))
@@ -148,7 +148,7 @@
   (assert (= hits 0) (.. "found " hits " cubical/unsafe construct(s); review explicitly instead of auto-deleting proof code"))
   (print (.. "agda-cubical-scan=clean (" (# files) " tracked Agda sources)")))
 
-(local function check-runtime-closure [paths]
+(fn check-runtime-closure [paths]
   (each [_ path (ipairs paths)]
     (local content (read-file path))
     (assert (string.find content "open import Haskell.Prelude" 1 true)
