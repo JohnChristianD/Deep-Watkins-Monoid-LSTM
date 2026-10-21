@@ -146,8 +146,13 @@
     ".ci/agda/import-contracts.tsv"))
 (for-each
   (lambda (path)
-    (forbid-text path "open import Agda.Builtin.Reflection public"))
-  '("FullCoupled/CanonicalLearnerMonolith.agda"))
+    (forbid-text path "import Agda.Builtin.")
+    (forbid-text path "open import Agda.Builtin."))
+  '("FullCoupled/CanonicalLearnerMonolith.agda"
+    "FullCoupled/TheoremsMonolith.agda"
+    "site/MonolithSearch.agda"))
+(forbid-text "site/MonolithSearch.agda" "filterIndices")
+(forbid-text "site/MonolithSearch.agda" "siteSearchMatches")
 
 ;; Fennel and Luafun own build-time generators. The browser adapter is limited
 ;; to local DOM/search/filter behavior; palette generation is static CSS.
