@@ -272,7 +272,7 @@
 (local actions-source (read-file ".ci/actions_ci.dhall"))
 (local workflow-source (read-file ".github/workflows/nix-composition.yml"))
 (local scripts-start
-  (assert (string.find actions-source "let scripts = {" 1 true)
+  (assert (string.find actions-source "\n  ''}\n\nlet ScriptEntry" scripts-start true)
     "Dhall CI script map is missing"))
 (local scripts-end
   (assert (string.find actions-source "\\n  ''}\\n\\nlet ScriptEntry" scripts-start true)
@@ -280,7 +280,7 @@
 (local scripts-body (string.sub actions-source scripts-start (- scripts-end 1)))
 (local script-lanes {})
 (var script-lane-count 0)
-(each [_ line (ipairs (fun.totable (string.gmatch scripts-body "[^\\n]+")))]
+(each [_ line (ipairs (fun.totable (string.gmatch scripts-body "[^\n]+")))]
   (local lane
     (or
       (string.match line "^  ([A-Za-z][A-Za-z0-9_]*) = ''")
@@ -295,10 +295,10 @@
   (assert (. script-lanes lane)
     (.. "workflow calls missing Dhall CI lane: " lane)))
 (local policy-line
-  (assert (string.match workflow-source "[^\\n]*CI_LANE:[^\\n]*")
+  (assert (string.match workflow-source "[^\n]*CI_LANE:[^\n]*")
     "workflow Versions lane is missing"))
 (local policy-lane
-  (assert (string.match policy-line "\\\"([A-Za-z][A-Za-z0-9_]*)\\\"")
+  (assert (string.match policy-line "\"([A-Za-z][A-Za-z0-9_]*)\"")
     "could not derive policy lane from workflow"))
 (assert (. script-lanes policy-lane)
   (.. "workflow policy selects missing Dhall CI lane: " policy-lane))
