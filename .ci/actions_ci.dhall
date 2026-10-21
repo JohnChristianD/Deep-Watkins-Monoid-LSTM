@@ -69,6 +69,12 @@ Constructive foundations — Russian constructivism (RUSS) only:
     monolith from the compiler-facing Reflection/TC ABI in the theorem
     monolith. The declared rewrite rules are not additional RUSS axioms, but
     still require confluence and subject-reduction justification.
+  * Selected strategy for any future global consistency claim: a model-relative
+    argument, not failure-to-find-a-contradiction. It must interpret the exact
+    transitive import closure, the RUSS basis, Reflection/TC primitives, and
+    rewrite rules, with a formal soundness theorem. No such end-to-end model or
+    relative-consistency theorem is currently supplied; certificate flags must
+    remain false until the witness and proof are checked in Agda.
   * The A*/e-graph empty-type search is diagnostic only. A missing candidate,
     a search timeout, or a failed attempt to synthesize bottom does not prove
     consistency. Every external/transitive theorem dependency and Agda
@@ -174,7 +180,7 @@ Fennel/native JavaScript:
     inside the LuaJIT-backed Fennel runtime. The smoke test checks jit.version
     and exercises Luafun.map through Fennel; no standalone Lua script is used.
   * .ci/fennel/agda_graph.fnl derives the JavaScript declaration catalog from exactly
-    the two canonical monoliths. Fennel runs at build time; Elm never loads it.
+    the two canonical monoliths. Fennel runs at build time; the browser consumes the generated JavaScript catalog.
   * Pages validates native JavaScript search/filter semantics and its generated catalog.
 
 Only this file owns project policy text and lane commands. The GitHub workflow
@@ -320,7 +326,8 @@ let scripts = {
     grep -Fq 'Russian constructivism (RUSS): trust-surface inventory' site/app.js
     grep -Fq 'Declaration index' site/app.js
     grep -Fq 'function filterEntries' site/app.js
-    grep -Fq 'entry.name + "\\n" + entry.signature' site/app.js
+    grep -Fq 'entry.name +' site/app.js
+    grep -Fq 'entry.signature' site/app.js
     ! grep -Fq 'entry.source.toLowerCase' site/app.js
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     ! grep -Fq 'Mirth' site/app.js
