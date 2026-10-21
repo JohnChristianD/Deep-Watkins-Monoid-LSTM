@@ -80,7 +80,9 @@
                   "Theorem / proof surface"))))))
 
 (local source-entries (fn [path content]
-  (local lines (fun.totable (string.gmatch content "[^\n]+")))
+  (local lines [])
+  (each [line (string.gmatch content "[^\n]+")]
+    (table.insert lines line))
   (local found [])
   (var postulate-indent -1)
   (var primitive-indent -1)
@@ -158,13 +160,13 @@
           entry.line
           (elm-escape entry.signature)
           (elm-escape entry.category)))
-      entries)))
+      (ipairs entries))))
 
 (local rendered-source-files
   (fun.totable
     (fun.map
       (fn [path] (string.format "    \"%s\"" (elm-escape path)))
-      source-files)))
+      (ipairs source-files))))
 
 (local output-path (assert (. arg 1) "usage: agda_graph.fnl OUTPUT.elm"))
 (local output (assert (io.open output-path "w")))

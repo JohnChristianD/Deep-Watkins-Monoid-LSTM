@@ -30,7 +30,10 @@
   (string.gsub (string.gsub value "^%s+" "") "%s+$" "")))
 
 (local lines-of (fn [source]
-  (fun.totable (string.gmatch source "[^\n]+"))))
+  (local lines [])
+  (each [line (string.gmatch source "[^\n]+")]
+    (table.insert lines line))
+  lines))
 
 (local starts (fn [value prefix]
   (= (string.sub value 1 (# prefix)) prefix)))
@@ -163,12 +166,12 @@
   (fun.totable
     (fun.map
       (fn [imported] (string.format "    \"%s\"" imported))
-      imports)))
+      (ipairs imports))))
 (local rendered-rewrite-rules
   (fun.totable
     (fun.map
       (fn [identifier] (string.format "    \"%s\"" identifier))
-      rewrite-rules)))
+      (ipairs rewrite-rules))))
 
 (assert (= learner.postulates 1) "learner RUSS trust boundary changed: audit before updating certificate")
 (assert (= learner.rewritePragmas 2) "learner rewrite surface changed: audit before updating certificate")
