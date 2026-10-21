@@ -228,6 +228,7 @@ view model =
                     , anchorLink "Source files" "sources"
                     , anchorLink "Russian constructivism" "russ"
                     , anchorLink "Declaration index" "declarations"
+                    , anchorLink "Perceptual palette" "palette"
                     ]
                 , a [ HA.href "https://www.gnu.org/", HA.target "_blank", HA.rel "noreferrer", HA.class "source-link" ] [ text "GNU.org · free software and formal tools" ]
                 , p [ HA.class "nav-title" ] [ text "Canonical files" ]
