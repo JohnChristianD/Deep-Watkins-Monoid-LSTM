@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build static JavaScript Pages surface
+    name: Build static HTML and CSS Pages surface
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     steps:
@@ -34,7 +34,7 @@ jobs:
         with:
           installer-version: '2.35.1'
 
-      - name: Generate and verify Agda-native JavaScript presentation
+      - name: Generate immutable Agda model and render static HTML
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
         run: |
@@ -42,10 +42,10 @@ jobs:
           nix develop .#presentation -c scsh -s .ci/scsh/ci-lanes.scsh Pages
           test -s "${RUNNER_TEMP}/pages/index.html"
           test -s "${RUNNER_TEMP}/pages/site.css"
-          test -s "${RUNNER_TEMP}/pages/app.mjs"
-          test -s "${RUNNER_TEMP}/pages/monolith-content.js"
-          test -s "${RUNNER_TEMP}/pages/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"
-          ! test -e "${RUNNER_TEMP}/pages/app.js"
+          ! test -e "${RUNNER_TEMP}/pages/app.mjs"
+          ! test -e "${RUNNER_TEMP}/pages/monolith-content.mjs"
+          ! find "${RUNNER_TEMP}/pages" -type f -name 'jAgda.*.mjs' | grep -q .
+          ! grep -Eiq '<script|<input|<button|filter-row|siteSearchMatches' "${RUNNER_TEMP}/pages/index.html"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

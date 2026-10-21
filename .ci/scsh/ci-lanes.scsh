@@ -162,52 +162,59 @@
 
 (define (verify-catalog path)
   (require-file path)
-  (must-run (lambda () (run (node "--check" ,path))) "generated catalog syntax")
-  (require-text path "window.MonolithContent")
-  (require-text path "source: \"FullCoupled/TheoremsMonolith.agda\"")
-  (require-text path "source: \"FullCoupled/CanonicalLearnerMonolith.agda\""))
+  (must-run (lambda () (run (node "--check" ,path))) "immutable catalog syntax")
+  (require-text path "export const MonolithContent = Object.freeze")
+  (require-text path "sourceFiles: Object.freeze")
+  (require-text path "entries: Object.freeze")
+  (require-text path "FullCoupled/TheoremsMonolith.agda")
+  (require-text path "FullCoupled/CanonicalLearnerMonolith.agda"))
 
-(define (compile-page-search-js js-dir)
+(define (compile-page-model-js js-dir)
   (must-run (lambda () (run (mkdir "-p" ,js-dir)))
             "create native Agda JavaScript output directory")
   (must-run
     (lambda ()
-      (run (,(agda-command) "--js" "--js-es6" "--js-verify"
+      (run (,(agda-command) "--js" "--js-es6"
             ,(string-append "--compile-dir=" js-dir)
             "-i" "." "FullCoupled/Agda2HsSemanticExtractor.agda")))
-    "compile pure declaration search with native Agda JavaScript backend")
+    "compile immutable static page model with Agda JavaScript backend")
   (let ((module (string-append
           js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs")))
     (require-file module)
     (must-run (lambda () (run (node "--check" ,module)))
-              "validate readable Agda ES module syntax")))
- 
+              "validate Agda ES module syntax")))
+
+(define (render-static-page catalog model template output)
+  (must-run
+    (lambda () (run (node "site/app.mjs" ,catalog ,model ,template ,output)))
+    "render static HTML from immutable Agda and Fennel models")
+  (must-run
+    (lambda () (run (node ".ci/presentation-smoke.cjs" ,output)))
+    "verify static HTML has no client-side runtime or search/filter UI"))
+
 (define (lane-fennel-presentation)
   (for-each require-file
     '(".ci/fennel/agda_graph.fnl" ".ci/fennel/ascii_surface.fnl"
       ".ci/fennel/palette_css.fnl" ".ci/presentation-smoke.cjs"
       "FullCoupled/Agda2HsSemanticExtractor.agda"
-      "site/app.mjs" "site/site.less"))
+      "site/app.mjs" "site/site.less" "index.html"))
   (nix-app ".#fennel-ascii-surface")
   (let* ((tmp (temporary-directory))
          (palette (string-append tmp "/palette.css"))
          (js-dir (string-append tmp "/agda-js"))
          (js-module (string-append js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"))
-         (catalog (string-append tmp "/monolith-content.js")))
+         (catalog (string-append tmp "/monolith-content.mjs"))
+         (html (string-append tmp "/index.html")))
     (must-run (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
               "build CAT02LMS palette CSS")
     (if (not (= (count-substring (read-file palette) "--palette-") 6))
         (fail "palette output did not contain exactly six semantic roles"))
     (must-run (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
-              "generate monolith catalog")
+              "generate immutable monolith catalog")
     (verify-catalog catalog)
-    (compile-page-search-js js-dir)
-    (for-each (lambda (needle) (require-text catalog needle))
-      '("FullCoupled/TheoremsMonolith.agda"
-        "FullCoupled/CanonicalLearnerMonolith.agda"))
-    (must-run (lambda () (run (node ".ci/presentation-smoke.cjs" ,catalog ,js-module)))
-              "Agda-generated search/filter semantics smoke")
-    (display "fennel-native-presentation=pass\n")
+    (compile-page-model-js js-dir)
+    (render-static-page catalog js-module "index.html" html)
+    (display "fennel-native-static-presentation=pass\n")
     (must-run (lambda () (run (rm "-rf" ,tmp))) "remove presentation temporary directory")))
 
 (define (lane-pages)
@@ -215,21 +222,19 @@
   (for-each require-file
     '("FullCoupled/CanonicalLearnerMonolith.agda"
       "FullCoupled/TheoremsMonolith.agda"
-      "site/MonolithSearch.agda"
-      "FullCoupled/Agda2HsSemanticSearch.agda"
       "FullCoupled/Agda2HsSemanticExtractor.agda"
-      "FullCoupled/Agda2HsTheoremGraphEGraph.agda"
-      ".ci/presentation-contract.dhall" "index.html"))
-  (require-text "site/MonolithSearch.agda" "filterIndices")
+      ".ci/presentation-contract.dhall" ".ci/fennel/agda_graph.fnl"
+      ".ci/fennel/palette_css.fnl" ".ci/presentation-smoke.cjs"
+      "site/app.mjs" "site/site.less" "index.html"))
   (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
   (must-run (lambda () (run (dhall "type" "--file" ".ci/presentation-contract.dhall")))
             "type presentation contract")
   (for-each (lambda (needle) (require-text ".ci/presentation-contract.dhall" needle))
     '("monolithContentGenerator = \".ci/fennel/agda_graph.fnl\""
-      "generatedContentScript = \"monolith-content.js\""
-      "nativeSearchModule = \"FullCoupled.Agda2HsSemanticExtractor\""
-      "compiledSearchModule = \"jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs\""
-      "browserRuntime = \"site/app.mjs\""
+      "generatedContentModule = \"monolith-content.mjs\""
+      "nativePageModel = \"FullCoupled.Agda2HsSemanticExtractor\""
+      "compiledPageModel = \"jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs\""
+      "buildRenderer = \"site/app.mjs\""
       "siteEntry = \"index.html\""
       "lessStylesheet = \"site/site.less\""
       "compiledStylesheet = \"site.css\""
@@ -238,35 +243,29 @@
   (for-each (lambda (needle) (forbid-text "flake.nix" needle))
     '("elmPackages.elm" "elm.js" "site/Main.elm" "site-palette.wasm"
       "palette-loader.js" "maximin_palette.c"))
+  (for-each (lambda (needle) (forbid-text "FullCoupled/Agda2HsSemanticExtractor.agda" needle))
+    '("siteSearchMatches" "siteSearchWithinScope" "siteSearchContains"
+      "siteSearchCaseAndTrimRegression" "siteSearchExactScopeRegression"))
   (for-each (lambda (needle) (forbid-text "site/app.mjs" needle))
-    '("function filterEntries" ".toLowerCase()" ".includes(needle)" "source === learnerPath"))
+    '("siteSearchMatches" "filterEntries" "addEventListener" "querySelector"
+      "input" "button" "scope" "toLowerCase" ".includes("))
   (for-each (lambda (needle) (forbid-text "site/site.less" needle))
-    '("filterEntries" "toLowerCase" "source === learnerPath"))
+    '(".filter-row" ".tools" ".entry-select" "input:" "button:"))
   (for-each (lambda (needle) (forbid-text "index.html" needle))
-    '("search" "filterEntries" "scope ==="))
+    '("<script" "<input" "<button" "search" "filter"))
   (require-text "site/site.less" "Atkinson Hyperlegible Mono")
   (require-text "site/site.less" "Iosevka")
   (require-text ".ci/fennel/palette_css.fnl" "0.7328")
   (require-text ".ci/fennel/palette_css.fnl" "0.4296")
   (require-text ".ci/fennel/palette_css.fnl" "0.9834")
-  (forbid-file "site/app.js")
-  (require-text "site/app.mjs" "jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs")
-  (forbid-text "site/app.mjs" "function filterEntries")
-  (forbid-text "site/app.mjs" ".toLowerCase().includes")
-  (require-text "FullCoupled/Agda2HsSemanticExtractor.agda" "siteSearchMatches :")
-  (require-text "FullCoupled/Agda2HsSemanticExtractor.agda" "siteSearchCaseAndTrimRegression")
-  (require-text "FullCoupled/Agda2HsSemanticExtractor.agda" "siteSearchExactScopeRegression")
-  (require-text "FullCoupled/Agda2HsSemanticExtractor.agda" "siteSearchMetadataIsNotSearchableRegression")
-  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
-  (forbid-text "site/app.mjs" "Mirth")
   (let* ((tmp (temporary-directory))
          (out-dir (or (getenv "PAGES_OUTPUT_DIR") tmp))
          (css (string-append out-dir "/site.css"))
          (palette (string-append tmp "/palette.css"))
-         (catalog (string-append out-dir "/monolith-content.js"))
          (js-dir (string-append tmp "/agda-js"))
          (js-module (string-append js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"))
-         (app (string-append out-dir "/app.mjs")))
+         (catalog (string-append tmp "/monolith-content.mjs"))
+         (html (string-append out-dir "/index.html")))
     (must-run (lambda () (run (mkdir "-p" ,out-dir))) "create Pages output")
     (must-run (lambda () (run (lessc "site/site.less" ,css))) "compile Less")
     (must-run (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
@@ -274,26 +273,16 @@
     (if (not (= (count-substring (read-file palette) "--palette-") 6))
         (fail "palette output did not contain exactly six semantic roles"))
     (write-file css (string-append (read-file css) "\n" (read-file palette)))
-    (compile-page-search-js js-dir)
-    (must-run (lambda () (run (cp "-R" ,(string-append js-dir "/.") ,out-dir)))
-              "copy readable Agda ES modules and their dependency closure")
-    (must-run (lambda () (run (cp "site/app.mjs" ,app))) "copy minimal DOM adapter")
     (must-run (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
-              "generate Pages catalog")
+              "generate immutable Pages catalog")
     (verify-catalog catalog)
-    (must-run (lambda () (run (node "--check" ,app))) "browser adapter syntax")
-    (must-run
-      (lambda ()
-        (run (node ".ci/presentation-smoke.cjs" ,catalog
-              ,(string-append out-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"))))
-      "Agda-generated Pages search/filter semantics smoke")
+    (compile-page-model-js js-dir)
+    (render-static-page catalog js-module "index.html" html)
     (require-text css "--palette-ink:")
     (require-text css "--palette-ink-on-accent:")
-    (must-run (lambda () (run (cp "index.html" ,(string-append out-dir "/index.html"))))
-              "copy Pages entrypoint")
     (write-file (string-append out-dir "/.nojekyll") "")
     (must-run (lambda () (run (rm "-rf" ,tmp))) "remove Pages temporary directory")
-    (display "pages-build=pass (Less, pure Agda-generated readable ES modules, minimal DOM adapter; no Elm/Wasm)\n")))
+    (display "pages-build=pass (Agda-native immutable model, Fennel catalog, Less CSS, static HTML; no browser JS/Elm/Wasm)\n")))
 
 (define (lane-discovery)
   (nix-app ".#agda2hs-semantic-search")
