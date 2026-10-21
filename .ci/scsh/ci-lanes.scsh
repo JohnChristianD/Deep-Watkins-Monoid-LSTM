@@ -211,7 +211,7 @@
     (must-run (lambda () (run (rm "-rf" ,tmp))) "remove presentation temporary directory")))
 
 (define (lane-pages)
-  (lane-fennel-presentation)
+  (nix-app ".#fennel-ascii-surface")
   (for-each require-file
     '("FullCoupled/CanonicalLearnerMonolith.agda"
       "FullCoupled/TheoremsMonolith.agda"
@@ -270,6 +270,8 @@
     (must-run (lambda () (run (lessc "site/site.less" ,css))) "compile Less")
     (must-run (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
               "generate CAT02LMS palette")
+    (if (not (= (count-substring (read-file palette) "--palette-") 6))
+        (fail "palette output did not contain exactly six semantic roles"))
     (write-file css (string-append (read-file css) "\n" (read-file palette)))
     (compile-page-search-js js-dir)
     (must-run (lambda () (run (cp "-R" ,(string-append js-dir "/.") ,out-dir)))
