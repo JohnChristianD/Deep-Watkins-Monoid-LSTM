@@ -4,7 +4,7 @@ open import Agda.Builtin.Bool using (Bool; true; false; if_then_else_)
 open import Agda.Builtin.Char using (Char; primCharEquality; primCharToNat; primNatToChar)
 open import Agda.Builtin.List using (List; []; _∷_)
 open import Agda.Builtin.Nat using (Nat; zero; suc; _+_; _<_)
-open import Agda.Builtin.String using (String; primStringToList; primStringFromList; primStringEquality)
+open import Agda.Builtin.String using (String; primStringToList; primStringEquality)
 
 ------------------------------------------------------------------------
 -- Pure declaration-search semantics for the static Pages interface.
@@ -84,7 +84,7 @@ containsChars hay needle with startsWith needle hay
 ...   | x ∷ xs = containsChars xs needle
 
 contains : String → List Char → Bool
-contains text needle = containsChars (primStringToList text) needle
+contains text needle = containsChars (normalize text) needle
 
 sourceAllowed : String → String → Bool
 sourceAllowed scope source with primStringEquality scope "learner"
