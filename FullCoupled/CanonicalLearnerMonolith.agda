@@ -854,12 +854,23 @@ module ConstructiveComputabilityPostulates where
   -- neither their joint consistency nor soundness/canonicity of Agda's evaluator.
   -- TRUST BOUNDARY (not a consistency theorem):
   -- This record groups the three explicitly assumed RUSS principles used
-  -- by this development: Markov's Principle, Extended Church's Thesis ECT₀,
-  -- and countable choice. Packaging them in one record makes the dependency
-  -- visible but does not derive them from MLTT or prove that adding them is
-  -- consistent. The computational content of ECT₀ is a substantive axiom.
-  -- Do not turn these declarations into REWRITE rules: they are propositions
-  -- supplied as assumptions, not definitional computation rules.
+  -- by this development: Markov's Principle, the project-specific ECT₀
+  -- signature below, and proposition-valued countable choice. The grouping
+  -- makes the dependency visible; it neither derives the principles from
+  -- MLTT nor proves their joint consistency.
+  --
+  -- CONSISTENCY STATUS: this module does not certify RUSS consistency.
+  -- Type-checking any client only establishes derivability relative to this
+  -- postulate, Agda's trusted checker/primitives, rewrite rules, and the full
+  -- imported theory. A consistency claim requires a model or relative-
+  -- consistency argument interpreting this exact signature and its complete
+  -- transitive dependency closure. An empty-type search is not such an argument.
+  --
+  -- FORMALIZATION BOUNDARY: do not identify the ECT₀ signature below with a
+  -- textbook formulation without proving the equivalence of its computation
+  -- relation, admissible predicates, and quantifiers. Its computational
+  -- content is a substantive axiom here. Do not turn these principles into
+  -- REWRITE rules: they are assumptions, not definitional computation rules.
   record RussianRecursiveMathematicsBasis : Set₃ where
     constructor russianRecursiveMathematicsBasis
     field
