@@ -468,20 +468,6 @@ PY
             program = "${script}/bin/fennel-ascii-surface";
           };
 
-          fennel-surface = let
-            script = pkgs.writeShellApplication {
-              name = "fennel-surface";
-              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
-              text = ''
-                set -euo pipefail
-                exec ${fennelRuntime system}/bin/fennel .ci/fennel/agda_surface.fnl "$@"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/fennel-surface";
-          };
-
           fennel-russ-certificate = let
             script = pkgs.writeShellApplication {
               name = "fennel-russ-certificate";
@@ -1087,7 +1073,6 @@ PY
               pkgs.llvmPackages.clang-unwrapped
               pkgs.llvmPackages.lld
               pkgs.nodejs
-              pkgs.elmPackages.elm
               pkgs.dhall
               pkgs.dhall-json
             ];
@@ -1214,7 +1199,6 @@ PY
               (gforth system)
               pkgs.groff
               pkgs.scsh
-              pkgs.elmPackages.elm
             ];
             shellHook = ''
               export AGDA_COMMAND="agda2hs-agda"
