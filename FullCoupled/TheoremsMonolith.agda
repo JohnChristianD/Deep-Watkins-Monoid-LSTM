@@ -12574,7 +12574,7 @@ module RUSSProofTheory where
   RUSSContextSatisfaction :
     (environment : ℕ → Set) →
     RUSSContext →
-    Set₁
+    Set
   RUSSContextSatisfaction environment Γ =
     ∀ {A} → RUSSMember A Γ → RUSSMeaning environment A
 
