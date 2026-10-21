@@ -21,6 +21,12 @@
 ------------------------------------------------------------------------
 -- Canonical theorem semantics and emergence layer.
 -- Baseline reconstruction: current imports/options over the last green body.
+--
+-- CONSISTENCY STATUS: a successful Agda kernel check of this module would
+-- establish well-typedness only relative to the imported theory, postulates,
+-- compiler primitives, and rewrite configuration. It would not prove that
+-- this combined theory is consistent. The repository's RUSS inventory is not
+-- a substitute for a model or relative-consistency argument.
 ------------------------------------------------------------------------
 
 module FullCoupled.TheoremsMonolith where
@@ -46,6 +52,13 @@ _*Int_ = _ℤ*_
 -- from importing that module into the existing Haskell.Prelude/TypeTopology
 -- closure. This is compile-time metaprogramming, not Agda2HS runtime code:
 -- the legacy theorem monolith is deliberately not sent through Agda2HS.
+--
+-- TRUST BOUNDARY: the postulated builtin carriers and TC operations, plus the
+-- primitive declarations below, rely on the Agda compiler's implementation
+-- and ABI. This file does not implement or prove their operational semantics.
+-- A kernel check may reject malformed uses, but cannot validate these
+-- primitive implementations or establish consistency of the whole import
+-- closure. Any certification must list these as trusted assumptions.
 postulate String : Set
 {-# BUILTIN STRING String #-}
 
