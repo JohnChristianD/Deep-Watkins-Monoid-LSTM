@@ -1,3 +1,12 @@
+{-| Browser-side interaction layer for the generated canonical-monolith catalog.
+
+This module currently owns query/filter state, declaration matching, entry
+selection/expansion, result counts, navigation, and source-line links. The
+Fennel generators provide data; Less provides layout; WebAssembly computes the
+palette. Elm is not removable until these interactions are replaced and the
+Pages artifact contract no longer requires `elm.js` or `Elm.Main.init`.
+-}
+
 module Main exposing (main)
 
 import Browser
