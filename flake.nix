@@ -854,6 +854,10 @@ PY
                 pkgs.z3
                 pkgs.coreutils
                 pkgs.git
+                pkgs.scsh
+                pkgs.findutils
+                pkgs.gawk
+                pkgs.gnused
               ];
               text = ''
                 set -euo pipefail
@@ -862,7 +866,7 @@ PY
                 mkdir -p "$out"
                 "${agdaCommand system}/bin/agda2hs-agda" --dependency-graph="$out/semantic-search.dot" -i . FullCoupled/Agda2HsSemanticSearch.agda
                 test -s "$out/semantic-search.dot"
-                bash .ci/discovery/agda_semantic_source_closure.sh \
+                scsh -s .ci/scsh/agda-semantic-source-closure.scsh -- \
                   "$out/semantic-search.dot" \
                   "$out/.semantic-source-files" \
                   "$PWD/FullCoupled/Agda2HsSemanticSearch.agda" \
