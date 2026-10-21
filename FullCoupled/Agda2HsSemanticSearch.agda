@@ -2169,8 +2169,7 @@ inconsistencyCandidateLaws :
   List Extractor.SemanticLaw -> List Extractor.SemanticLaw
 inconsistencyCandidateLaws [] = []
 inconsistencyCandidateLaws (law ∷ laws) =
-  if semanticLawCanSeed law
-       && emptyTypeSignature (Extractor.lawSignature law)
+  if emptyTypeSignature (Extractor.lawSignature law)
   then law ∷ inconsistencyCandidateLaws laws
   else inconsistencyCandidateLaws laws
 
