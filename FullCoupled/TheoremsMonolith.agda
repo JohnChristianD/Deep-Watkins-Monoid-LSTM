@@ -12641,28 +12641,9 @@ module RUSSProofTheory where
   russCoreConsistency derivation =
     russSoundness derivation russTruthEnvironment russEmptySatisfaction
 
-  -- The following package mirrors the repository's actual basis exactly:
-  -- decidable-predicate Markov, the finite register-machine ECT₀ relation,
-  -- and proposition-valued countable choice. This record is an interface;
-  -- this module does not postulate or construct an inhabitant of it.
-  record RUSSPrinciplePackage : Set₃ where
-    field
-      russMarkovWitness :
-        (P : Nat → Set) →
-        ((n : Nat) → Decidable (P n)) →
-        Neg (Neg (SigmaWitness Nat P)) →
-        SigmaWitness Nat P
-
-      russECT0Witness :
-        (relation : Nat → Nat → Set) →
-        ((input output : Nat) → Decidable (relation input output)) →
-        ((input : Nat) → SigmaWitness Nat (relation input)) →
-        SigmaWitness RecursiveProgram
-          (λ program → ComputesRelation program relation)
-
-      russCountableChoiceWitness :
-        (A : Nat → Set) →
-        (P : (n : Nat) → A n → Prop) →
-        ((n : Nat) → PropExists (P n)) →
-        PropExists {A = (n : Nat) → A n}
-          (λ choose → (n : Nat) → P n (choose n))
+  -- Reuse the canonical learner's exact RUSS basis type instead of
+  -- duplicating its schema declarations or silently changing their universes.
+  -- Its fields are decidable-predicate Markov, finite register-machine ECT₀,
+  -- and Prop-valued countable choice. This alias supplies no inhabitant.
+  RUSSPrinciplePackage : Set₃
+  RUSSPrinciplePackage = RussianRecursiveMathematicsBasis
