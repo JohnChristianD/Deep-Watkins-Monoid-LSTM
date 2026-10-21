@@ -213,7 +213,9 @@ let policyGate = ''
   ! grep -Fq 'cubical=no-glue' FullCoupled/TheoremsMonolith.agda
 ''
 
-let lane : Text = env:CI_LANE
+let Lane = < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >
+
+let lane : Lane = env:CI_LANE
 
 let scripts = {
   AgdaLearner = ''
