@@ -62,7 +62,6 @@ open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Size public
-open import Agda.Builtin.Reflection public
 open import Agda.Primitive using (Level)
 
 ------------------------------------------------------------------------
