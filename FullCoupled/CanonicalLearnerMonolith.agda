@@ -44,9 +44,9 @@
 module FullCoupled.CanonicalLearnerMonolith where
 
 -- Merged external import surface; internal FullCoupled imports remain module-local.
--- Haskell.Prelude exposes a generic variable named f; hide that name here so
--- the monolith's local variable block can declare its own f without a clash.
-open import Haskell.Prelude public hiding (f)
+-- Keep imported generic binders out of scope so the canonical module's
+-- explicit variable block owns its identifiers without namespace clashes.
+open import Haskell.Prelude public hiding (b; f)
 open import Haskell.Law public hiding (trustMe)
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public hiding (trustMe)
