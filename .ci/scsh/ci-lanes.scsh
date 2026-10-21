@@ -166,6 +166,21 @@
   (require-text path "window.MonolithContent")
   (require-text path "source: \"FullCoupled/TheoremsMonolith.agda\"")
   (require-text path "source: \"FullCoupled/CanonicalLearnerMonolith.agda\""))
+
+(define (compile-page-search-js js-dir)
+  (must-run (lambda () (run (mkdir "-p" ,js-dir)))
+            "create native Agda JavaScript output directory")
+  (must-run
+    (lambda ()
+      (run (,(agda-command) "--js" "--js-es6" "--js-verify"
+            ,(string-append "--compile-dir=" js-dir)
+            "-i" "." "FullCoupled/Agda2HsSemanticExtractor.agda")))
+    "compile pure declaration search with native Agda JavaScript backend")
+  (let ((module (string-append
+          js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs")))
+    (require-file module)
+    (must-run (lambda () (run (node "--check" ,module)))
+              "validate readable Agda ES module syntax")))
  
 (define (lane-fennel-presentation)
   (for-each require-file
