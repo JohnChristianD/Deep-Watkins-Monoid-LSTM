@@ -50,6 +50,16 @@
               (loop (+ i n) (+ count 1))
               (loop (+ i 1) count))))))
 
+
+(define (strip-whitespace s)
+  (list->string
+    (let loop ((rest (string->list s)) (kept '()))
+      (if (null? rest)
+          (reverse kept)
+          (if (char-whitespace? (car rest))
+              (loop (cdr rest) kept)
+              (loop (cdr rest) (cons (car rest) kept)))))))
+
 (define (lines-of text)
   (let loop ((rest (string->list text)) (line '()) (lines '()))
     (cond ((null? rest)
@@ -155,7 +165,7 @@
   (must-run (lambda () (run (node "--check" ,path))) "generated catalog syntax")
   (require-text path "window.MonolithContent")
   (require-text path "source: \"FullCoupled/TheoremsMonolith.agda\"")
-  (require-text path "source: \"FullCoupled/CanonicalLearnerMonolith.agda\"))
+  (require-text path "source: \"FullCoupled/CanonicalLearnerMonolith.agda\""))
  
 (define (lane-fennel-presentation)
   (for-each require-file
@@ -339,7 +349,7 @@
     (must-run (lambda () (run (cp ,generated ,gforth-source))) "copy GForth test")
     (write-file gforth-source (string-append (read-file gforth-source) "\nMAIN\nbye\n"))
     (let ((value (trim (run/string (gforth ,gforth-source)))))
-      (if (not (string=? (string-filter (lambda (c) (not (char-whitespace? c))) value) "42"))
+      (if (not (string=? (strip-whitespace value) "42"))
           (fail (string-append "GForth Agda2Forth output unexpected: " value))))
     (must-run (lambda () (run (nix "build" "-L" ".#ccforth" "--out-link"
                                   ,(string-append tmp "/ccforth"))))
@@ -350,7 +360,7 @@
                                   "-cc" "gcc" "-entry" "MAIN" "-o" ,native ,subset)))
                 "compile CCForth native subset")
       (let ((value (trim (run/string (,native)))))
-        (if (not (string=? (string-filter (lambda (c) (not (char-whitespace? c))) value) "42"))
+        (if (not (string=? (strip-whitespace value) "42"))
             (fail (string-append "CCForth GCC output unexpected: " value)))))
     (must-run (lambda () (run (scsh "-c" "(begin (display \"scsh-child-ok\") (newline))")))
               "Scsh child process")
