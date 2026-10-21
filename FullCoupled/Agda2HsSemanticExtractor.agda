@@ -1,7 +1,8 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude
-open import Haskell.Prim using (eqNat; monusNat)
+open import Haskell.Prim using
+  ( eqNat; monusNat; AgdaString; primStringToList; primToLower; primIsSpace )
 
 incrementExtractorNat : Nat → Nat
 incrementExtractorNat n = n + 1
@@ -1147,3 +1148,76 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS normalizedSignature #-}
 {-# COMPILE AGDA2HS semanticLawKind #-}
 {-# COMPILE AGDA2HS semanticLawContainer #-}
+------------------------------------------------------------------------
+-- Pages declaration-query semantics.
+--
+-- This is the single source of truth for interactive name/signature search.
+-- Its Agda-native JS compilation accepts builtin strings and returns a
+-- builtin Bool, so the DOM adapter passes strings directly and owns no
+-- query normalization, case folding, source-scope, or substring semantics.
+-- Source and category remain metadata: only name and signature are searched.
+------------------------------------------------------------------------
+
+siteSearchDropLeadingSpace : CharList → CharList
+siteSearchDropLeadingSpace [] = []
+siteSearchDropLeadingSpace (c ∷ cs) =
+  if primIsSpace c then siteSearchDropLeadingSpace cs else c ∷ cs
+
+siteSearchTrim : CharList → CharList
+siteSearchTrim chars =
+  reverse
+    (siteSearchDropLeadingSpace
+      (reverse (siteSearchDropLeadingSpace chars)))
+
+siteSearchLower : CharList → CharList
+siteSearchLower = map primToLower
+
+siteSearchStartsWith : CharList → CharList → Bool
+siteSearchStartsWith [] _ = True
+siteSearchStartsWith (_ ∷ _) [] = False
+siteSearchStartsWith (x ∷ xs) (y ∷ ys) =
+  if x == y then siteSearchStartsWith xs ys else False
+
+siteSearchContains : CharList → CharList → Bool
+siteSearchContains [] _ = True
+siteSearchContains (_ ∷ _) [] = False
+siteSearchContains needle haystack@(_ ∷ rest) =
+  if siteSearchStartsWith needle haystack
+    then True
+    else siteSearchContains needle rest
+
+siteSearchWithinScope : CharList → CharList → Bool
+siteSearchWithinScope scope source =
+  if scope == "learner" then
+    source == "FullCoupled/CanonicalLearnerMonolith.agda"
+  else if scope == "theorem" then
+    source == "FullCoupled/TheoremsMonolith.agda"
+  else
+    source == "FullCoupled/CanonicalLearnerMonolith.agda"
+      || source == "FullCoupled/TheoremsMonolith.agda"
+
+siteSearchMatches :
+  AgdaString → AgdaString → AgdaString → AgdaString → AgdaString → Bool
+siteSearchMatches query scope name signature source =
+  siteSearchWithinScope (primStringToList scope) (primStringToList source)
+    && siteSearchContains
+      (siteSearchTrim (siteSearchLower (primStringToList query)))
+      (siteSearchLower
+        (primStringToList name ++ ('\n' ∷ primStringToList signature)))
+
+siteSearchCaseAndTrimRegression : Bool
+siteSearchCaseAndTrimRegression =
+  siteSearchMatches "  RUSS  " "all"
+    "RussianRecursiveMathematicsAssumptions" "Nat"
+    "FullCoupled/CanonicalLearnerMonolith.agda"
+
+siteSearchExactScopeRegression : Bool
+siteSearchExactScopeRegression =
+  not (siteSearchMatches "" "learner" "Visible" "Nat"
+    "FullCoupled/TheoremsMonolith.agda")
+
+siteSearchMetadataIsNotSearchableRegression : Bool
+siteSearchMetadataIsNotSearchableRegression =
+  not (siteSearchMatches
+    "FullCoupled/CanonicalLearnerMonolith.agda" "all" "Visible" "Nat"
+    "FullCoupled/CanonicalLearnerMonolith.agda")

@@ -1,4 +1,4 @@
-import * as AgdaSearch from "./jAgda.MonolithSearch.mjs";
+import pageSearchExports from "./jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs";
 
 (() => {
   "use strict";
@@ -6,24 +6,16 @@ import * as AgdaSearch from "./jAgda.MonolithSearch.mjs";
   const theoremPath = "FullCoupled/TheoremsMonolith.agda";
   const data = window.MonolithContent;
 
-  // The immutable catalog is adapted to parallel arrays; all normalization,
-  // matching, and source-scope semantics live in the Agda-generated module.
-  function filteredEntries(query, scope, entries) {
-    const indices = AgdaSearch.filterIndices(query)(scope)(
-      entries.map((entry) => entry.name)
-    )(
-      entries.map((entry) => entry.signature || "")
-    )(
-      entries.map((entry) => entry.source)
-    );
-    return indices.map((index) => entries[Number(index)]);
-  }
-  window.MonolithPage = { filteredEntries };
+  const pageSearchMatches = pageSearchExports.siteSearchMatches;
   if (typeof document === "undefined") return;
   const root = document.getElementById("app");
   if (!root) return;
   if (!data || !Array.isArray(data.entries) || !Array.isArray(data.sourceFiles)) {
     root.textContent = "The generated declaration catalog is missing or invalid.";
+    return;
+  }
+  if (typeof pageSearchMatches !== "function") {
+    root.textContent = "The Agda-generated declaration search module is missing or invalid.";
     return;
   }
 
@@ -152,7 +144,8 @@ import * as AgdaSearch from "./jAgda.MonolithSearch.mjs";
   const entryList = make("div", "entry-list"); declarations.append(entryList);
   const searchLimit = 60;
   function renderEntries() {
-    const matches = filteredEntries(search.value, scope, data.entries);
+    const matches = data.entries.filter((entry) =>
+      pageSearchMatches(search.value)(scope)(entry.name)(entry.signature)(entry.source));
     resultCount.textContent = matches.length + " declarations matched; showing " +
       Math.min(matches.length, searchLimit) + ".";
     entryList.replaceChildren();

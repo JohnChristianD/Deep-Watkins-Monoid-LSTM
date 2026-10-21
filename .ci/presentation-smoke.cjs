@@ -4,13 +4,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
-async function main() {
-  const generated = process.argv[2];
-  const runtime = process.argv[3];
-  assert.ok(generated && runtime,
-    "usage: node .ci/presentation-smoke.cjs GENERATED_CONTENT.js AGDA_JS_RUNTIME_DIR");
+(async () => {
   global.window = {};
-  require(path.resolve(generated));
+  const generatedCatalog = process.argv[2];
+  const agdaJavaScript = process.argv[3];
+  assert.ok(generatedCatalog && agdaJavaScript,
+    "usage: node .ci/presentation-smoke.cjs GENERATED_CONTENT.js AGDA_JS_MODULE.mjs");
+
+  require(path.resolve(generatedCatalog));
   const catalog = global.window.MonolithContent;
   assert.ok(catalog && Array.isArray(catalog.entries), "generated catalog must load");
   assert.deepEqual(catalog.sourceFiles, [
@@ -18,32 +19,41 @@ async function main() {
     "FullCoupled/TheoremsMonolith.agda"
   ]);
   assert.ok(catalog.entries.length > 0);
-  assert.ok(catalog.entries.every((e) => catalog.sourceFiles.includes(e.source)),
-    "only canonical monolith sources may be indexed");
+  assert.ok(catalog.entries.every((entry) => catalog.sourceFiles.includes(entry.source)),
+    "only the two canonical monolith sources may be indexed");
 
-  fs.copyFileSync(path.resolve(__dirname, "../site/app.mjs"),
-    path.join(path.resolve(runtime), "app.mjs"));
-  await import(pathToFileURL(path.join(path.resolve(runtime), "app.mjs")).href);
-  const api = global.window.MonolithPage;
-  assert.ok(api && typeof api.filteredEntries === "function",
-    "DOM adapter must expose Agda-backed pure filtering API");
+  const compiled = await import(pathToFileURL(path.resolve(agdaJavaScript)).href);
+  const pageSearchMatches = compiled.default && compiled.default.siteSearchMatches;
+  assert.equal(typeof pageSearchMatches, "function",
+    "Agda --js output must export siteSearchMatches");
 
-  const all = api.filteredEntries("", "all", catalog.entries);
-  const learner = api.filteredEntries("", "learner", catalog.entries);
-  const theorem = api.filteredEntries("", "theorem", catalog.entries);
+  // Apply the curried Agda function; this test intentionally contains no
+  // JavaScript reimplementation of query normalization or membership rules.
+  const matches = (query, scope, name, signature, source) =>
+    pageSearchMatches(query)(scope)(name)(signature)(source);
+  assert.equal(matches("  RUSS  ", "all", "RussianRecursiveMathematicsAssumptions", "Nat",
+    catalog.sourceFiles[0]), true, "Agda search must trim query whitespace and ignore case");
+  assert.equal(matches("", "learner", "Visible", "Nat", catalog.sourceFiles[1]), false,
+    "learner scope must match exactly the learner monolith");
+  assert.equal(matches("", "theorem", "Visible", "Nat", catalog.sourceFiles[0]), false,
+    "theorem scope must match exactly the theorem monolith");
+  assert.equal(matches("FullCoupled/CanonicalLearnerMonolith.agda", "all",
+    "Visible", "Nat", catalog.sourceFiles[0]), false,
+    "source path is display metadata, not a searchable field");
+
+  const all = catalog.entries.filter((entry) =>
+    matches("", "all", entry.name, entry.signature, entry.source));
+  const learner = catalog.entries.filter((entry) =>
+    matches("", "learner", entry.name, entry.signature, entry.source));
+  const theorem = catalog.entries.filter((entry) =>
+    matches("", "theorem", entry.name, entry.signature, entry.source));
   assert.equal(all.length, catalog.entries.length);
   assert.equal(learner.length + theorem.length, all.length);
-  assert.ok(learner.every((e) => e.source === catalog.sourceFiles[0]));
-  assert.ok(theorem.every((e) => e.source === catalog.sourceFiles[1]));
-  const sample = catalog.entries.find((e) => e.name && e.signature);
-  assert.ok(sample);
-  assert.ok(api.filteredEntries("  " + sample.name.toUpperCase() + "  ", "all", catalog.entries)
-    .some((e) => e.id === sample.id), "Agda semantics must trim and ignore ASCII case");
-  const meta = [{id:"x",name:"Visible",signature:"Nat",source:"only-path",line:1,category:"only-category"}];
-  assert.equal(api.filteredEntries("only-path", "all", meta).length, 0,
-    "source path is display metadata, not searchable");
-  assert.equal(api.filteredEntries("only-category", "all", meta).length, 0,
-    "category is display metadata, not searchable");
-  console.log("agda-js-pages-search-filter=pass declarations=" + all.length);
-}
-main().catch((error) => { console.error(error); process.exitCode = 1; });
+  assert.ok(learner.every((entry) => entry.source === catalog.sourceFiles[0]));
+  assert.ok(theorem.every((entry) => entry.source === catalog.sourceFiles[1]));
+
+  console.log("agda-js-pages-search=pass declarations=" + all.length);
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

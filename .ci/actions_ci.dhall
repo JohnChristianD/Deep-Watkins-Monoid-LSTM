@@ -268,9 +268,11 @@ let scripts = {
     echo "agda2hs=pass"
     echo "agda2hs-plugins=none"    '',
   FennelPresentation = ''
+    set -euo pipefail
     scsh -s .ci/scsh/ci-lanes.scsh FennelPresentation
     '',
   Pages = ''
+    set -euo pipefail
     scsh -s .ci/scsh/ci-lanes.scsh Pages
     '',
   Discovery = ''
