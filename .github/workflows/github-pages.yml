@@ -44,7 +44,8 @@ jobs:
           touch "${RUNNER_TEMP}/pages/.nojekyll"
           test -s "${RUNNER_TEMP}/pages/index.html"
           test -s "${RUNNER_TEMP}/pages/site.css"
-          test -s "${RUNNER_TEMP}/pages/app.js"
+          test -s "${RUNNER_TEMP}/pages/app.mjs"
+          test -s "${RUNNER_TEMP}/pages/jAgda.Site.MonolithSearch.mjs"
           test -s "${RUNNER_TEMP}/pages/monolith-content.js"
 
       - name: Upload Pages artifact
