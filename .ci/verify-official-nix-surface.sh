@@ -98,6 +98,11 @@ test -f .ci/fennel/agda_surface.fnl
 test -f .ci/fennel/ascii_surface.fnl
 test -f .ci/fennel/russ_certificate.fnl
 test -f .ci/agda/global-options.txt
+test ! -e .ci/agda/import-contracts.tsv
+! git ls-files '.ci/lua/*.fnl' | grep -q . || {
+  echo "Fennel sources belong under .ci/fennel, not .ci/lua" >&2
+  exit 1
+}
 
 
 ! grep -Fq -- '-l agda2hs-base' flake.nix || { echo "do not require an unregistered Agda library name" >&2; exit 1; }
