@@ -2,10 +2,10 @@
     [ "FullCoupled.CanonicalLearnerMonolith"
     , "FullCoupled.TheoremsMonolith"
     ]
-, monolithContentGenerator = ".ci/lua/agda_graph.fnl"
-, surfaceGenerator = ".ci/lua/agda_surface.fnl"
+, monolithContentGenerator = ".ci/fennel/agda_graph.fnl"
+, surfaceGenerator = ".ci/fennel/agda_surface.fnl"
 , elmManifest = ".ci/elm-application.dhall"
 , siteEntry = "index.html"
 , compiledElm = "elm.js"
-, asciiGenerator = ".ci/lua/ascii_surface.fnl"
+, asciiGenerator = ".ci/fennel/ascii_surface.fnl"
 }
