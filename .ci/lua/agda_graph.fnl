@@ -4,9 +4,10 @@
 ; Do not enumerate the project-wide Agda import graph here: graph-search
 ; helpers and tutorial/legacy modules are not part of the documented surface.
 (local source-files
-  [ "FullCoupled/CanonicalLearnerMonolith.agda"
-    "FullCoupled/TheoremsMonolith.agda"
-  ])
+  (fun.totable
+    [ "FullCoupled/CanonicalLearnerMonolith.agda"
+      "FullCoupled/TheoremsMonolith.agda"
+    ]))
 
 (local read-file
   (fn [path]
@@ -148,25 +149,22 @@
   (each [_ entry (ipairs (source-entries path content))]
     (table.insert entries entry)))
 
-(local rendered-entries
-  (fun.totable
-    (fun.map
-      (fn [entry]
-        (string.format
-          "    { id = \"%s\", name = \"%s\", source = \"%s\", line = %d, signature = \"%s\", category = \"%s\" }"
-          (elm-escape entry.id)
-          (elm-escape entry.name)
-          (elm-escape entry.source)
-          entry.line
-          (elm-escape entry.signature)
-          (elm-escape entry.category)))
-      entries)))
+(local rendered-entries [])
+(each [_ entry (ipairs entries)]
+  (table.insert rendered-entries
+    (string.format
+      "    { id = \"%s\", name = \"%s\", source = \"%s\", line = %d, signature = \"%s\", category = \"%s\" }"
+      (elm-escape entry.id)
+      (elm-escape entry.name)
+      (elm-escape entry.source)
+      entry.line
+      (elm-escape entry.signature)
+      (elm-escape entry.category))))
 
-(local rendered-source-files
-  (fun.totable
-    (fun.map
-      (fn [path] (string.format "    \"%s\"" (elm-escape path)))
-      source-files)))
+(local rendered-source-files [])
+(each [_ path (ipairs source-files)]
+  (table.insert rendered-source-files
+    (string.format "    \"%s\"" (elm-escape path))))
 
 (local output-path (assert (. arg 1) "usage: agda_graph.fnl OUTPUT.elm"))
 (local output (assert (io.open output-path "w")))

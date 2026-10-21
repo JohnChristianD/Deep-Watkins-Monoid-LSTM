@@ -3,9 +3,10 @@
 ; Machine-readable audit of the two canonical monoliths only.
 ; This is a static trust-surface certificate, never a consistency proof.
 (local source-files
-  [ "FullCoupled/CanonicalLearnerMonolith.agda"
-    "FullCoupled/TheoremsMonolith.agda"
-  ])
+  (fun.totable
+    [ "FullCoupled/CanonicalLearnerMonolith.agda"
+      "FullCoupled/TheoremsMonolith.agda"
+    ]))
 
 (local read-file (fn [path]
   (local file (assert (io.open path "r") (.. "cannot read " path)))
@@ -162,16 +163,15 @@
   (each [_ imported (ipairs (import-inventory path))]
     (table.insert imports imported)))
 (local rewrite-rules (rewrite-identifiers (. source-files 1)))
-(local rendered-imports
-  (fun.totable
-    (fun.map
-      (fn [imported] (string.format "    \"%s\"" imported))
-      imports)))
-(local rendered-rewrite-rules
-  (fun.totable
-    (fun.map
-      (fn [identifier] (string.format "    \"%s\"" identifier))
-      rewrite-rules)))
+(local rendered-imports [])
+(each [_ imported (ipairs imports)]
+  (table.insert rendered-imports
+    (string.format "    \"%s\"" imported)))
+
+(local rendered-rewrite-rules [])
+(each [_ identifier (ipairs rewrite-rules)]
+  (table.insert rendered-rewrite-rules
+    (string.format "    \"%s\"" identifier)))
 
 (assert (= learner.postulates 1) "learner RUSS trust boundary changed: audit before updating certificate")
 (assert (= learner.rewritePragmas 2) "learner rewrite surface changed: audit before updating certificate")
