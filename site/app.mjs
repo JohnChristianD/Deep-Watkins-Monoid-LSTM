@@ -9,11 +9,11 @@ import * as AgdaSearch from "./jAgda.Site.MonolithSearch.mjs";
   // The immutable catalog is adapted to parallel arrays; all normalization,
   // matching, and source-scope semantics live in the Agda-generated module.
   function filteredEntries(query, scope, entries) {
-    const indices = AgdaSearch.filterIndices(
-      query,
-      scope,
-      entries.map((entry) => entry.name),
-      entries.map((entry) => entry.signature || ""),
+    const indices = AgdaSearch.filterIndices(query)(scope)(
+      entries.map((entry) => entry.name)
+    )(
+      entries.map((entry) => entry.signature || "")
+    )(
       entries.map((entry) => entry.source)
     );
     return indices.map((index) => entries[Number(index)]);
