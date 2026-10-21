@@ -12641,36 +12641,28 @@ module RUSSProofTheory where
   russCoreConsistency derivation =
     russSoundness derivation russTruthEnvironment russEmptySatisfaction
 
-  data RUSSDecision (P : Set) : Set where
-    russAccept : P → RUSSDecision P
-    russReject : (P → RUSSFalse) → RUSSDecision P
-
-  RUSSMarkovPrinciple : Set₁
-  RUSSMarkovPrinciple =
-    (predicate : ℕ → Set) →
-    ((n : ℕ) → RUSSDecision (predicate n)) →
-    ((Σ ℕ predicate → RUSSFalse) → RUSSFalse) →
-    Σ ℕ predicate
-
-  RUSSCountableChoice : Set₁
-  RUSSCountableChoice =
-    (A : Set) →
-    (family : ℕ → A → Set) →
-    ((n : ℕ) → Σ A (family n)) →
-    Σ (ℕ → A)
-      (λ choose → (n : ℕ) → family n (choose n))
-
-  -- This interface records the exact extra data needed to state the strong
-  -- CT schema against a particular evaluator. It intentionally does not
-  -- invent an evaluator or assert its adequacy/effectivity.
-  record RUSSPrinciplePackage : Set₂ where
+  -- The following package mirrors the repository's actual basis exactly:
+  -- decidable-predicate Markov, the finite register-machine ECT₀ relation,
+  -- and proposition-valued countable choice. This record is an interface;
+  -- this module does not postulate or construct an inhabitant of it.
+  record RUSSPrinciplePackage : Set₃ where
     field
-      russMarkovWitness : RUSSMarkovPrinciple
-      russCountableChoiceWitness : RUSSCountableChoice
-      russProgram : Set
-      russEvaluates : russProgram → ℕ → ℕ → Set
-      russChurchThesisWitness :
-        (function : ℕ → ℕ) →
-        Σ russProgram
-          (λ program → (n : ℕ) → russEvaluates program n (function n))
+      russMarkovWitness :
+        (P : Nat → Set) →
+        ((n : Nat) → Decidable (P n)) →
+        Neg (Neg (SigmaWitness Nat P)) →
+        SigmaWitness Nat P
 
+      russECT0Witness :
+        (relation : Nat → Nat → Set) →
+        ((input output : Nat) → Decidable (relation input output)) →
+        ((input : Nat) → SigmaWitness Nat (relation input)) →
+        SigmaWitness RecursiveProgram
+          (λ program → ComputesRelation program relation)
+
+      russCountableChoiceWitness :
+        (A : Nat → Set) →
+        (P : (n : Nat) → A n → Prop) →
+        ((n : Nat) → PropExists (P n)) →
+        PropExists {A = (n : Nat) → A n}
+          (λ choose → (n : Nat) → P n (choose n))
