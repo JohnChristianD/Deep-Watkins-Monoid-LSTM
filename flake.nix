@@ -1083,9 +1083,9 @@ PY
               pkgs.git
               pkgs.gnugrep
               pkgs.gnused
+              pkgs.lessc
               pkgs.llvmPackages.clang-unwrapped
               pkgs.llvmPackages.lld
-              pkgs.lessc
               pkgs.nodejs
               pkgs.elmPackages.elm
               pkgs.dhall
