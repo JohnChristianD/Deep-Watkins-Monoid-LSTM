@@ -268,30 +268,7 @@ let scripts = {
     echo "agda2hs=pass"
     echo "agda2hs-plugins=none"    '',
   FennelPresentation = ''
-    set -euo pipefail
-    tmp=$(mktemp -d)
-    trap 'rm -rf "$tmp"' EXIT
-    test -f .ci/fennel/agda_graph.fnl
-    test -f .ci/fennel/ascii_surface.fnl
-    test -f site/app.js
-    test -f site/site.less
-    test -f .ci/fennel/palette_css.fnl
-    test -f .ci/presentation-smoke.cjs
-    nix run .#fennel-ascii-surface
-    nix run .#fennel-palette-css -- "$tmp/palette.css"
-    test -s "$tmp/palette.css"
-    test "$(grep -c '^  --palette-' "$tmp/palette.css")" -eq 6
-    nix run .#fennel-monolith-content -- "$tmp/monolith-content.js"
-    test -s "$tmp/monolith-content.js"
-    node --check "$tmp/monolith-content.js"
-    grep -Fq 'window.MonolithContent' "$tmp/monolith-content.js"
-    grep -Fq 'source: "FullCoupled/TheoremsMonolith.agda"' "$tmp/monolith-content.js"
-    grep -Fq 'source: "FullCoupled/CanonicalLearnerMonolith.agda"' "$tmp/monolith-content.js"
-    if grep -E 'source: "[^"]+\.agda"' "$tmp/monolith-content.js" | grep -Ev 'CanonicalLearnerMonolith\.agda|TheoremsMonolith\.agda'; then
-      echo 'presentation source inventory escaped the two monoliths' >&2; exit 1;
-    fi
-    node .ci/presentation-smoke.cjs "$tmp/monolith-content.js"
-    echo "fennel-native-js-presentation=pass"
+    scsh -s .ci/scsh/ci-lanes.scsh FennelPresentation
     '',
   Pages = ''
     scsh -s .ci/scsh/ci-lanes.scsh Pages
