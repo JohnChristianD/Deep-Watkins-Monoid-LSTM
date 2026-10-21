@@ -117,22 +117,12 @@
           };
         };
 
-      # Pin the upstream Agda 2.8-compatible Scheme backend by commit, not branch.
-      agda2schemeSource = builtins.fetchGit {
-        url = "https://github.com/jespercockx/agda2scheme.git";
-        rev = "24e02d9669f17d98ec67b8ad961cf9c3e602bf10";
-      };
-
       # The Forth fork predates Agda 2.8. Apply a small API-port patch before
       # Cabal resolves the package, so its dependency bounds and source agree.
       agda2forthSource = builtins.fetchGit {
         url = "https://github.com/LMMilliken/agda2Forth.git";
         rev = "e83f8cc735bf220f80b3655ce2158a23818910fe";
       };
-
-      agda2scheme = system:
-        let pkgs = pkgsFor system;
-        in pkgs.haskellPackages.callCabal2nix "agda2scheme" agda2schemeSource { };
 
       agda2forth = system:
         let
@@ -415,7 +405,6 @@ PY
           agda = agdaCli system;
           agda2forth = agda2forth system;
           agda2hs = agda2hsWithCanonicalGhc system;
-          agda2scheme = agda2scheme system;
           agda-emacs = agdaEmacs system;
           ccforth = ccforth system;
           ci = pkgs.dhall;
@@ -1145,16 +1134,14 @@ PY
             ];
           };
 
-          # Agda-to-Forth and Agda-to-Scheme both compile against this
-          # pinned Nixpkgs Agda/Haskell package set; ccforth is separately pinned.
+          # The Forth path is Agda2Forth -> .fth -> ccforth/GCC.
+          # Keep GForth as the reference runtime and scsh as the smoke runner.
           forth = pkgs.mkShell {
             packages = [
               (agda2forth system)
-              (agda2scheme system)
               (ccforth system)
               (gforth system)
               pkgs.groff
-              pkgs.guile
               pkgs.scsh
               pkgs.stdenv.cc
               pkgs.coreutils
@@ -1240,7 +1227,6 @@ PY
               (ccforth system)
               (gforth system)
               pkgs.groff
-              pkgs.guile
               pkgs.scsh
               pkgs.elmPackages.elm
             ];

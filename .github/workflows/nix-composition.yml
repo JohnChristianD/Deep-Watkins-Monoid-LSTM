@@ -161,7 +161,7 @@ jobs:
           '
 
   backends:
-    name: Build Agda Forth/Scheme backends
+    name: Build Agda2Forth and native Forth path
     needs: policy
     runs-on: ubuntu-22.04
     timeout-minutes: 20
@@ -170,7 +170,7 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Build and smoke-test Agda Forth/Scheme backends
+      - name: Compile Agda2Forth output with GForth and ccforth
         timeout-minutes: 15
         run: |
           set -euo pipefail
@@ -178,8 +178,6 @@ jobs:
           trap 'rm -rf "$tmp"' EXIT
           nix build -L .#agda2forth --out-link "$tmp/agda2forth"
           test -x "$tmp/agda2forth/bin/agda2forth"
-          nix build -L .#agda2scheme --out-link "$tmp/agda2scheme"
-          test -x "$tmp/agda2scheme/bin/agda2scheme"
 
           cat > "$tmp/BackendSmoke.agda" <<'AGDA'
           module BackendSmoke where
@@ -187,24 +185,35 @@ jobs:
           double : Nat → Nat
           double n = n + n
           AGDA
-          mkdir "$tmp/forth" "$tmp/scheme"
+          mkdir "$tmp/forth"
           cp "$tmp/BackendSmoke.agda" "$tmp/forth/BackendSmoke.agda"
           (
             cd "$tmp/forth"
             "$tmp/agda2forth/bin/agda2forth" BackendSmoke.agda
           )
           test -s "$tmp/forth/BackendSmoke.fth"
-          cp "$tmp/BackendSmoke.agda" "$tmp/scheme/BackendSmoke.agda"
-          (
-            cd "$tmp/scheme"
-            "$tmp/agda2scheme/bin/agda2scheme" BackendSmoke.agda
-          )
-          test -s "$tmp/scheme/BackendSmoke.ss"
+
+          # Both runtimes execute the same result produced by Agda2Forth.
+          printf '\n: MAIN 21 double pass deepDethunk . cr ;\n' >> "$tmp/forth/BackendSmoke.fth"
+          cp "$tmp/forth/BackendSmoke.fth" "$tmp/forth/BackendSmoke-gforth.fth"
+          printf '\nMAIN\nbye\n' >> "$tmp/forth/BackendSmoke-gforth.fth"
+          gforth_output="$(gforth "$tmp/forth/BackendSmoke-gforth.fth" | tr -d '\r\n ')"
+          test "$gforth_output" = "42" || {
+            echo "GForth Agda2Forth smoke returned '$gforth_output', expected 42" >&2
+            exit 1
+          }
 
           nix build -L .#ccforth --out-link "$tmp/ccforth"
-          "$tmp/ccforth/bin/ccforth" -version
-          nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
+          test -x "$tmp/ccforth/bin/ccforth"
+          "$tmp/ccforth/bin/ccforth" -entry MAIN -o "$tmp/forth/BackendSmoke-native" "$tmp/forth/BackendSmoke.fth"
+          test -x "$tmp/forth/BackendSmoke-native"
+          ccforth_output="$("$tmp/forth/BackendSmoke-native" | tr -d '\r\n ')"
+          test "$ccforth_output" = "42" || {
+            echo "ccforth Agda2Forth smoke returned '$ccforth_output', expected 42" >&2
+            exit 1
+          }
 
+          nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
   auto-merge:
     name: Enable auto-merge only after explicit approval
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft

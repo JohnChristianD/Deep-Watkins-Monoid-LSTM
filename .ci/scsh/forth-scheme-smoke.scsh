@@ -1,17 +1,16 @@
 #!/usr/bin/env scsh -s
 !#
-;; Reproducible Forth/Scheme smoke checks, run by scsh itself.
+;; Reproducible Forth-tool smoke checks, orchestrated by scsh.
 ;; The scsh && process form short-circuits on the first failed command.
 (if (&& (gforth --version)
         (groff --version)
-        (guile --version)
         (scsh -c "(begin (display \"scsh-child-ok\") (newline))")
         (ccforth -version))
     (begin
-      (display "forth-scheme-smoke=pass")
+      (display "forth-tools-smoke=pass")
       (newline)
       (exit 0))
     (begin
-      (display "forth-scheme-smoke=fail")
+      (display "forth-tools-smoke=fail")
       (newline)
       (exit 1)))
