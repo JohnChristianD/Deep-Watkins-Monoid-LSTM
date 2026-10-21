@@ -375,6 +375,9 @@ let script = merge {
     grep -Fq 'status = "DIRECT_SURFACE_INVENTORIED; TRANSITIVE_CONSISTENCY_NOT_PROVED"' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'directMonolithInventoryPassed = True' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'jointConsistencyProved = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'russConsistencyCertified = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'consistencyModelProvided = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'directImportClosureTraversed = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'explicitClassicalPostulateFound = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'globalOptionsSha256' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'rewriteRuleIdentifiers' .ci/discovery/russ-global-certificate.dhall
