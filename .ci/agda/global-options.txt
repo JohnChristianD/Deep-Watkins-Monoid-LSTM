@@ -10,3 +10,4 @@
 --no-postfix-projections
 --experimental-lazy-instances
 --backtracking-instance-search
+--js
