@@ -1086,7 +1086,6 @@ PY
             packages = [
               (fennelRuntime system)
               pkgs.luajit
-              pkgs.stdenv.cc
               pkgs.coreutils
               pkgs.findutils
               pkgs.gawk
@@ -1136,7 +1135,7 @@ PY
               (gforth system)
               pkgs.groff
               pkgs.scsh
-              pkgs.stdenv.cc
+              pkgs.gcc
               pkgs.coreutils
               pkgs.findutils
               pkgs.gnugrep
