@@ -223,7 +223,7 @@ jobs:
           : double 2 * ;
           : MAIN 21 double . cr ;
           FORTH
-          "$tmp/ccforth/bin/ccforth" -entry MAIN -o "$tmp/forth/CcforthSubset-native" "$tmp/forth/CcforthSubset.fth"
+          nix develop .#forth -c "$tmp/ccforth/bin/ccforth" -cc gcc -entry MAIN -o "$tmp/forth/CcforthSubset-native" "$tmp/forth/CcforthSubset.fth"
           test -x "$tmp/forth/CcforthSubset-native"
           ccforth_output="$("$tmp/forth/CcforthSubset-native" | tr -d '\r\n ')"
           test "$ccforth_output" = "42" || {
