@@ -10,7 +10,7 @@
         (let ((ch (read-char port)))
           (if (eof-object? ch)
               (list->string (reverse chars))
-              (loop (cons ch chars)))))))
+              (loop (cons ch chars))))))))
 
 (define (lines-of text)
   (let loop ((chars (string->list text)) (line '()) (lines '()))
@@ -18,14 +18,14 @@
            (reverse (if (null? line) lines (cons (list->string (reverse line)) lines))))
           ((char=? (car chars) #\newline)
            (loop (cdr chars) '() (cons (list->string (reverse line)) lines)))
-          (else (loop (cdr chars) (cons (car chars) line) lines))))
+          (else (loop (cdr chars) (cons (car chars) line) lines)))))
 
 (define (contains? text needle)
   (let ((n (string-length needle)) (total (string-length text)))
     (let loop ((i 0))
       (cond ((> (+ i n) total) #f)
             ((string=? (substring text i (+ i n)) needle) #t)
-            (else (loop (+ i 1)))))))
+            (else (loop (+ i 1))))))))
 
 (define (lower text)
   (list->string (map char-downcase (string->list text))))
