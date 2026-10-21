@@ -1083,6 +1083,7 @@ PY
               pkgs.git
               pkgs.gnugrep
               pkgs.gnused
+              pkgs.lessc,
               pkgs.elmPackages.elm
               pkgs.dhall
               pkgs.dhall-json
