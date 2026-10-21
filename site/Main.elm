@@ -629,7 +629,7 @@ view model =
         , header [ HA.class "masthead" ]
             [ div [ HA.class "brand" ] [ text "The Monoid LSTM Project" ]
             , p [ HA.class "mast-note" ]
-                [ text "A source-first technical index of the canonical learner and theorem monoliths." ]
+                [ text "GNU.org-inspired, source-first index. Content is derived only from the canonical learner and theorem monoliths." ]
             ]
         , div [ HA.class "layout" ]
             [ nav [ HA.class "side-nav" ]
@@ -641,6 +641,7 @@ view model =
                     , anchorLink "Declaration index" "declarations"
                     , anchorLink "Perceptual palette" "palette"
                     ]
+                , a [ HA.href "https://www.gnu.org/", HA.target "_blank", HA.rel "noreferrer", HA.class "source-link" ] [ text "GNU.org · free software and formal tools" ]
                 , p [ HA.class "nav-title" ] [ text "Canonical files" ]
                 , div []
                     (List.map
