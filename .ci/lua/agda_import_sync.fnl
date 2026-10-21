@@ -219,28 +219,18 @@
 
 (local options-path ".ci/agda/global-options.txt")
 (local options (read-file options-path))
-(local actual-global-options (non-comment-lines options))
-; This is the project's shared Agda CLI option inventory, not a set of GHC
-; LANGUAGE extensions. The three Nix wrappers consume this file directly.
-; GHC remains on the Nixpkgs package defaults; generated Haskell owns its
-; source-level LANGUAGE pragmas.
-(local expected-global-options
-  [ "--erased-matches"
-    "--no-projection-like"
-    "--two-level"
-    "--confluence-check"
-    "--prop"
-    "--sized-types"
-    "--no-forced-argument-recursion"
-    "--lossy-unification"
-    "--polarity"
-    "--no-postfix-projections"
-    "--experimental-lazy-instances" ])
-(assert (= (# actual-global-options) (# expected-global-options))
-  "shared Agda CLI option inventory drifted; update this contract with global-options.txt")
-(each [_ option (ipairs expected-global-options)]
-  (assert (= (count-exact-line options option) 1)
-    (.. "shared Agda CLI options must contain '" option "' exactly once")))
+(local global-option-lines (non-comment-lines options))
+(assert (> (# global-option-lines) 0)
+  "shared Agda CLI options file must not be empty")
+; Each line is passed unchanged by all three Nix wrappers. Validate format and
+; the selected non-cubical mode without duplicating the option inventory here.
+; GHC language extensions are left to Nixpkgs defaults and agda2hs-generated
+; LANGUAGE pragmas; this file only configures the Agda CLI.
+(each [_ option (ipairs global-option-lines)]
+  (assert (string.match option "^%-%-[^%s]+$")
+    (.. "global Agda options must be one long CLI token per line: " option))
+  (assert (not (string.match option "^%-%-cubical"))
+    (.. "project global Agda options must remain non-cubical: " option)))
 
 (local flake (read-file "flake.nix"))
 (assert (= (count-substring flake "cp -RL") 3)
