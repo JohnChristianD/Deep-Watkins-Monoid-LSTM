@@ -77,7 +77,7 @@
         (let ((name (module-name path)))
           (if (and name (not (assoc name module-files)))
               (set! module-files (cons (cons name path) module-files))))
-      all-files)
+      all-files))
     (set! runtime-files (list (cdr (assoc root-module module-files))))
     (for-each
       (lambda (name)
@@ -85,7 +85,7 @@
           (if entry
               (set! runtime-files (cons (cdr entry) runtime-files))
               (set! unresolved (+ unresolved 1))))
-      dot-modules)
+      dot-modules))
     (set! runtime-files (unique (reverse runtime-files)))
     (write-lines output-manifest runtime-files)
     (write-lines inventory-path (unique (append project-files (list root-source))))
