@@ -253,8 +253,8 @@
     (.. "project global Agda options must remain non-cubical: " option)))
 
 (local flake (read-file "flake.nix"))
-(assert (= (count-substring flake "cp -RL") 3)
-  "Agda wrappers must use writable copies of agda2hs-base for interface files")
+(assert (= (count-substring flake "cp -RL \"$agda2hs_base_root/.\" \"$agda2hs_base_work/library/\"") 3)
+  "all three Agda wrappers must copy agda2hs-base into writable temporary libraries")
 (assert (= (count-substring flake ".ci/agda/global-options.txt") 3)
   "the Agda, Agda2HS-Agda and Agda2HS wrappers must read .ci/agda/global-options.txt")
 (assert (string.find flake "name = \"agda\";" 1 true)
@@ -264,7 +264,7 @@
 
 (check-runtime-closure runtime-agda-files)
 
-; Validate the typed union, script record, and workflow call sites together.
+; Validate the lane-name union, script record, and workflow call sites together.
 ; Adding, renaming, or removing a lane without updating every surface fails here.
 (local actions-source (read-file ".ci/actions_ci.dhall"))
 (local workflow-source (read-file ".github/workflows/nix-composition.yml"))
@@ -272,7 +272,7 @@
   (assert (string.find actions-source "let scripts = {" 1 true)
     "Dhall CI script map is missing"))
 (local scripts-end
-  (assert (string.find actions-source "\n  ''}\n\nlet script = merge scripts lane" scripts-start true)
+  (assert (string.find actions-source "\n  ''}\n\nlet ScriptEntry = { mapKey : Text, mapValue : Text }" scripts-start true)
     "Dhall CI script map boundary is missing"))
 (local scripts-body (string.sub actions-source scripts-start (- scripts-end 1)))
 (local lane-line
@@ -309,7 +309,7 @@
   (assert (string.match workflow-source "[^\n]*CI_LANE:[^\n]*")
     "workflow policy lane is missing"))
 (local policy-lane
-  (assert (string.match policy-line " >%.([A-Za-z][A-Za-z0-9_]*)")
+  (assert (string.match policy-line "CI_LANE:%s*'\"([A-Za-z][A-Za-z0-9_]*)\"'")
     "could not derive nullary Dhall constructor from policy lane"))
 (assert (and (. script-lanes policy-lane) (. union-lanes policy-lane))
   (.. "workflow policy selects missing Dhall CI lane: " policy-lane))
