@@ -153,7 +153,7 @@
 (local public-import-marker "-- Merged external import surface; internal FullCoupled imports remain module-local.")
 (assert (= (count-substring learner-source public-import-marker) 1)
   "canonical learner public import block marker must occur exactly once")
-(assert (= (count-substring learner-source "open import Agda.Primitive") 1)
+(assert (= (count-substring learner-source "open import Agda.Primitive using (Level)") 1)
   "canonical learner public import block must end at the primitive import boundary")
 (local normalize-public-import-surface
   (fn [source]
