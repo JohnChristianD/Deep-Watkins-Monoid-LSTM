@@ -270,6 +270,7 @@ let scripts = {
     test -f .ci/fennel/agda_graph.fnl
     test -f .ci/fennel/agda_surface.fnl
     test -f .ci/fennel/ascii_surface.fnl
+    test -f site/site.less
     nix run .#fennel-ascii-surface
     nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
     test -s "$tmp/src/GeneratedMonolithContent.elm"
@@ -307,14 +308,16 @@ let scripts = {
     grep -Fq '"surfaceGenerator": ".ci/fennel/agda_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq '"elmManifest": ".ci/elm-application.dhall"' "$tmp/presentation-contract.json"
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
+    grep -Fq '"lessStylesheet": "site/site.less"' "$tmp/presentation-contract.json"
+    grep -Fq '"compiledStylesheet": "site.css"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledElm": "elm.js"' "$tmp/presentation-contract.json"
     grep -Fq '"asciiGenerator": ".ci/fennel/ascii_surface.fnl"' "$tmp/presentation-contract.json"
-    grep -Fq 'Atkinson Hyperlegible Mono' site/Main.elm
-    grep -Fq 'Iosevka' site/Main.elm
-    grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/Main.elm
+    grep -Fq 'Atkinson Hyperlegible Mono' site/site.less
+    grep -Fq 'Iosevka' site/site.less
+    grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/site.less
     ! grep -Eiq 'Writer|Julia[[:space:]]Mono|JuliaMono|Noto Emoji' site/Main.elm
     grep -Fq 'CAT02LMS' site/Main.elm
-    grep -Fq '.shell{min-height:100vh;max-width:88rem;margin:0 auto;' site/Main.elm
+    grep -Fq '.shell' site/site.less
     grep -Fq 'Russian constructivism (RUSS): trust-surface certificate' site/Main.elm
     grep -Fq 'Declaration index' site/Main.elm
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
@@ -326,6 +329,8 @@ let scripts = {
       output_dir="$(printenv PAGES_OUTPUT_DIR)"
     fi
     mkdir -p "$output_dir"
+    lessc site/site.less "$output_dir/site.css"
+    test -s "$output_dir/site.css"
     mkdir -p "$tmp/src"
     cp site/Main.elm "$tmp/src/Main.elm"
     echo "pages-stage=monolith-content"
