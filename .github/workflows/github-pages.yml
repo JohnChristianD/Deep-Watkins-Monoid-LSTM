@@ -34,18 +34,18 @@ jobs:
         with:
           installer-version: '2.35.1'
 
-      - name: Generate and verify static presentation
+      - name: Generate and verify Agda-native JavaScript presentation
+        env:
+          PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
         run: |
           set -euo pipefail
-          mkdir -p "${RUNNER_TEMP}/pages"
-          CI_LANE="Pages" PAGES_OUTPUT_DIR="${RUNNER_TEMP}/pages" \
-            nix develop .#presentation -c bash -e -c 'printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$CI_LANE" | dhall text | bash -e'
-          cp index.html "${RUNNER_TEMP}/pages/index.html"
-          touch "${RUNNER_TEMP}/pages/.nojekyll"
+          nix develop .#presentation -c scsh -s .ci/scsh/ci-lanes.scsh Pages
           test -s "${RUNNER_TEMP}/pages/index.html"
           test -s "${RUNNER_TEMP}/pages/site.css"
-          test -s "${RUNNER_TEMP}/pages/app.js"
+          test -s "${RUNNER_TEMP}/pages/app.mjs"
           test -s "${RUNNER_TEMP}/pages/monolith-content.js"
+          test -s "${RUNNER_TEMP}/pages/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"
+          ! test -e "${RUNNER_TEMP}/pages/app.js"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
