@@ -5,10 +5,16 @@
  */
 (function () {
   "use strict";
-  const roleVariables = [
-    "--palette-ink", "--palette-paper", "--palette-accent",
-    "--palette-accent-two", "--palette-quiet", "--palette-ink-on-accent"
-  ];
+  const roleVariables = getComputedStyle(document.documentElement)
+    .getPropertyValue("--palette-role-names")
+    .split(",")
+    .map(role => role.trim())
+    .filter(Boolean);
+
+  if (roleVariables.length === 0) {
+    throw new Error("Less must declare at least one palette semantic role");
+  }
+
   const TAU = 6.283185307179586;
   const SQRT3 = 1.7320508075688772;
   const SQRT2 = 1.4142135623730951;
