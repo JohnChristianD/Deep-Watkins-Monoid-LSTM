@@ -290,6 +290,11 @@ PY
             pkgs.findutils
           ];
           text = ''
+            # Information-only calls must not inherit the project backend (--js).
+            # The JS backend expects an input module, unlike --version and --help.
+            if [[ "$#" -eq 1 && ( "$1" == "--version" || "$1" == "-V" || "$1" == "--help" || "$1" == "-h" ) ]]; then
+              exec agda "$@"
+            fi
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
@@ -323,6 +328,11 @@ PY
             pkgs.findutils
           ];
           text = ''
+            # Information-only calls must not inherit the project backend (--js).
+            # The JS backend expects an input module, unlike --version and --help.
+            if [[ "$#" -eq 1 && ( "$1" == "--version" || "$1" == "-V" || "$1" == "--help" || "$1" == "-h" ) ]]; then
+              exec agda "$@"
+            fi
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
