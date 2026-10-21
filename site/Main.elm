@@ -45,12 +45,12 @@ matches query value =
 
 isLearnerEntry : Content.Entry -> Bool
 isLearnerEntry entry =
-    String.endsWith "CanonicalLearnerMonolith.agda" entry.source
+    entry.source == "FullCoupled/CanonicalLearnerMonolith.agda"
 
 
 isTheoremEntry : Content.Entry -> Bool
 isTheoremEntry entry =
-    String.endsWith "TheoremsMonolith.agda" entry.source
+    entry.source == "FullCoupled/TheoremsMonolith.agda"
 
 
 isCanonicalEntry : Content.Entry -> Bool
