@@ -128,24 +128,24 @@
 (local function summary [path]
   (local source (read-file path))
   (local lines (lines-of source))
-  { path = path,
-  sha = (sha256 path),
-  postulates = (count-postulate-statements lines),
-  primitiveBlocks = (count-primitive-blocks lines),
-  rewritePragmas = (count-rewrite-pragmas lines),
-  cubicalImports = (count-cubical-imports lines),
-  withK = (contains source "--with-K"),
-  noGuardedness = (contains source "--no-guardedness"),
-  hasProp = (contains source "--prop"),
-  hasRewriting = (contains source "--rewriting"),
-  hasConfluenceCheck = (contains source "--confluence-check"),
-  hasTwoLevel = (contains source "--two-level"),
-  hasSizedTypes = (contains source "--sized-types"),
-  classicalPostulates = (direct-classical-postulate-count lines),
-  hasRussianBasis = (contains source "russianRecursiveMathematicsAssumptions : RussianRecursiveMathematicsBasis"),
-  hasMarkovProjection = (contains source "russianMarkovPrinciple"),
-  hasECT0Projection = (contains source "extendedChurchThesis0"),
-  hasCountableChoiceProjection = (contains source "russianCountableChoice")
+  { :path path
+    :sha (sha256 path)
+    :postulates (count-postulate-statements lines)
+    :primitiveBlocks (count-primitive-blocks lines)
+    :rewritePragmas (count-rewrite-pragmas lines)
+    :cubicalImports (count-cubical-imports lines)
+    :withK (contains source "--with-K")
+    :noGuardedness (contains source "--no-guardedness")
+    :hasProp (contains source "--prop")
+    :hasRewriting (contains source "--rewriting")
+    :hasConfluenceCheck (contains source "--confluence-check")
+    :hasTwoLevel (contains source "--two-level")
+    :hasSizedTypes (contains source "--sized-types")
+    :classicalPostulates (direct-classical-postulate-count lines)
+    :hasRussianBasis (contains source "russianRecursiveMathematicsAssumptions : RussianRecursiveMathematicsBasis")
+    :hasMarkovProjection (contains source "russianMarkovPrinciple")
+    :hasECT0Projection (contains source "extendedChurchThesis0")
+    :hasCountableChoiceProjection (contains source "russianCountableChoice")
   })
 
 (local learner (summary (. source-files 1)))
