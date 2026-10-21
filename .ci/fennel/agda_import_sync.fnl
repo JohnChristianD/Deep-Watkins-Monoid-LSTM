@@ -292,7 +292,7 @@
     ; shell snippet, so map structure—not shell syntax—defines the boundary.
     (when (string.match line "''}%s*$")
       (set inside-scripts false)
-      (set found-script-end true)))
+      (set found-script-end true))))
 (assert (and found-scripts found-script-end)
   "Dhall CI script map does not have a complete record boundary")
 (assert (> script-lane-count 0) "no Dhall CI script lanes discovered")
