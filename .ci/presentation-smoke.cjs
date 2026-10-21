@@ -36,7 +36,8 @@ const { pathToFileURL } = require("node:url");
     "learner scope must match exactly the learner monolith");
   assert.equal(matches("", "theorem", "Visible", "Nat", catalog.sourceFiles[0]), false,
     "theorem scope must match exactly the theorem monolith");
-  assert.equal(matches("only-path", "all", "Visible", "Nat", "only-path"), false,
+  assert.equal(matches("FullCoupled/CanonicalLearnerMonolith.agda", "all",
+    "Visible", "Nat", catalog.sourceFiles[0]), false,
     "source path is display metadata, not a searchable field");
 
   const all = catalog.entries.filter((entry) =>
