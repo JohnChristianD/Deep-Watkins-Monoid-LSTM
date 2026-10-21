@@ -9,7 +9,7 @@ const assigned = new Map();
 const appNode = { id: "app" };
 let elmInitialized = false;
 const lessSource = fs.readFileSync("site/site.less", "utf8");
-const roleMatch = lessSource.match(/--palette-role-names:\\s*([^;]+);/);
+const roleMatch = lessSource.match(/--palette-role-names:\s*([^;]+);/);
 assert.ok(roleMatch, "Less must declare the semantic palette roles");
 const expectedRoles = roleMatch[1].split(",").map(role => role.trim()).filter(Boolean);
 assert.ok(expectedRoles.length > 0, "Less must declare at least one palette role");
