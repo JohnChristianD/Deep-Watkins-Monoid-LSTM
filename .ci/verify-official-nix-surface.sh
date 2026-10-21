@@ -99,6 +99,25 @@ test -f .ci/agda/global-options.txt
 
 ! grep -Fq -- '-l agda2hs-base' flake.nix || { echo "do not require an unregistered Agda library name" >&2; exit 1; }
 grep -Fq 'agda2hs_base_root' flake.nix || { echo "Agda2HS base source root must be explicit in wrappers" >&2; exit 1; }
+
+# Generated Agda2HS Haskell should use its own LANGUAGE pragmas and the
+# pinned Nixpkgs GHC defaults, not project-wide injected -X flags.
+! grep -Fq 'ghcLanguageFlags' flake.nix || {
+  echo "do not inject custom GHC language extensions into Agda2HS output" >&2
+  exit 1
+}
+! grep -Fq -- '-XMonoLocalBinds' flake.nix || {
+  echo "custom MonoLocalBinds override is not permitted" >&2
+  exit 1
+}
+! grep -Fq -- '-XNoMonomorphismRestriction' flake.nix || {
+  echo "custom NoMonomorphismRestriction override is not permitted" >&2
+  exit 1
+}
+grep -Fq 'ghc}/bin/ghc" -O0 -dcore-lint' flake.nix || {
+  echo "Agda2HS surface should compile with Nixpkgs GHC defaults" >&2
+  exit 1
+}
 [ "$(grep -Fc 'chmod -R u+rwX "$agda2hs_base_work/library"' flake.nix)" -eq 3 ] || {
   echo "Agda2HS base interface cache must be writable in all three wrappers" >&2
   exit 1
