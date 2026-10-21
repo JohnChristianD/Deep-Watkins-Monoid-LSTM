@@ -4,6 +4,7 @@ import Browser
 import GeneratedMonolithContent as Content
 import GeneratedTheoremSurface as Surface
 import Html exposing (Html, a, button, div, footer, h1, h2, h3, header, input, li, main_, nav, p, section, span, text, ul)
+import Html
 import Html.Attributes as HA
 import Html.Events as HE
 import List
