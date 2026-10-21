@@ -169,7 +169,7 @@ Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
     typed coverage for Luafun requires a maintained declaration file.
-  * .ci/lua/agda_graph.fnl indexes declarations from exactly the two canonical
+  * .ci/fennel/agda_graph.fnl indexes declarations from exactly the two canonical
     monoliths into GeneratedMonolithContent.elm. Elm renders that generated
     catalog directly; it does not load Fennel or Lua at runtime.
   * Pages/Elm must be validated by the existing Nix presentation lane.
@@ -260,9 +260,9 @@ let script = merge {
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
     mkdir -p "$tmp/src"
-    test -f .ci/lua/agda_graph.fnl
-    test -f .ci/lua/agda_surface.fnl
-    test -f .ci/lua/ascii_surface.fnl
+    test -f .ci/fennel/agda_graph.fnl
+    test -f .ci/fennel/agda_surface.fnl
+    test -f .ci/fennel/ascii_surface.fnl
     nix run .#fennel-ascii-surface
     nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
     test -s "$tmp/src/GeneratedMonolithContent.elm"
@@ -296,12 +296,12 @@ let script = merge {
     grep -Fq 'module FullCoupled.TheoremsMonolith where' FullCoupled/TheoremsMonolith.agda
     dhall type --file .ci/presentation-contract.dhall >/dev/null
     dhall-to-json --file .ci/presentation-contract.dhall > "$tmp/presentation-contract.json"
-    grep -Fq '"monolithContentGenerator": ".ci/lua/agda_graph.fnl"' "$tmp/presentation-contract.json"
-    grep -Fq '"surfaceGenerator": ".ci/lua/agda_surface.fnl"' "$tmp/presentation-contract.json"
+    grep -Fq '"monolithContentGenerator": ".ci/fennel/agda_graph.fnl"' "$tmp/presentation-contract.json"
+    grep -Fq '"surfaceGenerator": ".ci/fennel/agda_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq '"elmManifest": ".ci/elm-application.dhall"' "$tmp/presentation-contract.json"
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledElm": "elm.js"' "$tmp/presentation-contract.json"
-    grep -Fq '"asciiGenerator": ".ci/lua/ascii_surface.fnl"' "$tmp/presentation-contract.json"
+    grep -Fq '"asciiGenerator": ".ci/fennel/ascii_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq 'Atkinson Hyperlegible Mono' site/Main.elm
     grep -Fq 'Iosevka' site/Main.elm
     grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/Main.elm
@@ -720,7 +720,7 @@ DHALL
     done < <(git ls-files '*.md' '*.markdown')
     [ "$md_link_found" -eq 0 ] || { echo "Markdown links are forbidden outside Elm sites"; exit 1; }
     ! git ls-files -z | xargs -0 grep -Eil "$retired" 2>/dev/null | grep -q . || { echo "retired semantic term present"; exit 1; }
-    ! grep -nE '(^|[[:space:];])pkgs\.python3([[:space:]]|$)|(^|[[:space:];])python3([[:space:]]|$)|(^|[[:space:];])python([[:space:]]|$)|pkgs\.pythonPackages' flake.nix .ci/*.sh .ci/*.dhall .ci/lua/*.fnl 2>/dev/null || { echo "non-JAX Python toolchain reference present"; exit 1; }
+    ! grep -nE '(^|[[:space:];])pkgs\.python3([[:space:]]|$)|(^|[[:space:];])python3([[:space:]]|$)|(^|[[:space:];])python([[:space:]]|$)|pkgs\.pythonPackages' flake.nix .ci/*.sh .ci/*.dhall .ci/fennel/*.fnl 2>/dev/null || { echo "non-JAX Python toolchain reference present"; exit 1; }
     ! grep -nE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+(MLTT\\.Fin|Data\\.Fin|Fin\\.Base|Data\\.Vec|Vec\\.Base)([[:space:]]|$)' -- *.agda FullCoupled/**/*.agda 2>/dev/null || { echo "Fin/Vec imports are forbidden; use Nat/List/Set instead"; exit 1; }
     # Canonical proof/data surface: use Nat, Int/Integer, Rational, List, and Set-like structures.
     # Keep Fin and Vec out of the project-owned Agda API; transitive library internals remain library concerns.
