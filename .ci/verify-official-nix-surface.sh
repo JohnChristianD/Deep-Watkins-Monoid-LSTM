@@ -143,6 +143,9 @@ grep -Fq 'ccforth_0.3.2_darwin_amd64.tar.gz' flake.nix
 grep -Fq 'ccforth_0.3.2_darwin_arm64.tar.gz' flake.nix
 grep -Fq 'pkgs.gforth' flake.nix
 grep -Fq 'pkgs.groff' flake.nix
+test -f .ci/scsh/agda-semantic-source-closure.scsh
+! test -f .ci/discovery/agda_semantic_source_closure.sh
+grep -Fq 'scsh -s .ci/scsh/agda-semantic-source-closure.scsh' flake.nix
 test -f .ci/scsh/forth-scheme-smoke.scsh
 grep -Fq 'nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh' .github/workflows/nix-composition.yml
 ! grep -Fq 'nix develop .#forth -c bash' .github/workflows/nix-composition.yml || {
