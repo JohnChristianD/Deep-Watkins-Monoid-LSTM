@@ -1043,9 +1043,11 @@ PY
                 grep -Fxq "graph-search-contract=True" "$out/graph-search-report.txt"
                 z3 --version
                 compiler_version=$("${pkgs.haskellPackages.ghc}/bin/ghc" --numeric-version)
+                readable_module_count="$(find "$out" -type f -name '*.hs' | wc -l | tr -d '[:space:]')"
+                test "$readable_module_count" -gt 0
                 printf '%s\n' \
                   "compiler=ghc-$compiler_version" \
-                  "readableModules=5" \
+                  "readableModules=$readable_module_count" \
                   "proofKernel=Agda" \
                   "searchKernel=Agda2Hs" \
                   "legacyMonoliths=source-scan-only" \
