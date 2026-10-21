@@ -79,6 +79,11 @@ Constructive foundations — Russian constructivism (RUSS) only:
     a compiler-facing Reflection/TC subset and imports external ordinal and
     TWA modules. These remain trust boundaries; successful builds are
     necessary but insufficient.
+  * The AgdaLearner and AgdaTheorem lanes invoke the selected official
+    AGDA_COMMAND directly on the canonical monoliths. A passing check certifies
+    kernel acceptance relative to imported modules, postulates, primitives,
+    rewrite rules, and the trusted Agda implementation; it does not establish
+    their joint consistency or prove the RUSS package has a model.
   * Both monoliths explicitly use --with-K. Keep their proof path non-cubical:
     no Cubical imports or Cubical modes. Agda's --cubical option enables
     --without-K, which conflicts with this project's selected path. Some

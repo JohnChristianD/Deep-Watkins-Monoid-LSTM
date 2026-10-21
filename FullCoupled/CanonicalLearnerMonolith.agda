@@ -848,31 +848,31 @@ module ConstructiveComputabilityPostulates where
   churchThesisSchema = extendedChurchThesis0Schema
 
   ----------------------------------------------------------------------
-  -- Russian constructivism: explicit global axiom schemas.
+  -- Russian constructivism: one explicit assumption package, with public
+  -- projections. These declarations are assumptions, not REWRITE rules.
   ----------------------------------------------------------------------
 
-  -- The recursive Russian basis is one explicit, reviewable trust boundary.
-  -- Grouping these principles supports uniform downstream use; it proves
-  -- neither their joint consistency nor soundness/canonicity of Agda's evaluator.
-  -- TRUST BOUNDARY (not a consistency theorem):
-  -- This record groups the three explicitly assumed RUSS principles used
-  -- by this development: Markov's Principle, the project-specific ECT₀
-  -- signature below, and proposition-valued countable choice. The grouping
-  -- makes the dependency visible; it neither derives the principles from
-  -- MLTT nor proves their joint consistency.
+  -- This record is the visible RUSS trust boundary for this development.
+  -- It packages Markov's Principle for decidable predicates, the concrete
+  -- finite-register-machine ECT₀ signature below, and Prop-valued countable
+  -- choice. Public projections expose the assumptions to downstream proofs;
+  -- that API visibility does not make them rewrite rules or derive them from
+  -- MLTT.
   --
-  -- CONSISTENCY STATUS: this module does not certify RUSS consistency.
-  -- Type-checking any client only establishes derivability relative to this
-  -- postulate, Agda's trusted checker/primitives, rewrite rules, and the full
-  -- imported theory. A consistency claim requires a model or relative-
-  -- consistency argument interpreting this exact signature and its complete
-  -- transitive dependency closure. An empty-type search is not such an argument.
+  -- CONSISTENCY STATUS: neither this record nor a successful Agda kernel
+  -- check certifies joint RUSS consistency. Type-checking establishes
+  -- well-typedness only relative to this postulate, the imported theory,
+  -- rewrite configuration, compiler primitives, and trusted checker. A
+  -- consistency claim needs a model or relative-consistency argument for this
+  -- exact signature and its complete transitive dependency closure. Searching
+  -- for an inhabitant of an empty type is not such an argument.
   --
-  -- FORMALIZATION BOUNDARY: do not identify the ECT₀ signature below with a
-  -- textbook formulation without proving the equivalence of its computation
-  -- relation, admissible predicates, and quantifiers. Its computational
-  -- content is a substantive axiom here. Do not turn these principles into
-  -- REWRITE rules: they are assumptions, not definitional computation rules.
+  -- FORMALIZATION BOUNDARY: the project-specific ECT₀ signature must not be
+  -- identified with a textbook formulation until the computation relation,
+  -- admissible predicates, and quantifiers are shown equivalent. Its
+  -- computational content is a substantive assumption. The Prop-valued
+  -- countable-choice field is a further project assumption; its compatibility
+  -- with the chosen RUSS model must be justified independently.
   record RussianRecursiveMathematicsBasis : Set₃ where
     constructor russianRecursiveMathematicsBasis
     field
