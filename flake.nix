@@ -1149,6 +1149,8 @@ PY
 
           agda-ci = pkgs.mkShellNoCC {
             packages = [
+              pkgs.scsh
+              pkgs.git
               pkgs.dhall
               (agdaCommand system)
               pkgs.z3
