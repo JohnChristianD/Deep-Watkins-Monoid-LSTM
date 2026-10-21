@@ -8,11 +8,13 @@ assert.ok(scriptPath, "PALETTE_SCRIPT must point at the built palette runtime");
 const assigned = new Map();
 const appNode = { id: "app" };
 let elmInitialized = false;
-const expectedRoles = [
-  "--palette-ink", "--palette-paper", "--palette-accent",
-  "--palette-accent-two", "--palette-quiet", "--palette-ink-on-accent"
-];
+const lessSource = fs.readFileSync("site/site.less", "utf8");
+const roleMatch = lessSource.match(/--palette-role-names:\\s*([^;]+);/);
+assert.ok(roleMatch, "Less must declare the semantic palette roles");
+const expectedRoles = roleMatch[1].split(",").map(role => role.trim()).filter(Boolean);
+assert.ok(expectedRoles.length > 0, "Less must declare at least one palette role");
 const context = {
+  getComputedStyle: () => ({ getPropertyValue: name => name === "--palette-role-names" ? expectedRoles.join(", ") : "" }),
   document: {
     documentElement: { style: { setProperty: (name, value) => assigned.set(name, value) } },
     getElementById: id => id === "app" ? appNode : null
