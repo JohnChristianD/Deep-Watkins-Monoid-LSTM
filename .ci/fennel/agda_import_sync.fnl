@@ -23,12 +23,12 @@
   lines)
 
 (fn non-comment-lines [content]
-  (fun.totable
-    (fun.filter
-      (fn [line]
-        (and (not (= line ""))
-             (not (string.match line "^%s*#"))))
-      (fun.totable (string.gmatch content "[^\n]+")))))
+  (local lines [])
+  (each [line (string.gmatch content "[^\n]+")]
+    (when (and (not (= line ""))
+               (not (string.match line "^%s*#")))
+      (table.insert lines line)))
+  lines)
 
 (fn count-substring [source needle]
   (var count 0)
@@ -44,16 +44,13 @@
 (fn split-preserving-empty-lines [source]
   (local lines [])
   (var cursor 1)
-  (while true
-    (local ending (string.find source "\n" cursor true))
-    (if ending
-        (do
-          (table.insert lines (string.sub source cursor (- ending 1)))
-          (set cursor (+ ending 1)))
-        (do
-          (when (<= cursor (# source))
-            (table.insert lines (string.sub source cursor)))
-          (break))))
+  (var ending (string.find source "\n" cursor true))
+  (while ending
+    (table.insert lines (string.sub source cursor (- ending 1)))
+    (set cursor (+ ending 1))
+    (set ending (string.find source "\n" cursor true)))
+  (when (<= cursor (# source))
+    (table.insert lines (string.sub source cursor)))
   lines)
 
 (fn cubical-marker [line]
