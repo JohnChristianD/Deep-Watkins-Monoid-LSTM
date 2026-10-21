@@ -32,7 +32,7 @@
 module FullCoupled.TheoremsMonolith where
 
 -- Merged external import surface; internal FullCoupled imports remain module-local.
-open import Haskell.Prelude
+open import Haskell.Prelude hiding (Int; String; Char; Type; ⊤; tt)
 
 Int : Set
 Int = ℤ
