@@ -277,12 +277,14 @@
 (local scripts-end
   (assert (string.find actions-source "  ''}\n\nin" scripts-start true)
     "Dhall CI script map does not have a complete record boundary"))
-(local scripts-source (string.sub actions-source scripts-start (- scripts-end 1)))
 (local script-lanes {})
 (var script-lane-count 0)
-(each [_ line (ipairs (fun.totable (string.gmatch scripts-source "[^\n]+")))]
-  (local lane (string.match line "^  ([A-Za-z][A-Za-z0-9_]*) = ''"))
-  (when lane
+; The keys are unique to the Text-valued scripts record; scan those markers
+; directly rather than parsing embedded shell strings as Dhall structure.
+(each [lane (string.gmatch actions-source "\n  ([A-Za-z][A-Za-z0-9_]*) = ''")]
+  (when (and
+          (not (= lane "Lane"))
+          (not (= lane "render")))
     (assert (not (. script-lanes lane))
       (.. "duplicate Dhall CI script key: " lane))
     (tset script-lanes lane true)
