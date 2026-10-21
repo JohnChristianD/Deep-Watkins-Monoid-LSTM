@@ -264,7 +264,7 @@
 (out:write "    calculus = \"intuitionistic propositional calculus\",\n")
 (out:write "    soundnessTheorem = \"russSoundness\",\n")
 (out:write "    consistencyTheorem = \"russCoreConsistency\",\n")
-(out:write "    extensionPrinciples = [\"Markov's Principle\", \"Church's Thesis relative to a declared evaluation relation\", \"countable choice\"],\n")
+(out:write "    extensionPrinciples = [\"decidable-predicate Markov principle\", \"finite register-machine ECT0 relation\", \"Prop-valued countable choice\"],\n")
 (out:write "    fullExtensionModelProvided = False,\n")
 (out:write "    fullRUSSConsistencyCertified = False\n")
 (out:write "  },\n")
