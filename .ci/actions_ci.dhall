@@ -399,7 +399,7 @@ let scripts = {
     grep -Fq 'russConsistencyCertified = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'consistencyModelProvided = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'directImportClosureTraversed = False' .ci/discovery/russ-global-certificate.dhall
-    grep -Fq 'explicitClassicalPostulateFound = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'namedClassicalPostulateFound = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'globalOptionsSha256' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'rewriteRuleIdentifiers' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'importedModulesBySource' .ci/discovery/russ-global-certificate.dhall
