@@ -233,7 +233,7 @@ jobs:
 
           nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
   auto-merge:
-    name: Enable automatic merge after all required jobs pass
+    name: Enable auto-merge only after explicit approval
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     needs: [policy, versions, agda-learner, agda-theorem, semantic, pages, backends]
     runs-on: ubuntu-22.04
@@ -241,7 +241,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Enable auto-merge after required jobs succeed
+      - name: Enable auto-merge only after explicit approval
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
