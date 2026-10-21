@@ -163,7 +163,12 @@ grep -Fq 'Agda >= 2.8' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'backendInteractTop' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'CaseInfo lazy _erased (CTData cty)' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'nix build -L .#agda2forth' .github/workflows/nix-composition.yml
-grep -Fq '"$tmp/ccforth/bin/ccforth" -entry MAIN -o "$tmp/forth/CcforthSubset-native" "$tmp/forth/CcforthSubset.fth"' .github/workflows/nix-composition.yml
+grep -Fq 'pkgs.gcc' flake.nix
+grep -Fq 'nix develop .#forth -c "$tmp/ccforth/bin/ccforth" -cc gcc -entry MAIN -o "$tmp/forth/CcforthSubset-native" "$tmp/forth/CcforthSubset.fth"' .github/workflows/nix-composition.yml
+! grep -A8 -F 'presentation = pkgs.mkShell' flake.nix | grep -Fq 'pkgs.stdenv.cc' || {
+  echo "presentation shell retains an unused C compiler after removing the Wasm palette" >&2
+  exit 1
+}
 grep -Fq 'GForth Agda2Forth smoke returned' .github/workflows/nix-composition.yml
 grep -Fq 'ccforth native-subset smoke returned' .github/workflows/nix-composition.yml
 grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
