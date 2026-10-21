@@ -108,13 +108,13 @@ jobs:
           set -euo pipefail
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
-          nix build .#agda2forth --out-link "$tmp/agda2forth"
+          nix build -L .#agda2forth --out-link "$tmp/agda2forth"
           test -x "$tmp/agda2forth/bin/agda2forth"
           "$tmp/agda2forth/bin/agda2forth" --help >/dev/null
-          nix build .#agda2scheme --out-link "$tmp/agda2scheme"
+          nix build -L .#agda2scheme --out-link "$tmp/agda2scheme"
           test -x "$tmp/agda2scheme/bin/agda2scheme"
           "$tmp/agda2scheme/bin/agda2scheme" --help >/dev/null
-          nix build .#ccforth --out-link "$tmp/ccforth"
+          nix build -L .#ccforth --out-link "$tmp/ccforth"
           "$tmp/ccforth/bin/ccforth" -version
           nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
 

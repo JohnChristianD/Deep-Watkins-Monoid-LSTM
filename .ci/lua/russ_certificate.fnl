@@ -7,59 +7,59 @@
     "FullCoupled/TheoremsMonolith.agda"
   ])
 
-(local function read-file [path]
+(local read-file (fn [path]
   (local file (assert (io.open path "r") (.. "cannot read " path)))
   (local source (file:read "*a"))
   (file:close)
-  source)
+  source))
 
-(local function read-line [command]
+(local read-line (fn [command]
   (local pipe (assert (io.popen command "r") (.. "cannot run " command)))
   (local value (pipe:read "*l"))
   (pipe:close)
   (assert value (.. "no output from " command))
-  value)
+  value))
 
-(local function sha256 [path]
+(local sha256 (fn [path]
   (local line (read-line (.. "sha256sum " path)))
   (local digest (string.match line "^([0-9a-f]+)"))
   (assert digest (.. "cannot parse SHA-256 for " path))
-  digest)
+  digest))
 
-(local function trim [value]
-  (string.gsub (string.gsub value "^%s+" "") "%s+$" ""))
+(local trim (fn [value]
+  (string.gsub (string.gsub value "^%s+" "") "%s+$" "")))
 
-(local function lines-of [source]
-  (fun.totable (string.gmatch source "[^\n]+")))
+(local lines-of (fn [source]
+  (fun.totable (string.gmatch source "[^\n]+"))))
 
-(local function starts [value prefix]
-  (= (string.sub value 1 (# prefix)) prefix))
+(local starts (fn [value prefix]
+  (= (string.sub value 1 (# prefix)) prefix)))
 
-(local function contains [source needle]
-  (not (= (string.find source needle 1 true) nil)))
+(local contains (fn [source needle]
+  (not (= (string.find source needle 1 true) nil))))
 
-(local function count-where [lines predicate]
+(local count-where (fn [lines predicate]
   (var count 0)
   (each [_ line (ipairs lines)]
     (when (predicate line)
       (set count (+ count 1))))
-  count)
+  count))
 
-(local function count-postulate-statements [lines]
+(local count-postulate-statements (fn [lines]
   (count-where lines
     (fn [line]
       (local item (trim line))
       (and (not (starts item "--"))
-           (or (= item "postulate") (starts item "postulate "))))))
+           (or (= item "postulate") (starts item "postulate ")))))))
 
-(local function count-primitive-blocks [lines]
-  (count-where lines (fn [line] (= (trim line) "primitive"))))
+(local count-primitive-blocks (fn [lines]
+  (count-where lines (fn [line] (= (trim line) "primitive")))))
 
-(local function count-rewrite-pragmas [lines]
+(local count-rewrite-pragmas (fn [lines]
   (count-where lines
-    (fn [line] (starts (trim line) "{-# REWRITE"))))
+    (fn [line] (starts (trim line) "{-# REWRITE")))))
 
-(local function count-cubical-imports [lines]
+(local count-cubical-imports (fn [lines]
   (count-where lines
     (fn [line]
       (local item (trim line))
@@ -67,9 +67,9 @@
            (or (starts item "open import Cubical.")
                (starts item "open import Cubical ")
                (starts item "import Cubical.")
-               (starts item "import Cubical "))))))
+               (starts item "import Cubical ")))))))
 
-(local function direct-classical-postulate-count [lines]
+(local direct-classical-postulate-count (fn [lines]
   (var postulate-indent -1)
   (var count 0)
   (each [_ raw (ipairs lines)]
@@ -97,9 +97,9 @@
                 (starts declaration "LPO ")
                 (starts declaration "LLPO "))
         (set count (+ count 1)))))
-  count)
+  count))
 
-(local function import-inventory [path]
+(local import-inventory (fn [path]
   (local lines (lines-of (read-file path)))
   (local modules [])
   (each [_ raw (ipairs lines)]
@@ -110,9 +110,9 @@
             (string.match item "^import ([^%s]+)")))
       (when module-name
         (table.insert modules (.. path " -> " module-name)))))
-  modules)
+  modules))
 
-(local function rewrite-identifiers [path]
+(local rewrite-identifiers (fn [path]
   (local lines (lines-of (read-file path)))
   (local identifiers [])
   (each [_ line (ipairs lines)]
@@ -123,9 +123,9 @@
         (local body (string.sub line (+ marker 12) (- ending 1)))
         (each [identifier (string.gmatch body "%S+")]
           (table.insert identifiers identifier)))))
-  identifiers)
+  identifiers))
 
-(local function summary [path]
+(local summary (fn [path]
   (local source (read-file path))
   (local lines (lines-of source))
   { :path path
@@ -146,7 +146,7 @@
     :hasMarkovProjection (contains source "russianMarkovPrinciple")
     :hasECT0Projection (contains source "extendedChurchThesis0")
     :hasCountableChoiceProjection (contains source "russianCountableChoice")
-  })
+  }))
 
 (local learner (summary (. source-files 1)))
 (local theorems (summary (. source-files 2)))

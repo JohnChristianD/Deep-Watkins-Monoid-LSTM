@@ -31,8 +31,8 @@
 (local ascii-sanitize
   (fn [value]
     (var output value)
-    -- Keep frequent Agda symbols meaningful in the ASCII-only generated
-    -- Elm source; unknown non-ASCII code points become question marks.
+    ; Keep frequent Agda symbols meaningful in the ASCII-only generated
+    ; Elm source; unknown non-ASCII code points become question marks.
     (each [_ pair (ipairs
         [ ["⊥" "Bottom"]
           ["→" "->"]
