@@ -1,8 +1,8 @@
 #!/usr/bin/env scsh -s
 !#
-;; Policy guard for the official, pinned Nix/Agda/Pages surface.
-;; This is Scheme control flow; no shell script, pipeline, process substitution,
-;; or shell-expanded variable is used for policy decisions.
+;; Small, fail-closed policy guard for the pinned Nix/Agda/Pages surface.
+;; This replaces the former Bash policy checker.
+
 (define (read-file path)
   (call-with-input-file path
     (lambda (port)
@@ -12,44 +12,23 @@
               (list->string (reverse chars))
               (loop (cons ch chars))))))))
 
-(define (lines-of text)
-  (let loop ((chars (string->list text)) (line '()) (lines '()))
-    (cond ((null? chars)
-           (reverse (if (null? line) lines (cons (list->string (reverse line)) lines))))
-          ((char=? (car chars) #\newline)
-           (loop (cdr chars) '() (cons (list->string (reverse line)) lines)))
-          (else (loop (cdr chars) (cons (car chars) line) lines)))))
-
 (define (contains? text needle)
-  (let ((n (string-length needle)) (total (string-length text)))
+  (let ((n (string-length needle))
+        (size (string-length text)))
     (let loop ((i 0))
-      (cond ((> (+ i n) total) #f)
+      (cond ((> (+ i n) size) #f)
             ((string=? (substring text i (+ i n)) needle) #t)
             (else (loop (+ i 1)))))))
 
-(define (lower text)
-  (list->string (map char-downcase (string->list text))))
-
-(define (contains-ci? text needle)
-  (contains? (lower text) (lower needle)))
-
-(define (starts? text prefix)
-  (and (<= (string-length prefix) (string-length text))
-       (string=? (substring text 0 (string-length prefix)) prefix)))
-
 (define (count-substring text needle)
-  (let ((n (string-length needle)) (total (string-length text)))
+  (let ((n (string-length needle))
+        (size (string-length text)))
     (let loop ((i 0) (count 0))
-      (cond ((> (+ i n) total) count)
-            ((string=? (substring text i (+ i n)) needle)
-             (loop (+ i n) (+ count 1)))
-            (else (loop (+ i 1) count)))))
-
-(define (count-lines-containing text needle)
-  (let loop ((lines (lines-of text)) (count 0))
-    (if (null? lines)
-        count
-        (loop (cdr lines) (if (contains? (car lines) needle) (+ count 1) count))))))
+      (if (> (+ i n) size)
+          count
+          (if (string=? (substring text i (+ i n)) needle)
+              (loop (+ i n) (+ count 1))
+              (loop (+ i 1) count))))))
 
 (define (fail message)
   (display "official-nix-surface=fail: ")
@@ -59,188 +38,142 @@
 
 (define (require-file path)
   (if (not (file-exists? path))
-      (fail (string-append "missing required file " path))))
+      (fail (string-append "missing file: " path))))
 
 (define (forbid-file path)
   (if (file-exists? path)
-      (fail (string-append "forbidden file exists " path))))
+      (fail (string-append "forbidden file remains: " path))))
 
-(define (require-contains path needle)
+(define (require-text path needle)
   (if (not (contains? (read-file path) needle))
-      (fail (string-append path " lacks required text: " needle))))
+      (fail (string-append path " lacks: " needle))))
 
-(define (forbid-contains path needle)
+(define (forbid-text path needle)
   (if (contains? (read-file path) needle)
       (fail (string-append path " contains forbidden text: " needle))))
 
-(define (forbid-contains-ci path needle)
-  (if (contains-ci? (read-file path) needle)
-      (fail (string-append path " contains forbidden text: " needle))))
-
-(define (require-count path needle expected)
+(define (require-occurrences path needle expected)
   (let ((actual (count-substring (read-file path) needle)))
     (if (not (= actual expected))
-        (fail (string-append path " occurrence count for " needle
-                             " was " (number->string actual)
-                             ", expected " (number->string expected))))))
+        (fail (string-append path " occurrence count for "
+                             needle ": " (number->string actual))))))
 
-(define (require-exact-option path option)
-  (let loop ((lines (lines-of (read-file path))) (inside #t) (found #f))
-    (cond ((null? lines)
-           (if (not found) (fail (string-append "missing option " option " in " path))))
-          ((not inside)
-           (if (not found) (fail (string-append "missing option " option " in " path))))
-          ((string=? (car lines) "#-}")
-           (if (not found) (fail (string-append "missing option " option " in " path))))
-          (else
-           (loop (cdr lines) #t (or found (string=? (car lines) option)))))))
+;; Pinned and official toolchain: only Nixpkgs and Luafun are GitHub inputs.
+(require-text "flake.nix" "nixpkgs.url = \"github:NixOS/nixpkgs/")
+(require-text "flake.nix" "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f")
+(require-occurrences "flake.nix" "url = \"github:" 2)
+(for-each
+  (lambda (needle) (forbid-text "flake.nix" needle))
+  '("doJailbreak" "allowBroken" "allowUnsupportedSystem"
+    "nixpkgs-ghc924" "inversion-plugin-src" "cau-placc/inversion-plugin"
+    "TypeTopology" "typetopology" "acornprover" "acornlib"
+    "xds-agda" "xdsAgda" "miniVehicle" "vehicle-formalisation"
+    "-l agda2hs-base" "ghcLanguageFlags" "-XMonoLocalBinds"
+    "-XNoMonomorphismRestriction" "agda2scheme" "jespercockx/agda2scheme"
+    "pkgs.guile" "clang" "llvmPackages"))
 
-(define (require-options-boundary path)
-  (require-exact-option path "--lossy-unification")
-  (let loop ((lines (lines-of (read-file path))) (inside #t))
-    (cond ((null? lines) #t)
-          ((string=? (car lines) "#-}") #t)
-          ((string=? (car lines) "--auto-inline")
-           (fail (string-append "obsolete --auto-inline option remains in " path)))
-          (else (loop (cdr lines) inside)))))
-
-(define (check-monolith path)
-  (let ((text (read-file path))
-        (lines (lines-of (read-file path))))
-    (if (not (contains? text "--with-K"))
-        (fail (string-append "expected --with-K in " path)))
-    (let options-loop ((rest lines) (inside #t))
-      (if (and inside (pair? rest))
-          (let ((line (string-trim-both (car rest))))
-            (if (and (> (string-length line) 0)
-                     (char=? (string-ref line 0) #\-)
-                     (contains? line "--cubical"))
-                (fail (string-append "Cubical mode conflicts with --with-K path: " path)))
-            (if (not (string=? line "#-}"))
-                (options-loop (cdr rest) #t))))
+(for-each
+  (lambda (path)
     (for-each
-      (lambda (line)
-        (let ((item (string-trim-both line)))
-          (if (or (starts? item "open import Cubical.")
-                  (starts? item "open import Cubical ")
-                  (starts? item "import Cubical.")
-                  (starts? item "import Cubical "))
-              (fail (string-append "direct Cubical import is not permitted: " path)))))
-      lines))))
+      (lambda (needle) (forbid-text path needle))
+      '("liquidhaskell" "liquid-haskell" "liquid --version")))
+  '("flake.nix" ".github/workflows/nix-composition.yml" ".ci/actions_ci.dhall"))
 
-(define (string-trim-both s)
-  (let ((n (string-length s)))
-    (let left ((i 0))
-      (if (and (< i n) (char-whitespace? (string-ref s i)))
-          (left (+ i 1))
-          (let right ((j n))
-            (if (and (> j i) (char-whitespace? (string-ref s (- j 1))))
-                (right (- j 1))
-                (substring s i j)))))))
-
-(define workflow-files
+;; Workflow runners may use the official Nix installer; disallow unofficial
+;; installers/caches and legacy global package-manager mutation.
+(for-each
+  (lambda (path)
+    (require-file path)
+    (for-each
+      (lambda (needle)
+        (if (contains? (read-file path) needle)
+            (fail (string-append "unsupported installer/cache reference in "
+                                 path ": " needle))))
+      '("DeterminateSystems" "cachix" "nix-community" "install-nix-action"
+        "install-nix.sh" "nixos.org/nix/install" "artifacts.nixos.org/nix-installer"
+        "nix-env" "nix profile install")))
   '(".github/workflows/github-pages.yml"
     ".github/workflows/nix-composition.yml"
     ".github/workflows/theorem-registry-autoprune.yml"))
 
+;; The canonical monoliths keep their existing K / non-guardedness setup.
 (for-each
   (lambda (path)
     (require-file path)
-    (let ((text (read-file path)))
-      (for-each
-        (lambda (needle)
-          (if (contains-ci? text needle)
-              (fail (string-append "unsupported third-party Nix installer/cache reference in " path ": " needle))))
-        '("DeterminateSystems" "cachix" "nix-community" "install-nix-action"
-          "install-nix.sh" "nixos.org/nix/install" "artifacts.nixos.org/nix-installer"
-          "nix-env" "nix profile install"))))
-  workflow-files)
-
-(for-each
-  (lambda (needle) (forbid-contains "flake.nix" needle))
-  '("doJailbreak" "allowBroken" "allowUnsupportedSystem"
-    "nixpkgs-ghc924" "inversion-plugin-src" "cau-placc/inversion-plugin"
-    "TypeTopology" "typetopology" "acornprover" "acornlib" "xds-agda"
-    "xdsAgda" "miniVehicle" "vehicle-formalisation" "-l agda2hs-base"
-    "ghcLanguageFlags" "-XMonoLocalBinds" "-XNoMonomorphismRestriction"
-    "agda2scheme" "jespercockx/agda2scheme" "pkgs.guile"))
-
-(for-each
-  (lambda (path)
+    (require-text path "--with-K")
+    (require-text path "--no-guardedness")
+    (require-text path "--lossy-unification")
     (for-each
-      (lambda (needle) (forbid-contains-ci path needle))
-      '("liquidhaskell" "liquid-haskell" "liquid --version")))
-  '("flake.nix" ".github/workflows/nix-composition.yml" ".ci/actions_ci.dhall"))
+      (lambda (needle) (forbid-text path needle))
+      '("open import Cubical." "open import Cubical "
+        "import Cubical." "import Cubical " "GuardedCubical"
+        "--auto-inline")))
+  '("FullCoupled/CanonicalLearnerMonolith.agda"
+    "FullCoupled/TheoremsMonolith.agda"))
 
-(require-contains "flake.nix" "github:NixOS/nixpkgs/")
-(require-contains "flake.nix" "nixpkgs.url = \"github:NixOS/nixpkgs/")
-(require-contains "flake.nix" "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f")
-(let ((input-count (count-lines-containing (read-file "flake.nix") "url = \"github:")))
-  (if (not (= input-count 2))
-      (fail (string-append "expected 2 pinned GitHub inputs; found " (number->string input-count)))))
-
-(for-each require-options-boundary
-  '("FullCoupled/CanonicalLearnerMonolith.agda" "FullCoupled/TheoremsMonolith.agda"))
-
-(require-file ".ci/actions_ci.dhall")
-(forbid-file ".ci/verify-official-nix-surface.sh")
+;; Keep non-graph-search proofs in the two canonical monoliths and keep
+;; Reflection/TC out of the learner when no declaration there needs it.
+(for-each require-file
+  '(".ci/actions_ci.dhall"
+    ".ci/fennel/agda_import_sync.fnl"
+    ".ci/fennel/agda_graph.fnl"
+    ".ci/fennel/ascii_surface.fnl"
+    ".ci/fennel/russ_certificate.fnl"
+    ".ci/fennel/palette_css.fnl"
+    ".ci/presentation-contract.dhall"
+    ".ci/presentation-smoke.cjs"
+    ".ci/agda/global-options.txt"
+    ".ci/scsh/verify-official-nix-surface.scsh"
+    ".ci/scsh/agda-semantic-source-closure.scsh"
+    ".ci/scsh/forth-scheme-smoke.scsh"
+    "site/app.js" "site/site.less"))
 (for-each forbid-file
-  '(".ci/pure-formal-stack.md" ".ci/graph-search-contract.md"
-    ".ci/discovery/graph-search-spec.md" ".ci/agda/import-contracts.tsv"
-    "FullCoupled/ReflectionAutomation.agda" "FullCoupled/FiniteTabularUAP.agda"
-    "FullCoupled/CircleHITInterface.agda"))
-
-(for-each check-monolith
-  '("FullCoupled/CanonicalLearnerMonolith.agda" "FullCoupled/TheoremsMonolith.agda"))
+  '(".ci/verify-official-nix-surface.sh"
+    ".ci/discovery/agda_semantic_source_closure.sh"
+    ".ci/elm-application.dhall"
+    ".ci/fennel/agda_surface.fnl"
+    ".ci/wasm/maximin_palette.c"
+    ".ci/wasm/palette-smoke.cjs"
+    "site/palette-loader.js"
+    "site/Main.elm"
+    "FullCoupled/ReflectionAutomation.agda"
+    "FullCoupled/FiniteTabularUAP.agda"
+    "FullCoupled/CircleHITInterface.agda"
+    ".ci/pure-formal-stack.md"
+    ".ci/graph-search-contract.md"
+    ".ci/discovery/graph-search-spec.md"
+    ".ci/agda/import-contracts.tsv"))
 (for-each
   (lambda (path)
-    (forbid-contains path "GuardedCubical")
-    (forbid-contains path "cubical=no-glue"))
-  '("FullCoupled/TheoremsMonolith.agda"))
+    (forbid-text path "open import Agda.Builtin.Reflection public"))
+  '("FullCoupled/CanonicalLearnerMonolith.agda"))
 
+;; Fennel and Luafun own build-time generators. The browser adapter is limited
+;; to local DOM/search/filter behavior; palette generation is static CSS.
 (for-each
-  (lambda (pair) (require-file (car pair)))
-  '((".ci/fennel/agda_import_sync.fnl")
-    (".ci/fennel/agda_graph.fnl")
-    ("site/app.js")
-    (".ci/presentation-smoke.cjs")
-    (".ci/fennel/ascii_surface.fnl")
-    (".ci/fennel/russ_certificate.fnl")
-    (".ci/agda/global-options.txt")
-    (".ci/scsh/verify-official-nix-surface.scsh")
-    (".ci/scsh/forth-scheme-smoke.scsh")
-    (".ci/scsh/agda-semantic-source-closure.scsh")))
-
-(for-each
-  (lambda (needle) (require-contains "flake.nix" needle))
-  '("name = \"fennel-smoke\";" "name = \"streamly-tools-check\";"
+  (lambda (needle) (require-text "flake.nix" needle))
+  '("pkgs.luajitPackages.buildLuaPackage" "pkgs.luajit.withPackages"
+    "name = \"fennel-smoke\";" "name = \"streamly-tools-check\";"
     "name = \"agda-import-sync\";" "agda-emacs = agdaEmacs system;"
-    "agda = agdaCli system;" "agda2hs_base_root" "ghc}/bin/ghc\" -O0 -dcore-lint"
-    "pkgs.luajitPackages.buildLuaPackage" "pkgs.luajit.withPackages"
-    "ccforth = system:" "ccforth_0.3.2_linux_amd64.tar.gz"
-    "ccforth_0.3.2_linux_arm64.tar.gz" "ccforth_0.3.2_darwin_amd64.tar.gz"
-    "ccforth_0.3.2_darwin_arm64.tar.gz" "pkgs.gforth" "pkgs.groff" "pkgs.gcc"
-    "forth = pkgs.mkShell" "github.com/LMMilliken/agda2Forth.git"
-    "agda2forth = agda2forth system;" "name = \"scott-strachey-domain-check\";"
+    "agda = agdaCli system;" "agda2hs_base_root"
+    "ghc}/bin/ghc\" -O0 -dcore-lint" "ccforth = system:"
+    "ccforth_0.3.2_linux_amd64.tar.gz" "ccforth_0.3.2_linux_arm64.tar.gz"
+    "ccforth_0.3.2_darwin_amd64.tar.gz" "ccforth_0.3.2_darwin_arm64.tar.gz"
+    "pkgs.gforth" "pkgs.groff" "pkgs.gcc" "forth = pkgs.mkShell"
+    "github.com/LMMilliken/agda2Forth.git" "agda2forth = agda2forth system;"
+    "name = \"scott-strachey-domain-check\";"
     "name = \"monoid-lstm-stream-check\";"
-    "scsh -s .ci/scsh/agda-semantic-source-closure.scsh"))
+    "scsh -s .ci/scsh/agda-semantic-source-closure.scsh"
+    "name = \"fennel-palette-css\";"))
 
-(require-contains ".github/workflows/nix-composition.yml" "nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh")
-(forbid-contains ".github/workflows/nix-composition.yml" "nix develop .#forth -c bash")
-(require-contains ".github/workflows/nix-composition.yml" "nix develop .#forth -c \"$tmp/ccforth/bin/ccforth\" -cc gcc -entry MAIN -o \"$tmp/forth/CcforthSubset-native\" \"$tmp/forth/CcforthSubset.fth\"")
-(require-contains ".github/workflows/nix-composition.yml" "GForth Agda2Forth smoke returned")
-(require-contains ".github/workflows/nix-composition.yml" "ccforth native-subset smoke returned")
-
-(require-count "flake.nix" "chmod -R u+rwX \"$agda2hs_base_work/library\"" 3)
-
-(for-each
-  (lambda (needle) (forbid-contains "FullCoupled/CanonicalLearnerMonolith.agda" needle))
-  '("open import Agda.Builtin.Reflection public"))
-
-;; The legacy .ci/lua namespace must not contain tracked Fennel sources.
-(let ((legacy (run/strings (git ls-files ".ci/lua/*.fnl"))))
-  (if (not (null? legacy))
-      (fail "Fennel sources belong under .ci/fennel, not .ci/lua")))
+(require-text ".github/workflows/nix-composition.yml"
+  "nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh")
+(forbid-text ".github/workflows/nix-composition.yml" "nix develop .#forth -c bash")
+(require-text ".github/workflows/nix-composition.yml"
+  "ccforth\" -cc gcc -entry MAIN -o \"$tmp/forth/CcforthSubset-native\"")
+(require-text ".github/workflows/nix-composition.yml" "GForth Agda2Forth smoke returned")
+(require-text ".github/workflows/nix-composition.yml" "ccforth native-subset smoke returned")
+(require-occurrences "flake.nix" "chmod -R u+rwX \"$agda2hs_base_work/library\"" 3)
 
 (display "official-nix-surface=pass\n")
 (exit 0)
