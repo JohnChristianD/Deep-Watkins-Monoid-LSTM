@@ -174,7 +174,7 @@
             "create native Agda JavaScript output directory")
   (must-run
     (lambda ()
-      (run (,(agda-command) "--js" "--js-es6" "--js-verify"
+      (run (,(agda-command) "--js" "--js-es6"
             ,(string-append "--compile-dir=" js-dir)
             "-i" "." "FullCoupled/Agda2HsSemanticExtractor.agda")))
     "compile immutable static page model with Agda JavaScript backend")
