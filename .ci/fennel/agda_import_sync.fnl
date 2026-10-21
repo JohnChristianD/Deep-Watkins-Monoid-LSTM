@@ -272,7 +272,7 @@
   (assert (string.find actions-source "let scripts = {" 1 true)
     "Dhall CI script map is missing"))
 (local scripts-end
-  (assert (string.find actions-source "\n  ''}\n\nlet ScriptEntry = { mapKey : Text, mapValue : Text }" scripts-start true)
+  (assert (string.find actions-source "\n  ''}\n\nin\n  { Lane = Lane" scripts-start true)
     "Dhall CI script map boundary is missing"))
 (local scripts-body (string.sub actions-source scripts-start (- scripts-end 1)))
 (local lane-line
