@@ -39,7 +39,7 @@ jobs:
           installer-version: '2.35.1'
       - name: Run version lane
         env:
-          CI_LANE: '"Versions"'
+          CI_LANE: "Versions"
         run: |
           set -euo pipefail
           nix develop .#agda-versions -c bash -e -c '
