@@ -4,7 +4,6 @@ import Browser
 import GeneratedMonolithContent as Content
 import GeneratedTheoremSurface as Surface
 import Html exposing (Html, a, button, div, footer, h1, h2, h3, header, input, li, main_, nav, p, section, span, text, ul)
-import Html
 import Html.Attributes as HA
 import Html.Events as HE
 import List
@@ -228,7 +227,6 @@ view model =
                     , anchorLink "Source files" "sources"
                     , anchorLink "Russian constructivism" "russ"
                     , anchorLink "Declaration index" "declarations"
-                    , anchorLink "Perceptual palette" "palette"
                     ]
                 , a [ HA.href "https://www.gnu.org/", HA.target "_blank", HA.rel "noreferrer", HA.class "source-link" ] [ text "GNU.org · free software and formal tools" ]
                 , p [ HA.class "nav-title" ] [ text "Canonical files" ]
@@ -324,14 +322,6 @@ view model =
                             )
                         ]
                     , div [] (List.map (entryCard model) (List.take searchLimit entries))
-                    ]
-                , section [ HA.id "palette", HA.class "section" ]
-                    [ h2 [] [ text "Maximin perceptual palette" ]
-                    , p [ HA.class "section-lede" ]
-                        [ text "The local WebAssembly palette preserves the CAT02LMS opponent transform and farthest-point maximin rule. Its candidate budget grows with the semantic role count; the selected palette is not limited to six colors." ]
-                    , div [ HA.class "palette", HA.id "wasm-palette" ] []
-                    , p [ HA.class "palette-caption", HA.id "wasm-palette-caption" ]
-                        [ text "Initializing the adaptive CAT02LMS maximin palette." ]
                     ]
                 , footer [ HA.class "footer" ]
                     [ text
