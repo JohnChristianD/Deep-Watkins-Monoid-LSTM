@@ -9,14 +9,6 @@ on:
       - ".ci/**"
       - "site/**"
       - "flake.nix"
-  pull_request:
-    branches: [main]
-    paths:
-      - ".github/workflows/github-pages.yml"
-      - "FullCoupled/**"
-      - ".ci/**"
-      - "site/**"
-      - "flake.nix"
   workflow_dispatch:
 
 permissions:
@@ -25,7 +17,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages-main
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
