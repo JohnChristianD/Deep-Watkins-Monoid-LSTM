@@ -282,8 +282,8 @@
     (require-text manifest "searchKernel=Agda2Hs")
     (require-text manifest "legacyMonoliths=source-scan-only")
     (nix-app ".#fennel-russ-certificate")
-    (must-run (lambda () (run (dhall "--file" ".ci/discovery/russ-global-certificate.dhall")))
-              "validate RUSS trust inventory")
+    (must-run (lambda () (run (dhall "type" "--file" ".ci/discovery/russ-global-certificate.dhall")))
+              "type-check RUSS trust inventory")
     (for-each (lambda (needle) (require-text ".ci/discovery/russ-global-certificate.dhall" needle))
       '("status = \"DIRECT_SURFACE_INVENTORIED; TRANSITIVE_CONSISTENCY_NOT_PROVED\""
         "directMonolithInventoryPassed = True"
