@@ -330,6 +330,11 @@ let scripts = {
     grep -Fq '.shell' site/site.less
     grep -Fq 'Russian constructivism (RUSS): trust-surface certificate' site/Main.elm
     grep -Fq 'Declaration index' site/Main.elm
+    grep -Fq 'String.trim' site/Main.elm
+    grep -Fq '[ entry.name, entry.signature ]' site/Main.elm
+    ! grep -Fq 'entry.source, entry.category' site/Main.elm
+    grep -Fq 'TheoremOnly ->' site/Main.elm
+    grep -Fq 'isTheoremEntry entry' site/Main.elm
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     ! grep -Fq 'Mirth' site/Main.elm
     grep -Fq 'maximinPalette' site/palette.js
