@@ -125,7 +125,7 @@
                 (if (and (>= primitive-indent 0)
                          (> indentation primitive-indent))
                     "primitive"
-                    "ordinary")))
+                    "ordinary"))))
       (local clean-signature
         (if (= (trim signature) "")
             "(signature continues on following lines)"
