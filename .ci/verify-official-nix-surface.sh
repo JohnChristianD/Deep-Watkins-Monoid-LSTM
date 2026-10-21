@@ -135,9 +135,9 @@ grep -Fq 'Agda >= 2.8' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'backendInteractTop' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'CaseInfo lazy _erased (CTData cty)' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'nix build -L .#agda2forth' .github/workflows/nix-composition.yml
-grep -Fq '"$tmp/ccforth/bin/ccforth" -entry MAIN -o' .github/workflows/nix-composition.yml
+grep -Fq '"$tmp/ccforth/bin/ccforth" -entry MAIN -o "$tmp/forth/CcforthSubset-native" "$tmp/forth/CcforthSubset.fth"' .github/workflows/nix-composition.yml
 grep -Fq 'GForth Agda2Forth smoke returned' .github/workflows/nix-composition.yml
-grep -Fq 'ccforth Agda2Forth smoke returned' .github/workflows/nix-composition.yml
+grep -Fq 'ccforth native-subset smoke returned' .github/workflows/nix-composition.yml
 grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
 grep -Fq 'name = "monoid-lstm-stream-check";' flake.nix
 echo 'official-nix-surface=pass'
