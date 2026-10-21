@@ -33,6 +33,10 @@
 (define (contains-ci? text needle)
   (contains? (lower text) (lower needle)))
 
+(define (starts? text prefix)
+  (and (<= (string-length prefix) (string-length text))
+       (string=? (substring text 0 (string-length prefix)) prefix)))
+
 (define (count-substring text needle)
   (let ((n (string-length needle)) (total (string-length text)))
     (let loop ((i 0) (count 0))
@@ -117,10 +121,10 @@
     (for-each
       (lambda (line)
         (let ((item (string-trim-both line)))
-          (if (or (contains? item "open import Cubical.")
-                  (contains? item "open import Cubical ")
-                  (contains? item "import Cubical.")
-                  (contains? item "import Cubical "))
+          (if (or (starts? item "open import Cubical.")
+                  (starts? item "open import Cubical ")
+                  (starts? item "import Cubical.")
+                  (starts? item "import Cubical "))
               (fail (string-append "direct Cubical import is not permitted: " path)))))
       lines)))
 
@@ -179,6 +183,7 @@
   '("FullCoupled/CanonicalLearnerMonolith.agda" "FullCoupled/TheoremsMonolith.agda"))
 
 (require-file ".ci/actions_ci.dhall")
+(forbid-file ".ci/verify-official-nix-surface.sh")
 (for-each forbid-file
   '(".ci/pure-formal-stack.md" ".ci/graph-search-contract.md"
     ".ci/discovery/graph-search-spec.md" ".ci/agda/import-contracts.tsv"
@@ -202,6 +207,7 @@
     (".ci/fennel/ascii_surface.fnl")
     (".ci/fennel/russ_certificate.fnl")
     (".ci/agda/global-options.txt")
+    (".ci/scsh/verify-official-nix-surface.scsh")
     (".ci/scsh/forth-scheme-smoke.scsh")
     (".ci/scsh/agda-semantic-source-closure.scsh")))
 
