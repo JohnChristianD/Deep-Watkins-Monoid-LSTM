@@ -50,7 +50,10 @@ Constructive foundations — Russian constructivism (RUSS) only:
     inventory is complete for this source revision. This is not a global
     consistency certificate:
     transitive imported-theory closure, complete theorem dependency closure,
-    and joint consistency remain unproved.
+    and joint consistency remain unproved. Do not relabel this inventory as a
+    consistency certificate or flip the false consistency fields without a
+    model or relative-consistency argument matching the exact Markov, ECT₀,
+    choice, Reflection/TC, rewrite-system, and transitive import signature.
   * RUSS uses intuitionistic logic with scoped recursive/computability
     assumptions. Markov's principle and register-machine ECT0 are explicit
     assumptions, not a blanket grant of classical logic. Proposition-valued
@@ -773,6 +776,12 @@ DHALL
     : "''${GH_TOKEN:?GH_TOKEN is required}"
     : "''${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
     : "''${PR_NUMBER:?PR_NUMBER is required}"
+    # Merging remains opt-in: passing CI alone must never authorize auto-merge.
+    label_present="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels | any(.[]; .name == "auto-merge-approved")')"
+    if [[ "$label_present" != "true" ]]; then
+      echo "auto-merge=skipped (requires the explicit auto-merge-approved label)"
+      exit 0
+    fi
     gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
     '',
   All = ''
