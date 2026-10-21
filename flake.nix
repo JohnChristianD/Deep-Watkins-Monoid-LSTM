@@ -866,7 +866,7 @@ PY
                 mkdir -p "$out"
                 "${agdaCommand system}/bin/agda2hs-agda" --dependency-graph="$out/semantic-search.dot" -i . FullCoupled/Agda2HsSemanticSearch.agda
                 test -s "$out/semantic-search.dot"
-                scsh -s .ci/scsh/agda-semantic-source-closure.scsh -- \
+                scsh -s .ci/scsh/agda-semantic-source-closure.scsh \
                   "$out/semantic-search.dot" \
                   "$out/.semantic-source-files" \
                   "$PWD/FullCoupled/Agda2HsSemanticSearch.agda" \
