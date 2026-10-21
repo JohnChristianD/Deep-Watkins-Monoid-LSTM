@@ -210,14 +210,6 @@ PY
         "-XNoMonomorphismRestriction"
       ];
 
-      canonicalGhc = system:
-        let
-          pkgs = pkgsFor system;
-        in
-        pkgs.haskellPackages.ghcWithPackages (p: [
-          p.liquidhaskell
-        ]);
-
       agdaWithPackages = system:
         let
           pkgs = pkgsFor system;
@@ -237,10 +229,6 @@ PY
           pkgs = [ pkgs.agdaPackages.standard-library ];
           ghc = null;
         };
-
-      agda2hsWithCanonicalGhc = system:
-        agda2hsTool system;
-
 
       luafunModule = system:
         let
@@ -369,7 +357,7 @@ PY
         pkgs.writeShellApplication {
           name = "agda2hs-ci";
           runtimeInputs = [
-            (agda2hsWithCanonicalGhc system)
+            (agda2hsTool system)
             (agdaWithPackages system)
             pkgs.coreutils
             pkgs.findutils
@@ -404,7 +392,7 @@ PY
         {
           agda = agdaCli system;
           agda2forth = agda2forth system;
-          agda2hs = agda2hsWithCanonicalGhc system;
+          agda2hs = agda2hsTool system;
           agda-emacs = agdaEmacs system;
           ccforth = ccforth system;
           ci = pkgs.dhall;
@@ -692,7 +680,7 @@ PY
           monoid-lstm-stream-check = let
             script = pkgs.writeShellApplication {
               name = "monoid-lstm-stream-check";
-              runtimeInputs = [ (agdaCommand system) (agda2hsCommand system) (canonicalGhc system) pkgs.coreutils pkgs.gnugrep ];
+              runtimeInputs = [ (agdaCommand system) (agda2hsCommand system) (pkgs.haskellPackages.ghc) pkgs.coreutils pkgs.gnugrep ];
               text = ''
                 set -euo pipefail
                 repo_root=$PWD
@@ -759,7 +747,7 @@ PY
               runtimeInputs = [
                 (agdaCli system)
                 (agda2hsCommand system)
-                (canonicalGhc system)
+                (pkgs.haskellPackages.ghc)
                 pkgs.coreutils
                 pkgs.gnugrep
               ];
@@ -801,7 +789,7 @@ PY
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
 
                 mkdir -p "$out/ghc"
-                "${canonicalGhc system}/bin/ghc" \
+                "${pkgs.haskellPackages.ghc}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
                                     -i"$out" \
@@ -837,7 +825,7 @@ PY
                 require_report_line "graph-astar-egraph-closed=True"
                 require_report_line "empty-type-inconsistency-probe=True"
 
-                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                compiler_version=$("${pkgs.haskellPackages.ghc}/bin/ghc" --numeric-version)
                 printf '%s\n' \
                   "compiler=ghc-$compiler_version" \
                   "proofKernel=Agda" \
@@ -860,7 +848,6 @@ PY
               runtimeInputs = [
                 (agdaCommand system)
                 (agda2hsCommand system)
-                pkgs.haskellPackages.liquidhaskell
                 pkgs.z3
                 pkgs.coreutils
                 pkgs.git
@@ -909,7 +896,7 @@ PY
                 grep -Fq "inverse-preserves-csearchability" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "SearchableEquivalence" FullCoupled/TheoremsMonolith.agda
                 mkdir -p "$out/ghc"
-                "${canonicalGhc system}/bin/ghc" \
+                "${pkgs.haskellPackages.ghc}/bin/ghc" \
                   -O0 \
                   -dcore-lint \
                                     -i"$out" \
@@ -970,7 +957,7 @@ PY
                 grep -Fq "scottErshovEffectiveDomainRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
                 grep -Fq "canonical-search-egraph-closed=True" "$out/report.txt"
                 grep -Fq "graph-astar-egraph-closed=True" "$out/report.txt"
-                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                compiler_version=$("${pkgs.haskellPackages.ghc}/bin/ghc" --numeric-version)
                 printf '%s\n' \
                   "compiler=ghc-$compiler_version" \
                   "plugins=none" \
@@ -1016,7 +1003,7 @@ PY
               runtimeInputs = [
                 (agdaCommand system)
                 (agda2hsCommand system)
-                (canonicalGhc system)
+                (pkgs.haskellPackages.ghc)
                 pkgs.z3
                 pkgs.coreutils
                 pkgs.findutils
@@ -1044,9 +1031,9 @@ PY
                 test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
                 mkdir -p "$out/ghc"
-                "${canonicalGhc system}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i"$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                "${pkgs.haskellPackages.ghc}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i"$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
                 mkdir -p "$out/ghc-search"
-                "${canonicalGhc system}/bin/ghc" \
+                "${pkgs.haskellPackages.ghc}/bin/ghc" \
                   -O0 -dcore-lint -i"$out" \
                   -odir "$out/ghc-search" -hidir "$out/ghc-search" \
                   -main-is FullCoupled.Agda2HsGraphSearchCheck.main \
@@ -1060,9 +1047,8 @@ PY
                 grep -Fxq "graph-cycle-rejected=True" "$out/graph-search-report.txt"
                 grep -Fxq "graph-linear-chain=True" "$out/graph-search-report.txt"
                 grep -Fxq "graph-search-contract=True" "$out/graph-search-report.txt"
-                "${canonicalGhc system}/bin/ghc-pkg" field liquidhaskell version
                 z3 --version
-                compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
+                compiler_version=$("${pkgs.haskellPackages.ghc}/bin/ghc" --numeric-version)
                 printf '%s\n' \
                   "compiler=ghc-$compiler_version" \
                   "readableModules=5" \
@@ -1120,7 +1106,7 @@ PY
 
           simple-haskell = pkgs.mkShell {
             packages = [
-              (canonicalGhc system)
+              (pkgs.haskellPackages.ghc)
               pkgs.z3
             ];
             shellHook = ''
@@ -1171,7 +1157,7 @@ PY
 
           agda-versions = pkgs.mkShellNoCC {
             packages = [
-              (canonicalGhc system)
+              (pkgs.haskellPackages.ghc)
               pkgs.dhall
               pkgs.z3
               (agdaCommand system)
@@ -1201,7 +1187,7 @@ PY
 
           default-versions = pkgs.mkShell {
             packages = [
-              (canonicalGhc system)
+              (pkgs.haskellPackages.ghc)
               pkgs.dhall
               pkgs.z3
               pkgs.gh
@@ -1216,7 +1202,7 @@ PY
           default = pkgs.mkShell {
             packages = [
               pkgs.dhall
-              (canonicalGhc system)
+              (pkgs.haskellPackages.ghc)
               pkgs.haskellPackages.cabal-install
               pkgs.z3
               pkgs.dhall-json
