@@ -151,6 +151,10 @@
 (local learner-path "FullCoupled/CanonicalLearnerMonolith.agda")
 (local learner-source (read-file learner-path))
 (local public-import-marker "-- Merged external import surface; internal FullCoupled imports remain module-local.")
+(assert (= (count-substring learner-source public-import-marker) 1)
+  "canonical learner public import block marker must occur exactly once")
+(assert (= (count-substring learner-source "open import Agda.Primitive") 1)
+  "canonical learner public import block must end at the primitive import boundary")
 (local normalize-public-import-surface
   (fn [source]
     (local lines (fun.totable (string.gmatch source "[^\n]+")))
