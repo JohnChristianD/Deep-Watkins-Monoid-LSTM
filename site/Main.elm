@@ -74,6 +74,11 @@ sitePaletteSize =
     List.length sitePaletteRoles
 
 
+paletteCandidateCount : Int
+paletteCandidateCount =
+    sitePaletteSize * sitePaletteSize
+
+
 
 type FileFilter
     = AllFiles
@@ -90,7 +95,7 @@ type alias Model =
 
 type Msg
     = SetQuery String
-    | SetFileFilter String
+    | SetFileFilter FileFilter
     | SelectEntry String
 
 
@@ -141,11 +146,20 @@ candidateRgb index =
         tau =
             6.283185307179586
 
+        extra =
+            index - 90
+
         hue =
-            tau * toFloat (modBy 18 index) / 18
+            if index < 90 then
+                tau * toFloat (modBy 18 index) / 18
+            else
+                tau * toFloat (modBy 720 extra) / 720
 
         light =
-            0.28 + 0.045 * toFloat (modBy 5 index)
+            if index < 90 then
+                0.28 + 0.045 * toFloat (modBy 5 index)
+            else
+                0.18 + 0.0005 * toFloat (modBy 100 extra)
 
         chroma =
             0.34
@@ -158,7 +172,7 @@ candidateRgb index =
 
 candidateColors : List Perceptual
 candidateColors =
-    List.map (candidateRgb >> cat02LmsToOpponent) (List.range 0 35)
+    List.map (candidateRgb >> cat02LmsToOpponent) (List.range 0 (paletteCandidateCount - 1))
 
 
 farthestFrom : List Perceptual -> Perceptual -> List Perceptual -> Perceptual
@@ -218,7 +232,7 @@ maximinStep remaining candidates chosen =
 
 maximinPalette : List Perceptual
 maximinPalette =
-    maximinStep sitePaletteSize candidateColors []
+    maximinStep (List.length candidateColors) candidateColors []
 
 
 rgbCss : Rgb -> String
@@ -240,7 +254,7 @@ perceptualCss color =
 paletteAt : Int -> Perceptual
 paletteAt index =
     maximinPalette
-        |> List.drop (modBy sitePaletteSize index)
+        |> List.drop (modBy (List.length maximinPalette) index)
         |> List.head
         |> Maybe.withDefault (cat02LmsToOpponent (candidateRgb 0))
 
@@ -286,129 +300,19 @@ styleSheet =
     Html.node "style" []
         [ text
             (String.join ""
-                [ "@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;700&display=swap');"
-                , ":root{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;background:"
+                [ ":root{--palette-ink:"
+                , perceptualCss ink
+                , ";--palette-paper:"
                 , perceptualCss paper
-                , ";color:"
-                , perceptualCss ink
-                , ";scroll-behavior:smooth;}"
-                , "*{box-sizing:border-box;}"
-                , "body{margin:0;background:"
-                , perceptualCss paper
-                , ";color:"
-                , perceptualCss ink
-                , ";font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:16px;line-height:1.55;}"
-                , "button,input{font:inherit;}"
-                , "a{color:inherit;text-underline-offset:.2em;text-decoration-thickness:.08em;}"
-                , "a:hover{text-decoration-thickness:.15em;}"
-                , "button,input{border:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 42%,transparent);background:transparent;color:inherit;border-radius:0;}"
-                , "button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid "
+                , ";--palette-accent:"
                 , perceptualCss accent
-                , ";outline-offset:3px;}"
-                , ".shell{min-height:100vh;max-width:88rem;margin:0 auto;padding:0 clamp(1rem,4vw,3rem);}"
-                , ".masthead{display:flex;align-items:center;justify-content:space-between;gap:2rem;border-bottom:2px solid "
-                , perceptualCss ink
-                , ";padding:1.15rem 0 1rem;}"
-                , ".brand{font-weight:700;letter-spacing:-.04em;font-size:1.15rem;}"
-                , ".mast-note{margin:0;color:"
+                , ";--palette-accent-two:"
+                , perceptualCss accentTwo
+                , ";--palette-quiet:"
                 , perceptualCss quiet
-                , ";font-size:.78rem;max-width:54ch;text-align:right;}"
-                , ".layout{display:grid;grid-template-columns:13rem minmax(0,1fr);gap:clamp(1.5rem,4vw,4.5rem);align-items:start;}"
-                , ".side-nav{position:sticky;top:0;align-self:start;padding:2rem 0 1rem;}"
-                , ".nav-title{font-size:.72rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:"
-                , perceptualCss quiet
-                , ";margin:0 0 .8rem;}"
-                , ".nav-list{list-style:none;padding:0;margin:0 0 1.8rem;}"
-                , ".nav-list li{border-top:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 18%,transparent);}"
-                , ".nav-list a{display:block;padding:.55rem 0;text-decoration:none;font-size:.82rem;overflow-wrap:anywhere;}"
-                , ".nav-list a:hover{color:"
-                , perceptualCss accent
-                , ";text-decoration:underline;}"
-                , ".source-link{display:block;border-left:3px solid "
-                , perceptualCss accent
-                , ";padding:.15rem 0 .15rem .7rem;margin:.55rem 0;font-size:.75rem;overflow-wrap:anywhere;}"
-                , ".document{min-width:0;padding:2.3rem 0 3rem;max-width:76ch;}"
-                , ".eyebrow{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:"
-                , perceptualCss quiet
-                , ";font-weight:700;}"
-                , "h1{font-size:clamp(2rem,4.4vw,3.6rem);line-height:1.08;letter-spacing:-.06em;margin:.45rem 0 1.25rem;max-width:20ch;}"
-                , "h2{font-size:1.35rem;line-height:1.25;letter-spacing:-.03em;margin:0 0 .8rem;}"
-                , "h3{font-size:1rem;line-height:1.35;margin:.35rem 0;overflow-wrap:anywhere;}"
-                , ".lede{font-size:1.06rem;line-height:1.6;max-width:66ch;margin:0 0 1.2rem;}"
-                , ".intro{padding:0 0 2rem;border-bottom:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 28%,transparent);}"
-                , ".stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1.6rem 0 0;}"
-                , ".stat{border-top:2px solid "
-                , perceptualCss accent
-                , ";padding:.65rem 0 .4rem;}"
-                , ".stat strong{display:block;font-size:1.45rem;line-height:1.2;}"
-                , ".stat span{font-size:.69rem;letter-spacing:.08em;text-transform:uppercase;color:"
-                , perceptualCss quiet
-                , ";}"
-                , ".section{padding:2rem 0;border-bottom:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 22%,transparent);scroll-margin-top:1rem;}"
-                , ".section-lede{margin:.1rem 0 1.1rem;max-width:68ch;}"
-                , ".source-record{padding:.85rem 0;border-top:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 16%,transparent);}"
-                , ".source-record .source-path{display:block;font-size:.72rem;color:"
-                , perceptualCss quiet
-                , ";overflow-wrap:anywhere;margin-top:.35rem;}"
-                , ".tools{display:grid;grid-template-columns:minmax(0,1fr);gap:.7rem;margin:1rem 0;}"
-                , ".tools input{width:100%;padding:.7rem .75rem;border-radius:0;}"
-                , ".filter-row{display:flex;flex-wrap:wrap;gap:.4rem;}"
-                , ".filter-row button{padding:.45rem .7rem;font-size:.78rem;cursor:pointer;}"
-                , ".filter-row button[data-active='true']{background:"
-                , perceptualCss accent
-                , ";color:"
+                , ";--palette-ink-on-accent:"
                 , perceptualCss inkOnAccent
                 , ";}"
-                , ".result-count{font-size:.76rem;color:"
-                , perceptualCss quiet
-                , ";margin:.5rem 0 1rem;}"
-                , ".entry{padding:1rem 0;border-top:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 18%,transparent);}"
-                , ".entry[data-selected='true']{border-top:2px solid "
-                , perceptualCss accent
-                , ";}"
-                , ".entry-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;font-size:.7rem;color:"
-                , perceptualCss quiet
-                , ";}"
-                , ".entry-kind{font-weight:700;text-transform:uppercase;letter-spacing:.08em;}"
-                , ".entry-select{border:0;padding:0;text-align:left;cursor:pointer;font-weight:700;overflow-wrap:anywhere;}"
-                , ".entry-select:hover{color:"
-                , perceptualCss accent
-                , ";text-decoration:underline;}"
-                , ".signature{font-size:.8rem;line-height:1.45;margin:.45rem 0;overflow-wrap:anywhere;white-space:pre-wrap;}"
-                , ".detail{margin:.65rem 0 0;padding:.7rem 0 .15rem;border-top:1px dotted color-mix(in srgb,"
-                , perceptualCss ink
-                , " 28%,transparent);font-size:.78rem;}"
-                , ".russ-note{border-left:3px solid "
-                , perceptualCss accentTwo
-                , ";padding:.4rem 0 .4rem 1rem;margin:1rem 0;}"
-                , ".trust-label{display:inline-block;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:.68rem;color:"
-                , perceptualCss accent
-                , ";}"
-                , ".palette{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:1rem;}"
-                , ".swatch{width:3.8rem;height:1.8rem;border:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 24%,transparent);}"
-                , ".palette-caption{font-size:.75rem;color:"
-                , perceptualCss quiet
-                , ";margin:.5rem 0 0;}"
-                , ".footer{padding:1.5rem 0 2.5rem;font-size:.72rem;line-height:1.5;color:"
-                , perceptualCss quiet
-                , ";}"
-                , "@media(max-width:780px){.layout{grid-template-columns:minmax(0,1fr);gap:0}.masthead{align-items:flex-start;flex-direction:column;gap:.4rem}.mast-note{text-align:left}.side-nav{position:relative;padding:1rem 0;border-bottom:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 22%,transparent)}.nav-list{display:flex;flex-wrap:wrap;gap:.3rem 1rem;margin-bottom:.7rem}.nav-list li{border:0}.nav-list a{padding:.2rem 0}.side-nav .nav-title{margin-top:.6rem}.document{padding-top:1.5rem}.stats{grid-template-columns:repeat(2,minmax(0,1fr));}}"
                 ]
             )
         ]
@@ -420,32 +324,6 @@ init =
     , fileFilter = AllFiles
     , selected = Nothing
     }
-
-
-filterString : FileFilter -> String
-filterString filter =
-    case filter of
-        AllFiles ->
-            "all"
-
-        LearnerOnly ->
-            "learner"
-
-        TheoremOnly ->
-            "theorem"
-
-
-setFilter : String -> FileFilter
-setFilter value =
-    case value of
-        "learner" ->
-            LearnerOnly
-
-        "theorem" ->
-            TheoremOnly
-
-        _ ->
-            AllFiles
 
 
 matches : String -> String -> Bool
@@ -473,7 +351,7 @@ filterMatches filter entry =
 
 entryMatchesQuery : String -> Content.Entry -> Bool
 entryMatchesQuery query entry =
-    matches query (String.join " " [ entry.name, entry.signature, entry.source, entry.category ])
+    List.any (matches query) [ entry.name, entry.signature, entry.source, entry.category ]
 
 
 visibleEntries : Model -> List Content.Entry
@@ -500,7 +378,7 @@ selectedEntry model =
 
 sourceUrl : Content.Entry -> String
 sourceUrl entry =
-    "https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/fix/russ-audit-and-extraction-20261020/"
+    "https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/"
         ++ entry.source
         ++ "#L"
         ++ String.fromInt entry.line
@@ -541,7 +419,7 @@ sourceRecord path =
         , a
             [ HA.class "source-link"
             , HA.href
-                ("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/fix/russ-audit-and-extraction-20261020/"
+                ("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/"
                     ++ path
                 )
             , HA.target "_blank"
@@ -649,7 +527,7 @@ view model =
                             a
                                 [ HA.class "source-link"
                                 , HA.href
-                                    ("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/fix/russ-audit-and-extraction-20261020/"
+                                    ("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/"
                                         ++ path
                                     )
                                 , HA.target "_blank"
@@ -709,17 +587,17 @@ view model =
                             []
                         , div [ HA.class "filter-row" ]
                             [ button
-                                [ HE.onClick (SetFileFilter "all")
+                                [ HE.onClick (SetFileFilter AllFiles)
                                 , HA.attribute "data-active" (if model.fileFilter == AllFiles then "true" else "false")
                                 ]
                                 [ text "Both monoliths" ]
                             , button
-                                [ HE.onClick (SetFileFilter "learner")
+                                [ HE.onClick (SetFileFilter LearnerOnly)
                                 , HA.attribute "data-active" (if model.fileFilter == LearnerOnly then "true" else "false")
                                 ]
                                 [ text "Learner only" ]
                             , button
-                                [ HE.onClick (SetFileFilter "theorem")
+                                [ HE.onClick (SetFileFilter TheoremOnly)
                                 , HA.attribute "data-active" (if model.fileFilter == TheoremOnly then "true" else "false")
                                 ]
                                 [ text "Theorems only" ]
@@ -774,8 +652,8 @@ update msg model =
         SetQuery value ->
             { model | query = value }
 
-        SetFileFilter value ->
-            { model | fileFilter = setFilter value }
+        SetFileFilter filter ->
+            { model | fileFilter = filter }
 
         SelectEntry value ->
             { model | selected = if model.selected == Just value then Nothing else Just value }
