@@ -782,7 +782,11 @@ let script =
   List/fold ScriptEntry (toMap scripts) Text
     (\(entry : ScriptEntry) ->
       \(selected : Text) ->
-        if entry.mapKey == lane then entry.mapValue else selected)
+        -- Dhall Text is opaque: == compares Bool only. Two-way prefix
+        -- testing is exact equality, since each must be a prefix of the other.
+        if Text/isPrefixOf entry.mapKey lane && Text/isPrefixOf lane entry.mapKey
+        then entry.mapValue
+        else selected)
     "echo \"unknown CI lane; valid names are defined in actions_ci.dhall\" >&2; exit 2"
 
 in policyGate ++ "\n" ++ script
