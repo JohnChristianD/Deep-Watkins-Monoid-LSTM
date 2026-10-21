@@ -117,6 +117,34 @@
           };
         };
 
+      # Pin the upstream Agda 2.8-compatible Scheme backend by commit, not branch.
+      agda2schemeSource = builtins.fetchGit {
+        url = "https://github.com/jespercockx/agda2scheme.git";
+        rev = "24e02d9669f17d98ec67b8ad961cf9c3e602bf10";
+      };
+
+      # The Forth fork predates Agda 2.8. Apply a small API-port patch before
+      # Cabal resolves the package, so its dependency bounds and source agree.
+      agda2forthSource = builtins.fetchGit {
+        url = "https://github.com/LMMilliken/agda2Forth.git";
+        rev = "e83f8cc735bf220f80b3655ce2158a23818910fe";
+      };
+
+      agda2scheme = system:
+        let pkgs = pkgsFor system;
+        in pkgs.haskellPackages.callCabal2nix "agda2scheme" agda2schemeSource { };
+
+      agda2forth = system:
+        let
+          pkgs = pkgsFor system;
+          source = pkgs.applyPatches {
+            name = "agda2forth-agda-2.8";
+            src = agda2forthSource;
+            patches = [ ./nix/patches/agda2forth-agda-2.8.patch ];
+          };
+        in
+        pkgs.haskellPackages.callCabal2nix "agda2forth" source { };
+
       agda2hsTool = system:
         (pkgsFor system).haskellPackages.agda2hs;
 
@@ -385,7 +413,9 @@ PY
         in
         {
           agda = agdaCli system;
+          agda2forth = agda2forth system;
           agda2hs = agda2hsWithCanonicalGhc system;
+          agda2scheme = agda2scheme system;
           agda-emacs = agdaEmacs system;
           ccforth = ccforth system;
           ci = pkgs.dhall;
@@ -1115,10 +1145,12 @@ PY
             ];
           };
 
-          # Forth and Scheme experimentation. ccforth is a fixed-hash Nix
-          # package; its C backend is supplied by the Nix stdenv compiler.
+          # Agda-to-Forth and Agda-to-Scheme both compile against this
+          # pinned Nixpkgs Agda/Haskell package set; ccforth is separately pinned.
           forth = pkgs.mkShell {
             packages = [
+              (agda2forth system)
+              (agda2scheme system)
               (ccforth system)
               (gforth system)
               pkgs.groff

@@ -118,6 +118,18 @@ grep -Fq 'nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh' .gith
   exit 1
 }
 grep -Fq 'forth = pkgs.mkShell' flake.nix
+# Agda 2.8 backend sources are pinned to immutable upstream commits and the
+# older Forth fork receives its API-compatibility patch before Cabal resolution.
+grep -Fq 'github.com/LMMilliken/agda2Forth.git' flake.nix
+grep -Fq 'github.com/jespercockx/agda2scheme.git' flake.nix
+grep -Fq 'agda2forth = agda2forth system;' flake.nix
+grep -Fq 'agda2scheme = agda2scheme system;' flake.nix
+test -f nix/patches/agda2forth-agda-2.8.patch
+grep -Fq 'Agda >= 2.8' nix/patches/agda2forth-agda-2.8.patch
+grep -Fq 'backendInteractTop' nix/patches/agda2forth-agda-2.8.patch
+grep -Fq 'CaseInfo lazy _erased (CTData cty)' nix/patches/agda2forth-agda-2.8.patch
+grep -Fq 'nix build .#agda2forth' .github/workflows/nix-composition.yml
+grep -Fq 'nix build .#agda2scheme' .github/workflows/nix-composition.yml
 grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
 grep -Fq 'name = "monoid-lstm-stream-check";' flake.nix
 echo 'official-nix-surface=pass'

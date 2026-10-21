@@ -102,12 +102,20 @@ jobs:
         timeout-minutes: 15
         run: nix run .#streamly-tools-check
 
-      - name: Build and smoke-test reproducible Forth/Scheme tools
-        timeout-minutes: 10
+      - name: Build and smoke-test Agda Forth/Scheme backends
+        timeout-minutes: 15
         run: |
           set -euo pipefail
-          nix build .#ccforth
-          ./result/bin/ccforth -version
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          nix build .#agda2forth --out-link "$tmp/agda2forth"
+          test -x "$tmp/agda2forth/bin/agda2forth"
+          "$tmp/agda2forth/bin/agda2forth" --help >/dev/null
+          nix build .#agda2scheme --out-link "$tmp/agda2scheme"
+          test -x "$tmp/agda2scheme/bin/agda2scheme"
+          "$tmp/agda2scheme/bin/agda2scheme" --help >/dev/null
+          nix build .#ccforth --out-link "$tmp/ccforth"
+          "$tmp/ccforth/bin/ccforth" -version
           nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
 
       - name: Run semantic lanes in one Nix environment
