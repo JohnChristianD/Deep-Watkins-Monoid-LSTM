@@ -779,6 +779,6 @@ DHALL
 let ScriptEntry = { mapKey : Text, mapValue : Text }
 
 let script =
-  List/fold ScriptEntry (toMap scripts) Text (\(entry : ScriptEntry) -> \(selected : Text) -> if entry.mapKey == lane then entry.mapValue else selected) ''echo "unknown CI lane; valid names are defined in actions_ci.dhall" >&2; exit 2''
+  List/fold ScriptEntry (toMap scripts) Text (\(entry : ScriptEntry) -> \(selected : Text) -> if entry.mapKey == lane then entry.mapValue else selected) "echo unknown-CI-lane >&2; exit 2"
 
 in policyGate ++ "\n" ++ script
