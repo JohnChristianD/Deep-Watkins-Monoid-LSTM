@@ -1,11 +1,11 @@
 @import (css) url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;700&display=swap');
 
-@ink: var(--palette-ink);
-@paper: var(--palette-paper);
-@accent: var(--palette-accent);
-@accent-two: var(--palette-accent-two);
-@quiet: var(--palette-quiet);
-@ink-on-accent: var(--palette-ink-on-accent);
+@ink: var(--palette-ink, #171a18);
+@paper: var(--palette-paper, #faf9f5);
+@accent: var(--palette-accent, #356956);
+@accent-two: var(--palette-accent-two, #8b6440);
+@quiet: var(--palette-quiet, #646761);
+@ink-on-accent: var(--palette-ink-on-accent, #ffffff);
 @font-stack: 'Atkinson Hyperlegible Mono', 'Iosevka', monospace;
 
 :root {
@@ -319,15 +319,6 @@ h3 {
   color: @accent;
 }
 
-.palette { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: 1rem; }
-
-.swatch {
-  width: 3.8rem;
-  height: 1.8rem;
-  border: 1px solid color-mix(in srgb, @ink 24%, transparent);
-}
-
-.palette-caption { font-size: .75rem; color: @quiet; margin: .5rem 0 0; }
 
 .footer {
   padding: 1.5rem 0 2.5rem;
