@@ -45,7 +45,7 @@
   (local lines [])
   (var cursor 1)
   (while true
-    (local ending (string.find source "\\n" cursor true))
+    (local ending (string.find source "\n" cursor true))
     (if ending
         (do
           (table.insert lines (string.sub source cursor (- ending 1)))
