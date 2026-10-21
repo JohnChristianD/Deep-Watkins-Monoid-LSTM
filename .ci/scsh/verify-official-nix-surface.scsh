@@ -126,7 +126,7 @@
                   (starts? item "import Cubical.")
                   (starts? item "import Cubical "))
               (fail (string-append "direct Cubical import is not permitted: " path)))))
-      lines)))
+      lines))))
 
 (define (string-trim-both s)
   (let ((n (string-length s)))
