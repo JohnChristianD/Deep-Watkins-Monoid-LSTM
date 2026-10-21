@@ -131,12 +131,12 @@
             "(signature continues on following lines)"
             (ascii-sanitize (compact signature))))
       (table.insert found
-        { id = (.. path "#" clean-name ":" (tostring line-number))
-        , name = (ascii-sanitize clean-name)
-        , source = path
-        , line = line-number
-        , signature = clean-signature
-        , category = (classify path clean-name decl-kind)
+        { id = (.. path "#" clean-name ":" (tostring line-number)),
+        name = (ascii-sanitize clean-name),
+        source = path,
+        line = line-number,
+        signature = clean-signature,
+        category = (classify path clean-name decl-kind)
         }))
   found))
 
