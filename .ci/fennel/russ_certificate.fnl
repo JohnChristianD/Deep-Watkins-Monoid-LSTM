@@ -251,7 +251,7 @@
 (out:write "  permanentReferences = [\n")
 (out:write "    \"Stanford Encyclopedia of Philosophy: Constructive Mathematics — RUSS, Markov principle, and varieties of constructivism: https://plato.stanford.edu/entries/mathematics-constructive/\",\n")
 (out:write "    \"nLab: Russian constructivism — MP, dependent choice, and principles rejected by RUSS: https://ncatlab.org/nlab/show/Russian%2Bconstructivism\",\n")
-(out:write "    \"Wikibooks: Supplementary mathematics — Markov principle reference: https://en.wikibooks.org/wiki/Supplementary_mathematics\"\n")
+(out:write "    \"Hannes Diener: Constructive Reverse Mathematics (open dissertation): https://arxiv.org/abs/1804.05495\"\n")
 (out:write "  ],\n")
 (out:write "  russianBasis = {\n")
 (out:write "    singlePostulatedEntry = \"russianRecursiveMathematicsAssumptions\",\n")
