@@ -1089,6 +1089,8 @@ PY
           presentation = pkgs.mkShell {
             packages = [
               (fennelRuntime system)
+              (agdaCommand system)
+              pkgs.scsh
               pkgs.luajit
               pkgs.coreutils
               pkgs.findutils
@@ -1101,6 +1103,9 @@ PY
               pkgs.dhall
               pkgs.dhall-json
             ];
+            shellHook = ''
+              export AGDA_COMMAND="agda2hs-agda"
+            '';
           };
 
           agda-emacs = pkgs.mkShell {
