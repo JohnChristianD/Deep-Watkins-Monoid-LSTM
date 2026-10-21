@@ -309,7 +309,7 @@
   (assert (string.match workflow-source "[^\n]*CI_LANE:[^\n]*")
     "workflow policy lane is missing"))
 (local policy-lane
-  (assert (string.match policy-line "CI_LANE:%s*\\"([A-Za-z][A-Za-z0-9_]*)\\"")
+  (assert (string.match policy-line "CI_LANE:%s*\"([A-Za-z][A-Za-z0-9_]*)\"")
     "could not derive nullary Dhall constructor from policy lane"))
 (assert (and (. script-lanes policy-lane) (. union-lanes policy-lane))
   (.. "workflow policy selects missing Dhall CI lane: " policy-lane))
