@@ -113,7 +113,7 @@
       (if (and inside (pair? rest))
           (let ((line (string-trim-both (car rest))))
             (if (and (> (string-length line) 0)
-                     (char=? (string-ref line 0) #\\-)
+                     (char=? (string-ref line 0) #\-)
                      (contains? line "--cubical"))
                 (fail (string-append "Cubical mode conflicts with --with-K path: " path)))
             (if (not (string=? line "#-}"))
