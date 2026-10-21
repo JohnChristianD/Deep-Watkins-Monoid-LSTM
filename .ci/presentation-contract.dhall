@@ -4,7 +4,9 @@
     ]
 , monolithContentGenerator = ".ci/fennel/agda_graph.fnl"
 , generatedContentScript = "monolith-content.js"
-, browserRuntime = "site/app.js"
+, nativeSearchModule = "FullCoupled.Agda2HsSemanticExtractor"
+, compiledSearchModule = "jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"
+, browserRuntime = "site/app.mjs"
 , siteEntry = "index.html"
 , lessStylesheet = "site/site.less"
 , compiledStylesheet = "site.css"
