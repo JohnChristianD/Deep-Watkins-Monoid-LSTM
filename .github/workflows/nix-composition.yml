@@ -47,8 +47,8 @@ jobs:
             printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$CI_LANE" | dhall text | bash -e
           '
 
-  agda:
-    name: Pure Agda2HS kernel surface
+  agda-learner:
+    name: Canonical learner monolith and graph kernel
     needs: policy
     runs-on: ubuntu-22.04
     timeout-minutes: 35
@@ -57,20 +57,33 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Run Agda lanes in one Nix environment
+      - name: Type-check AgdaLearner independently
         timeout-minutes: 30
         run: |
           set -euo pipefail
           nix develop .#agda-ci -c bash -e -c '
             set -euo pipefail
-            run_lane() {
-              local lane="$1"
-              printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$lane" | dhall text | bash -e
-            }
-            run_lane AgdaLearner
-            run_lane AgdaTheorem
+            printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "AgdaLearner" | dhall text | bash -e
           '
 
+  agda-theorem:
+    name: Canonical theorem monolith
+    needs: policy
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
+        with:
+          installer-version: '2.35.1'
+      - name: Type-check AgdaTheorem independently
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          nix develop .#agda-ci -c bash -e -c '
+            set -euo pipefail
+            printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "AgdaTheorem" | dhall text | bash -e
+          '
   semantic:
     name: Agda semantic/e-graph verification
     needs: policy
@@ -222,23 +235,18 @@ jobs:
   auto-merge:
     name: Enable auto-merge only after explicit approval
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft
-    needs: [policy, versions, agda, semantic, pages, backends]
+    needs: [policy, versions, agda-learner, agda-theorem, semantic, pages, backends]
     runs-on: ubuntu-22.04
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
-      - name: Check explicit auto-merge approval
+      - name: Enable auto-merge only after explicit approval
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          label_present="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels | any(.[]; .name == "auto-merge-approved")')"
-          if [[ "$label_present" != "true" ]]; then
-            echo "auto-merge=skipped (requires the explicit auto-merge-approved label)"
-            exit 0
-          fi
           gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
 

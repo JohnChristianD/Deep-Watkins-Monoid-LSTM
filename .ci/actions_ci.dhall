@@ -50,7 +50,10 @@ Constructive foundations — Russian constructivism (RUSS) only:
     inventory is complete for this source revision. This is not a global
     consistency certificate:
     transitive imported-theory closure, complete theorem dependency closure,
-    and joint consistency remain unproved.
+    and joint consistency remain unproved. Do not relabel this inventory as a
+    consistency certificate or flip the false consistency fields without a
+    model or relative-consistency argument matching the exact Markov, ECT₀,
+    choice, Reflection/TC, rewrite-system, and transitive import signature.
   * RUSS uses intuitionistic logic with scoped recursive/computability
     assumptions. Markov's principle and register-machine ECT0 are explicit
     assumptions, not a blanket grant of classical logic. Proposition-valued
@@ -270,6 +273,10 @@ let scripts = {
     test -f .ci/fennel/agda_graph.fnl
     test -f .ci/fennel/agda_surface.fnl
     test -f .ci/fennel/ascii_surface.fnl
+    test -f site/site.less
+    test -f site/palette-loader.js
+    test -f .ci/wasm/maximin_palette.c
+    test -f .ci/wasm/palette-smoke.cjs
     nix run .#fennel-ascii-surface
     nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
     test -s "$tmp/src/GeneratedMonolithContent.elm"
@@ -307,25 +314,40 @@ let scripts = {
     grep -Fq '"surfaceGenerator": ".ci/fennel/agda_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq '"elmManifest": ".ci/elm-application.dhall"' "$tmp/presentation-contract.json"
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
+    grep -Fq '"lessStylesheet": "site/site.less"' "$tmp/presentation-contract.json"
+    grep -Fq '"compiledStylesheet": "site.css"' "$tmp/presentation-contract.json"
+    grep -Fq '"wasmPaletteSource": ".ci/wasm/maximin_palette.c"' "$tmp/presentation-contract.json"
+    grep -Fq '"compiledWasm": "site-palette.wasm"' "$tmp/presentation-contract.json"
+    grep -Fq '"paletteLoader": "site/palette-loader.js"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledElm": "elm.js"' "$tmp/presentation-contract.json"
     grep -Fq '"asciiGenerator": ".ci/fennel/ascii_surface.fnl"' "$tmp/presentation-contract.json"
-    grep -Fq 'Atkinson Hyperlegible Mono' site/Main.elm
-    grep -Fq 'Iosevka' site/Main.elm
-    grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/Main.elm
+    grep -Fq 'Atkinson Hyperlegible Mono' site/site.less
+    grep -Fq 'Iosevka' site/site.less
+    grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/site.less
     ! grep -Eiq 'Writer|Julia[[:space:]]Mono|JuliaMono|Noto Emoji' site/Main.elm
-    grep -Fq 'CAT02LMS' site/Main.elm
-    grep -Fq '.shell{min-height:100vh;max-width:88rem;margin:0 auto;' site/Main.elm
+    grep -Fq 'CAT02 LMS matrix' .ci/wasm/maximin_palette.c
+    grep -Fq '.shell' site/site.less
     grep -Fq 'Russian constructivism (RUSS): trust-surface certificate' site/Main.elm
     grep -Fq 'Declaration index' site/Main.elm
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     ! grep -Fq 'Mirth' site/Main.elm
-    grep -Fq 'maximinPalette' site/Main.elm
+    grep -Fq 'palette_size(void)' .ci/wasm/maximin_palette.c
     grep -Fq 'data-selected' site/Main.elm
     output_dir="$tmp"
     if [ -n "$(printenv PAGES_OUTPUT_DIR 2>/dev/null || true)" ]; then
       output_dir="$(printenv PAGES_OUTPUT_DIR)"
     fi
     mkdir -p "$output_dir"
+    lessc site/site.less "$output_dir/site.css"
+    test -s "$output_dir/site.css"
+     # Do not leak host Nix hardening flags into the wasm32 target compiler.
+     # Recent host wrappers can add -fzero-call-used-regs, which clang rejects
+     # for wasm32-unknown-unknown.
+    NIX_CFLAGS_COMPILE= NIX_CXXFLAGS_COMPILE= clang --target=wasm32-unknown-unknown -O2 -nostdlib -fno-builtin -Wl,--no-entry -Wl,--export=palette_init -Wl,--export=palette_size -Wl,--export=palette_color -Wl,--export-memory -Wl,--allow-undefined .ci/wasm/maximin_palette.c -o "$output_dir/site-palette.wasm"
+    cp site/palette-loader.js "$output_dir/palette-loader.js"
+    test -s "$output_dir/site-palette.wasm"
+    test -s "$output_dir/palette-loader.js"
+    WASM_FILE="$output_dir/site-palette.wasm" node .ci/wasm/palette-smoke.cjs
     mkdir -p "$tmp/src"
     cp site/Main.elm "$tmp/src/Main.elm"
     echo "pages-stage=monolith-content"
@@ -754,6 +776,7 @@ DHALL
     : "''${GH_TOKEN:?GH_TOKEN is required}"
     : "''${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
     : "''${PR_NUMBER:?PR_NUMBER is required}"
+    # Merging remains opt-in: passing CI alone must never authorize auto-merge.
     label_present="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels | any(.[]; .name == "auto-merge-approved")')"
     if [[ "$label_present" != "true" ]]; then
       echo "auto-merge=skipped (requires the explicit auto-merge-approved label)"

@@ -11,70 +11,6 @@ import List
 import String
 
 
-type alias Rgb =
-    { r : Float
-    , g : Float
-    , b : Float
-    }
-
-
-type alias Perceptual =
-    { rgb : Rgb
-    , l : Float
-    , a : Float
-    , b : Float
-    }
-
-
-
-type PaletteRole
-    = InkRole
-    | PaperRole
-    | AccentRole
-    | AccentTwoRole
-    | QuietRole
-    | InkOnAccentRole
-
-
-sitePaletteRoles : List PaletteRole
-sitePaletteRoles =
-    [ InkRole
-    , PaperRole
-    , AccentRole
-    , AccentTwoRole
-    , QuietRole
-    , InkOnAccentRole
-    ]
-
-
-paletteIndex : PaletteRole -> Int
-paletteIndex role =
-    case role of
-        InkRole ->
-            0
-
-        PaperRole ->
-            1
-
-        AccentRole ->
-            2
-
-        AccentTwoRole ->
-            3
-
-        QuietRole ->
-            4
-
-        InkOnAccentRole ->
-            5
-
-
-sitePaletteSize : Int
-sitePaletteSize =
-    List.length sitePaletteRoles
-
-
-
 type FileFilter
     = AllFiles
     | LearnerOnly
@@ -90,328 +26,8 @@ type alias Model =
 
 type Msg
     = SetQuery String
-    | SetFileFilter String
+    | SetFileFilter FileFilter
     | SelectEntry String
-
-
-clamp01 : Float -> Float
-clamp01 value =
-    max 0 (min 1 value)
-
-
-cat02Lms : Rgb -> ( Float, Float, Float )
-cat02Lms color =
-    ( 0.7328 * color.r + 0.4296 * color.g - 0.1624 * color.b
-    , -0.7036 * color.r + 1.6975 * color.g + 0.0061 * color.b
-    , 0.0030 * color.r + 0.0136 * color.g + 0.9834 * color.b
-    )
-
-
-cat02LmsToOpponent : Rgb -> Perceptual
-cat02LmsToOpponent rgb =
-    let
-        ( l, m, s ) =
-            cat02Lms rgb
-    in
-    { rgb = rgb
-    , l = (l + m + s) / 1.7320508075688772
-    , a = (l - m) / 1.4142135623730951
-    , b = (l + m - 2 * s) / 2.449489742783178
-    }
-
-
-distanceSquared : Perceptual -> Perceptual -> Float
-distanceSquared left right =
-    let
-        dl =
-            left.l - right.l
-
-        da =
-            left.a - right.a
-
-        db =
-            left.b - right.b
-    in
-    dl * dl + da * da + db * db
-
-
-candidateRgb : Int -> Rgb
-candidateRgb index =
-    let
-        tau =
-            6.283185307179586
-
-        hue =
-            tau * toFloat (modBy 18 index) / 18
-
-        light =
-            0.28 + 0.045 * toFloat (modBy 5 index)
-
-        chroma =
-            0.34
-    in
-    { r = clamp01 (light + chroma * cos hue)
-    , g = clamp01 (light + chroma * cos (hue - 2.0943951023931953))
-    , b = clamp01 (light + chroma * cos (hue + 2.0943951023931953))
-    }
-
-
-candidateColors : List Perceptual
-candidateColors =
-    List.map (candidateRgb >> cat02LmsToOpponent) (List.range 0 35)
-
-
-farthestFrom : List Perceptual -> Perceptual -> List Perceptual -> Perceptual
-farthestFrom chosen candidate candidates =
-    case chosen of
-        [] ->
-            candidate
-
-        _ ->
-            List.foldl
-                (\item best ->
-                    if minimumDistance chosen item > minimumDistance chosen best then
-                        item
-                    else
-                        best
-                )
-                candidate
-                candidates
-
-
-minimumDistance : List Perceptual -> Perceptual -> Float
-minimumDistance chosen candidate =
-    case chosen of
-        [] ->
-            1 / 0
-
-        first :: rest ->
-            List.foldl
-                (\item best -> min best (distanceSquared item candidate))
-                (distanceSquared first candidate)
-                rest
-
-
-maximinStep : Int -> List Perceptual -> List Perceptual -> List Perceptual
-maximinStep remaining candidates chosen =
-    if remaining <= 0 then
-        chosen
-
-    else
-        case candidates of
-            [] ->
-                chosen
-
-            first :: rest ->
-                let
-                    next =
-                        if List.isEmpty chosen then
-                            first
-                        else
-                            farthestFrom chosen first rest
-                in
-                maximinStep
-                    (remaining - 1)
-                    (List.filter (\item -> distanceSquared item next > 0) candidates)
-                    (chosen ++ [ next ])
-
-
-maximinPalette : List Perceptual
-maximinPalette =
-    maximinStep sitePaletteSize candidateColors []
-
-
-rgbCss : Rgb -> String
-rgbCss color =
-    "rgb("
-        ++ String.fromInt (round (255 * clamp01 color.r))
-        ++ " "
-        ++ String.fromInt (round (255 * clamp01 color.g))
-        ++ " "
-        ++ String.fromInt (round (255 * clamp01 color.b))
-        ++ ")"
-
-
-perceptualCss : Perceptual -> String
-perceptualCss color =
-    rgbCss color.rgb
-
-
-paletteAt : Int -> Perceptual
-paletteAt index =
-    maximinPalette
-        |> List.drop (modBy sitePaletteSize index)
-        |> List.head
-        |> Maybe.withDefault (cat02LmsToOpponent (candidateRgb 0))
-
-
-paletteFor : PaletteRole -> Perceptual
-paletteFor role =
-    paletteAt (paletteIndex role)
-
-
-ink : Perceptual
-ink =
-    paletteFor InkRole
-
-
-paper : Perceptual
-paper =
-    paletteFor PaperRole
-
-
-accent : Perceptual
-accent =
-    paletteFor AccentRole
-
-
-accentTwo : Perceptual
-accentTwo =
-    paletteFor AccentTwoRole
-
-
-quiet : Perceptual
-quiet =
-    paletteFor QuietRole
-
-
-inkOnAccent : Perceptual
-inkOnAccent =
-    paletteFor InkOnAccentRole
-
-
-
-styleSheet : Html msg
-styleSheet =
-    Html.node "style" []
-        [ text
-            (String.join ""
-                [ "@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;700&display=swap');"
-                , ":root{font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;background:"
-                , perceptualCss paper
-                , ";color:"
-                , perceptualCss ink
-                , ";scroll-behavior:smooth;}"
-                , "*{box-sizing:border-box;}"
-                , "body{margin:0;background:"
-                , perceptualCss paper
-                , ";color:"
-                , perceptualCss ink
-                , ";font-family:'Atkinson Hyperlegible Mono','Iosevka',monospace;font-size:16px;line-height:1.55;}"
-                , "button,input{font:inherit;}"
-                , "a{color:inherit;text-underline-offset:.2em;text-decoration-thickness:.08em;}"
-                , "a:hover{text-decoration-thickness:.15em;}"
-                , "button,input{border:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 42%,transparent);background:transparent;color:inherit;border-radius:0;}"
-                , "button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid "
-                , perceptualCss accent
-                , ";outline-offset:3px;}"
-                , ".shell{min-height:100vh;max-width:88rem;margin:0 auto;padding:0 clamp(1rem,4vw,3rem);}"
-                , ".masthead{display:flex;align-items:center;justify-content:space-between;gap:2rem;border-bottom:2px solid "
-                , perceptualCss ink
-                , ";padding:1.15rem 0 1rem;}"
-                , ".brand{font-weight:700;letter-spacing:-.04em;font-size:1.15rem;}"
-                , ".mast-note{margin:0;color:"
-                , perceptualCss quiet
-                , ";font-size:.78rem;max-width:54ch;text-align:right;}"
-                , ".layout{display:grid;grid-template-columns:13rem minmax(0,1fr);gap:clamp(1.5rem,4vw,4.5rem);align-items:start;}"
-                , ".side-nav{position:sticky;top:0;align-self:start;padding:2rem 0 1rem;}"
-                , ".nav-title{font-size:.72rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:"
-                , perceptualCss quiet
-                , ";margin:0 0 .8rem;}"
-                , ".nav-list{list-style:none;padding:0;margin:0 0 1.8rem;}"
-                , ".nav-list li{border-top:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 18%,transparent);}"
-                , ".nav-list a{display:block;padding:.55rem 0;text-decoration:none;font-size:.82rem;overflow-wrap:anywhere;}"
-                , ".nav-list a:hover{color:"
-                , perceptualCss accent
-                , ";text-decoration:underline;}"
-                , ".source-link{display:block;border-left:3px solid "
-                , perceptualCss accent
-                , ";padding:.15rem 0 .15rem .7rem;margin:.55rem 0;font-size:.75rem;overflow-wrap:anywhere;}"
-                , ".document{min-width:0;padding:2.3rem 0 3rem;max-width:76ch;}"
-                , ".eyebrow{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:"
-                , perceptualCss quiet
-                , ";font-weight:700;}"
-                , "h1{font-size:clamp(2rem,4.4vw,3.6rem);line-height:1.08;letter-spacing:-.06em;margin:.45rem 0 1.25rem;max-width:20ch;}"
-                , "h2{font-size:1.35rem;line-height:1.25;letter-spacing:-.03em;margin:0 0 .8rem;}"
-                , "h3{font-size:1rem;line-height:1.35;margin:.35rem 0;overflow-wrap:anywhere;}"
-                , ".lede{font-size:1.06rem;line-height:1.6;max-width:66ch;margin:0 0 1.2rem;}"
-                , ".intro{padding:0 0 2rem;border-bottom:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 28%,transparent);}"
-                , ".stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1.6rem 0 0;}"
-                , ".stat{border-top:2px solid "
-                , perceptualCss accent
-                , ";padding:.65rem 0 .4rem;}"
-                , ".stat strong{display:block;font-size:1.45rem;line-height:1.2;}"
-                , ".stat span{font-size:.69rem;letter-spacing:.08em;text-transform:uppercase;color:"
-                , perceptualCss quiet
-                , ";}"
-                , ".section{padding:2rem 0;border-bottom:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 22%,transparent);scroll-margin-top:1rem;}"
-                , ".section-lede{margin:.1rem 0 1.1rem;max-width:68ch;}"
-                , ".source-record{padding:.85rem 0;border-top:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 16%,transparent);}"
-                , ".source-record .source-path{display:block;font-size:.72rem;color:"
-                , perceptualCss quiet
-                , ";overflow-wrap:anywhere;margin-top:.35rem;}"
-                , ".tools{display:grid;grid-template-columns:minmax(0,1fr);gap:.7rem;margin:1rem 0;}"
-                , ".tools input{width:100%;padding:.7rem .75rem;border-radius:0;}"
-                , ".filter-row{display:flex;flex-wrap:wrap;gap:.4rem;}"
-                , ".filter-row button{padding:.45rem .7rem;font-size:.78rem;cursor:pointer;}"
-                , ".filter-row button[data-active='true']{background:"
-                , perceptualCss accent
-                , ";color:"
-                , perceptualCss inkOnAccent
-                , ";}"
-                , ".result-count{font-size:.76rem;color:"
-                , perceptualCss quiet
-                , ";margin:.5rem 0 1rem;}"
-                , ".entry{padding:1rem 0;border-top:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 18%,transparent);}"
-                , ".entry[data-selected='true']{border-top:2px solid "
-                , perceptualCss accent
-                , ";}"
-                , ".entry-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;font-size:.7rem;color:"
-                , perceptualCss quiet
-                , ";}"
-                , ".entry-kind{font-weight:700;text-transform:uppercase;letter-spacing:.08em;}"
-                , ".entry-select{border:0;padding:0;text-align:left;cursor:pointer;font-weight:700;overflow-wrap:anywhere;}"
-                , ".entry-select:hover{color:"
-                , perceptualCss accent
-                , ";text-decoration:underline;}"
-                , ".signature{font-size:.8rem;line-height:1.45;margin:.45rem 0;overflow-wrap:anywhere;white-space:pre-wrap;}"
-                , ".detail{margin:.65rem 0 0;padding:.7rem 0 .15rem;border-top:1px dotted color-mix(in srgb,"
-                , perceptualCss ink
-                , " 28%,transparent);font-size:.78rem;}"
-                , ".russ-note{border-left:3px solid "
-                , perceptualCss accentTwo
-                , ";padding:.4rem 0 .4rem 1rem;margin:1rem 0;}"
-                , ".trust-label{display:inline-block;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:.68rem;color:"
-                , perceptualCss accent
-                , ";}"
-                , ".palette{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:1rem;}"
-                , ".swatch{width:3.8rem;height:1.8rem;border:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 24%,transparent);}"
-                , ".palette-caption{font-size:.75rem;color:"
-                , perceptualCss quiet
-                , ";margin:.5rem 0 0;}"
-                , ".footer{padding:1.5rem 0 2.5rem;font-size:.72rem;line-height:1.5;color:"
-                , perceptualCss quiet
-                , ";}"
-                , "@media(max-width:780px){.layout{grid-template-columns:minmax(0,1fr);gap:0}.masthead{align-items:flex-start;flex-direction:column;gap:.4rem}.mast-note{text-align:left}.side-nav{position:relative;padding:1rem 0;border-bottom:1px solid color-mix(in srgb,"
-                , perceptualCss ink
-                , " 22%,transparent)}.nav-list{display:flex;flex-wrap:wrap;gap:.3rem 1rem;margin-bottom:.7rem}.nav-list li{border:0}.nav-list a{padding:.2rem 0}.side-nav .nav-title{margin-top:.6rem}.document{padding-top:1.5rem}.stats{grid-template-columns:repeat(2,minmax(0,1fr));}}"
-                ]
-            )
-        ]
 
 
 init : Model
@@ -420,32 +36,6 @@ init =
     , fileFilter = AllFiles
     , selected = Nothing
     }
-
-
-filterString : FileFilter -> String
-filterString filter =
-    case filter of
-        AllFiles ->
-            "all"
-
-        LearnerOnly ->
-            "learner"
-
-        TheoremOnly ->
-            "theorem"
-
-
-setFilter : String -> FileFilter
-setFilter value =
-    case value of
-        "learner" ->
-            LearnerOnly
-
-        "theorem" ->
-            TheoremOnly
-
-        _ ->
-            AllFiles
 
 
 matches : String -> String -> Bool
@@ -473,7 +63,7 @@ filterMatches filter entry =
 
 entryMatchesQuery : String -> Content.Entry -> Bool
 entryMatchesQuery query entry =
-    matches query (String.join " " [ entry.name, entry.signature, entry.source, entry.category ])
+    List.any (matches query) [ entry.name, entry.signature, entry.source, entry.category ]
 
 
 visibleEntries : Model -> List Content.Entry
@@ -500,7 +90,7 @@ selectedEntry model =
 
 sourceUrl : Content.Entry -> String
 sourceUrl entry =
-    "https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/fix/russ-audit-and-extraction-20261020/"
+    "https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/"
         ++ entry.source
         ++ "#L"
         ++ String.fromInt entry.line
@@ -541,7 +131,7 @@ sourceRecord path =
         , a
             [ HA.class "source-link"
             , HA.href
-                ("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/fix/russ-audit-and-extraction-20261020/"
+                ("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/"
                     ++ path
                 )
             , HA.target "_blank"
@@ -625,8 +215,7 @@ view model =
             List.take 24 Surface.russEntryLines
     in
     main_ [ HA.class "shell" ]
-        [ styleSheet
-        , header [ HA.class "masthead" ]
+        [ header [ HA.class "masthead" ]
             [ div [ HA.class "brand" ] [ text "The Monoid LSTM Project" ]
             , p [ HA.class "mast-note" ]
                 [ text "GNU.org-inspired, source-first index. Content is derived only from the canonical learner and theorem monoliths." ]
@@ -649,7 +238,7 @@ view model =
                             a
                                 [ HA.class "source-link"
                                 , HA.href
-                                    ("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/fix/russ-audit-and-extraction-20261020/"
+                                    ("https://github.com/JohnChristianD/Deep-Watkins-Monoid-LSTM/blob/main/"
                                         ++ path
                                     )
                                 , HA.target "_blank"
@@ -709,17 +298,17 @@ view model =
                             []
                         , div [ HA.class "filter-row" ]
                             [ button
-                                [ HE.onClick (SetFileFilter "all")
+                                [ HE.onClick (SetFileFilter AllFiles)
                                 , HA.attribute "data-active" (if model.fileFilter == AllFiles then "true" else "false")
                                 ]
                                 [ text "Both monoliths" ]
                             , button
-                                [ HE.onClick (SetFileFilter "learner")
+                                [ HE.onClick (SetFileFilter LearnerOnly)
                                 , HA.attribute "data-active" (if model.fileFilter == LearnerOnly then "true" else "false")
                                 ]
                                 [ text "Learner only" ]
                             , button
-                                [ HE.onClick (SetFileFilter "theorem")
+                                [ HE.onClick (SetFileFilter TheoremOnly)
                                 , HA.attribute "data-active" (if model.fileFilter == TheoremOnly then "true" else "false")
                                 ]
                                 [ text "Theorems only" ]
@@ -738,21 +327,11 @@ view model =
                     ]
                 , section [ HA.id "palette", HA.class "section" ]
                     [ h2 [] [ text "Maximin perceptual palette" ]
-                    , p [ HA.class "section-lede" ] [ text "The palette remains selected by farthest-point maximin spacing over the existing CAT02LMS-derived opponent coordinates. The layout changed; the color transform and selection algorithm did not." ]
-                    , div [ HA.class "palette" ]
-                        (List.indexedMap
-                            (\index color ->
-                                div
-                                    [ HA.class "swatch"
-                                    , HA.attribute "title" ("maximin-" ++ String.fromInt (index + 1))
-                                    , HA.attribute "style" ("background:" ++ perceptualCss color)
-                                    ]
-                                    []
-                            )
-                            maximinPalette
-                        )
-                    , p [ HA.class "palette-caption" ]
-                        [ text ("CAT02LMS / " ++ String.fromInt (List.length maximinPalette) ++ " maximin colors. Palette values are computed in Elm.") ]
+                    , p [ HA.class "section-lede" ]
+                        [ text "The local WebAssembly palette preserves the CAT02LMS opponent transform and farthest-point maximin rule. Its candidate budget grows with the semantic role count; the selected palette is not limited to six colors." ]
+                    , div [ HA.class "palette", HA.id "wasm-palette" ] []
+                    , p [ HA.class "palette-caption", HA.id "wasm-palette-caption" ]
+                        [ text "Initializing the adaptive CAT02LMS maximin palette." ]
                     ]
                 , footer [ HA.class "footer" ]
                     [ text
@@ -774,8 +353,8 @@ update msg model =
         SetQuery value ->
             { model | query = value }
 
-        SetFileFilter value ->
-            { model | fileFilter = setFilter value }
+        SetFileFilter filter ->
+            { model | fileFilter = filter }
 
         SelectEntry value ->
             { model | selected = if model.selected == Just value then Nothing else Just value }

@@ -49,7 +49,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 open import Haskell.Prelude public hiding (b; f; m)
 open import Haskell.Law public hiding (trustMe)
 open import Haskell.Law.Ord.Ordering public
-open import Haskell.Law.Equality public hiding (trustMe)
+open import Haskell.Law.Equality public hiding (trustMe; cong)
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
