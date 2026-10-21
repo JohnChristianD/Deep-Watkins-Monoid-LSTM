@@ -274,12 +274,9 @@ let scripts = {
     test -f .ci/fennel/agda_surface.fnl
     test -f .ci/fennel/ascii_surface.fnl
     test -f site/site.less
-    test -f site/palette.js
-    test -f .ci/presentation/palette-smoke.cjs
-    test ! -e .ci/wasm/maximin_palette.c
-    test ! -e site/palette-loader.js
-    ! grep -Fq 'wasm-palette' site/Main.elm
-    ! grep -Fq '.swatch' site/site.less
+    test -f site/palette-loader.js
+    test -f .ci/wasm/maximin_palette.c
+    test -f .ci/wasm/palette-smoke.cjs
     nix run .#fennel-ascii-surface
     nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
     test -s "$tmp/src/GeneratedMonolithContent.elm"
@@ -319,14 +316,16 @@ let scripts = {
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
     grep -Fq '"lessStylesheet": "site/site.less"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledStylesheet": "site.css"' "$tmp/presentation-contract.json"
-    grep -Fq '"paletteRuntime": "site/palette.js"' "$tmp/presentation-contract.json"
+    grep -Fq '"wasmPaletteSource": ".ci/wasm/maximin_palette.c"' "$tmp/presentation-contract.json"
+    grep -Fq '"compiledWasm": "site-palette.wasm"' "$tmp/presentation-contract.json"
+    grep -Fq '"paletteLoader": "site/palette-loader.js"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledElm": "elm.js"' "$tmp/presentation-contract.json"
     grep -Fq '"asciiGenerator": ".ci/fennel/ascii_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq 'Atkinson Hyperlegible Mono' site/site.less
     grep -Fq 'Iosevka' site/site.less
     grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/site.less
     ! grep -Eiq 'Writer|Julia[[:space:]]Mono|JuliaMono|Noto Emoji' site/Main.elm
-    grep -Fq 'CAT02 LMS matrix' site/palette.js
+    grep -Fq 'CAT02 LMS matrix' .ci/wasm/maximin_palette.c
     grep -Fq '.shell' site/site.less
     grep -Fq 'Russian constructivism (RUSS): trust-surface certificate' site/Main.elm
     grep -Fq 'Declaration index' site/Main.elm
@@ -337,7 +336,7 @@ let scripts = {
     grep -Fq 'isTheoremEntry entry' site/Main.elm
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     ! grep -Fq 'Mirth' site/Main.elm
-    grep -Fq 'maximinPalette' site/palette.js
+    grep -Fq 'palette_size(void)' .ci/wasm/maximin_palette.c
     grep -Fq 'data-selected' site/Main.elm
     output_dir="$tmp"
     if [ -n "$(printenv PAGES_OUTPUT_DIR 2>/dev/null || true)" ]; then
@@ -346,9 +345,14 @@ let scripts = {
     mkdir -p "$output_dir"
     lessc site/site.less "$output_dir/site.css"
     test -s "$output_dir/site.css"
-    cp site/palette.js "$output_dir/palette.js"
-    test -s "$output_dir/palette.js"
-    PALETTE_SCRIPT="$output_dir/palette.js" node .ci/presentation/palette-smoke.cjs
+    # Do not leak host Nix hardening flags into the wasm32 target compiler.
+    # Recent host wrappers can add -fzero-call-used-regs, which clang rejects
+    # for wasm32-unknown-unknown.
+    NIX_CFLAGS_COMPILE= NIX_CXXFLAGS_COMPILE= clang --target=wasm32-unknown-unknown -O2 -nostdlib -fno-builtin -Wl,--no-entry -Wl,--export=palette_init -Wl,--export=palette_size -Wl,--export=palette_color -Wl,--export-memory -Wl,--allow-undefined .ci/wasm/maximin_palette.c -o "$output_dir/site-palette.wasm"
+    cp site/palette-loader.js "$output_dir/palette-loader.js"
+    test -s "$output_dir/site-palette.wasm"
+    test -s "$output_dir/palette-loader.js"
+    WASM_FILE="$output_dir/site-palette.wasm" node .ci/wasm/palette-smoke.cjs
     mkdir -p "$tmp/src"
     cp site/Main.elm "$tmp/src/Main.elm"
     echo "pages-stage=monolith-content"
