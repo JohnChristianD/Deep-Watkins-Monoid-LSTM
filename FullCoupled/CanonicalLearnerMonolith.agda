@@ -852,6 +852,14 @@ module ConstructiveComputabilityPostulates where
   -- The recursive Russian basis is one explicit, reviewable trust boundary.
   -- Grouping these principles supports uniform downstream use; it proves
   -- neither their joint consistency nor soundness/canonicity of Agda's evaluator.
+  -- TRUST BOUNDARY (not a consistency theorem):
+  -- This record groups the three explicitly assumed RUSS principles used
+  -- by this development: Markov's Principle, Extended Church's Thesis ECT₀,
+  -- and countable choice. Packaging them in one record makes the dependency
+  -- visible but does not derive them from MLTT or prove that adding them is
+  -- consistent. The computational content of ECT₀ is a substantive axiom.
+  -- Do not turn these declarations into REWRITE rules: they are propositions
+  -- supplied as assumptions, not definitional computation rules.
   record RussianRecursiveMathematicsBasis : Set₃ where
     constructor russianRecursiveMathematicsBasis
     field
@@ -879,6 +887,8 @@ module ConstructiveComputabilityPostulates where
         PropExists {A = (n : Nat) → A n}
           (λ choose → (n : Nat) → P n (choose n))
 
+  -- The sole RUSS trust entry in this interface. The record's projections
+  -- below are consequences of this assumption; they are not extra axioms.
   postulate
     russianRecursiveMathematicsAssumptions : RussianRecursiveMathematicsBasis
 

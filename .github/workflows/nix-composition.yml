@@ -102,14 +102,6 @@ jobs:
         timeout-minutes: 15
         run: nix run .#streamly-tools-check
 
-      - name: Build and smoke-test reproducible Forth/Scheme tools
-        timeout-minutes: 10
-        run: |
-          set -euo pipefail
-          nix build .#ccforth
-          ./result/bin/ccforth -version
-          nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
-
       - name: Run semantic lanes in one Nix environment
         timeout-minutes: 25
         run: |
@@ -139,6 +131,8 @@ jobs:
           path: |
             .ci/discovery/theorem-monolith-egraph-sync.dhall
             .ci/discovery/economic-closure-graph.dhall
+            .ci/discovery/russ-global-certificate.dhall
+            build/agda2hs-semantic-search/report.txt
             build/agda-haskell/agda2hs-manifest.tsv
             build/agda-haskell/malonzo-files.txt
 
@@ -166,10 +160,55 @@ jobs:
             run_lane Pages
           '
 
+  backends:
+    name: Build Agda Forth/Scheme backends
+    needs: policy
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
+        with:
+          installer-version: '2.35.1'
+      - name: Build and smoke-test Agda Forth/Scheme backends
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          nix build -L .#agda2forth --out-link "$tmp/agda2forth"
+          test -x "$tmp/agda2forth/bin/agda2forth"
+          nix build -L .#agda2scheme --out-link "$tmp/agda2scheme"
+          test -x "$tmp/agda2scheme/bin/agda2scheme"
+
+          cat > "$tmp/BackendSmoke.agda" <<'AGDA'
+          module BackendSmoke where
+          open import Agda.Builtin.Nat using (Nat; zero; suc; _+_)
+          double : Nat → Nat
+          double n = n + n
+          AGDA
+          mkdir "$tmp/forth" "$tmp/scheme"
+          cp "$tmp/BackendSmoke.agda" "$tmp/forth/BackendSmoke.agda"
+          (
+            cd "$tmp/forth"
+            "$tmp/agda2forth/bin/agda2forth" BackendSmoke.agda
+          )
+          test -s "$tmp/forth/BackendSmoke.fth"
+          cp "$tmp/BackendSmoke.agda" "$tmp/scheme/BackendSmoke.agda"
+          (
+            cd "$tmp/scheme"
+            "$tmp/agda2scheme/bin/agda2scheme" BackendSmoke.agda
+          )
+          test -s "$tmp/scheme/BackendSmoke.ss"
+
+          nix build -L .#ccforth --out-link "$tmp/ccforth"
+          "$tmp/ccforth/bin/ccforth" -version
+          nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
+
   auto-merge:
     name: Enable auto-merge only after explicit approval
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft
-    needs: [agda, semantic, pages, versions]
+    needs: [agda, semantic, pages, versions, backends]
     runs-on: ubuntu-22.04
     permissions:
       contents: read

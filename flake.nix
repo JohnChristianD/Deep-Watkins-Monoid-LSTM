@@ -117,6 +117,34 @@
           };
         };
 
+      # Pin the upstream Agda 2.8-compatible Scheme backend by commit, not branch.
+      agda2schemeSource = builtins.fetchGit {
+        url = "https://github.com/jespercockx/agda2scheme.git";
+        rev = "24e02d9669f17d98ec67b8ad961cf9c3e602bf10";
+      };
+
+      # The Forth fork predates Agda 2.8. Apply a small API-port patch before
+      # Cabal resolves the package, so its dependency bounds and source agree.
+      agda2forthSource = builtins.fetchGit {
+        url = "https://github.com/LMMilliken/agda2Forth.git";
+        rev = "e83f8cc735bf220f80b3655ce2158a23818910fe";
+      };
+
+      agda2scheme = system:
+        let pkgs = pkgsFor system;
+        in pkgs.haskellPackages.callCabal2nix "agda2scheme" agda2schemeSource { };
+
+      agda2forth = system:
+        let
+          pkgs = pkgsFor system;
+          source = pkgs.applyPatches {
+            name = "agda2forth-agda-2.8";
+            src = agda2forthSource;
+            patches = [ ./nix/patches/agda2forth-agda-2.8.patch ];
+          };
+        in
+        pkgs.haskellPackages.callCabal2nix "agda2forth" source { };
+
       agda2hsTool = system:
         (pkgsFor system).haskellPackages.agda2hs;
 
@@ -385,7 +413,9 @@ PY
         in
         {
           agda = agdaCli system;
+          agda2forth = agda2forth system;
           agda2hs = agda2hsWithCanonicalGhc system;
+          agda2scheme = agda2scheme system;
           agda-emacs = agdaEmacs system;
           ccforth = ccforth system;
           ci = pkgs.dhall;
@@ -440,9 +470,9 @@ PY
             program = "${script}/bin/agda-import-sync";
           };
 
-          fennel-agda-graph = let
+          fennel-monolith-content = let
             script = pkgs.writeShellApplication {
-              name = "fennel-agda-graph";
+              name = "fennel-monolith-content";
               runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
               text = ''
                 set -euo pipefail
@@ -451,7 +481,7 @@ PY
             };
           in {
             type = "app";
-            program = "${script}/bin/fennel-agda-graph";
+            program = "${script}/bin/fennel-monolith-content";
           };
 
           fennel-ascii-surface = let
@@ -480,6 +510,21 @@ PY
           in {
             type = "app";
             program = "${script}/bin/fennel-surface";
+          };
+
+          fennel-russ-certificate = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-russ-certificate";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils pkgs.git ];
+              text = ''
+                set -euo pipefail
+                mkdir -p .ci/discovery
+                exec ${fennelRuntime system}/bin/fennel .ci/lua/russ_certificate.fnl
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/fennel-russ-certificate";
           };
 
           streamly-tools-check = let
@@ -517,12 +562,11 @@ PY
                 printf '%s\n' '{-# OPTIONS --prop --rewriting --confluence-check #-}' 'module ConstructiveComputabilityPostulates where' > "$tmp/ConstructiveComputabilityPostulates.agda"
                 awk '
                   /^module ConstructiveComputabilityPostulates where$/ { capture=1; next }
-                  # The module ends before the enclosing learner monolith publicly
-                  # re-exports this module. Do not extract that enclosing-scope
-                  # open declaration into the module it is re-exporting.
-                  /^open ConstructiveComputabilityPostulates public using$/ {
-                    if (capture) capture=0
-                  }
+                  # Stop at the module boundary before the outer
+                  # monolith public re-export. The first outer "variable" is too late:
+                  # it leaves a top-level "open ... public using" inside the
+                  # extracted standalone module, which Agda rejects.
+                  /^open ConstructiveComputabilityPostulates public using$/ { if (capture) capture=0 }
                   /^variable$/ { capture=0 }
                   capture {
                     sub(/^  /, "")
@@ -802,6 +846,7 @@ PY
                 require_report_line "graph-search-contract=True"
                 require_report_line "canonical-search-egraph-closed=True"
                 require_report_line "graph-astar-egraph-closed=True"
+                require_report_line "empty-type-inconsistency-probe=True"
 
                 compiler_version=$("${canonicalGhc system}/bin/ghc" --numeric-version)
                 printf '%s\n' \
@@ -926,6 +971,10 @@ PY
                 grep -Fq "egraph-canonical-bindings=True" "$out/report.txt"
                 grep -Fq "egraph-hashcons-after-union=True" "$out/report.txt"
                 grep -Fq "egraph-constructivist-postulates=True" "$out/report.txt"
+                grep -Fq "empty-type-inconsistency-search=goal:Data.Empty.⊥ candidates=" "$out/report.txt"
+                grep -Fq "source-only-monolith-candidates=" "$out/report.txt"
+                grep -Fq "proof-status=diagnostic-only-not-a-consistency-proof" "$out/report.txt"
+                grep -Fq "inconsistencyProbeRegression" FullCoupled/Agda2HsSemanticSearch.agda
                 grep -Fq "scottErshovNLabDenotationalSemanticsRegression" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "canonicalLearnerTraceDenotationStep" FullCoupled/TheoremsMonolith.agda
                 grep -Fq "russianConstructivismPostulateRule" FullCoupled/Agda2HsTheoremGraphEGraph.agda
@@ -1096,10 +1145,12 @@ PY
             ];
           };
 
-          # Forth and Scheme experimentation. ccforth is a fixed-hash Nix
-          # package; its C backend is supplied by the Nix stdenv compiler.
+          # Agda-to-Forth and Agda-to-Scheme both compile against this
+          # pinned Nixpkgs Agda/Haskell package set; ccforth is separately pinned.
           forth = pkgs.mkShell {
             packages = [
+              (agda2forth system)
+              (agda2scheme system)
               (ccforth system)
               (gforth system)
               pkgs.groff

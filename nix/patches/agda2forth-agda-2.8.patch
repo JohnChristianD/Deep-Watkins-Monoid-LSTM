@@ -1,0 +1,176 @@
+diff --git a/agda2forth.cabal b/agda2forth.cabal
+--- a/agda2forth.cabal
++++ b/agda2forth.cabal
+@@ -27,8 +27,8 @@
+ 
+     -- LANGUAGE extensions used by modules in this package.
+     -- other-extensions:
+-    build-depends:    base ^>=4.15.0.0
+-                      , Agda >= 2.6.2.1 && < 2.6.3
++    build-depends:    base >=4.15.0.0
++                      , Agda >= 2.8
+                       , containers >= 0.5.7.1
+                       , deepseq >= 1.4.5
+                       , mtl >= 2.2.2
+diff --git a/src/Agda/Compiler/Erase.hs b/src/Agda/Compiler/Erase.hs
+--- a/src/Agda/Compiler/Erase.hs
++++ b/src/Agda/Compiler/Erase.hs
+@@ -18,6 +18,7 @@
+ import Agda.Syntax.Position
+ import Agda.Syntax.Treeless
+ import Agda.Syntax.Literal
++import Agda.Syntax.Builtin
+ 
+ import Agda.TypeChecking.Substitute
+ import Agda.TypeChecking.Monad as I
+@@ -35,7 +36,7 @@
+ import Agda.Utils.Maybe
+ import Agda.Utils.Memo
+ import Agda.Utils.Monad
+-import Agda.Utils.Pretty (prettyShow)
++import Agda.Syntax.Common.Pretty (prettyShow)
+ import Agda.Utils.IntSet.Infinite (IntSet)
+ import qualified Agda.Utils.IntSet.Infinite as IntSet
+ 
+@@ -49,10 +50,10 @@
+       -- ^ Memoize computed `TypeInfo` for data/record types `QName`.
+   }
+ 
+-funMap :: Lens' (Map QName FunInfo) ESt
++funMap :: Lens' ESt (Map QName FunInfo)
+ funMap f r = f (_funMap r) <&> \ a -> r { _funMap = a }
+ 
+-typeMap :: Lens' (Map QName TypeInfo) ESt
++typeMap :: Lens' ESt (Map QName TypeInfo)
+ typeMap f r = f (_typeMap r) <&> \ a -> r { _typeMap = a }
+ 
+ -- | Eraser monad.
+@@ -113,7 +114,7 @@
+ typeWithoutParams q = do
+   def <- getConstInfo q
+   let d = case I.theDef def of
+-        Function{ funProjection = Just Projection{ projIndex = i } } -> i - 1
++        Function{ funProjection = Right Projection{ projIndex = i } } -> i - 1
+         Constructor{ conPars = n } -> n
+         _                          -> 0
+   first (drop d) <$> telListView (defType def)
+@@ -142,7 +143,6 @@
+   typeInfo :: QName -> E TypeInfo
+   typeInfo q = ifM (erasureForbidden q) (return NotErasable) $ {-else-} do
+     memoRec (typeMap . key q) Erasable $ do  -- assume recursive occurrences are erasable
+-      mId    <- lift $ getName' builtinId
+       msizes <- lift $ mapM getBuiltinName
+                          [builtinSize, builtinSizeLt]
+       def    <- lift $ getConstInfo q
+@@ -151,7 +151,6 @@
+                   I.Record{ recConHead = c }  -> Just [conName c]
+                   _                           -> Nothing
+       case mcs of
+-        _ | Just q == mId        -> return NotErasable
+         _ | Just q `elem` msizes -> return Erasable
+         Just [c] -> do
+           (ts, _) <- lift $ typeWithoutParams c
+diff --git a/src/Agda/Compiler/ToForth.hs b/src/Agda/Compiler/ToForth.hs
+--- a/src/Agda/Compiler/ToForth.hs
++++ b/src/Agda/Compiler/ToForth.hs
+@@ -17,11 +17,11 @@
+ import Agda.TypeChecking.Primitive.Base
+ import Agda.Utils.Impossible
+ import Agda.Utils.Lens
+-import Agda.Utils.List
++import Agda.Utils.List hiding ((!!))
+ import Agda.Utils.Maybe
+ import Agda.Utils.Monad
+ import Agda.Utils.Null
+-import Agda.Utils.Pretty
++import Agda.Syntax.Common.Pretty (prettyShow)
+ import Agda.Utils.Singleton
+ 
+ import Control.DeepSeq ( NFData )
+@@ -408,7 +408,9 @@
+ fixName :: Foldable t => t Char -> [Char]
+ fixName s =
+   let s' = concatMap fixChar s in
+-  if isNumber (head s') then "z" ++ s' else s'
++  case s' of
++    d:_ | isNumber d -> "z" ++ s'
++    _ -> s'
+ 
+ fixChar :: Char -> [Char]
+ fixChar c
+@@ -420,7 +422,9 @@
+ toHex i = toHex (i `div` 16) ++ [fourBitsToChar (i `mod` 16)]
+ 
+ fourBitsToChar :: Int -> Char
+-fourBitsToChar i = "0123456789ABCDEF" !! i
++fourBitsToChar i
++  | i < 10 = chr (ord '0' + i)
++  | otherwise = chr (ord 'A' + i - 10)
+ {-# INLINE fourBitsToChar #-}
+ 
+ class ToForth a b where
+@@ -622,7 +626,7 @@
+ data SpecialCase = BoolCase
+ 
+ isSpecialCase :: CaseInfo -> ToForthM (Maybe SpecialCase)
+-isSpecialCase (CaseInfo lazy (CTData q cty)) = do
++isSpecialCase (CaseInfo lazy _erased (CTData cty)) = do
+   boolTy <- primBool
+   if boolTy == Def cty []
+     then return (Just BoolCase)
+diff --git a/src/Main.hs b/src/Main.hs
+--- a/src/Main.hs
++++ b/src/Main.hs
+@@ -11,6 +11,7 @@
+ -- import Agda.Compiler.FLib
+ import Agda.Interaction.Options ( OptDescr(..) , ArgDescr(..) )
+ 
++import Agda.Syntax.TopLevelModuleName
+ import Agda.Syntax.Treeless ( EvaluationStrategy(..) )
+ 
+ import Agda.TypeChecking.Pretty
+@@ -18,7 +19,7 @@
+ import Agda.Utils.Either
+ import Agda.Utils.Functor
+ import Agda.Utils.Null
+-import Agda.Utils.Pretty ( prettyShow )
++import Agda.Syntax.Common.Pretty ( prettyShow )
+ 
+ import Control.DeepSeq ( NFData )
+ 
+@@ -27,6 +28,7 @@
+ import Control.Monad.Writer
+ 
+ import Data.Function
++import qualified Data.List.NonEmpty as NE
+ import Data.Map (Map)
+ import qualified Data.Map as Map
+ import Data.Maybe
+@@ -58,6 +60,8 @@
+   , backendVersion        = Nothing
+   , scopeCheckingSuffices = False
+   , mayEraseType          = \ _ -> return True
++  , backendInteractTop    = Nothing
++  , backendInteractHole   = Nothing
+   }
+ 
+ fthFlags :: [OptDescr (Flag FthOptions)]
+@@ -74,7 +78,7 @@
+ fthCompileDef :: FthOptions -> () -> IsMain -> Definition -> TCM (Maybe FthForm)
+ fthCompileDef opts _ isMain def = runToForthM opts $ toForth def
+ 
+-fthPostModule :: FthOptions -> () -> IsMain -> ModuleName -> [Maybe FthForm] -> TCM ()
++fthPostModule :: FthOptions -> () -> IsMain -> TopLevelModuleName -> [Maybe FthForm] -> TCM ()
+ fthPostModule opts _ isMain modName defs = do
+   preamble <- runToForthM opts fthPreamble
+   let defToText = encodeOne printer . fromRich
+@@ -87,7 +91,7 @@
+               defToText
+           )
+             (preamble ++ catMaybes defs)))
+-      fileName  = prettyShow (last $ mnameToList modName) ++ ".fth"
++      fileName  = prettyShow (NE.last $ moduleNameParts modName) ++ ".fth"
+   liftIO $ T.writeFile fileName modText
+ 
+   where
+

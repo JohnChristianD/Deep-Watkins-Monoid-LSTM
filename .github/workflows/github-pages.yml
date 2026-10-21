@@ -59,14 +59,11 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>${repo_name}</title>
+            <title>The Monoid LSTM Project - Learner and Theorem Monoliths</title>
             <style>
-              :root { color-scheme: light dark; }
-              body { max-width: 960px; margin: 0 auto; padding: 2rem; font: 16px/1.6 system-ui, sans-serif; }
-              code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-              a { text-decoration-thickness: .08em; text-underline-offset: .15em; }
-              .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-              .panel { border: 1px solid currentColor; border-radius: .6rem; padding: 1rem; opacity: .9; }
+              html, body { margin: 0; min-height: 100%; }
+              body { font: inherit; }
+              #app { min-height: 100vh; }
             </style>
           </head>
           <body>

@@ -2,7 +2,7 @@
     [ "FullCoupled.CanonicalLearnerMonolith"
     , "FullCoupled.TheoremsMonolith"
     ]
-, graphGenerator = ".ci/lua/agda_graph.fnl"
+, monolithContentGenerator = ".ci/lua/agda_graph.fnl"
 , surfaceGenerator = ".ci/lua/agda_surface.fnl"
 , elmManifest = ".ci/elm-application.dhall"
 , siteEntry = "index.html"

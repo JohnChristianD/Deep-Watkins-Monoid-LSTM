@@ -46,20 +46,30 @@ Graph semantics:
     https://github.com/google-deepmind/mctx.
 
 Constructive foundations — Russian constructivism (RUSS) only:
-  * Status: NOT GLOBALLY CERTIFIED. Certification requires a checked theorem-
-    dependency inventory, not just references, builds, or source-text searches.
+  * Status: the generated and CI-validated direct-monolith trust-surface
+    inventory is complete for this source revision. This is not a global
+    consistency certificate:
+    transitive imported-theory closure, complete theorem dependency closure,
+    and joint consistency remain unproved.
   * RUSS uses intuitionistic logic with scoped recursive/computability
-    assumptions. Markov's principle and register-machine Church's thesis are
-    explicit assumptions, not a blanket grant of classical logic. Proposition-
-    valued countable choice is an additional project assumption whose
-    compatibility with the chosen RUSS formalization must be justified.
-    Do not add excluded middle, LPO, or LLPO as global axioms.
-  * Audit every project-owned postulate and primitive, every REWRITE rule,
-    Agda builtin/reflection/TC interface, termination/positivity/universe
-    option, imported trusted theorem, unresolved meta, and transitive theorem
-    dependency. Every exported theorem must depend only on declared RUSS
-    assumptions and separately justified Agda/compiler primitives. Any
-    unclassified trust boundary blocks global certification.
+    assumptions. Markov's principle and register-machine ECT0 are explicit
+    assumptions, not a blanket grant of classical logic. Proposition-valued
+    countable choice is an additional project assumption whose compatibility
+    with the chosen RUSS formalization must be justified. Do not add excluded
+    middle, LPO, or LLPO as global axioms.
+  * The generated .ci/discovery/russ-global-certificate.dhall inventories
+    both monoliths by SHA-256, with-K/no-guardedness mode, direct postulate
+    statements, primitive blocks, rewrite pragmas, and explicit lexical checks
+    for named classical postulates and Cubical imports. Its scope and limits
+    are machine-readable and validated by the Discovery lane.
+  * The inventory distinguishes one postulated RUSS basis in the learner
+    monolith from the compiler-facing Reflection/TC ABI in the theorem
+    monolith. The declared rewrite rules are not additional RUSS axioms, but
+    still require confluence and subject-reduction justification.
+  * The A*/e-graph empty-type search is diagnostic only. A missing candidate,
+    a search timeout, or a failed attempt to synthesize bottom does not prove
+    consistency. Every external/transitive theorem dependency and Agda
+    compiler primitive remains a trust boundary until separately reviewed.
   * The learner monolith now exposes one named
     `russianRecursiveMathematicsAssumptions` record with projections for
     Markov's principle, register-machine ECT₀, and proposition-valued
@@ -159,8 +169,9 @@ Lua/Elm:
   * Keep Fennel for orchestration and use the pinned Luafun module directly.
     Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
     typed coverage for Luafun requires a maintained declaration file.
-  * .ci/lua/agda_graph.fnl produces GeneratedAgdaGraph.elm. Luafun applies to
-    that Fennel generator; Elm itself does not load the Lua library.
+  * .ci/lua/agda_graph.fnl indexes declarations from exactly the two canonical
+    monoliths into GeneratedMonolithContent.elm. Elm renders that generated
+    catalog directly; it does not load Fennel or Lua at runtime.
   * Pages/Elm must be validated by the existing Nix presentation lane.
 
 Only this file owns project policy text and lane commands. The GitHub workflow
@@ -215,7 +226,7 @@ let script = merge {
     # kernel-checked through Haskell.Prelude: Agda rejects that mixed option
     # closure. Keep source inventory separate from the pure executable kernel
     # surface until its universe/Prelude interfaces are migrated coherently.
-    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith' FullCoupled/CanonicalLearnerMonolith.agda
+    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' FullCoupled/CanonicalLearnerMonolith.agda
     grep -Fxq -- '--level-universe' .ci/agda/global-options.txt
     echo "pure-agda2hs-kernel-check=pass"
     echo "canonical-learner-monolith=source-inventory-only (option closure not kernel-checked)"
@@ -255,15 +266,19 @@ let script = merge {
     test -f .ci/lua/agda_surface.fnl
     test -f .ci/lua/ascii_surface.fnl
     nix run .#fennel-ascii-surface
-    nix run .#fennel-agda-graph -- "$tmp/src/GeneratedAgdaGraph.elm"
-    test -s "$tmp/src/GeneratedAgdaGraph.elm"
-    grep -Fq 'module GeneratedAgdaGraph exposing (Node, Edge, nodes, edges)' "$tmp/src/GeneratedAgdaGraph.elm"
-    grep -Fq 'FullCoupled.TheoremsMonolith' "$tmp/src/GeneratedAgdaGraph.elm"
+    nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
+    test -s "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'module GeneratedMonolithContent exposing (Entry, entries, sourceFiles)' "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'FullCoupled/TheoremsMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'FullCoupled/CanonicalLearnerMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
+    if grep -E 'source = "[^"]+\.agda"' "$tmp/src/GeneratedMonolithContent.elm" | grep -Ev 'CanonicalLearnerMonolith\.agda|TheoremsMonolith\.agda'; then
+      echo 'presentation source inventory escaped the two monoliths' >&2; exit 1;
+    fi
     nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
     test -s "$tmp/src/GeneratedTheoremSurface.elm"
     grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'nodeLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'edgeLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'entryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'russEntryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
     if LC_ALL=C grep -n '[^[:print:][:space:]]' "$tmp/src/GeneratedTheoremSurface.elm"; then exit 1; fi
     echo "fennel-luajit-presentation=pass"
     '',
@@ -279,11 +294,11 @@ let script = merge {
     grep -Fq 'import FullCoupled.Agda2HsSemanticExtractor as Extractor' FullCoupled/Agda2HsSemanticSearch.agda
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
-    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith' FullCoupled/CanonicalLearnerMonolith.agda
-    grep -Fq 'module FullCoupled.TheoremsMonolith' FullCoupled/TheoremsMonolith.agda
+    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' FullCoupled/CanonicalLearnerMonolith.agda
+    grep -Fq 'module FullCoupled.TheoremsMonolith where' FullCoupled/TheoremsMonolith.agda
     dhall type --file .ci/presentation-contract.dhall >/dev/null
     dhall-to-json --file .ci/presentation-contract.dhall > "$tmp/presentation-contract.json"
-    grep -Fq '"graphGenerator": ".ci/lua/agda_graph.fnl"' "$tmp/presentation-contract.json"
+    grep -Fq '"monolithContentGenerator": ".ci/lua/agda_graph.fnl"' "$tmp/presentation-contract.json"
     grep -Fq '"surfaceGenerator": ".ci/lua/agda_surface.fnl"' "$tmp/presentation-contract.json"
     grep -Fq '"elmManifest": ".ci/elm-application.dhall"' "$tmp/presentation-contract.json"
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
@@ -294,13 +309,13 @@ let script = merge {
     grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/Main.elm
     ! grep -Eiq 'Writer|Julia[[:space:]]Mono|JuliaMono|Noto Emoji' site/Main.elm
     grep -Fq 'CAT02LMS' site/Main.elm
-    grep -Fq '.shell{min-height:100vh;display:block;max-width:76ch;' site/Main.elm
-    grep -Fq 'Formal-methods reading trail' site/Main.elm
-    grep -Fq 'Browse modules' site/Main.elm
-    grep -Fq 'Haskell denotational semantics' site/Main.elm
+    grep -Fq '.shell{min-height:100vh;max-width:88rem;margin:0 auto;' site/Main.elm
+    grep -Fq 'Russian constructivism (RUSS): trust-surface certificate' site/Main.elm
+    grep -Fq 'Declaration index' site/Main.elm
+    grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     ! grep -Fq 'Mirth' site/Main.elm
-    grep -Fq 'maximin' site/Main.elm
-    grep -Fq 'data-module' site/Main.elm
+    grep -Fq 'maximinPalette' site/Main.elm
+    grep -Fq 'data-selected' site/Main.elm
     output_dir="$tmp"
     if [ -n "$(printenv PAGES_OUTPUT_DIR 2>/dev/null || true)" ]; then
       output_dir="$(printenv PAGES_OUTPUT_DIR)"
@@ -308,19 +323,19 @@ let script = merge {
     mkdir -p "$output_dir"
     mkdir -p "$tmp/src"
     cp site/Main.elm "$tmp/src/Main.elm"
-    echo "pages-stage=fennel-graph"
-    nix run .#fennel-agda-graph -- "$tmp/src/GeneratedAgdaGraph.elm"
-    echo "pages-stage=fennel-graph-done"
+    echo "pages-stage=monolith-content"
+    nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
+    echo "pages-stage=monolith-content-done"
     echo "pages-stage=fennel-surface"
     nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
     echo "pages-stage=fennel-surface-done"
-    test -s "$tmp/src/GeneratedAgdaGraph.elm"
+    test -s "$tmp/src/GeneratedMonolithContent.elm"
     test -s "$tmp/src/GeneratedTheoremSurface.elm"
     grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'nodeLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'FullCoupled.CanonicalLearnerMonolith' "$tmp/src/GeneratedAgdaGraph.elm"
-    grep -Fq 'FullCoupled.TheoremsMonolith' "$tmp/src/GeneratedAgdaGraph.elm"
-    grep -Fq 'imports' "$tmp/src/GeneratedAgdaGraph.elm"
+    grep -Fq 'entryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
+    grep -Fq 'FullCoupled/CanonicalLearnerMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'FullCoupled/TheoremsMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
+    grep -Fq 'sourceFiles : List String' "$tmp/src/GeneratedMonolithContent.elm"
     dhall-to-json --file "$GITHUB_WORKSPACE/.ci/elm-application.dhall" > "$tmp/elm.json"
     sed -i -e 's/"source_directories"/"source-directories"/g' -e 's/"elm_version"/"elm-version"/g' -e 's/"elm_dependencies"/"dependencies"/g' -e 's/"test_dependencies"/"test-dependencies"/g' "$tmp/elm.json"
     test -s "$tmp/elm.json"
@@ -352,9 +367,22 @@ let script = merge {
     grep -Fq 'proofKernel=Agda' "$manifest"
     grep -Fq 'searchKernel=Agda2Hs' "$manifest"
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
+    grep -Fq 'proof-status=diagnostic-only-not-a-consistency-proof' "$report"
+    nix run .#fennel-russ-certificate
+    dhall text --file .ci/discovery/russ-global-certificate.dhall >/dev/null
+    grep -Fq 'status = "DIRECT_SURFACE_INVENTORIED; TRANSITIVE_CONSISTENCY_NOT_PROVED"' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'directMonolithInventoryPassed = True' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'jointConsistencyProved = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'explicitClassicalPostulateFound = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'globalOptionsSha256' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'rewriteRuleIdentifiers' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'importedModulesBySource' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'transitiveImportedDependencyClosureCertified = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     nix run .#agda2hs-graph-search-check
     nix run .#scott-strachey-domain-check
     nix run .#monoid-lstm-stream-check
+    echo 'russ-trust-surface-certificate=pass (joint consistency not claimed)'
     echo 'agda-semantic-discovery=pass'
     '',  EconlibCrossrepo = ''
     set -euo pipefail
@@ -668,7 +696,7 @@ DHALL
     [ ! -f .ci/discovery/learner_semantic_manifest.m ] || { echo "generated semantic lookup table present"; exit 1; }
     [ ! -f .ci/discovery/learner-semantic-laws.tsv ] || { echo "generated semantic law artifact present"; exit 1; }
     grep -Eiq 'walsh|rope|target-network|target_network|target network|normalization|regularization' "$learner" && { echo "forbidden semantic term present"; exit 1; } || true
-    grep -Fq 'open import FullCoupled.CanonicalLearnerMonolith as C' "$theorem" || { echo "non-canonical theorem source"; exit 1; }
+    grep -Fq 'open import FullCoupled/CanonicalLearnerMonolith.agda as C' "$theorem" || { echo "non-canonical theorem source"; exit 1; }
     grep -Fq 'neuralPolicyGreedyTwoEpsilonRegret' "$learner" || { echo "missing two-epsilon greedy regret theorem"; exit 1; }
     '',
   Surface = ''
