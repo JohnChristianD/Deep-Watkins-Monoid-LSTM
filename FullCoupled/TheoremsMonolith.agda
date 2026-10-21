@@ -336,13 +336,13 @@ open import Agda.Primitive using (Level)
 open MLS using (Size; Size<_; ∞)
 -- END THEOREM-SPECIFIC IMPORTS
 
-  module RUSSProofTheory where
+module RUSSProofTheory where
 
-    RUSSPrinciplePackage : Set₃
-    RUSSPrinciplePackage = RussianRecursiveMathematicsBasis
+  RUSSPrinciplePackage : Set₃
+  RUSSPrinciplePackage = RussianRecursiveMathematicsBasis
 
-    ----------------------------------------------------------------------
-    -- A small explicit proof theory for the selected RUSS principles.
+  ----------------------------------------------------------------------
+  -- A small explicit proof theory for the selected RUSS principles.
   --
   -- Motivating work: Pédrot's Russian-constructivism account and his
   -- quotation-based Church thesis construction in Rocq; computational
@@ -356,7 +356,7 @@ open MLS using (Size; Size<_; ∞)
   -- repository, nor does it prove that this project's ECT0/choice signatures
   -- coincide with every textbook formulation of RUSS. Those remain separate
   -- model and trust-boundary obligations.
-  ------------------------------------------------------------------------
+  ----------------------------------------------------------------------
 
   data RUSSAxiomTag : Set where
     russMarkovTag : RUSSAxiomTag
@@ -502,9 +502,9 @@ open MLS using (Size; Size<_; ∞)
   russCurrentBasisRelativeConsistency =
     russCoreConsistency russianRecursiveMathematicsAssumptions
 
-
-
 open RUSSProofTheory public
+
+
 
 ------------------------------------------------------------------------
 -- Guarded trace interface and coinductive stream-fusion proof.
