@@ -25,7 +25,7 @@
     (let loop ((i 0))
       (cond ((> (+ i n) total) #f)
             ((string=? (substring text i (+ i n)) needle) #t)
-            (else (loop (+ i 1))))))))
+            (else (loop (+ i 1)))))))
 
 (define (lower text)
   (list->string (map char-downcase (string->list text))))
