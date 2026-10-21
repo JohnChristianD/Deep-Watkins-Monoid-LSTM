@@ -107,13 +107,10 @@ Constructive foundations — Russian constructivism (RUSS) only:
   References:
     - Stanford Fall 2024 archived edition of Constructive Mathematics:
       https://plato.stanford.edu/archives/fall2024/entries/mathematics-constructive/
-    - Douglas Bridges and Fred Richman, Varieties of Constructive Mathematics,
-      Chapter 3, "Russian Constructive Mathematics" (Cambridge University Press):
-      https://doi.org/10.1017/CBO9780511565663.004
+    - nLab, Russian constructivism and Markov's principle:
+      https://ncatlab.org/nlab/show/Russian%2Bconstructivism
     - Hannes Diener, Constructive Reverse Mathematics (2018):
       https://arxiv.org/abs/1804.05495
-    - Leon Henkin, The Completeness of the First-Order Functional Calculus (1949):
-      https://www.cambridge.org/core/journals/journal-of-symbolic-logic/article/abs/completeness-of-the-firstorder-functional-calculus/2F7FFE04841B89975F5EA447A01481CD
     - F. William Lawvere, Diagonal Arguments and Cartesian Closed Categories (1969):
       https://doi.org/10.1007/BFB0080769
     - Pierre-Marie Pédrot and Nicolas Tabareau, Failure is not an option — an exceptional type theory:
@@ -150,12 +147,11 @@ Constructive foundations — Russian constructivism (RUSS) only:
       https://arxiv.org/abs/2208.03844
 
   Source notes:
-    The archived Stanford entry and Bridges/Richman chapter ground the RUSS
-    discussion; Diener's paper supplies reverse-mathematics comparisons, not
-    certification of this repository.
-    Henkin's first-order completeness construction and Lawvere's fixed-point
-    theorem are distinct results joined only as an audit-closure target; no
-    implication between them is asserted without a separate proof.
+    The Stanford Encyclopedia and nLab ground the RUSS and Markov-principle
+    discussion; Diener's open dissertation supplies constructive-reverse-
+    mathematics comparisons, not certification of this repository.
+    Lawvere's fixed-point theorem is a separate audit target; no implication
+    between it and another logical construction is asserted without a proof.
     XDS-Agda formalises Scott–Strachey semantics but declares postulates, so it
     is context rather than trusted proof evidence. nLab domain theory is
     relevant to the existing Scott–Ershov denotational-semantics section.
@@ -409,7 +405,7 @@ let scripts = {
     grep -Fq 'russConsistencyCertified = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'consistencyModelProvided = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'directImportClosureTraversed = False' .ci/discovery/russ-global-certificate.dhall
-    grep -Fq 'explicitClassicalPostulateFound = False' .ci/discovery/russ-global-certificate.dhall
+    grep -Fq 'namedClassicalPostulateFound = False' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'globalOptionsSha256' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'rewriteRuleIdentifiers' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'importedModulesBySource' .ci/discovery/russ-global-certificate.dhall

@@ -44,7 +44,7 @@ jobs:
           set -euo pipefail
           nix develop .#agda-versions -c bash -e -c '
             set -euo pipefail
-            printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$CI_LANE" | dhall text | bash -e
+            printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "$CI_LANE" | dhall text | bash -e
           '
 
   agda-learner:
@@ -63,7 +63,7 @@ jobs:
           set -euo pipefail
           nix develop .#agda-ci -c bash -e -c '
             set -euo pipefail
-            printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "AgdaLearner" | dhall text | bash -e
+            printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "AgdaLearner" | dhall text | bash -e
           '
 
   agda-theorem:
@@ -82,7 +82,7 @@ jobs:
           set -euo pipefail
           nix develop .#agda-ci -c bash -e -c '
             set -euo pipefail
-            printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "AgdaTheorem" | dhall text | bash -e
+            printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "AgdaTheorem" | dhall text | bash -e
           '
   semantic:
     name: Agda semantic/e-graph verification
@@ -120,7 +120,7 @@ jobs:
             set -euo pipefail
             run_lane() {
               local lane="$1"
-              printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$lane" | dhall text | bash -e
+              printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "$lane" | dhall text | bash -e
             }
             run_lane Discovery
             run_lane Agda2Hs
@@ -165,7 +165,7 @@ jobs:
             set -euo pipefail
             run_lane() {
               local lane="$1"
-              printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$lane" | dhall text | bash -e
+              printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "$lane" | dhall text | bash -e
             }
             run_lane FennelPresentation
             run_lane Pages
@@ -248,5 +248,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          label_present="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels | any(.[]; .name == "auto-merge-approved")')"
+          if [[ "$label_present" != "true" ]]; then
+            echo "auto-merge=skipped (requires the explicit auto-merge-approved label)"
+            exit 0
+          fi
           gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
 
