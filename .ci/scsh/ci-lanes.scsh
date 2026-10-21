@@ -186,10 +186,13 @@
   (for-each require-file
     '(".ci/fennel/agda_graph.fnl" ".ci/fennel/ascii_surface.fnl"
       ".ci/fennel/palette_css.fnl" ".ci/presentation-smoke.cjs"
-      "site/app.js" "site/site.less"))
+      "FullCoupled/Agda2HsSemanticExtractor.agda"
+      "site/app.mjs" "site/site.less"))
   (nix-app ".#fennel-ascii-surface")
   (let* ((tmp (temporary-directory))
          (palette (string-append tmp "/palette.css"))
+         (js-dir (string-append tmp "/agda-js"))
+         (js-module (string-append js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"))
          (catalog (string-append tmp "/monolith-content.js")))
     (must-run (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
               "build CAT02LMS palette CSS")
@@ -198,11 +201,12 @@
     (must-run (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
               "generate monolith catalog")
     (verify-catalog catalog)
+    (compile-page-search-js js-dir)
     (for-each (lambda (needle) (require-text catalog needle))
       '("FullCoupled/TheoremsMonolith.agda"
         "FullCoupled/CanonicalLearnerMonolith.agda"))
-    (must-run (lambda () (run (node ".ci/presentation-smoke.cjs" ,catalog)))
-              "presentation search/filter smoke")
+    (must-run (lambda () (run (node ".ci/presentation-smoke.cjs" ,catalog ,js-module)))
+              "Agda-generated search/filter semantics smoke")
     (display "fennel-native-presentation=pass\n")
     (must-run (lambda () (run (rm "-rf" ,tmp))) "remove presentation temporary directory")))
 
