@@ -204,12 +204,6 @@ PY
           epkgs.agda2-mode
         ]);
 
-      # Keep only the two consumer-side GHC extensions required by this project.
-      ghcLanguageFlags = [
-        "-XMonoLocalBinds"
-        "-XNoMonomorphismRestriction"
-      ];
-
       agdaWithPackages = system:
         let
           pkgs = pkgsFor system;
@@ -1031,7 +1025,8 @@ PY
                 test -s "$out/FullCoupled/Agda2HsSemanticSearch.hs"
                 test -s "$out/FullCoupled/Agda2HsGraphSearchCheck.hs"
                 mkdir -p "$out/ghc"
-                "${pkgs.haskellPackages.ghc}/bin/ghc" ${builtins.concatStringsSep " " ghcLanguageFlags} -O0 -dcore-lint -i"$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
+                # Use Nixpkgs GHC defaults and LANGUAGE pragmas emitted by Agda2HS; inject no extra -X flags.
+                "${pkgs.haskellPackages.ghc}/bin/ghc" -O0 -dcore-lint -i"$out" -odir "$out/ghc" -hidir "$out/ghc" -c "$out/FullCoupled/Agda2HsSurface.hs"
                 mkdir -p "$out/ghc-search"
                 "${pkgs.haskellPackages.ghc}/bin/ghc" \
                   -O0 -dcore-lint -i"$out" \
