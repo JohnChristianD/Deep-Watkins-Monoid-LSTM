@@ -1,0 +1,104 @@
+#!/usr/bin/env scsh -s
+!#
+;; Build the Agda source closure from the dependency DOT file.
+;; Scheme owns the control flow and manifest writing; grep/sed/awk/sort are
+;; replaced by direct process forms only where they provide a stable parser.
+(define (trim s)
+  (let ((n (string-length s)))
+    (let left ((i 0))
+      (if (and (< i n) (char-whitespace? (string-ref s i)))
+          (left (+ i 1))
+          (let right ((j n))
+            (if (and (> j i) (char-whitespace? (string-ref s (- j 1))))
+                (right (- j 1))
+                (substring s i j)))))))
+
+(define (first-line lines)
+  (if (null? lines) #f (car lines)))
+
+(define (module-name path)
+  (let ((line (first-line
+                (run/strings (awk "/^[[:space:]]*module[[:space:]]+/ { print $2; exit }" ,path)))))
+    (if line (trim line) #f)))
+
+(define (unique strings)
+  (let loop ((rest strings) (seen '()) (out '()))
+    (if (null? rest)
+        (reverse out)
+        (if (member (car rest) seen)
+            (loop (cdr rest) seen out)
+            (loop (cdr rest) (cons (car rest) seen) (cons (car rest) out))))))
+
+(define (write-lines path lines)
+  (if (file-exists? path) (delete-file path))
+  (call-with-output-file path
+    (lambda (port)
+      (for-each (lambda (line) (display line port) (newline port)) lines))))
+
+(let* ((args (command-line))
+       (dot-file (if (pair? args) (car args) #f))
+       (output-manifest (if (and (pair? args) (pair? (cdr args))) (cadr args) #f))
+       (root-source (if (and (pair? args) (pair? (cdr args)) (pair? (cddr args))) (caddr args) #f))
+       (roots (if (and (pair? args) (pair? (cdr args)) (pair? (cddr args))) (cdddr args) '())))
+  (if (not (and dot-file output-manifest root-source (pair? roots)))
+      (begin
+        (display "usage: agda_semantic_source_closure.scsh DOT OUTPUT ROOT_SOURCE ROOT_DIR...\n")
+        (exit 2)))
+  (if (not (and (file-exists? dot-file) (file-exists? root-source)))
+      (begin (display "DOT file and root Agda source must exist\n") (exit 1)))
+  (for-each
+    (lambda (root)
+      (if (not (file-directory? root))
+          (begin (display "source root is not a directory: ") (display root) (newline) (exit 1))))
+    roots)
+  (let* ((pwd (trim (run/string (pwd))))
+         (inventory-path (string-append output-manifest ".source-inventory"))
+         (tracked (run/strings (git -C ,pwd ls-files "*.agda" "*.lagda")))
+         (project-files (map (lambda (path) (string-append pwd "/" path)) tracked))
+         (external-files
+           (apply append
+             (map (lambda (root)
+                    (run/strings (find ,root -type f
+                                      "(" -name "*.agda" -o -name "*.lagda" ")" -print)))
+                  roots)))
+         (all-files (unique (append (list root-source) project-files external-files)))
+         (module-files '())
+         (dot-modules
+           (unique (run/strings
+                     (| (awk "-F\"" "{ for (i=2; i<=NF; i+=2) print $i }" ,dot-file)
+                        (sort -u)))))
+         (root-module (module-name root-source))
+         (unresolved 0)
+         (runtime-files '()))
+    (if (not root-module)
+        (begin (display "cannot determine root module name\n") (exit 1)))
+    (for-each
+      (lambda (path)
+        (let ((name (module-name path)))
+          (if (and name (not (assoc name module-files)))
+              (set! module-files (cons (cons name path) module-files))))
+      all-files)
+    (set! runtime-files (list (cdr (assoc root-module module-files))))
+    (for-each
+      (lambda (name)
+        (let ((entry (assoc name module-files)))
+          (if entry
+              (set! runtime-files (cons (cdr entry) runtime-files))
+              (set! unresolved (+ unresolved 1))))
+      dot-modules)
+    (set! runtime-files (unique (reverse runtime-files)))
+    (write-lines output-manifest runtime-files)
+    (write-lines inventory-path (unique (append project-files (list root-source))))
+    (if (or (not (file-exists? output-manifest))
+            (not (file-exists? inventory-path)))
+        (begin (display "Agda source manifest was not written\n") (exit 1)))
+    (display "agda-runtime-source-closure=pass\n")
+    (display "runtime-closure-source-count=")
+    (display (length runtime-files))
+    (newline)
+    (display "tracked-source-inventory-count=")
+    (display (length (unique (append project-files (list root-source)))))
+    (newline)
+    (display "unresolved-dot-symbol-count=")
+    (display unresolved)
+    (newline)))
