@@ -517,6 +517,12 @@ PY
                 printf '%s\n' '{-# OPTIONS --prop --rewriting --confluence-check #-}' 'module ConstructiveComputabilityPostulates where' > "$tmp/ConstructiveComputabilityPostulates.agda"
                 awk '
                   /^module ConstructiveComputabilityPostulates where$/ { capture=1; next }
+                  # The module ends before the enclosing learner monolith publicly
+                  # re-exports this module. Do not extract that enclosing-scope
+                  # open declaration into the module it is re-exporting.
+                  /^open ConstructiveComputabilityPostulates public using$/ {
+                    if (capture) capture=0
+                  }
                   /^variable$/ { capture=0 }
                   capture {
                     sub(/^  /, "")
