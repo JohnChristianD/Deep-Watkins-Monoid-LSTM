@@ -178,10 +178,29 @@ jobs:
           trap 'rm -rf "$tmp"' EXIT
           nix build -L .#agda2forth --out-link "$tmp/agda2forth"
           test -x "$tmp/agda2forth/bin/agda2forth"
-          "$tmp/agda2forth/bin/agda2forth" --help >/dev/null
           nix build -L .#agda2scheme --out-link "$tmp/agda2scheme"
           test -x "$tmp/agda2scheme/bin/agda2scheme"
-          "$tmp/agda2scheme/bin/agda2scheme" --help >/dev/null
+
+          cat > "$tmp/BackendSmoke.agda" <<'AGDA'
+          module BackendSmoke where
+          open import Agda.Builtin.Nat using (Nat; zero; suc; _+_)
+          double : Nat → Nat
+          double n = n + n
+          AGDA
+          mkdir "$tmp/forth" "$tmp/scheme"
+          cp "$tmp/BackendSmoke.agda" "$tmp/forth/BackendSmoke.agda"
+          (
+            cd "$tmp/forth"
+            "$tmp/agda2forth/bin/agda2forth" BackendSmoke.agda
+          )
+          test -s "$tmp/forth/BackendSmoke.fth"
+          cp "$tmp/BackendSmoke.agda" "$tmp/scheme/BackendSmoke.agda"
+          (
+            cd "$tmp/scheme"
+            "$tmp/agda2scheme/bin/agda2scheme" BackendSmoke.agda
+          )
+          test -s "$tmp/scheme/BackendSmoke.ss"
+
           nix build -L .#ccforth --out-link "$tmp/ccforth"
           "$tmp/ccforth/bin/ccforth" -version
           nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
