@@ -244,7 +244,7 @@
               ,(string-append "--compile-dir=" js-out)
               "-i" "site" "site/MonolithSearch.agda")))
       "compile pure Agda search to ES module JavaScript")
-    (require-file (string-append js-out "/jAgda.Site.MonolithSearch.mjs"))
+    (require-file (string-append js-out "/jAgda.MonolithSearch.mjs"))
     (require-file (string-append js-out "/jAgda.Agda.Builtin.String.mjs"))
     (must-run (lambda () (run (cp "site/app.mjs" ,app))) "copy DOM-only adapter")
     (must-run
@@ -254,7 +254,7 @@
               "generate Pages catalog")
     (verify-catalog catalog)
     (must-run (lambda () (run (node "--check" ,app))) "browser adapter syntax")
-    (must-run (lambda () (run (node "--check" ,(string-append out-dir "/jAgda.Site.MonolithSearch.mjs"))))
+    (must-run (lambda () (run (node "--check" ,(string-append out-dir "/jAgda.MonolithSearch.mjs"))))
               "generated Agda module syntax")
     (must-run (lambda () (run (node ".ci/presentation-smoke.cjs" ,catalog ,out-dir)))
               "Agda search and catalog semantic smoke")
