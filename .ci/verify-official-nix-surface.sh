@@ -92,8 +92,11 @@ grep -Fq 'name = "streamly-tools-check";' flake.nix
 grep -Fq 'name = "agda-import-sync";' flake.nix
 grep -Fq 'agda-emacs = agdaEmacs system;' flake.nix
 grep -Fq 'agda = agdaCli system;' flake.nix
-test -f .ci/lua/agda_import_sync.fnl
-test -f .ci/agda/import-contracts.tsv
+test -f .ci/fennel/agda_import_sync.fnl
+test -f .ci/fennel/agda_graph.fnl
+test -f .ci/fennel/agda_surface.fnl
+test -f .ci/fennel/ascii_surface.fnl
+test -f .ci/fennel/russ_certificate.fnl
 test -f .ci/agda/global-options.txt
 
 
