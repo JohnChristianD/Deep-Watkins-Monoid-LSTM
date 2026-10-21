@@ -195,7 +195,17 @@ jobs:
 
           cat > "$tmp/BackendSmoke.agda" <<'AGDA'
           module BackendSmoke where
-          open import Agda.Builtin.Nat using (Nat; zero; suc; _+_)
+          data Nat : Set where
+            zero : Nat
+            suc : Nat → Nat
+          {-# BUILTIN NATURAL Nat #-}
+
+          infixl 6 _+_
+          _+_ : Nat → Nat → Nat
+          zero + n = n
+          suc m + n = suc (m + n)
+          {-# BUILTIN NATPLUS _+_ #-}
+
           double : Nat → Nat
           double n = n + n
           AGDA
