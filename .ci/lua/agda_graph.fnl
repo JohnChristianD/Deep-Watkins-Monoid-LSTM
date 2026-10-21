@@ -137,8 +137,8 @@
           :line line-number
           :signature clean-signature
           :category (classify path clean-name decl-kind)
-        }))
-  found)))
+        })))
+  found))
 
 (local entries [])
 (each [_ path (ipairs source-files)]
