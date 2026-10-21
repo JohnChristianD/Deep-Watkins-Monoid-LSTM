@@ -69,6 +69,12 @@ Constructive foundations — Russian constructivism (RUSS) only:
     monolith from the compiler-facing Reflection/TC ABI in the theorem
     monolith. The declared rewrite rules are not additional RUSS axioms, but
     still require confluence and subject-reduction justification.
+  * Selected strategy for any future global consistency claim: a model-relative
+    argument, not failure-to-find-a-contradiction. It must interpret the exact
+    transitive import closure, the RUSS basis, Reflection/TC primitives, and
+    rewrite rules, with a formal soundness theorem. No such end-to-end model or
+    relative-consistency theorem is currently supplied; certificate flags must
+    remain false until the witness and proof are checked in Agda.
   * The A*/e-graph empty-type search is diagnostic only. A missing candidate,
     a search timeout, or a failed attempt to synthesize bottom does not prove
     consistency. Every external/transitive theorem dependency and Agda
@@ -169,13 +175,13 @@ Constructive foundations — Russian constructivism (RUSS) only:
     The archived Stanford entry is a dated source, not independent corroboration.
     Global RUSS certification remains blocked until every trusted interface and
     transitive dependency is classified.
-Fennel/Elm:
+Fennel/native JavaScript:
   * Fennel is the only orchestration source and calls the pinned Luafun module
     inside the LuaJIT-backed Fennel runtime. The smoke test checks jit.version
     and exercises Luafun.map through Fennel; no standalone Lua script is used.
-  * .ci/fennel/agda_graph.fnl derives the Elm declaration catalog from exactly
-    the two canonical monoliths. Fennel runs at build time; Elm never loads it.
-  * Pages/Elm must be validated by the existing Nix presentation lane.
+  * .ci/fennel/agda_graph.fnl derives the JavaScript declaration catalog from exactly
+    the two canonical monoliths. Fennel runs at build time; the browser consumes the generated JavaScript catalog.
+  * Pages validates native JavaScript search/filter semantics and its generated catalog.
 
 Only this file owns project policy text and lane commands. The GitHub workflow
 YAML files are runners which invoke these Dhall lanes; do not maintain a second
@@ -265,30 +271,26 @@ let scripts = {
     set -euo pipefail
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
-    mkdir -p "$tmp/src"
     test -f .ci/fennel/agda_graph.fnl
-    test -f .ci/fennel/agda_surface.fnl
     test -f .ci/fennel/ascii_surface.fnl
+    test -f site/app.js
     test -f site/site.less
     test -f site/palette-loader.js
     test -f .ci/wasm/maximin_palette.c
     test -f .ci/wasm/palette-smoke.cjs
+    test -f .ci/presentation-smoke.cjs
     nix run .#fennel-ascii-surface
-    nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
-    test -s "$tmp/src/GeneratedMonolithContent.elm"
-    grep -Fq 'module GeneratedMonolithContent exposing (Entry, entries, sourceFiles)' "$tmp/src/GeneratedMonolithContent.elm"
-    grep -Fq 'FullCoupled/TheoremsMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
-    grep -Fq 'FullCoupled/CanonicalLearnerMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
-    if grep -E 'source = "[^"]+\.agda"' "$tmp/src/GeneratedMonolithContent.elm" | grep -Ev 'CanonicalLearnerMonolith\.agda|TheoremsMonolith\.agda'; then
+    nix run .#fennel-monolith-content -- "$tmp/monolith-content.js"
+    test -s "$tmp/monolith-content.js"
+    node --check "$tmp/monolith-content.js"
+    grep -Fq 'window.MonolithContent' "$tmp/monolith-content.js"
+    grep -Fq 'source: "FullCoupled/TheoremsMonolith.agda"' "$tmp/monolith-content.js"
+    grep -Fq 'source: "FullCoupled/CanonicalLearnerMonolith.agda"' "$tmp/monolith-content.js"
+    if grep -E 'source: "[^"]+\.agda"' "$tmp/monolith-content.js" | grep -Ev 'CanonicalLearnerMonolith\.agda|TheoremsMonolith\.agda'; then
       echo 'presentation source inventory escaped the two monoliths' >&2; exit 1;
     fi
-    nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
-    test -s "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'entryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'russEntryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
-    if LC_ALL=C grep -n '[^[:print:][:space:]]' "$tmp/src/GeneratedTheoremSurface.elm"; then exit 1; fi
-    echo "fennel-luajit-presentation=pass"
+    node .ci/presentation-smoke.cjs "$tmp/monolith-content.js"
+    echo "fennel-native-js-presentation=pass"
     '',
   Pages = ''
     set -euo pipefail
@@ -307,34 +309,29 @@ let scripts = {
     dhall type --file .ci/presentation-contract.dhall >/dev/null
     dhall-to-json --file .ci/presentation-contract.dhall > "$tmp/presentation-contract.json"
     grep -Fq '"monolithContentGenerator": ".ci/fennel/agda_graph.fnl"' "$tmp/presentation-contract.json"
-    grep -Fq '"surfaceGenerator": ".ci/fennel/agda_surface.fnl"' "$tmp/presentation-contract.json"
-    grep -Fq '"elmManifest": ".ci/elm-application.dhall"' "$tmp/presentation-contract.json"
+    grep -Fq '"generatedContentScript": "monolith-content.js"' "$tmp/presentation-contract.json"
+    grep -Fq '"browserRuntime": "site/app.js"' "$tmp/presentation-contract.json"
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
     grep -Fq '"lessStylesheet": "site/site.less"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledStylesheet": "site.css"' "$tmp/presentation-contract.json"
     grep -Fq '"wasmPaletteSource": ".ci/wasm/maximin_palette.c"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledWasm": "site-palette.wasm"' "$tmp/presentation-contract.json"
     grep -Fq '"paletteLoader": "site/palette-loader.js"' "$tmp/presentation-contract.json"
-    grep -Fq '"compiledElm": "elm.js"' "$tmp/presentation-contract.json"
-    grep -Fq '"asciiGenerator": ".ci/fennel/ascii_surface.fnl"' "$tmp/presentation-contract.json"
+    ! grep -Eiq 'elm\.js|Elm\.Main\.init|elmPackages\.elm|elm make|site/Main\.elm|elm-application\.dhall|GeneratedMonolithContent\.elm|GeneratedTheoremSurface\.elm' flake.nix .github/workflows/github-pages.yml .ci/presentation-contract.dhall index.html site .ci/fennel
     grep -Fq 'Atkinson Hyperlegible Mono' site/site.less
     grep -Fq 'Iosevka' site/site.less
     grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/site.less
-    ! grep -Eiq 'Writer|Julia[[:space:]]Mono|JuliaMono|Noto Emoji' site/Main.elm
     grep -Fq 'CAT02 LMS matrix' .ci/wasm/maximin_palette.c
     grep -Fq '.shell' site/site.less
-    grep -Fq 'Russian constructivism (RUSS): trust-surface certificate' site/Main.elm
-    grep -Fq 'Declaration index' site/Main.elm
-    grep -Fq 'String.trim' site/Main.elm
-    grep -Fq '[ entry.name, entry.signature ]' site/Main.elm
-    ! grep -Fq 'entry.source, entry.category' site/Main.elm
-    grep -Fq 'TheoremOnly ->' site/Main.elm
-    grep -Fq 'entry.source == "FullCoupled/CanonicalLearnerMonolith.agda"' site/Main.elm
-    grep -Fq 'entry.source == "FullCoupled/TheoremsMonolith.agda"' site/Main.elm
+    grep -Fq 'Russian constructivism (RUSS): trust-surface inventory' site/app.js
+    grep -Fq 'Declaration index' site/app.js
+    grep -Fq 'function filterEntries' site/app.js
+    grep -Fq 'entry.name +' site/app.js
+    grep -Fq 'entry.signature' site/app.js
+    ! grep -Fq 'entry.source.toLowerCase' site/app.js
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
-    ! grep -Fq 'Mirth' site/Main.elm
+    ! grep -Fq 'Mirth' site/app.js
     grep -Fq 'palette_size(void)' .ci/wasm/maximin_palette.c
-    grep -Fq 'data-selected' site/Main.elm
     output_dir="$tmp"
     if [ -n "$(printenv PAGES_OUTPUT_DIR 2>/dev/null || true)" ]; then
       output_dir="$(printenv PAGES_OUTPUT_DIR)"
@@ -342,36 +339,19 @@ let scripts = {
     mkdir -p "$output_dir"
     lessc site/site.less "$output_dir/site.css"
     test -s "$output_dir/site.css"
-     # Do not leak host Nix hardening flags into the wasm32 target compiler.
-     # Recent host wrappers can add -fzero-call-used-regs, which clang rejects
-     # for wasm32-unknown-unknown.
     NIX_CFLAGS_COMPILE= NIX_CXXFLAGS_COMPILE= clang --target=wasm32-unknown-unknown -O2 -nostdlib -fno-builtin -Wl,--no-entry -Wl,--export=palette_init -Wl,--export=palette_size -Wl,--export=palette_color -Wl,--export-memory -Wl,--allow-undefined .ci/wasm/maximin_palette.c -o "$output_dir/site-palette.wasm"
     cp site/palette-loader.js "$output_dir/palette-loader.js"
+    cp site/app.js "$output_dir/app.js"
+    nix run .#fennel-monolith-content -- "$output_dir/monolith-content.js"
+    node --check "$output_dir/monolith-content.js"
+    node --check "$output_dir/app.js"
     test -s "$output_dir/site-palette.wasm"
     test -s "$output_dir/palette-loader.js"
+    test -s "$output_dir/app.js"
+    test -s "$output_dir/monolith-content.js"
     WASM_FILE="$output_dir/site-palette.wasm" node .ci/wasm/palette-smoke.cjs
-    mkdir -p "$tmp/src"
-    cp site/Main.elm "$tmp/src/Main.elm"
-    echo "pages-stage=monolith-content"
-    nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
-    echo "pages-stage=monolith-content-done"
-    echo "pages-stage=fennel-surface"
-    nix run .#fennel-surface -- "$tmp/src/GeneratedTheoremSurface.elm"
-    echo "pages-stage=fennel-surface-done"
-    test -s "$tmp/src/GeneratedMonolithContent.elm"
-    test -s "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'siteTitle : String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'entryLines : List String' "$tmp/src/GeneratedTheoremSurface.elm"
-    grep -Fq 'FullCoupled/CanonicalLearnerMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
-    grep -Fq 'FullCoupled/TheoremsMonolith.agda' "$tmp/src/GeneratedMonolithContent.elm"
-    grep -Fq 'sourceFiles : List String' "$tmp/src/GeneratedMonolithContent.elm"
-    dhall-to-json --file "$GITHUB_WORKSPACE/.ci/elm-application.dhall" > "$tmp/elm.json"
-    sed -i -e 's/"source_directories"/"source-directories"/g' -e 's/"elm_version"/"elm-version"/g' -e 's/"elm_dependencies"/"dependencies"/g' -e 's/"test_dependencies"/"test-dependencies"/g' "$tmp/elm.json"
-    test -s "$tmp/elm.json"
-    cd "$tmp"
-    elm make src/Main.elm --optimize --output "$output_dir/elm.js"
-    test -s "$output_dir/elm.js"
-    echo "pages-build=pass"
+    node .ci/presentation-smoke.cjs "$output_dir/monolith-content.js"
+    echo "pages-build=pass (native JavaScript; no Elm toolchain)"
     '',
   Discovery = ''
     set -euo pipefail
@@ -416,7 +396,8 @@ let scripts = {
     nix run .#monoid-lstm-stream-check
     echo 'russ-trust-surface-certificate=pass (joint consistency not claimed)'
     echo 'agda-semantic-discovery=pass'
-    '',  EconlibCrossrepo = ''
+    '',
+  EconlibCrossrepo = ''
     set -euo pipefail
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
@@ -748,18 +729,18 @@ DHALL
     md_link_found=0
     while IFS= read -r md; do
       if grep -Eq '\\]\\(|https?://' "$md"; then
-        echo "Markdown link found outside the Elm presentation: $md"
+        echo "Markdown link found outside the generated Pages surface: $md"
         md_link_found=1
       fi
     done < <(git ls-files '*.md' '*.markdown')
-    [ "$md_link_found" -eq 0 ] || { echo "Markdown links are forbidden outside Elm sites"; exit 1; }
+    [ "$md_link_found" -eq 0 ] || { echo "Markdown links are forbidden outside the generated Pages surface"; exit 1; }
     ! git ls-files -z | xargs -0 grep -Eil "$retired" 2>/dev/null | grep -q . || { echo "retired semantic term present"; exit 1; }
     ! grep -nE '(^|[[:space:];])pkgs\.python3([[:space:]]|$)|(^|[[:space:];])python3([[:space:]]|$)|(^|[[:space:];])python([[:space:]]|$)|pkgs\.pythonPackages' flake.nix .ci/*.sh .ci/*.dhall .ci/fennel/*.fnl 2>/dev/null || { echo "non-JAX Python toolchain reference present"; exit 1; }
     ! grep -nE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+(MLTT\\.Fin|Data\\.Fin|Fin\\.Base|Data\\.Vec|Vec\\.Base)([[:space:]]|$)' -- *.agda FullCoupled/**/*.agda 2>/dev/null || { echo "Fin/Vec imports are forbidden; use Nat/List/Set instead"; exit 1; }
     # Canonical proof/data surface: use Nat, Int/Integer, Rational, List, and Set-like structures.
     # Keep Fin and Vec out of the project-owned Agda API; transitive library internals remain library concerns.
     ! git ls-files '*.agda' -z | xargs -0 grep -nE '^[[:space:]]*(open[[:space:]]+)?import[[:space:]]+((Fin|Vec)(\.|[[:space:]]|$)|[^[:space:]]+\.(Fin|Vec)(\.|[[:space:]]|$))' 2>/dev/null || { echo "Fin/Vec import introduced into project Agda sources"; exit 1; }
-    ! grep -nE 'Exotic/ERL/FullCoupled|Exotic/FullCoupled' FullCoupled/*.agda README.md site/Main.elm docs/*.md 2>/dev/null || { echo "stale Exotic source path present"; exit 1; }
+    ! grep -nE 'Exotic/ERL/FullCoupled|Exotic/FullCoupled' FullCoupled/*.agda README.md site/app.js docs/*.md 2>/dev/null || { echo "stale Exotic source path present"; exit 1; }
     '',
   Versions = ''
     set -euo pipefail

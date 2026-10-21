@@ -287,6 +287,11 @@
     (.. "duplicate Dhall CI script key: " lane))
   (tset script-lanes lane true)
   (set script-lane-count (+ script-lane-count 1)))
+(each [lane (string.gmatch scripts-source "'',  ([A-Za-z][A-Za-z0-9_]*) = ''")]
+  (assert (not (. script-lanes lane))
+    (.. "duplicate Dhall CI script key: " lane))
+  (tset script-lanes lane true)
+  (set script-lane-count (+ script-lane-count 1)))
 (assert (> script-lane-count 0) "no Dhall CI script lanes discovered")
 (local union-lanes {})
 (var union-lane-count 0)

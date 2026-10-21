@@ -290,6 +290,11 @@ PY
             pkgs.findutils
           ];
           text = ''
+            # Information-only calls must not inherit the project backend (--js).
+            # The JS backend expects an input module, unlike --version and --help.
+            if [[ "$#" -eq 1 && ( "$1" == "--version" || "$1" == "-V" || "$1" == "--help" || "$1" == "-h" ) ]]; then
+              exec agda "$@"
+            fi
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
@@ -323,6 +328,11 @@ PY
             pkgs.findutils
           ];
           text = ''
+            # Information-only calls must not inherit the project backend (--js).
+            # The JS backend expects an input module, unlike --version and --help.
+            if [[ "$#" -eq 1 && ( "$1" == "--version" || "$1" == "-V" || "$1" == "--help" || "$1" == "-h" ) ]]; then
+              exec agda "$@"
+            fi
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
@@ -466,20 +476,6 @@ PY
           in {
             type = "app";
             program = "${script}/bin/fennel-ascii-surface";
-          };
-
-          fennel-surface = let
-            script = pkgs.writeShellApplication {
-              name = "fennel-surface";
-              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
-              text = ''
-                set -euo pipefail
-                exec ${fennelRuntime system}/bin/fennel .ci/fennel/agda_surface.fnl "$@"
-              '';
-            };
-          in {
-            type = "app";
-            program = "${script}/bin/fennel-surface";
           };
 
           fennel-russ-certificate = let
@@ -1087,7 +1083,6 @@ PY
               pkgs.llvmPackages.clang-unwrapped
               pkgs.llvmPackages.lld
               pkgs.nodejs
-              pkgs.elmPackages.elm
               pkgs.dhall
               pkgs.dhall-json
             ];
@@ -1214,7 +1209,6 @@ PY
               (gforth system)
               pkgs.groff
               pkgs.scsh
-              pkgs.elmPackages.elm
             ];
             shellHook = ''
               export AGDA_COMMAND="agda2hs-agda"

@@ -35,7 +35,7 @@
   (fn [value]
     (var output value)
     ; Keep frequent Agda symbols meaningful in the ASCII-only generated
-    ; Elm source; unknown non-ASCII code points become question marks.
+    ; JavaScript data; unknown non-ASCII code points become question marks.
     (each [_ pair (ipairs
         [ ["⊥" "Bottom"]
           ["→" "->"]
@@ -53,7 +53,7 @@
       (set output (string.gsub output (. pair 1) (. pair 2))))
     (string.gsub output "[^ -~]" "?")))
 
-(local elm-escape
+(local js-escape
   (fn [value]
     (var escaped (string.gsub value "\\" "\\\\"))
     (set escaped (string.gsub escaped "\"" "\\\""))
@@ -155,38 +155,28 @@
 (each [_ entry (ipairs entries)]
   (table.insert rendered-entries
     (string.format
-      "    { id = \"%s\", name = \"%s\", source = \"%s\", line = %d, signature = \"%s\", category = \"%s\" }"
-      (elm-escape entry.id)
-      (elm-escape entry.name)
-      (elm-escape entry.source)
+      "    { id: \"%s\", name: \"%s\", source: \"%s\", line: %d, signature: \"%s\", category: \"%s\" }"
+      (js-escape entry.id)
+      (js-escape entry.name)
+      (js-escape entry.source)
       entry.line
-      (elm-escape entry.signature)
-      (elm-escape entry.category))))
+      (js-escape entry.signature)
+      (js-escape entry.category))))
 
 (local rendered-source-files
   (fun.totable
     (fun.map
       (fn [index]
-        (string.format "    \"%s\"" (elm-escape (. source-files index))))
+        (string.format "    \"%s\"" (js-escape (. source-files index))))
       (fun.range 1 (# source-files)))))
 
-(local output-path (assert (. arg 1) "usage: agda_graph.fnl OUTPUT.elm"))
+(local output-path (assert (. arg 1) "usage: agda_graph.fnl OUTPUT.js"))
 (local output (assert (io.open output-path "w")))
-(output:write "module GeneratedMonolithContent exposing (Entry, entries, sourceFiles)\n\n")
-(output:write "type alias Entry =\n")
-(output:write "    { id : String\n")
-(output:write "    , name : String\n")
-(output:write "    , source : String\n")
-(output:write "    , line : Int\n")
-(output:write "    , signature : String\n")
-(output:write "    , category : String\n")
-(output:write "    }\n\n")
-(output:write "sourceFiles : List String\nsourceFiles =\n")
-(output:write "    [\n")
+(output:write "window.MonolithContent = {\n  sourceFiles: [\n")
 (output:write (table.concat rendered-source-files ",\n"))
-(output:write "\n    ]\n\nentries : List Entry\nentries =\n    [\n")
+(output:write "\n  ],\n  entries: [\n")
 (output:write (table.concat rendered-entries ",\n"))
-(output:write "\n    ]\n")
+(output:write "\n  ]\n};\n")
 (output:close)
-(print (.. "Generated the two-monolith declaration index: " output-path))
+(print (.. "Generated the two-monolith JavaScript declaration index: " output-path))
 (print (.. "sources=" (# source-files) " declarations=" (# entries)))
