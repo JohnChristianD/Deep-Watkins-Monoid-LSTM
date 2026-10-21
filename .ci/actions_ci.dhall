@@ -396,7 +396,8 @@ let scripts = {
     nix run .#monoid-lstm-stream-check
     echo 'russ-trust-surface-certificate=pass (joint consistency not claimed)'
     echo 'agda-semantic-discovery=pass'
-    '',  EconlibCrossrepo = ''
+    '',
+  EconlibCrossrepo = ''
     set -euo pipefail
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
