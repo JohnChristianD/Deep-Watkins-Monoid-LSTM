@@ -1131,9 +1131,9 @@ _++_ : List A → List A → List A
 []       ++ ys = ys
 (x ∷ xs) ++ ys = x ∷ (xs ++ ys)
 
-map-id : map (λ x → x) xs ≡ xs
-map-id {xs = []}     = refl
-map-id {xs = x ∷ xs} = cong (_∷_ x) map-id
+canonical-map-identity : map (λ x → x) xs ≡ xs
+canonical-map-identity {xs = []}     = refl
+canonical-map-identity {xs = x ∷ xs} = cong (_∷_ x) canonical-map-identity
 
 map-fuse : map f (map g xs) ≡ map (λ x → f (g x)) xs
 map-fuse {xs = []}     = refl
@@ -1143,7 +1143,7 @@ map-++ : map f (xs ++ ys) ≡ (map f xs) ++ (map f ys)
 map-++ {xs = []}     = refl
 map-++ {xs = x ∷ xs} = cong (_∷_ _) (map-++ {xs = xs})
 
-{-# REWRITE map-id map-fuse map-++ #-}
+{-# REWRITE canonical-map-identity map-fuse map-++ #-}
 
 -- Constructive transport over the reflexive-only relation used as the
 -- equality substrate for potential quotient interfaces. This kernel lemma
