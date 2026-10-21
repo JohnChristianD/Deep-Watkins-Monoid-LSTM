@@ -30,43 +30,6 @@
              (not (string.match line "^%s*#"))))
       (fun.totable (string.gmatch content "[^\n]+")))))
 
-(fn count-exact-line [content expected]
-  (var count 0)
-  (each [line (string.gmatch content "[^\n]+")]
-    (when (= line expected)
-      (set count (+ count 1))))
-  count)
-
-(fn has-prefix [line prefix]
-  (and (= (string.sub line 1 (# prefix)) prefix)
-       (or (= (# line) (# prefix))
-           (= (string.sub line (+ (# prefix) 1) (+ (# prefix) 1)) " "))))
-
-(fn count-prefix-lines [content prefix]
-  (var count 0)
-  (each [line (string.gmatch content "[^\n]+")]
-    (when (has-prefix line prefix)
-      (set count (+ count 1))))
-  count)
-
-(fn sync-import [path prefix expected expected-count]
-  (local original (read-file path))
-  (local lines (fun.totable (string.gmatch original "[^\n]+")))
-  (local rendered [])
-  (var matches 0)
-  (each [_ line (ipairs lines)]
-    (if (has-prefix line prefix)
-        (do
-          (set matches (+ matches 1))
-          (table.insert rendered expected))
-        (table.insert rendered line)))
-  (assert (= matches expected-count)
-    (.. path ": expected " expected-count " line(s) with prefix '" prefix "', found " matches))
-  (local output (.. (table.concat rendered "\n") "\n"))
-  (when (not (= output original))
-    (write-file path output)
-    (print (.. "agda-import-sync=updated " path " [" prefix "]"))))
-
 (fn count-substring [source needle]
   (var count 0)
   (var cursor 1)
@@ -122,7 +85,7 @@
         (set hits (+ hits 1))
         (io.stderr:write
           (.. "redundant Agda builtin; use Haskell.Prelude: "
-              path ":" line-number ": " imported "\\n")))))
+              path ":" line-number ": " imported "\n")))))
   (assert (= hits 0)
     (.. "found " hits
         " direct imports of builtins replaced by Haskell.Prelude"))
@@ -144,7 +107,7 @@
                  (cubical-marker line))
         (set hits (+ hits 1))
         (io.stderr:write
-          (.. "cubical/unsafe Agda construct: " path ":" line-number ": " line "\\n")))))
+          (.. "cubical/unsafe Agda construct: " path ":" line-number ": " line "\n")))))
   (assert (= hits 0) (.. "found " hits " cubical/unsafe construct(s); review explicitly instead of auto-deleting proof code"))
   (print (.. "agda-cubical-scan=clean (" (# files) " tracked Agda sources)")))
 
@@ -190,7 +153,7 @@
 (local public-import-marker "-- Merged external import surface; internal FullCoupled imports remain module-local.")
 (local normalize-public-import-surface
   (fn [source]
-    (local lines (fun.totable (string.gmatch source "[^\\n]+")))
+    (local lines (fun.totable (string.gmatch source "[^\n]+")))
     (local rendered [])
     (var in-public-surface false)
     (each [_ line (ipairs lines)]
@@ -218,8 +181,8 @@
                           (string.sub line insertion-pos))
                       (.. line " public")))))
           (table.insert rendered line)))
-    (.. (table.concat rendered "\\n")
-        (if (string.match source "\\n$") "\\n" ""))))
+    (.. (table.concat rendered "\n")
+        (if (string.match source "\n$") "\n" ""))))
 
 (local normalized-learner (normalize-public-import-surface learner-source))
 (if (= mode "--sync")
@@ -244,7 +207,7 @@
   ["Agda.Builtin.Reflection" "Agda.Builtin.Coinduction"])
 (local check-canonical-builtin-boundary
   (fn [path]
-    (local lines (fun.totable (string.gmatch (read-file path) "[^\\n]+")))
+    (local lines (fun.totable (string.gmatch (read-file path) "[^\n]+")))
     (each [line-number line (ipairs lines)]
       (local imported
         (or
