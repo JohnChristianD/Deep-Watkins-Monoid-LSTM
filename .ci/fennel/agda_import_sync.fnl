@@ -33,13 +33,11 @@
 (fn count-substring [source needle]
   (var count 0)
   (var cursor 1)
-  (while true
-    (local found (string.find source needle cursor true))
-    (if found
-        (do
-          (set count (+ count 1))
-          (set cursor (+ found (# needle))))
-        (break)))
+  (var found (string.find source needle cursor true))
+  (while found
+    (set count (+ count 1))
+    (set cursor (+ found (# needle)))
+    (set found (string.find source needle cursor true)))
   count)
 
 (fn cubical-marker [line]
