@@ -168,7 +168,7 @@
     (fun.map
       (fn [index]
         (string.format "    \"%s\"" (elm-escape (. source-files index))))
-      (fun.range 1 (# source-files))))
+      (fun.range 1 (# source-files)))))
 
 (local output-path (assert (. arg 1) "usage: agda_graph.fnl OUTPUT.elm"))
 (local output (assert (io.open output-path "w")))
