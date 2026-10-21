@@ -4,7 +4,7 @@
     ]
 , monolithContentGenerator = ".ci/fennel/agda_graph.fnl"
 , generatedContentScript = "monolith-content.js"
-, browserRuntime = "site/app.js"
+ , browserRuntime = "site/app.mjs"
 , siteEntry = "index.html"
 , lessStylesheet = "site/site.less"
 , compiledStylesheet = "site.css"
