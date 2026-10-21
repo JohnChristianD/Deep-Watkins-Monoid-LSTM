@@ -215,7 +215,7 @@
       (assert (= actual-count 0)
         (.. path ": forbidden import prefix '" (. fields 3) "' found " actual-count " time(s)"))
       (assert (= actual-count expected-count)
-        (.. path ": expected exact line '" expected "' " expected-count " time(s), found " actual-count)))
+        (.. path ": expected exact line '" expected "' " expected-count " time(s), found " actual-count))))
 
 (local options-path ".ci/agda/global-options.txt")
 (local options (read-file options-path))
