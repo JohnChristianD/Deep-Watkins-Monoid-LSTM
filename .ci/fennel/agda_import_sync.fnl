@@ -23,12 +23,12 @@
   lines)
 
 (fn non-comment-lines [content]
-  (fun.totable
-    (fun.filter
-      (fn [line]
-        (and (not (= line ""))
-             (not (string.match line "^%s*#"))))
-      (fun.totable (string.gmatch content "[^\n]+")))))
+  (local lines [])
+  (each [line (string.gmatch content "[^\n]+")]
+    (when (and (not (= line ""))
+               (not (string.match line "^%s*#")))
+      (table.insert lines line)))
+  lines)
 
 (fn count-substring [source needle]
   (var count 0)
