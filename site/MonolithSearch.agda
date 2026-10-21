@@ -1,4 +1,4 @@
-module Site.MonolithSearch where
+module MonolithSearch where
 
 open import Agda.Builtin.Bool using (Bool; true; false; if_then_else_)
 open import Agda.Builtin.Char using (Char; primCharEquality; primCharToNat; primNatToChar)
