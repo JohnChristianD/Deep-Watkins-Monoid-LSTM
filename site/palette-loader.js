@@ -1,4 +1,10 @@
-/* Small browser host for the palette WebAssembly module. */
+/*
+ * Browser bootstrap for the WebAssembly palette and the Elm presentation.
+ * Less owns layout; WebAssembly owns palette computation; Elm owns declaration
+ * search/filter and entry interactions. This calls Elm.Main.init deliberately.
+ * Removing Elm requires an alternative interaction layer and matching Pages
+ * artifact/build changes; dropping only elm.js would leave the page unbooted.
+ */
 (async function () {
   const appNode = document.getElementById("app");
   const roleVariables = [
