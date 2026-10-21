@@ -246,7 +246,7 @@ PY
           };
         };
 
-      luaFennelEnv = system:
+      fennelJitEnv = system:
         let
           pkgs = pkgsFor system;
           luafunPkg = luafunModule system;
@@ -259,7 +259,7 @@ PY
       fennelRuntime = system:
         let
           pkgs = pkgsFor system;
-          luaEnv = luaFennelEnv system;
+          luaEnv = fennelJitEnv system;
         in
         pkgs.writeShellApplication {
           name = "fennel";
@@ -412,7 +412,7 @@ PY
                 tmp=$(mktemp -d)
                 trap 'rm -rf "$tmp"' EXIT
                 printf '%s\n' \
-                  '(assert (string.match jit.version "LuaJIT"))' \\
+                  '(assert (string.match jit.version "LuaJIT"))' \
                   '(local fun (require :fun))' \
                   '(local mapped (fun.totable (fun.map (fn [n] (* n 2)) (ipairs [1 2 3]))))' \
                   '(assert (= (table.concat mapped ",") "2,4,6"))' \
