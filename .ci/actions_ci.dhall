@@ -269,89 +269,11 @@ let scripts = {
     echo "agda2hs-plugins=none"    '',
   FennelPresentation = ''
     set -euo pipefail
-    tmp=$(mktemp -d)
-    trap 'rm -rf "$tmp"' EXIT
-    test -f .ci/fennel/agda_graph.fnl
-    test -f .ci/fennel/ascii_surface.fnl
-    test -f site/app.js
-    test -f site/site.less
-    test -f .ci/fennel/palette_css.fnl
-    test -f .ci/presentation-smoke.cjs
-    nix run .#fennel-ascii-surface
-    nix run .#fennel-palette-css -- "$tmp/palette.css"
-    test -s "$tmp/palette.css"
-    test "$(grep -c '^  --palette-' "$tmp/palette.css")" -eq 6
-    nix run .#fennel-monolith-content -- "$tmp/monolith-content.js"
-    test -s "$tmp/monolith-content.js"
-    node --check "$tmp/monolith-content.js"
-    grep -Fq 'window.MonolithContent' "$tmp/monolith-content.js"
-    grep -Fq 'source: "FullCoupled/TheoremsMonolith.agda"' "$tmp/monolith-content.js"
-    grep -Fq 'source: "FullCoupled/CanonicalLearnerMonolith.agda"' "$tmp/monolith-content.js"
-    if grep -E 'source: "[^"]+\.agda"' "$tmp/monolith-content.js" | grep -Ev 'CanonicalLearnerMonolith\.agda|TheoremsMonolith\.agda'; then
-      echo 'presentation source inventory escaped the two monoliths' >&2; exit 1;
-    fi
-    node .ci/presentation-smoke.cjs "$tmp/monolith-content.js"
-    echo "fennel-native-js-presentation=pass"
+    scsh -s .ci/scsh/ci-lanes.scsh FennelPresentation
     '',
   Pages = ''
     set -euo pipefail
-    grep -Fq 'open import Haskell.Prelude' FullCoupled/Agda2HsSemanticSearch.agda
-    ! grep -Eiq '^import Unsafe[.]Haskell|^open import (Naturals|MLTT[.]|UF[.]|TWA[.])' FullCoupled/Agda2HsSemanticSearch.agda
-    grep -Fq 'open import Haskell.Prelude' FullCoupled/Agda2HsSemanticExtractor.agda
-    ! grep -Eiq '^import Unsafe[.]Haskell|^open import (Naturals|MLTT[.]|UF[.]|TWA[.])' FullCoupled/Agda2HsSemanticExtractor.agda
-    grep -Fq 'open import Haskell.Prelude' FullCoupled/Agda2HsTheoremGraphEGraph.agda
-    ! grep -Eiq '^import Unsafe[.]Haskell|^open import (Naturals|MLTT[.]|UF[.]|TWA[.])' FullCoupled/Agda2HsTheoremGraphEGraph.agda
-    grep -Fq 'requiredPlanComplete' FullCoupled/Agda2HsSemanticSearch.agda
-    grep -Fq 'import FullCoupled.Agda2HsSemanticExtractor as Extractor' FullCoupled/Agda2HsSemanticSearch.agda
-    tmp=$(mktemp -d)
-    trap 'rm -rf "$tmp"' EXIT
-    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' FullCoupled/CanonicalLearnerMonolith.agda
-    grep -Fq 'module FullCoupled.TheoremsMonolith where' FullCoupled/TheoremsMonolith.agda
-    dhall type --file .ci/presentation-contract.dhall >/dev/null
-    dhall-to-json --file .ci/presentation-contract.dhall > "$tmp/presentation-contract.json"
-    grep -Fq '"monolithContentGenerator": ".ci/fennel/agda_graph.fnl"' "$tmp/presentation-contract.json"
-    grep -Fq '"generatedContentScript": "monolith-content.js"' "$tmp/presentation-contract.json"
-    grep -Fq '"browserRuntime": "site/app.js"' "$tmp/presentation-contract.json"
-    grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
-    grep -Fq '"lessStylesheet": "site/site.less"' "$tmp/presentation-contract.json"
-    grep -Fq '"compiledStylesheet": "site.css"' "$tmp/presentation-contract.json"
-    grep -Fq '"paletteCssGenerator": ".ci/fennel/palette_css.fnl"' "$tmp/presentation-contract.json"
-    grep -Fq '"paletteRoleRegistry": "site/site.less"' "$tmp/presentation-contract.json"
-    ! grep -Eiq 'elm\.js|Elm\.Main\.init|elmPackages\.elm|elm make|site/Main\.elm|elm-application\.dhall|GeneratedMonolithContent\.elm|GeneratedTheoremSurface\.elm' flake.nix .github/workflows/github-pages.yml .ci/presentation-contract.dhall index.html site .ci/fennel
-    grep -Fq 'Atkinson Hyperlegible Mono' site/site.less
-    grep -Fq 'Iosevka' site/site.less
-    grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/site.less
-    grep -Fq '0.7328' .ci/fennel/palette_css.fnl
-    grep -Fq '0.4296' .ci/fennel/palette_css.fnl
-    grep -Fq '0.9834' .ci/fennel/palette_css.fnl
-    grep -Fq '.shell' site/site.less
-    grep -Fq 'Russian constructivism (RUSS): trust-surface inventory' site/app.js
-    grep -Fq 'Declaration index' site/app.js
-    grep -Fq 'function filterEntries' site/app.js
-    grep -Fq 'entry.name +' site/app.js
-    grep -Fq 'entry.signature' site/app.js
-    ! grep -Fq 'entry.source.toLowerCase' site/app.js
-    grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
-    ! grep -Fq 'Mirth' site/app.js
-    output_dir="$tmp"
-    if [ -n "$(printenv PAGES_OUTPUT_DIR 2>/dev/null || true)" ]; then
-      output_dir="$(printenv PAGES_OUTPUT_DIR)"
-    fi
-    mkdir -p "$output_dir"
-    lessc site/site.less "$output_dir/site.css"
-    nix run .#fennel-palette-css -- "$tmp/palette.css"
-    cat "$tmp/palette.css" >> "$output_dir/site.css"
-    test -s "$output_dir/site.css"
-    cp site/app.js "$output_dir/app.js"
-    nix run .#fennel-monolith-content -- "$output_dir/monolith-content.js"
-    node --check "$output_dir/monolith-content.js"
-    node --check "$output_dir/app.js"
-    test -s "$output_dir/app.js"
-    test -s "$output_dir/monolith-content.js"
-    node .ci/presentation-smoke.cjs "$output_dir/monolith-content.js"
-    grep -Fq -- '--palette-ink:' "$output_dir/site.css"
-    grep -Fq -- '--palette-ink-on-accent:' "$output_dir/site.css"
-    echo "pages-build=pass (native JavaScript, build-time palette CSS; no Elm/Wasm toolchain)"
+    scsh -s .ci/scsh/ci-lanes.scsh Pages
     '',
   Discovery = ''
     set -euo pipefail
