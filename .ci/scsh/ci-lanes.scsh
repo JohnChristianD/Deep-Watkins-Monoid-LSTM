@@ -144,6 +144,17 @@
       "graphTwoLeafBranchesRegressionChecked = refl"
       "graphCycleIsRejectedRegressionChecked = refl"
       "sourceOnlyLegacyBoundaryRegressionChecked = refl"))
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda"
+    "scottErshovApproximationAtZeroRegression")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "module RUSSProofTheory where")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russSoundness")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russCoreConsistency")
+  (for-each
+    (lambda (path)
+      (forbid-text path "import Agda.Builtin.")
+      (forbid-text path "open import Agda.Builtin."))
+    '("FullCoupled/CanonicalLearnerMonolith.agda"
+      "FullCoupled/TheoremsMonolith.agda"))
   (check-agda "FullCoupled/CanonicalLearnerMonolith.agda")
   (check-agda "FullCoupled/TheoremsMonolith.agda")
   (display "canonical-learner-monolith=kernel-checked-relative-to-trusted-imports-and-postulates\n")
