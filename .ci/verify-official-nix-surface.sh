@@ -19,6 +19,11 @@ done
   exit 1
 }
 
+! grep -Eiq 'liquidhaskell|liquid-haskell|liquid[[:space:]]+--version' flake.nix .github/workflows/nix-composition.yml .ci/actions_ci.dhall || {
+  echo "Liquid Haskell must not be installed or invoked by active Nix/CI surfaces" >&2
+  exit 1
+}
+
 grep -Fq 'github:NixOS/nixpkgs/' flake.nix
 ! grep -Eiq 'TypeTopology|typetopology' flake.nix || {
   echo "TypeTopology must not be in the active flake" >&2
