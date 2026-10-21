@@ -280,16 +280,19 @@
   (when (string.find line "let scripts = {" 1 true)
     (set inside-scripts true)
     (set found-scripts true))
-  (when (and inside-scripts (string.match line "^in%s*$"))
-    (set inside-scripts false)
-    (set found-script-end true))
   (when inside-scripts
     (local lane (string.match line "^  ([A-Za-z][A-Za-z0-9_]*) = ''"))
     (when lane
       (assert (not (. script-lanes lane))
         (.. "duplicate Dhall CI script key: " lane))
       (tset script-lanes lane true)
-      (set script-lane-count (+ script-lane-count 1)))))
+      (set script-lane-count (+ script-lane-count 1)))
+    ; Dhall closes this Text-valued record on the same line as its final
+    ; value terminator (All = ''}). A bare "in" can occur inside an embedded
+    ; shell snippet, so map structure—not shell syntax—defines the boundary.
+    (when (string.match line "''}%s*$")
+      (set inside-scripts false)
+      (set found-script-end true)))
 (assert (and found-scripts found-script-end)
   "Dhall CI script map does not have a complete record boundary")
 (assert (> script-lane-count 0) "no Dhall CI script lanes discovered")
