@@ -170,8 +170,7 @@
 (define (lane-fennel-presentation)
   (for-each require-file
     '(".ci/fennel/agda_graph.fnl" ".ci/fennel/ascii_surface.fnl"
-      ".ci/fennel/palette_css.fnl" ".ci/presentation-smoke.cjs"
-      "site/app.js" "site/site.less"))
+      ".ci/fennel/palette_css.fnl" "site/app.mjs" "site/site.less"))
   (nix-app ".#fennel-ascii-surface")
   (let* ((tmp (temporary-directory))
          (palette (string-append tmp "/palette.css"))
@@ -186,9 +185,7 @@
     (for-each (lambda (needle) (require-text catalog needle))
       '("FullCoupled/TheoremsMonolith.agda"
         "FullCoupled/CanonicalLearnerMonolith.agda"))
-    (must-run (lambda () (run (node ".ci/presentation-smoke.cjs" ,catalog)))
-              "presentation search/filter smoke")
-    (display "fennel-native-presentation=pass\n")
+    (display "fennel-native-catalog-and-palette=pass\n")
     (must-run (lambda () (run (rm "-rf" ,tmp))) "remove presentation temporary directory")))
 
 (define (lane-pages)
@@ -196,24 +193,19 @@
   (for-each require-file
     '("FullCoupled/CanonicalLearnerMonolith.agda"
       "FullCoupled/TheoremsMonolith.agda"
+      "site/MonolithSearch.agda"
       "FullCoupled/Agda2HsSemanticSearch.agda"
       "FullCoupled/Agda2HsSemanticExtractor.agda"
       "FullCoupled/Agda2HsTheoremGraphEGraph.agda"
       ".ci/presentation-contract.dhall" "index.html"))
-  (require-text "FullCoupled/Agda2HsSemanticSearch.agda" "requiredPlanComplete")
-  (require-text "FullCoupled/Agda2HsSemanticSearch.agda" "import FullCoupled.Agda2HsSemanticExtractor as Extractor")
-  (for-each (lambda (path)
-      (for-each (lambda (needle) (forbid-text path needle))
-        '("Unsafe.Haskell" "MLTT." "UF." "TWA.")))
-    '("FullCoupled/Agda2HsSemanticSearch.agda"
-      "FullCoupled/Agda2HsSemanticExtractor.agda"
-      "FullCoupled/Agda2HsTheoremGraphEGraph.agda"))
+  (require-text "site/MonolithSearch.agda" "filterIndices")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
   (must-run (lambda () (run (dhall "type" "--file" ".ci/presentation-contract.dhall")))
             "type presentation contract")
   (for-each (lambda (needle) (require-text ".ci/presentation-contract.dhall" needle))
     '("monolithContentGenerator = \".ci/fennel/agda_graph.fnl\""
       "generatedContentScript = \"monolith-content.js\""
-      "browserRuntime = \"site/app.js\""
+      "browserRuntime = \"site/app.mjs\""
       "siteEntry = \"index.html\""
       "lessStylesheet = \"site/site.less\""
       "compiledStylesheet = \"site.css\""
@@ -222,42 +214,60 @@
   (for-each (lambda (needle) (forbid-text "flake.nix" needle))
     '("elmPackages.elm" "elm.js" "site/Main.elm" "site-palette.wasm"
       "palette-loader.js" "maximin_palette.c"))
+  (for-each (lambda (needle) (forbid-text "site/app.mjs" needle))
+    '("function filterEntries" ".toLowerCase()" ".includes(needle)" "source === learnerPath"))
+  (for-each (lambda (needle) (forbid-text "site/site.less" needle))
+    '("filterEntries" "toLowerCase" "source === learnerPath"))
+  (for-each (lambda (needle) (forbid-text "index.html" needle))
+    '("search" "filterEntries" "scope ==="))
   (require-text "site/site.less" "Atkinson Hyperlegible Mono")
   (require-text "site/site.less" "Iosevka")
   (require-text ".ci/fennel/palette_css.fnl" "0.7328")
   (require-text ".ci/fennel/palette_css.fnl" "0.4296")
   (require-text ".ci/fennel/palette_css.fnl" "0.9834")
-  (require-text "site/app.js" "function filterEntries")
-  (require-text "site/app.js" "entry.name +")
-  (require-text "site/app.js" "entry.signature")
-  (forbid-text "site/app.js" "entry.source.toLowerCase")
-  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
-  (forbid-text "site/app.js" "Mirth")
+  (forbid-text "site/app.mjs" "Mirth")
   (let* ((tmp (temporary-directory))
          (out-dir (or (getenv "PAGES_OUTPUT_DIR") tmp))
          (css (string-append out-dir "/site.css"))
          (palette (string-append tmp "/palette.css"))
          (catalog (string-append out-dir "/monolith-content.js"))
-         (app (string-append out-dir "/app.js")))
-    (must-run (lambda () (run (mkdir "-p" ,out-dir))) "create Pages output")
+         (app (string-append out-dir "/app.mjs"))
+         (js-out (string-append tmp "/agda-js")))
+    (must-run (lambda () (run (mkdir "-p" ,out-dir ,js-out))) "create Pages output")
     (must-run (lambda () (run (lessc "site/site.less" ,css))) "compile Less")
     (must-run (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
               "generate CAT02LMS palette")
     (write-file css (string-append (read-file css) "\n" (read-file palette)))
-    (must-run (lambda () (run (cp "site/app.js" ,app))) "copy browser adapter")
+    (must-run
+      (lambda ()
+        (run (,(agda-command) "--js-es6"
+              ,(string-append "--compile-dir=" js-out)
+              "-i" "site" "site/MonolithSearch.agda")))
+      "compile pure Agda search to ES module JavaScript")
+    (require-file (string-append js-out "/jAgda.Site.MonolithSearch.mjs"))
+    (require-file (string-append js-out "/jAgda/Agda/Builtin/String.mjs"))
+    (must-run (lambda () (run (cp "site/app.mjs" ,app))) "copy DOM-only adapter")
+    (must-run
+      (lambda () (run (cp ,(string-append js-out "/jAgda.Site.MonolithSearch.mjs") ,out-dir)))
+      "copy generated pure search module")
+    (must-run
+      (lambda () (run (cp "-R" ,(string-append js-out "/jAgda") ,out-dir)))
+      "copy generated Agda JS runtime")
     (must-run (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
               "generate Pages catalog")
     (verify-catalog catalog)
     (must-run (lambda () (run (node "--check" ,app))) "browser adapter syntax")
-    (must-run (lambda () (run (node ".ci/presentation-smoke.cjs" ,catalog)))
-              "Pages search/filter smoke")
+    (must-run (lambda () (run (node "--check" ,(string-append out-dir "/jAgda.Site.MonolithSearch.mjs"))))
+              "generated Agda module syntax")
+    (must-run (lambda () (run (node ".ci/presentation-smoke.cjs" ,catalog ,out-dir)))
+              "Agda search and catalog semantic smoke")
     (require-text css "--palette-ink:")
     (require-text css "--palette-ink-on-accent:")
     (must-run (lambda () (run (cp "index.html" ,(string-append out-dir "/index.html"))))
               "copy Pages entrypoint")
     (write-file (string-append out-dir "/.nojekyll") "")
     (must-run (lambda () (run (rm "-rf" ,tmp))) "remove Pages temporary directory")
-    (display "pages-build=pass (HTML/Less, native DOM adapter, build-time CSS palette; no Elm/Wasm)\n")))
+    (display "pages-build=pass (Agda-generated pure ES module, DOM-only adapter, Less/CAT02LMS CSS; no Elm/Wasm)\n")))
 
 (define (lane-discovery)
   (nix-app ".#agda2hs-semantic-search")
