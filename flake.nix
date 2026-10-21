@@ -212,7 +212,6 @@ PY
           pkgs = [
             (agda2hsBaseLib system)
           ];
-          ghc = null;
         };
 
       agdaWithStandardLibrary = system:
@@ -221,7 +220,6 @@ PY
         in
         pkgs.agda.withPackages {
           pkgs = [ pkgs.agdaPackages.standard-library ];
-          ghc = null;
         };
 
       luafunModule = system:
