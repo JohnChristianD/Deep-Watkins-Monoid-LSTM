@@ -290,7 +290,7 @@
   ; Dhall closes this Text-valued record on the same line as its final
   ; value terminator (All = ''}). A bare "in" can occur inside an embedded
   ; shell snippet, so map structure—not shell syntax—defines the boundary.
-  (when (and inside-scripts (string.match line "''}%s*$"))
+  (when (and inside-scripts (string.find line "''}" 1 true))
     (set inside-scripts false)
     (set found-script-end true)))
 (assert (and found-scripts found-script-end)
