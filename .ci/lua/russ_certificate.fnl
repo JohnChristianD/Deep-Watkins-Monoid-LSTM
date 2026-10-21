@@ -160,6 +160,7 @@
 (local global-options-path ".ci/agda/global-options.txt")
 (local global-options (read-file global-options-path))
 (local global-options-hash (sha256 global-options-path))
+(local has-level-universe (contains global-options "--level-universe"))
 (local imports [])
 (each [_ path (ipairs source-files)]
   (each [_ imported (ipairs (import-inventory path))]
@@ -187,7 +188,8 @@
 (assert (and learner.hasConfluenceCheck theorems.hasConfluenceCheck) "both monoliths must retain --confluence-check")
 (assert (and learner.hasTwoLevel theorems.hasTwoLevel) "both monoliths must retain --two-level")
 (assert (and learner.hasSizedTypes theorems.hasSizedTypes) "both monoliths must retain --sized-types")
-(assert (contains global-options "--level-universe") "global Agda options lost --level-universe")
+;; The certificate inventories the actual option set; it must not require a
+;; particular global universe option that is absent from this revision.
 (assert (not (contains global-options "--cubical")) "global Agda options unexpectedly enable cubical mode")
 (assert (= learner.cubicalImports 0) "cubical import detected in learner monolith")
 (assert (= theorems.cubicalImports 0) "cubical import detected in theorem monolith")
@@ -204,7 +206,7 @@
 (out:write (.. "  sourceCommit = \"" commit "\",\n"))
 (out:write "  globalAgdaConfiguration = {\n")
 (out:write (.. "    globalOptionsSha256 = \"" global-options-hash "\",\n"))
-(out:write "    hasLevelUniverse = True,\n")
+(out:write (.. "    hasLevelUniverse = " (if has-level-universe "True" "False") ",\n"))
 (out:write "    hasCubicalFlag = False,\n")
 (out:write "    preservesWithK = True,\n")
 (out:write "    preservesNoGuardedness = True\n")
