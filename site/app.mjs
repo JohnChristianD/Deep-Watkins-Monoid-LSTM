@@ -87,7 +87,7 @@ const body = `<main class="shell">
   </article>
 </main>`;
 
-if (!template.includes("<!-- GENERATED_CONTENT -->")) {
+if (template.indexOf("<!-- GENERATED_CONTENT -->") < 0) {
   throw new Error("HTML template must contain the generated-content marker");
 }
 const html = template
