@@ -1136,7 +1136,7 @@ PY
               (gforth system)
               pkgs.groff
               pkgs.scsh
-              pkgs.stdenv.cc
+              pkgs.gcc
               pkgs.coreutils
               pkgs.findutils
               pkgs.gnugrep
