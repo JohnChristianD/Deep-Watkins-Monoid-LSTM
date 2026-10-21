@@ -1,4 +1,4 @@
-import * as AgdaSearch from "./jAgda.Site.MonolithSearch.mjs";
+import * as AgdaSearch from "./jAgda.MonolithSearch.mjs";
 
 (() => {
   "use strict";
