@@ -57,22 +57,22 @@
   (if (= (# chosen) 0)
       math.huge
       (do
-        (local best math.huge)
+        (var best math.huge)
         (each [_ colour (ipairs chosen)]
           (set best (math.min best (distance-squared colour candidate))))
         best))))
 
 (local role-count (# roles))
 (local candidate-count (math.min MAX-CANDIDATES (* role-count role-count)))
-(local candidates [])
+(var candidates [])
 (for [index 0 (- candidate-count 1)]
   (table.insert candidates (make-colour index)))
 
 (local chosen [])
 (while (and (> (# candidates) 0) (< (# chosen) role-count))
-  (local next-colour (. candidates 1))
+  (var next-colour (. candidates 1))
   (when (> (# chosen) 0)
-    (local best (minimum-distance chosen next-colour))
+    (var best (minimum-distance chosen next-colour))
     ; Strict greater-than preserves candidate-order ties, matching the
     ; existing C11 implementation.
     (for [index 2 (# candidates)]
