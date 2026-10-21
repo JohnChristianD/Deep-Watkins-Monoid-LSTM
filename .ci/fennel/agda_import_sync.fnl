@@ -172,8 +172,6 @@
 (assert (or (= mode "--check") (= mode "--sync"))
   "usage: agda_import_sync.fnl [--check|--sync]")
 
-(local contract-path ".ci/agda/import-contracts.tsv")
-(local contract-lines (non-comment-lines (read-file contract-path)))
 (local agda-files
   (fun.totable
     (fun.filter
@@ -184,38 +182,82 @@
 
 (assert (> (# agda-files) 0) "no tracked Agda/Literate Agda sources found")
 
-(when (= mode "--sync")
-  (each [_ line (ipairs contract-lines)]
-    (local fields (fun.totable (string.gmatch line "[^\t]+")))
-    (assert (= (# fields) 5) (.. "invalid TSV row in " contract-path ": " line))
-    (when (= (. fields 1) "sync")
-      (local expected-count (tonumber (. fields 5)))
-      (assert (= expected-count 1) "sync rows must target exactly one import line")
-      (sync-import
-        (. fields 2)
-        (. fields 3)
-        (. fields 4)
-        expected-count))))
+; The canonical learner's merged import block is the source of truth. Sync
+; visibility generically from that block instead of mirroring every import in
+; a sidecar TSV.
+(local learner-path "FullCoupled/CanonicalLearnerMonolith.agda")
+(local learner-source (read-file learner-path))
+(local public-import-marker "-- Merged external import surface; internal FullCoupled imports remain module-local.")
+(local normalize-public-import-surface
+  (fn [source]
+    (local lines (fun.totable (string.gmatch source "[^\\n]+")))
+    (local rendered [])
+    (var in-public-surface false)
+    (each [_ line (ipairs lines)]
+      (when (string.find line public-import-marker 1 true)
+        (set in-public-surface true))
+      (when (and in-public-surface
+                 (string.match line "^open import Agda%.Primitive"))
+        (set in-public-surface false))
+      (if (and in-public-surface
+               (or (string.match line "^open import Haskell%.")
+                   (string.match line "^open import Agda%.Builtin%.Equality%.Rewrite")
+                   (string.match line "^open import Agda%.Builtin%.Size")))
+          (if (string.find line " public" 1 true)
+              (table.insert rendered line)
+              (let [using-pos (string.find line " using (" 1 true)
+                    hiding-pos (string.find line " hiding (" 1 true)
+                    insertion-pos
+                      (if (and using-pos hiding-pos)
+                          (math.min using-pos hiding-pos)
+                          (or using-pos hiding-pos))]
+                (table.insert rendered
+                  (if insertion-pos
+                      (.. (string.sub line 1 (- insertion-pos 1))
+                          " public"
+                          (string.sub line insertion-pos))
+                      (.. line " public")))))
+          (table.insert rendered line)))
+    (.. (table.concat rendered "\\n")
+        (if (string.match source "\\n$") "\\n" ""))))
 
-(each [_ line (ipairs contract-lines)]
-  (local fields (fun.totable (string.gmatch line "[^\t]+")))
-  (assert (= (# fields) 5) (.. "invalid TSV row in " contract-path ": " line))
-  (local mode-kind (. fields 1))
-  (local path (. fields 2))
-  (local expected (. fields 4))
-  (local expected-count (tonumber (. fields 5)))
-  (assert (or (= mode-kind "sync") (= mode-kind "require") (= mode-kind "forbid"))
-    (.. contract-path ": unsupported mode '" mode-kind "'"))
-  (assert expected-count (.. contract-path ": invalid count for " path))
-  (local actual-count
-    (if (= mode-kind "forbid")
-        (count-prefix-lines (read-file path) (. fields 3))
-        (count-exact-line (read-file path) expected)))
-  (if (= mode-kind "forbid")
-      (assert (= actual-count 0)
-        (.. path ": forbidden import prefix '" (. fields 3) "' found " actual-count " time(s)"))
-      (assert (= actual-count expected-count)
-        (.. path ": expected exact line '" expected "' " expected-count " time(s), found " actual-count))))
+(local normalized-learner (normalize-public-import-surface learner-source))
+(if (= mode "--sync")
+    (when (not (= learner-source normalized-learner))
+      (write-file learner-path normalized-learner)
+      (print "agda-import-sync=updated canonical learner public-import surface"))
+    (assert (= learner-source normalized-learner)
+      "canonical learner public-import surface is not normalized; run nix run .#agda-import-sync -- --sync"))
+
+; Derive the Agda2HS execution boundary from tracked source names instead of
+; maintaining a parallel list of modules.
+(local runtime-agda-files
+  (fun.totable
+    (fun.filter
+      (fn [path]
+        (string.match path "^FullCoupled/Agda2Hs[^/]*%.agda$"))
+      agda-files)))
+(assert (> (# runtime-agda-files) 0)
+  "no tracked Agda2HS runtime modules found")
+
+(local forbidden-learner-builtins
+  ["Agda.Builtin.Reflection" "Agda.Builtin.Coinduction"])
+(local check-canonical-builtin-boundary
+  (fn [path]
+    (local lines (fun.totable (string.gmatch (read-file path) "[^\\n]+")))
+    (each [line-number line (ipairs lines)]
+      (local imported
+        (or
+          (string.match line "^%s*open%s+import%s+([^%s]+)")
+          (string.match line "^%s*import%s+([^%s]+)")))
+      (when imported
+        (each [_ forbidden (ipairs forbidden-learner-builtins)]
+          (assert (not (= imported forbidden))
+            (.. path ":" line-number
+                ": learner monolith must not import " forbidden
+                "; reflection stays in the theorem monolith")))))))
+
+(check-canonical-builtin-boundary learner-path)
 
 (local options-path ".ci/agda/global-options.txt")
 (local options (read-file options-path))
@@ -242,12 +284,7 @@
 (assert (string.find flake "agda " 1 true) "missing wrapped Agda command")
 (assert (string.find flake "agda2hs " 1 true) "missing wrapped Agda2HS command")
 
-(check-runtime-closure
-  [ "FullCoupled/Agda2HsSurface.agda"
-    "FullCoupled/Agda2HsSemanticExtractor.agda"
-    "FullCoupled/Agda2HsTheoremGraphEGraph.agda"
-    "FullCoupled/Agda2HsSemanticSearch.agda"
-    "FullCoupled/Agda2HsGraphSearchCheck.agda" ])
+(check-runtime-closure runtime-agda-files)
 
 (check-redundant-prelude-builtins agda-files)
 (check-cubical-free agda-files)
