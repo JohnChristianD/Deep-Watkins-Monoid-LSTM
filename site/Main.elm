@@ -39,7 +39,7 @@ init =
 
 matches : String -> String -> Bool
 matches query value =
-    String.isEmpty query || String.contains (String.toLower query) (String.toLower value)
+    String.contains query (String.toLower value)
 
 
 isLearnerEntry : Content.Entry -> Bool
@@ -47,44 +47,47 @@ isLearnerEntry entry =
     String.endsWith "CanonicalLearnerMonolith.agda" entry.source
 
 
+isTheoremEntry : Content.Entry -> Bool
+isTheoremEntry entry =
+    String.endsWith "TheoremsMonolith.agda" entry.source
+
+
+isCanonicalEntry : Content.Entry -> Bool
+isCanonicalEntry entry =
+    isLearnerEntry entry || isTheoremEntry entry
+
+
 filterMatches : FileFilter -> Content.Entry -> Bool
 filterMatches filter entry =
     case filter of
         AllFiles ->
-            True
+            isCanonicalEntry entry
 
         LearnerOnly ->
             isLearnerEntry entry
 
         TheoremOnly ->
-            not (isLearnerEntry entry)
+            isTheoremEntry entry
 
 
 entryMatchesQuery : String -> Content.Entry -> Bool
 entryMatchesQuery query entry =
-    List.any (matches query) [ entry.name, entry.signature, entry.source, entry.category ]
+    String.isEmpty query
+        || List.any (matches query) [ entry.name, entry.signature ]
 
 
 visibleEntries : Model -> List Content.Entry
 visibleEntries model =
+    let
+        query =
+            model.query |> String.trim |> String.toLower
+    in
     List.filter
         (\entry ->
             filterMatches model.fileFilter entry
-                && entryMatchesQuery model.query entry
+                && entryMatchesQuery query entry
         )
         Content.entries
-
-
-selectedEntry : Model -> Maybe Content.Entry
-selectedEntry model =
-    case model.selected of
-        Nothing ->
-            Nothing
-
-        Just identity ->
-            Content.entries
-                |> List.filter (\entry -> entry.id == identity)
-                |> List.head
 
 
 sourceUrl : Content.Entry -> String
@@ -207,9 +210,6 @@ view model =
         searchLimit =
             60
 
-        selected =
-            selectedEntry model
-
         russEntries =
             List.take 24 Surface.russEntryLines
     in
@@ -285,11 +285,11 @@ view model =
                     ]
                 , section [ HA.id "declarations", HA.class "section" ]
                     [ h2 [] [ text "Declaration index" ]
-                    , p [ HA.class "section-lede" ] [ text "Search by identifier, type signature, source file, or classification. Choose an entry to reveal its source-line link. The index follows monolith edits at build time." ]
+                    , p [ HA.class "section-lede" ] [ text "Search declaration names and type signatures. Use the file scope controls to include both canonical monoliths or just one; source path and category are displayed as metadata, not searched." ]
                     , div [ HA.class "tools" ]
                         [ input
                             [ HA.attribute "aria-label" "Search monolith declarations"
-                            , HA.placeholder "Search names, signatures, or categories"
+                            , HA.placeholder "Search declaration names or types"
                             , HA.value model.query
                             , HE.onInput SetQuery
                             ]
@@ -304,12 +304,12 @@ view model =
                                 [ HE.onClick (SetFileFilter LearnerOnly)
                                 , HA.attribute "data-active" (if model.fileFilter == LearnerOnly then "true" else "false")
                                 ]
-                                [ text "Learner only" ]
+                                [ text "Learner monolith" ]
                             , button
                                 [ HE.onClick (SetFileFilter TheoremOnly)
                                 , HA.attribute "data-active" (if model.fileFilter == TheoremOnly then "true" else "false")
                                 ]
-                                [ text "Theorems only" ]
+                                [ text "Theorem monolith" ]
                             ]
                         ]
                     , p [ HA.class "result-count" ]
@@ -341,10 +341,10 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         SetQuery value ->
-            { model | query = value }
+            { model | query = value, selected = Nothing }
 
         SetFileFilter filter ->
-            { model | fileFilter = filter }
+            { model | fileFilter = filter, selected = Nothing }
 
         SelectEntry value ->
             { model | selected = if model.selected == Just value then Nothing else Just value }
