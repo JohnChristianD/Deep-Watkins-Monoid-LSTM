@@ -126,7 +126,8 @@
     ".ci/scsh/verify-official-nix-surface.scsh"
     ".ci/scsh/agda-semantic-source-closure.scsh"
     ".ci/scsh/forth-scheme-smoke.scsh"
-    "site/app.js" "site/site.less"))
+    "site/app.mjs" "site/site.less"))
+(forbid-file "site/app.js")
 (for-each forbid-file
   '(".ci/verify-official-nix-surface.sh"
     ".ci/discovery/agda_semantic_source_closure.sh"
