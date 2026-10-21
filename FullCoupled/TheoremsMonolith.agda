@@ -336,167 +336,175 @@ open import Agda.Primitive using (Level)
 open MLS using (Size; Size<_; ∞)
 -- END THEOREM-SPECIFIC IMPORTS
 
-------------------------------------------------------------------------
--- A small explicit proof theory for the selected RUSS principles.
---
--- Motivating work: Pédrot's Russian-constructivism account and his
--- quotation-based Church thesis construction in Rocq; computational
--- assumptions and their type-preservation boundary follow Cockx,
--- Tabareau, and Winterhalter. This calculus makes the three project
--- principles explicit as axiom schemas and proves soundness by induction.
---
--- BOUNDARY: this is a relative consistency theorem for this object calculus
--- interpreted in the Agda types supplied by the chosen basis. It is NOT a
--- consistency proof for Agda, CIC/Rocq, or the transitive imports of this
--- repository, nor does it prove that this project's ECT0/choice signatures
--- coincide with every textbook formulation of RUSS. Those remain separate
--- model and trust-boundary obligations.
-------------------------------------------------------------------------
+  module RUSSProofTheory where
 
-data RUSSAxiomTag : Set where
-  russMarkovTag : RUSSAxiomTag
-  russECT0Tag : RUSSAxiomTag
-  russCountableChoiceTag : RUSSAxiomTag
+    RUSSPrinciplePackage : Set₃
+    RUSSPrinciplePackage = RussianRecursiveMathematicsBasis
 
-RUSSAxiomMeaning : RUSSAxiomTag → Set₃
-RUSSAxiomMeaning russMarkovTag =
-  (P : Nat → Set) →
-  ((n : Nat) → Decidable (P n)) →
-  Neg (Neg (SigmaWitness Nat P)) →
-  SigmaWitness Nat P
-RUSSAxiomMeaning russECT0Tag =
-  (relation : Nat → Nat → Set) →
-  ((input output : Nat) → Decidable (relation input output)) →
-  ((input : Nat) → SigmaWitness Nat (relation input)) →
-  SigmaWitness RecursiveProgram
-    (λ program → ComputesRelation program relation)
-RUSSAxiomMeaning russCountableChoiceTag =
-  (A : Nat → Set) →
-  (P : (n : Nat) → A n → Prop) →
-  ((n : Nat) → PropExists (P n)) →
-  PropExists {A = (n : Nat) → A n}
-    (λ choose → (n : Nat) → P n (choose n))
+    ----------------------------------------------------------------------
+    -- A small explicit proof theory for the selected RUSS principles.
+  --
+  -- Motivating work: Pédrot's Russian-constructivism account and his
+  -- quotation-based Church thesis construction in Rocq; computational
+  -- assumptions and their type-preservation boundary follow Cockx,
+  -- Tabareau, and Winterhalter. This calculus makes the three project
+  -- principles explicit as axiom schemas and proves soundness by induction.
+  --
+  -- BOUNDARY: this is a relative consistency theorem for this object calculus
+  -- interpreted in the Agda types supplied by the chosen basis. It is NOT a
+  -- consistency proof for Agda, CIC/Rocq, or the transitive imports of this
+  -- repository, nor does it prove that this project's ECT0/choice signatures
+  -- coincide with every textbook formulation of RUSS. Those remain separate
+  -- model and trust-boundary obligations.
+  ------------------------------------------------------------------------
 
-russAxiomFromBasis :
-  (basis : RussianRecursiveMathematicsBasis) →
-  (tag : RUSSAxiomTag) → RUSSAxiomMeaning tag
-russAxiomFromBasis basis russMarkovTag =
-  RussianRecursiveMathematicsBasis.russMarkov basis
-russAxiomFromBasis basis russECT0Tag =
-  RussianRecursiveMathematicsBasis.russECT0 basis
-russAxiomFromBasis basis russCountableChoiceTag =
-  RussianRecursiveMathematicsBasis.russCountableChoice basis
+  data RUSSAxiomTag : Set where
+    russMarkovTag : RUSSAxiomTag
+    russECT0Tag : RUSSAxiomTag
+    russCountableChoiceTag : RUSSAxiomTag
 
-data RUSSFormula : Set where
-  russFalsehood : RUSSFormula
-  russTruthhood : RUSSFormula
-  russAxiom : RUSSAxiomTag → RUSSFormula
-  russImplies : RUSSFormula → RUSSFormula → RUSSFormula
+  RUSSAxiomMeaning : RUSSAxiomTag → Set₃
+  RUSSAxiomMeaning russMarkovTag =
+    (P : Nat → Set) →
+    ((n : Nat) → Decidable (P n)) →
+    Neg (Neg (SigmaWitness Nat P)) →
+    SigmaWitness Nat P
+  RUSSAxiomMeaning russECT0Tag =
+    (relation : Nat → Nat → Set) →
+    ((input output : Nat) → Decidable (relation input output)) →
+    ((input : Nat) → SigmaWitness Nat (relation input)) →
+    SigmaWitness RecursiveProgram
+      (λ program → ComputesRelation program relation)
+  RUSSAxiomMeaning russCountableChoiceTag =
+    (A : Nat → Set) →
+    (P : (n : Nat) → A n → Prop) →
+    ((n : Nat) → PropExists (P n)) →
+    PropExists {A = (n : Nat) → A n}
+      (λ choose → (n : Nat) → P n (choose n))
 
-data RUSSTruthEvidence : Set where
-  russTruthEvidence : RUSSTruthEvidence
+  russAxiomFromBasis :
+    (basis : RussianRecursiveMathematicsBasis) →
+    (tag : RUSSAxiomTag) → RUSSAxiomMeaning tag
+  russAxiomFromBasis basis russMarkovTag =
+    RussianRecursiveMathematicsBasis.russMarkov basis
+  russAxiomFromBasis basis russECT0Tag =
+    RussianRecursiveMathematicsBasis.russECT0 basis
+  russAxiomFromBasis basis russCountableChoiceTag =
+    RussianRecursiveMathematicsBasis.russCountableChoice basis
 
-data RUSSContextMembership (formula : RUSSFormula) :
-  List RUSSFormula → Set where
-  russHere :
-    {context : List RUSSFormula} →
-    RUSSContextMembership formula (formula ∷ context)
-  russThere :
-    {head : RUSSFormula} {context : List RUSSFormula} →
+  data RUSSFormula : Set where
+    russFalsehood : RUSSFormula
+    russTruthhood : RUSSFormula
+    russAxiom : RUSSAxiomTag → RUSSFormula
+    russImplies : RUSSFormula → RUSSFormula → RUSSFormula
+
+  data RUSSTruthEvidence : Set where
+    russTruthEvidence : RUSSTruthEvidence
+
+  data RUSSContextMembership (formula : RUSSFormula) :
+    List RUSSFormula → Set where
+    russHere :
+      {context : List RUSSFormula} →
+      RUSSContextMembership formula (formula ∷ context)
+    russThere :
+      {head : RUSSFormula} {context : List RUSSFormula} →
+      RUSSContextMembership formula context →
+      RUSSContextMembership formula (head ∷ context)
+
+  data RUSSDerivation : List RUSSFormula → RUSSFormula → Set where
+    russAssumption :
+      {context : List RUSSFormula} {formula : RUSSFormula} →
+      RUSSContextMembership formula context →
+      RUSSDerivation context formula
+    russTruthD :
+      {context : List RUSSFormula} →
+      RUSSDerivation context russTruthhood
+    russAxiomD :
+      {context : List RUSSFormula} →
+      (tag : RUSSAxiomTag) →
+      RUSSDerivation context (russAxiom tag)
+    russImpliesIntro :
+      {context : List RUSSFormula} {antecedent consequent : RUSSFormula} →
+      RUSSDerivation (antecedent ∷ context) consequent →
+      RUSSDerivation context (russImplies antecedent consequent)
+    russImpliesElim :
+      {context : List RUSSFormula} {antecedent consequent : RUSSFormula} →
+      RUSSDerivation context (russImplies antecedent consequent) →
+      RUSSDerivation context antecedent →
+      RUSSDerivation context consequent
+    russFalseElim :
+      {context : List RUSSFormula} {formula : RUSSFormula} →
+      RUSSDerivation context russFalsehood →
+      RUSSDerivation context formula
+
+  RUSSFormulaMeaning :
+    (basis : RussianRecursiveMathematicsBasis) →
+    RUSSFormula → Set₃
+  RUSSFormulaMeaning basis russFalsehood = EmptyComputability
+  RUSSFormulaMeaning basis russTruthhood = RUSSTruthEvidence
+  RUSSFormulaMeaning basis (russAxiom tag) = RUSSAxiomMeaning tag
+  RUSSFormulaMeaning basis (russImplies antecedent consequent) =
+    RUSSFormulaMeaning basis antecedent →
+    RUSSFormulaMeaning basis consequent
+
+  RUSSContextModel :
+    (basis : RussianRecursiveMathematicsBasis) →
+    List RUSSFormula → Set₃
+  RUSSContextModel basis context =
+    {formula : RUSSFormula} →
     RUSSContextMembership formula context →
-    RUSSContextMembership formula (head ∷ context)
+    RUSSFormulaMeaning basis formula
 
-data RUSSDerivation : List RUSSFormula → RUSSFormula → Set where
-  russAssumption :
+  russExtendContext :
+    (basis : RussianRecursiveMathematicsBasis) →
     {context : List RUSSFormula} {formula : RUSSFormula} →
-    RUSSContextMembership formula context →
-    RUSSDerivation context formula
-  russTruthD :
-    {context : List RUSSFormula} →
-    RUSSDerivation context russTruthhood
-  russAxiomD :
-    {context : List RUSSFormula} →
-    (tag : RUSSAxiomTag) →
-    RUSSDerivation context (russAxiom tag)
-  russImpliesIntro :
-    {context : List RUSSFormula} {antecedent consequent : RUSSFormula} →
-    RUSSDerivation (antecedent ∷ context) consequent →
-    RUSSDerivation context (russImplies antecedent consequent)
-  russImpliesElim :
-    {context : List RUSSFormula} {antecedent consequent : RUSSFormula} →
-    RUSSDerivation context (russImplies antecedent consequent) →
-    RUSSDerivation context antecedent →
-    RUSSDerivation context consequent
-  russFalseElim :
+    RUSSContextModel basis context →
+    RUSSFormulaMeaning basis formula →
+    RUSSContextModel basis (formula ∷ context)
+  russExtendContext basis model evidence russHere = evidence
+  russExtendContext basis model evidence (russThere membership) =
+    model membership
+
+  russEliminateFalse : {A : Set} → EmptyComputability → A
+  russEliminateFalse ()
+
+  russSoundness :
+    (basis : RussianRecursiveMathematicsBasis) →
     {context : List RUSSFormula} {formula : RUSSFormula} →
-    RUSSDerivation context russFalsehood →
-    RUSSDerivation context formula
+    RUSSDerivation context formula →
+    RUSSContextModel basis context →
+    RUSSFormulaMeaning basis formula
+  russSoundness basis (russAssumption membership) model =
+    model membership
+  russSoundness basis russTruthD model = russTruthEvidence
+  russSoundness basis (russAxiomD tag) model =
+    russAxiomFromBasis basis tag
+  russSoundness basis (russImpliesIntro derivation) model =
+    λ evidence →
+      russSoundness basis derivation
+        (russExtendContext basis model evidence)
+  russSoundness basis (russImpliesElim implication antecedent) model =
+    russSoundness basis implication model
+      (russSoundness basis antecedent model)
+  russSoundness basis (russFalseElim derivation) model =
+    russEliminateFalse
+      (russSoundness basis derivation model)
 
-RUSSFormulaMeaning :
-  (basis : RussianRecursiveMathematicsBasis) →
-  RUSSFormula → Set₃
-RUSSFormulaMeaning basis russFalsehood = EmptyComputability
-RUSSFormulaMeaning basis russTruthhood = RUSSTruthEvidence
-RUSSFormulaMeaning basis (russAxiom tag) = RUSSAxiomMeaning tag
-RUSSFormulaMeaning basis (russImplies antecedent consequent) =
-  RUSSFormulaMeaning basis antecedent →
-  RUSSFormulaMeaning basis consequent
+  russCoreConsistency :
+    (basis : RussianRecursiveMathematicsBasis) →
+    Neg (RUSSDerivation [] russFalsehood)
+  russCoreConsistency basis derivation =
+    russEliminateFalse
+      (russSoundness basis derivation (λ ()))
 
-RUSSContextModel :
-  (basis : RussianRecursiveMathematicsBasis) →
-  List RUSSFormula → Set₃
-RUSSContextModel basis context =
-  {formula : RUSSFormula} →
-  RUSSContextMembership formula context →
-  RUSSFormulaMeaning basis formula
+  russCurrentBasisRelativeConsistency :
+    Neg (RUSSDerivation [] russFalsehood)
+  russCurrentBasisRelativeConsistency =
+    russCoreConsistency russianRecursiveMathematicsAssumptions
 
-russExtendContext :
-  (basis : RussianRecursiveMathematicsBasis) →
-  {context : List RUSSFormula} {formula : RUSSFormula} →
-  RUSSContextModel basis context →
-  RUSSFormulaMeaning basis formula →
-  RUSSContextModel basis (formula ∷ context)
-russExtendContext basis model evidence russHere = evidence
-russExtendContext basis model evidence (russThere membership) =
-  model membership
 
-russEliminateFalse : {A : Set} → EmptyComputability → A
-russEliminateFalse ()
 
-russDerivationSoundness :
-  (basis : RussianRecursiveMathematicsBasis) →
-  {context : List RUSSFormula} {formula : RUSSFormula} →
-  RUSSDerivation context formula →
-  RUSSContextModel basis context →
-  RUSSFormulaMeaning basis formula
-russDerivationSoundness basis (russAssumption membership) model =
-  model membership
-russDerivationSoundness basis russTruthD model = russTruthEvidence
-russDerivationSoundness basis (russAxiomD tag) model =
-  russAxiomFromBasis basis tag
-russDerivationSoundness basis (russImpliesIntro derivation) model =
-  λ evidence →
-    russDerivationSoundness basis derivation
-      (russExtendContext basis model evidence)
-russDerivationSoundness basis (russImpliesElim implication antecedent) model =
-  russDerivationSoundness basis implication model
-    (russDerivationSoundness basis antecedent model)
-russDerivationSoundness basis (russFalseElim derivation) model =
-  russEliminateFalse
-    (russDerivationSoundness basis derivation model)
-
-russProofTheoryRelativeConsistency :
-  (basis : RussianRecursiveMathematicsBasis) →
-  Neg (RUSSDerivation [] russFalsehood)
-russProofTheoryRelativeConsistency basis derivation =
-  russEliminateFalse
-    (russDerivationSoundness basis derivation (λ ()))
-
-russCurrentBasisRelativeConsistency :
-  Neg (RUSSDerivation [] russFalsehood)
-russCurrentBasisRelativeConsistency =
-  russProofTheoryRelativeConsistency russianRecursiveMathematicsAssumptions
-
+open RUSSProofTheory public
 
 ------------------------------------------------------------------------
 -- Guarded trace interface and coinductive stream-fusion proof.
