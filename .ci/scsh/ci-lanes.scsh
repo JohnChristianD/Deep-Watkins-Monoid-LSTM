@@ -232,7 +232,9 @@
   (for-each (lambda (needle) (require-text ".ci/presentation-contract.dhall" needle))
     '("monolithContentGenerator = \".ci/fennel/agda_graph.fnl\""
       "generatedContentScript = \"monolith-content.js\""
-      "browserRuntime = \"site/app.js\""
+      "nativeSearchModule = \"FullCoupled.Agda2HsSemanticExtractor\""
+      "compiledSearchModule = \"jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs\""
+      "browserRuntime = \"site/app.mjs\""
       "siteEntry = \"index.html\""
       "lessStylesheet = \"site/site.less\""
       "compiledStylesheet = \"site.css\""
@@ -246,37 +248,49 @@
   (require-text ".ci/fennel/palette_css.fnl" "0.7328")
   (require-text ".ci/fennel/palette_css.fnl" "0.4296")
   (require-text ".ci/fennel/palette_css.fnl" "0.9834")
-  (require-text "site/app.js" "function filterEntries")
-  (require-text "site/app.js" "entry.name +")
-  (require-text "site/app.js" "entry.signature")
-  (forbid-text "site/app.js" "entry.source.toLowerCase")
+  (forbid-file "site/app.js")
+  (require-text "site/app.mjs" "jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs")
+  (forbid-text "site/app.mjs" "function filterEntries")
+  (forbid-text "site/app.mjs" ".toLowerCase().includes")
+  (require-text "FullCoupled/Agda2HsSemanticExtractor.agda" "siteSearchMatches :")
+  (require-text "FullCoupled/Agda2HsSemanticExtractor.agda" "siteSearchCaseAndTrimRegression")
+  (require-text "FullCoupled/Agda2HsSemanticExtractor.agda" "siteSearchExactScopeRegression")
+  (require-text "FullCoupled/Agda2HsSemanticExtractor.agda" "siteSearchMetadataIsNotSearchableRegression")
   (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
-  (forbid-text "site/app.js" "Mirth")
+  (forbid-text "site/app.mjs" "Mirth")
   (let* ((tmp (temporary-directory))
          (out-dir (or (getenv "PAGES_OUTPUT_DIR") tmp))
          (css (string-append out-dir "/site.css"))
          (palette (string-append tmp "/palette.css"))
          (catalog (string-append out-dir "/monolith-content.js"))
-         (app (string-append out-dir "/app.js")))
+         (js-dir (string-append tmp "/agda-js"))
+         (js-module (string-append js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"))
+         (app (string-append out-dir "/app.mjs")))
     (must-run (lambda () (run (mkdir "-p" ,out-dir))) "create Pages output")
     (must-run (lambda () (run (lessc "site/site.less" ,css))) "compile Less")
     (must-run (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
               "generate CAT02LMS palette")
     (write-file css (string-append (read-file css) "\n" (read-file palette)))
-    (must-run (lambda () (run (cp "site/app.js" ,app))) "copy browser adapter")
+    (compile-page-search-js js-dir)
+    (must-run (lambda () (run (cp "-R" ,(string-append js-dir "/.") ,out-dir)))
+              "copy readable Agda ES modules and their dependency closure")
+    (must-run (lambda () (run (cp "site/app.mjs" ,app))) "copy minimal DOM adapter")
     (must-run (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
               "generate Pages catalog")
     (verify-catalog catalog)
     (must-run (lambda () (run (node "--check" ,app))) "browser adapter syntax")
-    (must-run (lambda () (run (node ".ci/presentation-smoke.cjs" ,catalog)))
-              "Pages search/filter smoke")
+    (must-run
+      (lambda ()
+        (run (node ".ci/presentation-smoke.cjs" ,catalog
+              ,(string-append out-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"))))
+      "Agda-generated Pages search/filter semantics smoke")
     (require-text css "--palette-ink:")
     (require-text css "--palette-ink-on-accent:")
     (must-run (lambda () (run (cp "index.html" ,(string-append out-dir "/index.html"))))
               "copy Pages entrypoint")
     (write-file (string-append out-dir "/.nojekyll") "")
     (must-run (lambda () (run (rm "-rf" ,tmp))) "remove Pages temporary directory")
-    (display "pages-build=pass (HTML/Less, native DOM adapter, build-time CSS palette; no Elm/Wasm)\n")))
+    (display "pages-build=pass (Less, pure Agda-generated readable ES modules, minimal DOM adapter; no Elm/Wasm)\n")))
 
 (define (lane-discovery)
   (nix-app ".#agda2hs-semantic-search")
