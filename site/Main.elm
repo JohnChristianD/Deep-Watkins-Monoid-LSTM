@@ -11,75 +11,6 @@ import List
 import String
 
 
-type alias Rgb =
-    { r : Float
-    , g : Float
-    , b : Float
-    }
-
-
-type alias Perceptual =
-    { rgb : Rgb
-    , l : Float
-    , a : Float
-    , b : Float
-    }
-
-
-
-type PaletteRole
-    = InkRole
-    | PaperRole
-    | AccentRole
-    | AccentTwoRole
-    | QuietRole
-    | InkOnAccentRole
-
-
-sitePaletteRoles : List PaletteRole
-sitePaletteRoles =
-    [ InkRole
-    , PaperRole
-    , AccentRole
-    , AccentTwoRole
-    , QuietRole
-    , InkOnAccentRole
-    ]
-
-
-paletteIndex : PaletteRole -> Int
-paletteIndex role =
-    case role of
-        InkRole ->
-            0
-
-        PaperRole ->
-            1
-
-        AccentRole ->
-            2
-
-        AccentTwoRole ->
-            3
-
-        QuietRole ->
-            4
-
-        InkOnAccentRole ->
-            5
-
-
-sitePaletteSize : Int
-sitePaletteSize =
-    List.length sitePaletteRoles
-
-
-paletteCandidateCount : Int
-paletteCandidateCount =
-    sitePaletteSize * sitePaletteSize
-
-
-
 type FileFilter
     = AllFiles
     | LearnerOnly
@@ -97,225 +28,6 @@ type Msg
     = SetQuery String
     | SetFileFilter FileFilter
     | SelectEntry String
-
-
-clamp01 : Float -> Float
-clamp01 value =
-    max 0 (min 1 value)
-
-
-cat02Lms : Rgb -> ( Float, Float, Float )
-cat02Lms color =
-    ( 0.7328 * color.r + 0.4296 * color.g - 0.1624 * color.b
-    , -0.7036 * color.r + 1.6975 * color.g + 0.0061 * color.b
-    , 0.0030 * color.r + 0.0136 * color.g + 0.9834 * color.b
-    )
-
-
-cat02LmsToOpponent : Rgb -> Perceptual
-cat02LmsToOpponent rgb =
-    let
-        ( l, m, s ) =
-            cat02Lms rgb
-    in
-    { rgb = rgb
-    , l = (l + m + s) / 1.7320508075688772
-    , a = (l - m) / 1.4142135623730951
-    , b = (l + m - 2 * s) / 2.449489742783178
-    }
-
-
-distanceSquared : Perceptual -> Perceptual -> Float
-distanceSquared left right =
-    let
-        dl =
-            left.l - right.l
-
-        da =
-            left.a - right.a
-
-        db =
-            left.b - right.b
-    in
-    dl * dl + da * da + db * db
-
-
-candidateRgb : Int -> Rgb
-candidateRgb index =
-    let
-        tau =
-            6.283185307179586
-
-        extra =
-            index - 90
-
-        hue =
-            if index < 90 then
-                tau * toFloat (modBy 18 index) / 18
-            else
-                tau * toFloat (modBy 720 extra) / 720
-
-        light =
-            if index < 90 then
-                0.28 + 0.045 * toFloat (modBy 5 index)
-            else
-                0.18 + 0.0005 * toFloat (modBy 100 extra)
-
-        chroma =
-            0.34
-    in
-    { r = clamp01 (light + chroma * cos hue)
-    , g = clamp01 (light + chroma * cos (hue - 2.0943951023931953))
-    , b = clamp01 (light + chroma * cos (hue + 2.0943951023931953))
-    }
-
-
-candidateColors : List Perceptual
-candidateColors =
-    List.map (candidateRgb >> cat02LmsToOpponent) (List.range 0 (paletteCandidateCount - 1))
-
-
-farthestFrom : List Perceptual -> Perceptual -> List Perceptual -> Perceptual
-farthestFrom chosen candidate candidates =
-    case chosen of
-        [] ->
-            candidate
-
-        _ ->
-            List.foldl
-                (\item best ->
-                    if minimumDistance chosen item > minimumDistance chosen best then
-                        item
-                    else
-                        best
-                )
-                candidate
-                candidates
-
-
-minimumDistance : List Perceptual -> Perceptual -> Float
-minimumDistance chosen candidate =
-    case chosen of
-        [] ->
-            1 / 0
-
-        first :: rest ->
-            List.foldl
-                (\item best -> min best (distanceSquared item candidate))
-                (distanceSquared first candidate)
-                rest
-
-
-maximinStep : Int -> List Perceptual -> List Perceptual -> List Perceptual
-maximinStep remaining candidates chosen =
-    if remaining <= 0 then
-        chosen
-
-    else
-        case candidates of
-            [] ->
-                chosen
-
-            first :: rest ->
-                let
-                    next =
-                        if List.isEmpty chosen then
-                            first
-                        else
-                            farthestFrom chosen first rest
-                in
-                maximinStep
-                    (remaining - 1)
-                    (List.filter (\item -> distanceSquared item next > 0) candidates)
-                    (chosen ++ [ next ])
-
-
-maximinPalette : List Perceptual
-maximinPalette =
-    maximinStep (List.length candidateColors) candidateColors []
-
-
-rgbCss : Rgb -> String
-rgbCss color =
-    "rgb("
-        ++ String.fromInt (round (255 * clamp01 color.r))
-        ++ " "
-        ++ String.fromInt (round (255 * clamp01 color.g))
-        ++ " "
-        ++ String.fromInt (round (255 * clamp01 color.b))
-        ++ ")"
-
-
-perceptualCss : Perceptual -> String
-perceptualCss color =
-    rgbCss color.rgb
-
-
-paletteAt : Int -> Perceptual
-paletteAt index =
-    maximinPalette
-        |> List.drop (modBy (List.length maximinPalette) index)
-        |> List.head
-        |> Maybe.withDefault (cat02LmsToOpponent (candidateRgb 0))
-
-
-paletteFor : PaletteRole -> Perceptual
-paletteFor role =
-    paletteAt (paletteIndex role)
-
-
-ink : Perceptual
-ink =
-    paletteFor InkRole
-
-
-paper : Perceptual
-paper =
-    paletteFor PaperRole
-
-
-accent : Perceptual
-accent =
-    paletteFor AccentRole
-
-
-accentTwo : Perceptual
-accentTwo =
-    paletteFor AccentTwoRole
-
-
-quiet : Perceptual
-quiet =
-    paletteFor QuietRole
-
-
-inkOnAccent : Perceptual
-inkOnAccent =
-    paletteFor InkOnAccentRole
-
-
-
-styleSheet : Html msg
-styleSheet =
-    Html.node "style" []
-        [ text
-            (String.join ""
-                [ ":root{--palette-ink:"
-                , perceptualCss ink
-                , ";--palette-paper:"
-                , perceptualCss paper
-                , ";--palette-accent:"
-                , perceptualCss accent
-                , ";--palette-accent-two:"
-                , perceptualCss accentTwo
-                , ";--palette-quiet:"
-                , perceptualCss quiet
-                , ";--palette-ink-on-accent:"
-                , perceptualCss inkOnAccent
-                , ";}"
-                ]
-            )
-        ]
 
 
 init : Model
@@ -503,8 +215,7 @@ view model =
             List.take 24 Surface.russEntryLines
     in
     main_ [ HA.class "shell" ]
-        [ styleSheet
-        , header [ HA.class "masthead" ]
+        [ header [ HA.class "masthead" ]
             [ div [ HA.class "brand" ] [ text "The Monoid LSTM Project" ]
             , p [ HA.class "mast-note" ]
                 [ text "GNU.org-inspired, source-first index. Content is derived only from the canonical learner and theorem monoliths." ]
@@ -616,21 +327,11 @@ view model =
                     ]
                 , section [ HA.id "palette", HA.class "section" ]
                     [ h2 [] [ text "Maximin perceptual palette" ]
-                    , p [ HA.class "section-lede" ] [ text "The palette remains selected by farthest-point maximin spacing over the existing CAT02LMS-derived opponent coordinates. The layout changed; the color transform and selection algorithm did not." ]
-                    , div [ HA.class "palette" ]
-                        (List.indexedMap
-                            (\index color ->
-                                div
-                                    [ HA.class "swatch"
-                                    , HA.attribute "title" ("maximin-" ++ String.fromInt (index + 1))
-                                    , HA.attribute "style" ("background:" ++ perceptualCss color)
-                                    ]
-                                    []
-                            )
-                            maximinPalette
-                        )
-                    , p [ HA.class "palette-caption" ]
-                        [ text ("CAT02LMS / " ++ String.fromInt (List.length maximinPalette) ++ " maximin colors. Palette values are computed in Elm.") ]
+                    , p [ HA.class "section-lede" ]
+                        [ text "The local WebAssembly palette preserves the CAT02LMS opponent transform and farthest-point maximin rule. Its candidate budget grows with the semantic role count; the selected palette is not limited to six colors." ]
+                    , div [ HA.class "palette", HA.id "wasm-palette" ] []
+                    , p [ HA.class "palette-caption", HA.id "wasm-palette-caption" ]
+                        [ text "Initializing the adaptive CAT02LMS maximin palette." ]
                     ]
                 , footer [ HA.class "footer" ]
                     [ text
