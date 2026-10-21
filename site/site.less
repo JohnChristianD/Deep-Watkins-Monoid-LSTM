@@ -9,7 +9,6 @@
 @font-stack: 'Atkinson Hyperlegible Mono', 'Iosevka', monospace;
 
 :root {
-  --palette-role-names: --palette-ink, --palette-paper, --palette-accent, --palette-accent-two, --palette-quiet, --palette-ink-on-accent;
   font-family: @font-stack;
   background: @paper;
   color: @ink;
@@ -319,6 +318,16 @@ h3 {
   font-size: .68rem;
   color: @accent;
 }
+
+.palette { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: 1rem; }
+
+.swatch {
+  width: 3.8rem;
+  height: 1.8rem;
+  border: 1px solid color-mix(in srgb, @ink 24%, transparent);
+}
+
+.palette-caption { font-size: .75rem; color: @quiet; margin: .5rem 0 0; }
 
 .footer {
   padding: 1.5rem 0 2.5rem;
