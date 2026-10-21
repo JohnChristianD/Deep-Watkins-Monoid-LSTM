@@ -371,7 +371,7 @@ let script = merge {
     grep -Fq 'legacyMonoliths=source-scan-only' "$manifest"
     grep -Fq 'proof-status=diagnostic-only-not-a-consistency-proof' "$report"
     nix run .#fennel-russ-certificate
-    dhall text --file .ci/discovery/russ-global-certificate.dhall >/dev/null
+    dhall --file .ci/discovery/russ-global-certificate.dhall >/dev/null
     grep -Fq 'status = "DIRECT_SURFACE_INVENTORIED; TRANSITIVE_CONSISTENCY_NOT_PROVED"' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'directMonolithInventoryPassed = True' .ci/discovery/russ-global-certificate.dhall
     grep -Fq 'jointConsistencyProved = False' .ci/discovery/russ-global-certificate.dhall
