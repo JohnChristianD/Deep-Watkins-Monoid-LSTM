@@ -248,5 +248,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
+          label_present="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels | any(.[]; .name == "auto-merge-approved")')"
+          if [[ "$label_present" != "true" ]]; then
+            echo "auto-merge=skipped (requires the explicit auto-merge-approved label)"
+            exit 0
+          fi
           gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
 
