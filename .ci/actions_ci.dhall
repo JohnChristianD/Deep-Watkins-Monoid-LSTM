@@ -208,11 +208,9 @@ let policyGate = ''
   ! grep -Fq 'cubical=no-glue' FullCoupled/TheoremsMonolith.agda
 ''
 
-let Lane = < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >
+let lane : Text = env:CI_LANE
 
-let lane : Lane = env:CI_LANE
-
-let script = merge {
+let scripts = {
   AgdaLearner = ''
     set -euo pipefail
     "$AGDA_COMMAND" --version
@@ -776,6 +774,19 @@ DHALL
     nix run .#monoid-lstm-stream-check
     nix run .#agda2hs-semantic-search
     echo 'agda-all=pass'
-  ''} lane
+  ''}
+
+let ScriptEntry = { mapKey : Text, mapValue : Text }
+
+let selectedScripts =
+  List/filter ScriptEntry
+    (\(entry : ScriptEntry) -> entry.mapKey == lane)
+    (toMap scripts)
+
+let script =
+  Optional/fold ScriptEntry Text
+    (List/head ScriptEntry selectedScripts)
+    ''echo "unknown CI lane; valid names are defined in actions_ci.dhall" >&2; exit 2''
+    (\(entry : ScriptEntry) -> entry.mapValue)
 
 in policyGate ++ "\n" ++ script
