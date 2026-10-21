@@ -733,6 +733,7 @@ DHALL
     test -n "$(ghc --numeric-version)"
     "$AGDA_COMMAND" --version
     nix run .#fennel-smoke
+    nix run .#agda-import-sync -- --check
     dhall --version
     z3 --version
     emacs --version
