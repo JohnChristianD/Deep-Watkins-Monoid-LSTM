@@ -59,7 +59,7 @@
     (set escaped (string.gsub escaped "\t" "\\t"))
     escaped))
 
-(local function classify [path name declaration-kind]
+(local classify (fn [path name declaration-kind]
   (local lower (string.lower name))
   (if (= declaration-kind "postulate")
       (if (= name "russianRecursiveMathematicsAssumptions")
@@ -77,9 +77,9 @@
               "RUSS assumption or consequence"
               (if (= path "FullCoupled/CanonicalLearnerMonolith.agda")
                   "Canonical learner semantics"
-                  "Theorem / proof surface")))))
+                  "Theorem / proof surface"))))))
 
-(local function source-entries [path content]
+(local source-entries (fn [path content]
   (local lines (fun.totable (string.gmatch content "[^\n]+")))
   (local found [])
   (var postulate-indent -1)
@@ -138,7 +138,7 @@
           :signature clean-signature
           :category (classify path clean-name decl-kind)
         }))
-  found))
+  found)))
 
 (local entries [])
 (each [_ path (ipairs source-files)]
