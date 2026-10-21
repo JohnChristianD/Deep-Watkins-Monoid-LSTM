@@ -162,12 +162,12 @@
 (local rendered-imports
   (fun.totable
     (fun.map
-      (fn [imported] (string.format "    \\"%s\\"" imported))
+      (fn [imported] (string.format "    \"%s\"" imported))
       imports)))
 (local rendered-rewrite-rules
   (fun.totable
     (fun.map
-      (fn [identifier] (string.format "    \\"%s\\"" identifier))
+      (fn [identifier] (string.format "    \"%s\"" identifier))
       rewrite-rules)))
 
 (assert (= learner.postulates 1) "learner RUSS trust boundary changed: audit before updating certificate")
@@ -236,7 +236,7 @@
 (out:write "  permanentReferences = [\n")
 (out:write "    \"Stanford Encyclopedia of Philosophy: Constructive Mathematics — RUSS, Markov principle, and varieties of constructivism: https://plato.stanford.edu/entries/mathematics-constructive/\",\n")
 (out:write "    \"nLab: Russian constructivism — MP, dependent choice, and principles rejected by RUSS: https://ncatlab.org/nlab/show/Russian%2Bconstructivism\",\n")
-(out:write "    \"Wikibooks: Supplementary mathematics — Markov principle reference: https://en.wikibooks.org/wiki/Supplementary_mathematics\",\n")
+(out:write "    \"Wikibooks: Supplementary mathematics — Markov principle reference: https://en.wikibooks.org/wiki/Supplementary_mathematics\"\n")
 (out:write "  ],\n")
 (out:write "  russianBasis = {\n")
 (out:write "    singlePostulatedEntry = \"russianRecursiveMathematicsAssumptions\",\n")
