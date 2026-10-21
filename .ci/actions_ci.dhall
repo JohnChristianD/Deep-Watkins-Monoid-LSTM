@@ -221,12 +221,12 @@ let script = merge {
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsTheoremGraphEGraph.agda
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticSearch.agda
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsGraphSearchCheck.agda
-    # Keep source inventory separate from the pure executable kernel surface.
-    # The current global option set intentionally omits --level-universe; this
-    # guard must not reintroduce a removed option or mutate global Agda flags.
-    grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' FullCoupled/CanonicalLearnerMonolith.agda
-    echo "pure-agda2hs-kernel-check=pass"
-    echo "canonical-learner-monolith=source-inventory-only (not kernel-checked in this lane)"
+    echo "pure-agda2hs-graph-kernel-check=pass"
+    # Directly check the canonical learner monolith with the unchanged Agda
+    # command and source OPTIONS. This proves typing only relative to its
+    # postulates, imported theories, rewrite rules, and trusted checker.
+    "$AGDA_COMMAND" -i . FullCoupled/CanonicalLearnerMonolith.agda
+    echo "canonical-learner-monolith=kernel-checked-relative-to-trusted-imports-and-postulates"
     '',
   AgdaTheorem = ''
     set -euo pipefail
@@ -239,7 +239,12 @@ let script = merge {
     grep -Fq 'graphTwoLeafBranchesRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
     grep -Fq 'graphCycleIsRejectedRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
     grep -Fq 'sourceOnlyLegacyBoundaryRegressionChecked = refl' FullCoupled/Agda2HsSemanticSearch.agda
-    echo "TheoremsMonolith=source-inventory-only"
+    # Check both monoliths directly. Theorem proof terms are kernel-checked,
+    # but this is still not a model or relative-consistency proof for RUSS.
+    "$AGDA_COMMAND" -i . FullCoupled/CanonicalLearnerMonolith.agda
+    "$AGDA_COMMAND" -i . FullCoupled/TheoremsMonolith.agda
+    echo "canonical-learner-monolith=kernel-checked-relative-to-trusted-imports-and-postulates"
+    echo "theorems-monolith=kernel-checked-relative-to-trusted-imports-postulates-and-primitives"
     '',
   AgdaSafe = ''
     set -euo pipefail
