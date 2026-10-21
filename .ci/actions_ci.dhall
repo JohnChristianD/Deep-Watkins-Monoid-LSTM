@@ -276,6 +276,10 @@ let scripts = {
     test -f site/site.less
     test -f site/palette.js
     test -f .ci/presentation/palette-smoke.cjs
+    test ! -e .ci/wasm/maximin_palette.c
+    test ! -e site/palette-loader.js
+    ! grep -Fq 'wasm-palette' site/Main.elm
+    ! grep -Fq '.swatch' site/site.less
     nix run .#fennel-ascii-surface
     nix run .#fennel-monolith-content -- "$tmp/src/GeneratedMonolithContent.elm"
     test -s "$tmp/src/GeneratedMonolithContent.elm"
