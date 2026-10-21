@@ -268,28 +268,30 @@
 ; Adding, renaming, or removing a lane without updating every surface fails here.
 (local actions-source (read-file ".ci/actions_ci.dhall"))
 (local workflow-source (read-file ".github/workflows/nix-composition.yml"))
-(local scripts-start
-  (assert (string.find actions-source "let scripts = {" 1 true)
-    "Dhall CI script map is missing"))
-(local scripts-end
-  (assert (string.find actions-source "\n  ''}\n\nin\n  { Lane = Lane" scripts-start true)
-    "Dhall CI script map boundary is missing"))
-(local scripts-body (string.sub actions-source scripts-start (- scripts-end 1)))
 (local lane-line
-  (assert (string.match actions-source "let Lane = < ([^\n]+) >")
+  (assert (string.match actions-source "let Lane = < ([^\\n]+) >")
     "Dhall CI Lane union is missing"))
 (local script-lanes {})
 (var script-lane-count 0)
-(each [_ line (ipairs (fun.totable (string.gmatch scripts-body "[^\n]+")))]
-  (local lane
-    (or
-      (string.match line "^  ([A-Za-z][A-Za-z0-9_]*) = ''")
-      (string.match line "''[,]%s+([A-Za-z][A-Za-z0-9_]*) = ''")))
-  (when lane
-    (assert (not (. script-lanes lane))
-      (.. "duplicate Dhall CI script key: " lane))
-    (tset script-lanes lane true)
-    (set script-lane-count (+ script-lane-count 1))))
+(var inside-scripts false)
+(var found-scripts false)
+(var found-script-end false)
+(each [_ line (ipairs (fun.totable (string.gmatch actions-source "[^\\n]+")))]
+  (when (string.find line "let scripts = {" 1 true)
+    (set inside-scripts true)
+    (set found-scripts true))
+  (when (and inside-scripts (string.match line "^in%s*$"))
+    (set inside-scripts false)
+    (set found-script-end true))
+  (when inside-scripts
+    (local lane (string.match line "^  ([A-Za-z][A-Za-z0-9_]*) = ''"))
+    (when lane
+      (assert (not (. script-lanes lane))
+        (.. "duplicate Dhall CI script key: " lane))
+      (tset script-lanes lane true)
+      (set script-lane-count (+ script-lane-count 1)))))
+(assert (and found-scripts found-script-end)
+  "Dhall CI script map does not have a complete record boundary")
 (assert (> script-lane-count 0) "no Dhall CI script lanes discovered")
 (local union-lanes {})
 (var union-lane-count 0)
