@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify official Nix surface
-        run: bash .ci/verify-official-nix-surface.sh
+        run: nix develop .#agda-ci -c scsh -s .ci/scsh/verify-official-nix-surface.scsh
 
   versions:
     name: Nix tool versions and Fennel source sanity
