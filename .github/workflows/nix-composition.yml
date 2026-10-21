@@ -160,19 +160,18 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Run Fennel and Pages lanes in one Nix environment
+      - name: Build native Agda ES-module Pages surface through scsh
         timeout-minutes: 20
+        env:
+          PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
         run: |
           set -euo pipefail
-          nix develop .#presentation -c bash -e -c '
-            set -euo pipefail
-            run_lane() {
-              local lane="$1"
-              printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "$lane" | dhall text | bash -e
-            }
-            run_lane FennelPresentation
-            run_lane Pages
-          '
+          nix develop .#presentation -c scsh -s .ci/scsh/ci-lanes.scsh Pages
+          test -s "${RUNNER_TEMP}/pages/index.html"
+          test -s "${RUNNER_TEMP}/pages/app.mjs"
+          test -s "${RUNNER_TEMP}/pages/monolith-content.js"
+          test -s "${RUNNER_TEMP}/pages/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"
+          ! test -e "${RUNNER_TEMP}/pages/app.js"
 
   backends:
     name: Build Agda2Forth and CCForth native subset
