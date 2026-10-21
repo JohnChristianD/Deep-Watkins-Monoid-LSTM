@@ -276,7 +276,7 @@
 (var inside-scripts false)
 (var found-scripts false)
 (var found-script-end false)
-(each [_ line (ipairs (fun.totable (string.gmatch actions-source "[^\n]+")))]
+(each [_ line (ipairs (fun.totable (string.gmatch actions-source "[^\n]+")))])
   (when (string.find line "let scripts = {" 1 true)
     (set inside-scripts true)
     (set found-scripts true))
