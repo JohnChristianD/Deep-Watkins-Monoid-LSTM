@@ -10,7 +10,6 @@
 --lossy-unification
 --experimental-lazy-instances
 --polarity
---backtracking-instance-searches
 --large-indices
 --no-forced-argument-recursion
 --with-K
