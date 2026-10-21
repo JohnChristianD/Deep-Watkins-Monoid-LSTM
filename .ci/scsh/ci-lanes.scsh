@@ -317,6 +317,9 @@
         "consistencyModelProvided = False"
         "directImportClosureTraversed = False"
         "transitiveImportedDependencyClosureCertified = False"
+        "sourceAnchorsPresent = True"
+        "consistencyTheorem = \"russCoreConsistency\""
+        "fullRUSSConsistencyCertified = False"
         "globalOptionsSha256"
         "rewriteRuleIdentifiers"
         "importedModulesBySource"))
