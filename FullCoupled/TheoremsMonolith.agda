@@ -12476,3 +12476,201 @@ eGraphEconomicFiniteCandidatePriceComposition-from-path path =
       decide
       candidates)
 
+
+------------------------------------------------------------------------
+-- Constructive/RUSS proof-theory core.
+--
+-- This proves soundness and empty-context consistency for an intuitionistic
+-- propositional calculus in the Agda object theory. It deliberately does not
+-- turn Markov's Principle, Church's Thesis, or countable choice into hidden
+-- postulates. Their exact schema interfaces are stated below as a separate
+-- package, with the program/evaluation relation left explicit. No inhabitant
+-- of that package or model for the full RUSS extension is claimed here.
+--
+-- The theorem is therefore a real, kernel-checkable core proof, not an
+-- unconditional consistency certificate for this monolith's transitive
+-- imports, reflection primitives, rewrite rules, or all RUSS extensions.
+------------------------------------------------------------------------
+
+module RUSSProofTheory where
+
+  data RUSSFormula : Set where
+    russAtom : ℕ → RUSSFormula
+    russBottom : RUSSFormula
+    russTop : RUSSFormula
+    russConjunction : RUSSFormula → RUSSFormula → RUSSFormula
+    russImplication : RUSSFormula → RUSSFormula → RUSSFormula
+
+  data RUSSContext : Set where
+    russEmptyContext : RUSSContext
+    russExtendContext : RUSSFormula → RUSSContext → RUSSContext
+
+  data RUSSMember : RUSSFormula → RUSSContext → Set where
+    russMemberHere :
+      ∀ {A Γ} →
+      RUSSMember A (russExtendContext A Γ)
+    russMemberThere :
+      ∀ {A B Γ} →
+      RUSSMember A Γ →
+      RUSSMember A (russExtendContext B Γ)
+
+  data RUSSFalse : Set where
+
+  data RUSSTrue : Set where
+    russUnit : RUSSTrue
+
+  record RUSSPair (A B : Set) : Set where
+    constructor russPair
+    field
+      russFirst : A
+      russSecond : B
+
+  open RUSSPair public
+
+  RUSSMeaning : (ℕ → Set) → RUSSFormula → Set
+  RUSSMeaning environment (russAtom n) = environment n
+  RUSSMeaning environment russBottom = RUSSFalse
+  RUSSMeaning environment russTop = RUSSTrue
+  RUSSMeaning environment (russConjunction A B) =
+    RUSSPair (RUSSMeaning environment A) (RUSSMeaning environment B)
+  RUSSMeaning environment (russImplication A B) =
+    RUSSMeaning environment A → RUSSMeaning environment B
+
+  data RUSSDerivation : RUSSContext → RUSSFormula → Set where
+    russHypothesis :
+      ∀ {Γ A} →
+      RUSSMember A Γ →
+      RUSSDerivation Γ A
+    russTopIntroduction :
+      ∀ {Γ} →
+      RUSSDerivation Γ russTop
+    russConjunctionIntroduction :
+      ∀ {Γ A B} →
+      RUSSDerivation Γ A →
+      RUSSDerivation Γ B →
+      RUSSDerivation Γ (russConjunction A B)
+    russConjunctionLeft :
+      ∀ {Γ A B} →
+      RUSSDerivation Γ (russConjunction A B) →
+      RUSSDerivation Γ A
+    russConjunctionRight :
+      ∀ {Γ A B} →
+      RUSSDerivation Γ (russConjunction A B) →
+      RUSSDerivation Γ B
+    russImplicationIntroduction :
+      ∀ {Γ A B} →
+      RUSSDerivation (russExtendContext A Γ) B →
+      RUSSDerivation Γ (russImplication A B)
+    russImplicationElimination :
+      ∀ {Γ A B} →
+      RUSSDerivation Γ (russImplication A B) →
+      RUSSDerivation Γ A →
+      RUSSDerivation Γ B
+    russBottomElimination :
+      ∀ {Γ A} →
+      RUSSDerivation Γ russBottom →
+      RUSSDerivation Γ A
+
+  RUSSContextSatisfaction :
+    (environment : ℕ → Set) →
+    RUSSContext →
+    Set₁
+  RUSSContextSatisfaction environment Γ =
+    ∀ {A} → RUSSMember A Γ → RUSSMeaning environment A
+
+  russExtendSatisfaction :
+    ∀ {Γ A} {environment : ℕ → Set} →
+    RUSSContextSatisfaction environment Γ →
+    RUSSMeaning environment A →
+    RUSSContextSatisfaction environment (russExtendContext A Γ)
+  russExtendSatisfaction assumptions witness russMemberHere = witness
+  russExtendSatisfaction assumptions witness (russMemberThere member) =
+    assumptions member
+
+  russFalseElimination : ∀ {A : Set} → RUSSFalse → A
+  russFalseElimination ()
+
+  russSoundness :
+    ∀ {Γ A} →
+    RUSSDerivation Γ A →
+    (environment : ℕ → Set) →
+    RUSSContextSatisfaction environment Γ →
+    RUSSMeaning environment A
+  russSoundness (russHypothesis member) environment assumptions =
+    assumptions member
+  russSoundness russTopIntroduction environment assumptions = russUnit
+  russSoundness
+    (russConjunctionIntroduction left right)
+    environment assumptions =
+      russPair
+        (russSoundness left environment assumptions)
+        (russSoundness right environment assumptions)
+  russSoundness (russConjunctionLeft proof) environment assumptions =
+    russFirst (russSoundness proof environment assumptions)
+  russSoundness (russConjunctionRight proof) environment assumptions =
+    russSecond (russSoundness proof environment assumptions)
+  russSoundness
+    (russImplicationIntroduction {A = A} proof)
+    environment assumptions
+    argument =
+      russSoundness proof environment
+        (russExtendSatisfaction assumptions argument)
+  russSoundness
+    (russImplicationElimination function argument)
+    environment assumptions =
+      (russSoundness function environment assumptions)
+      (russSoundness argument environment assumptions)
+  russSoundness (russBottomElimination proof) environment assumptions =
+    russFalseElimination (russSoundness proof environment assumptions)
+
+  russTruthEnvironment : ℕ → Set
+  russTruthEnvironment _ = RUSSTrue
+
+  russEmptySatisfaction :
+    ∀ {A} →
+    RUSSMember A russEmptyContext →
+    RUSSMeaning russTruthEnvironment A
+  russEmptySatisfaction ()
+
+  -- If an empty-context derivation of false existed, soundness in the
+  -- one-element atomic model would construct an inhabitant of RUSSFalse.
+  -- This is the consistency theorem for the stated propositional calculus.
+  russCoreConsistency :
+    RUSSDerivation russEmptyContext russBottom →
+    RUSSFalse
+  russCoreConsistency derivation =
+    russSoundness derivation russTruthEnvironment russEmptySatisfaction
+
+  data RUSSDecision (P : Set) : Set where
+    russAccept : P → RUSSDecision P
+    russReject : (P → RUSSFalse) → RUSSDecision P
+
+  RUSSMarkovPrinciple : Set₁
+  RUSSMarkovPrinciple =
+    (predicate : ℕ → Set) →
+    ((n : ℕ) → RUSSDecision (predicate n)) →
+    ((Σ ℕ predicate → RUSSFalse) → RUSSFalse) →
+    Σ ℕ predicate
+
+  RUSSCountableChoice : Set₁
+  RUSSCountableChoice =
+    (A : Set) →
+    (family : ℕ → A → Set) →
+    ((n : ℕ) → Σ A (family n)) →
+    Σ (ℕ → A)
+      (λ choose → (n : ℕ) → family n (choose n))
+
+  -- This interface records the exact extra data needed to state the strong
+  -- CT schema against a particular evaluator. It intentionally does not
+  -- invent an evaluator or assert its adequacy/effectivity.
+  record RUSSPrinciplePackage : Set₂ where
+    field
+      russMarkovWitness : RUSSMarkovPrinciple
+      russCountableChoiceWitness : RUSSCountableChoice
+      russProgram : Set
+      russEvaluates : russProgram → ℕ → ℕ → Set
+      russChurchThesisWitness :
+        (function : ℕ → ℕ) →
+        Σ russProgram
+          (λ program → (n : ℕ) → russEvaluates program n (function n))
+
