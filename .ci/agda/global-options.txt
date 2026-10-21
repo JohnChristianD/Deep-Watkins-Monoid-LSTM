@@ -1,6 +1,5 @@
 --erased-matches
 --no-projection-like
---level-universe
 --two-level
 --confluence-check
 --prop
@@ -9,3 +8,5 @@
 --lossy-unification
 --polarity
 --no-postfix-projections
+--backtracking-instance-search
+--experimental-lazy-instances
