@@ -267,6 +267,43 @@
 
 (check-runtime-closure runtime-agda-files)
 
+; The Dhall script map is the single source of truth for CI lanes. Check every
+; workflow caller against it so a renamed/removed lane cannot become dormant.
+(local actions-source (read-file ".ci/actions_ci.dhall"))
+(local workflow-source (read-file ".github/workflows/nix-composition.yml"))
+(local scripts-start
+  (assert (string.find actions-source "let scripts = {" 1 true)
+    "Dhall CI script map is missing"))
+(local scripts-end
+  (assert (string.find actions-source "\\n  ''}\\n\\nlet ScriptEntry" scripts-start true)
+    "Dhall CI script map boundary is missing"))
+(local scripts-body (string.sub actions-source scripts-start (- scripts-end 1)))
+(local script-lanes {})
+(var script-lane-count 0)
+(each [_ line (ipairs (fun.totable (string.gmatch scripts-body "[^\\n]+")))]
+  (local lane
+    (or
+      (string.match line "^  ([A-Za-z][A-Za-z0-9_]*) = ''")
+      (string.match line "''[,]%s+([A-Za-z][A-Za-z0-9_]*) = ''")))
+  (when lane
+    (assert (not (. script-lanes lane))
+      (.. "duplicate Dhall CI lane: " lane))
+    (tset script-lanes lane true)
+    (set script-lane-count (+ script-lane-count 1))))
+(assert (> script-lane-count 0) "no Dhall CI lanes discovered")
+(each [lane (string.gmatch workflow-source "run_lane%s+([A-Za-z][A-Za-z0-9_]*)")]
+  (assert (. script-lanes lane)
+    (.. "workflow calls missing Dhall CI lane: " lane)))
+(local policy-line
+  (assert (string.match workflow-source "[^\\n]*CI_LANE:[^\\n]*")
+    "workflow Versions lane is missing"))
+(local policy-lane
+  (assert (string.match policy-line "\\\"([A-Za-z][A-Za-z0-9_]*)\\\"")
+    "could not derive policy lane from workflow"))
+(assert (. script-lanes policy-lane)
+  (.. "workflow policy selects missing Dhall CI lane: " policy-lane))
+(print (.. "dhall-ci-lane-contract=pass lanes=" script-lane-count))
+
 (check-redundant-prelude-builtins agda-files)
 (check-cubical-free agda-files)
 (print "agda-import-sync=pass")
