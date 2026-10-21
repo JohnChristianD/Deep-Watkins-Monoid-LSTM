@@ -166,12 +166,12 @@
   (fun.totable
     (fun.map
       (fn [imported] (string.format "    \"%s\"" imported))
-      (ipairs imports))))
+      imports)))
 (local rendered-rewrite-rules
   (fun.totable
     (fun.map
       (fn [identifier] (string.format "    \"%s\"" identifier))
-      (ipairs rewrite-rules))))
+      rewrite-rules)))
 
 (assert (= learner.postulates 1) "learner RUSS trust boundary changed: audit before updating certificate")
 (assert (= learner.rewritePragmas 2) "learner rewrite surface changed: audit before updating certificate")

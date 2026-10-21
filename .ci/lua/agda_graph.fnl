@@ -160,13 +160,13 @@
           entry.line
           (elm-escape entry.signature)
           (elm-escape entry.category)))
-      (ipairs entries))))
+      entries)))
 
 (local rendered-source-files
   (fun.totable
     (fun.map
       (fn [path] (string.format "    \"%s\"" (elm-escape path)))
-      (ipairs source-files))))
+      source-files)))
 
 (local output-path (assert (. arg 1) "usage: agda_graph.fnl OUTPUT.elm"))
 (local output (assert (io.open output-path "w")))
