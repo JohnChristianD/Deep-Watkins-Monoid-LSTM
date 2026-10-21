@@ -79,6 +79,11 @@ Constructive foundations — Russian constructivism (RUSS) only:
     a compiler-facing Reflection/TC subset and imports external ordinal and
     TWA modules. These remain trust boundaries; successful builds are
     necessary but insufficient.
+  * The AgdaLearner and AgdaTheorem lanes invoke the selected official
+    AGDA_COMMAND directly on the canonical monoliths. A passing check certifies
+    kernel acceptance relative to imported modules, postulates, primitives,
+    rewrite rules, and the trusted Agda implementation; it does not establish
+    their joint consistency or prove the RUSS package has a model.
   * Both monoliths explicitly use --with-K. Keep their proof path non-cubical:
     no Cubical imports or Cubical modes. Agda's --cubical option enables
     --without-K, which conflicts with this project's selected path. Some
@@ -778,6 +783,17 @@ DHALL
     echo 'agda-all=pass'
   ''}
 
-let script = merge scripts lane
+let ScriptEntry = { mapKey : Text, mapValue : Text }
+
+let script =
+  List/fold ScriptEntry (toMap scripts) Text
+    (\(entry : ScriptEntry) ->
+      \(selected : Text) ->
+        -- Dhall Text is opaque: == compares Bool only. Two-way prefix
+        -- testing is exact equality, since each must be a prefix of the other.
+        if Text/isPrefixOf entry.mapKey lane && Text/isPrefixOf lane entry.mapKey
+        then entry.mapValue
+        else selected)
+    "echo \"unknown CI lane; valid names are defined in actions_ci.dhall\" >&2; exit 2"
 
 in policyGate ++ "\n" ++ script

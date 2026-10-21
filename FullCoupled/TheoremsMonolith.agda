@@ -309,6 +309,10 @@ open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int
 -- Re-export shared constructive-computability assumptions from the
 -- canonical learner monolith. Keep the actual nested source module there.
 ------------------------------------------------------------------------
+-- This re-export shares the learner monolith's explicitly postulated RUSS
+-- basis; it does not install global rewrite rules or prove consistency.
+-- Theorem kernel-check results remain relative to this basis, imports, and
+-- the Reflection/TC primitive trust boundary documented above.
 module ConstructiveComputabilityPostulates = C.ConstructiveComputabilityPostulates
 
 open ConstructiveComputabilityPostulates public using
