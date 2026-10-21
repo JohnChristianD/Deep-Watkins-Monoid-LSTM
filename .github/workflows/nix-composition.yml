@@ -99,7 +99,7 @@ jobs:
             set -euo pipefail
             run_lane() {
               local lane="$1"
-              CI_LANE="$lane" dhall text --file .ci/actions_ci.dhall | bash -e
+              CI_LANE="\"$lane\"" dhall text --file .ci/actions_ci.dhall | bash -e
             }
             run_lane Discovery
             run_lane Agda2Hs
@@ -144,7 +144,7 @@ jobs:
             set -euo pipefail
             run_lane() {
               local lane="$1"
-              CI_LANE="$lane" dhall text --file .ci/actions_ci.dhall | bash -e
+              CI_LANE="\"$lane\"" dhall text --file .ci/actions_ci.dhall | bash -e
             }
             run_lane FennelPresentation
             run_lane Pages
