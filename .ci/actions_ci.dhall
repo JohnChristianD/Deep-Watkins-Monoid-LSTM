@@ -222,14 +222,12 @@ let script = merge {
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsTheoremGraphEGraph.agda
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsSemanticSearch.agda
     "$AGDA_COMMAND" -i . FullCoupled/Agda2HsGraphSearchCheck.agda
-    # The legacy monolith's --level-universe option is intentionally not
-    # kernel-checked through Haskell.Prelude: Agda rejects that mixed option
-    # closure. Keep source inventory separate from the pure executable kernel
-    # surface until its universe/Prelude interfaces are migrated coherently.
+    # Keep source inventory separate from the pure executable kernel surface.
+    # The current global option set intentionally omits --level-universe; this
+    # guard must not reintroduce a removed option or mutate global Agda flags.
     grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' FullCoupled/CanonicalLearnerMonolith.agda
-    grep -Fxq -- '--level-universe' .ci/agda/global-options.txt
     echo "pure-agda2hs-kernel-check=pass"
-    echo "canonical-learner-monolith=source-inventory-only (option closure not kernel-checked)"
+    echo "canonical-learner-monolith=source-inventory-only (not kernel-checked in this lane)"
     '',
   AgdaTheorem = ''
     set -euo pipefail
