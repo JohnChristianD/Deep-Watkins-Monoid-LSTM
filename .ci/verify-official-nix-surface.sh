@@ -102,7 +102,7 @@ grep -Fq 'agda2hs_base_root' flake.nix || { echo "Agda2HS base source root must 
 
 grep -Fq 'pkgs.luajitPackages.buildLuaPackage' flake.nix
 grep -Fq 'pkgs.luajit.withPackages' flake.nix
-# Fixed-hash ccforth plus Nixpkgs Forth, documentation, and Scheme tools.
+# Fixed-hash ccforth plus the Nixpkgs Forth runtime, docs, and scsh test runner.
 grep -Fq 'ccforth = system:' flake.nix
 grep -Fq 'ccforth_0.3.2_linux_amd64.tar.gz' flake.nix
 grep -Fq 'ccforth_0.3.2_linux_arm64.tar.gz' flake.nix
@@ -110,7 +110,6 @@ grep -Fq 'ccforth_0.3.2_darwin_amd64.tar.gz' flake.nix
 grep -Fq 'ccforth_0.3.2_darwin_arm64.tar.gz' flake.nix
 grep -Fq 'pkgs.gforth' flake.nix
 grep -Fq 'pkgs.groff' flake.nix
-grep -Fq 'pkgs.guile' flake.nix
 test -f .ci/scsh/forth-scheme-smoke.scsh
 grep -Fq 'nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh' .github/workflows/nix-composition.yml
 ! grep -Fq 'nix develop .#forth -c bash' .github/workflows/nix-composition.yml || {
@@ -121,15 +120,19 @@ grep -Fq 'forth = pkgs.mkShell' flake.nix
 # Agda 2.8 backend sources are pinned to immutable upstream commits and the
 # older Forth fork receives its API-compatibility patch before Cabal resolution.
 grep -Fq 'github.com/LMMilliken/agda2Forth.git' flake.nix
-grep -Fq 'github.com/jespercockx/agda2scheme.git' flake.nix
 grep -Fq 'agda2forth = agda2forth system;' flake.nix
-grep -Fq 'agda2scheme = agda2scheme system;' flake.nix
+! grep -Eiq 'agda2scheme|jespercockx/agda2scheme|pkgs\.guile' flake.nix || {
+  echo "unexpected sibling Scheme backend or Guile in active Forth package graph" >&2
+  exit 1
+}
 test -f nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'Agda >= 2.8' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'backendInteractTop' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'CaseInfo lazy _erased (CTData cty)' nix/patches/agda2forth-agda-2.8.patch
 grep -Fq 'nix build -L .#agda2forth' .github/workflows/nix-composition.yml
-grep -Fq 'nix build -L .#agda2scheme' .github/workflows/nix-composition.yml
+grep -Fq 'ccforth -entry MAIN -o' .github/workflows/nix-composition.yml
+grep -Fq 'GForth Agda2Forth smoke returned' .github/workflows/nix-composition.yml
+grep -Fq 'ccforth Agda2Forth smoke returned' .github/workflows/nix-composition.yml
 grep -Fq 'name = "scott-strachey-domain-check";' flake.nix
 grep -Fq 'name = "monoid-lstm-stream-check";' flake.nix
 echo 'official-nix-surface=pass'
