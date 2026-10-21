@@ -9,4 +9,3 @@
 --polarity
 --no-postfix-projections
 --backtracking-instance-search
---experimental-lazy-instances
