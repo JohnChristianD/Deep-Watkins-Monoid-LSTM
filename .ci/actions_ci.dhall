@@ -340,7 +340,10 @@ let scripts = {
     mkdir -p "$output_dir"
     lessc site/site.less "$output_dir/site.css"
     test -s "$output_dir/site.css"
-    clang --target=wasm32-unknown-unknown -O2 -nostdlib -fno-builtin -Wl,--no-entry -Wl,--export=palette_init -Wl,--export=palette_size -Wl,--export=palette_color -Wl,--export-memory -Wl,--allow-undefined .ci/wasm/maximin_palette.c -o "$output_dir/site-palette.wasm"
+     # Do not leak host Nix hardening flags into the wasm32 target compiler.
+     # Recent host wrappers can add -fzero-call-used-regs, which clang rejects
+     # for wasm32-unknown-unknown.
+    NIX_CFLAGS_COMPILE= NIX_CXXFLAGS_COMPILE= clang --target=wasm32-unknown-unknown -O2 -nostdlib -fno-builtin -Wl,--no-entry -Wl,--export=palette_init -Wl,--export=palette_size -Wl,--export=palette_color -Wl,--export-memory -Wl,--allow-undefined .ci/wasm/maximin_palette.c -o "$output_dir/site-palette.wasm"
     cp site/palette-loader.js "$output_dir/palette-loader.js"
     test -s "$output_dir/site-palette.wasm"
     test -s "$output_dir/palette-loader.js"
