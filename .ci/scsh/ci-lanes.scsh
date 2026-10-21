@@ -317,6 +317,9 @@
         "consistencyModelProvided = False"
         "directImportClosureTraversed = False"
         "transitiveImportedDependencyClosureCertified = False"
+        "sourceAnchorsPresent = True"
+        "consistencyTheorem = \"russCoreConsistency\""
+        "fullRUSSConsistencyCertified = False"
         "globalOptionsSha256"
         "rewriteRuleIdentifiers"
         "importedModulesBySource"))
@@ -404,9 +407,18 @@
     (require-text manifest "semanticCompletenessCheck=pass"))
   (display "agda-semantic-registry=pass\n"))
 
+;; scsh -s passes the script pathname in command-line. Drop that one
+;; launcher argument before dispatch; otherwise every real lane is rejected
+;; as ".ci/scsh/ci-lanes.scsh" before its lane name is read.
+(define (lane-arguments command-arguments)
+  (if (and (pair? command-arguments)
+           (contains? (car command-arguments) "ci-lanes.scsh"))
+      (cdr command-arguments)
+      command-arguments))
+
 ;; This single dispatcher replaces the Bash scripts formerly embedded in
 ;; actions_ci.dhall and the workflow run blocks.
-(let ((args (command-line)))
+(let ((args (lane-arguments (command-line))))
   (if (null? args) (fail "usage: ci-lanes.scsh LANE"))
   (let ((lane (car args)))
     (cond

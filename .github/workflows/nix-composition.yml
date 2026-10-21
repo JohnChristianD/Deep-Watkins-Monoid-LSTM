@@ -168,10 +168,11 @@ jobs:
           set -euo pipefail
           nix develop .#presentation -c scsh -s .ci/scsh/ci-lanes.scsh Pages
           test -s "${RUNNER_TEMP}/pages/index.html"
-          test -s "${RUNNER_TEMP}/pages/app.mjs"
-          test -s "${RUNNER_TEMP}/pages/monolith-content.js"
-          test -s "${RUNNER_TEMP}/pages/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"
-          ! test -e "${RUNNER_TEMP}/pages/app.js"
+          test -s "${RUNNER_TEMP}/pages/site.css"
+          ! test -e "${RUNNER_TEMP}/pages/app.mjs"
+          ! test -e "${RUNNER_TEMP}/pages/monolith-content.mjs"
+          ! find "${RUNNER_TEMP}/pages" -type f -name 'jAgda.*.mjs' -print -quit | grep -q .
+          ! grep -Eiq '<script|<input|<button|filter-row|siteSearchMatches' "${RUNNER_TEMP}/pages/index.html"
 
   backends:
     name: Build Agda2Forth and CCForth native subset
