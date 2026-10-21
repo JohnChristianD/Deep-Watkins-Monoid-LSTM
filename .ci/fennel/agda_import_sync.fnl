@@ -279,16 +279,14 @@
     "Dhall CI script map does not have a complete record boundary"))
 (local script-lanes {})
 (var script-lane-count 0)
-; The keys are unique to the Text-valued scripts record; scan those markers
-; directly rather than parsing embedded shell strings as Dhall structure.
-(each [lane (string.gmatch actions-source "\n  ([A-Za-z][A-Za-z0-9_]*) = ''")]
-  (when (and
-          (not (= lane "Lane"))
-          (not (= lane "render")))
-    (assert (not (. script-lanes lane))
-      (.. "duplicate Dhall CI script key: " lane))
-    (tset script-lanes lane true)
-    (set script-lane-count (+ script-lane-count 1))))
+; Search only inside the scripts record. The full Dhall file also contains
+; unrelated records and embedded shell text with assignment-looking lines.
+(local scripts-source (string.sub actions-source scripts-start (- scripts-end 1)))
+(each [lane (string.gmatch scripts-source "\n  ([A-Za-z][A-Za-z0-9_]*) = ''")]
+  (assert (not (. script-lanes lane))
+    (.. "duplicate Dhall CI script key: " lane))
+  (tset script-lanes lane true)
+  (set script-lane-count (+ script-lane-count 1)))
 (assert (> script-lane-count 0) "no Dhall CI script lanes discovered")
 (local union-lanes {})
 (var union-lane-count 0)
