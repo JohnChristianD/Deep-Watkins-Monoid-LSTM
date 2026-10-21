@@ -215,18 +215,13 @@
   (for-each require-file
     '("FullCoupled/CanonicalLearnerMonolith.agda"
       "FullCoupled/TheoremsMonolith.agda"
+      "site/MonolithSearch.agda"
       "FullCoupled/Agda2HsSemanticSearch.agda"
       "FullCoupled/Agda2HsSemanticExtractor.agda"
       "FullCoupled/Agda2HsTheoremGraphEGraph.agda"
       ".ci/presentation-contract.dhall" "index.html"))
-  (require-text "FullCoupled/Agda2HsSemanticSearch.agda" "requiredPlanComplete")
-  (require-text "FullCoupled/Agda2HsSemanticSearch.agda" "import FullCoupled.Agda2HsSemanticExtractor as Extractor")
-  (for-each (lambda (path)
-      (for-each (lambda (needle) (forbid-text path needle))
-        '("Unsafe.Haskell" "MLTT." "UF." "TWA.")))
-    '("FullCoupled/Agda2HsSemanticSearch.agda"
-      "FullCoupled/Agda2HsSemanticExtractor.agda"
-      "FullCoupled/Agda2HsTheoremGraphEGraph.agda"))
+  (require-text "site/MonolithSearch.agda" "filterIndices")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
   (must-run (lambda () (run (dhall "type" "--file" ".ci/presentation-contract.dhall")))
             "type presentation contract")
   (for-each (lambda (needle) (require-text ".ci/presentation-contract.dhall" needle))
@@ -243,6 +238,12 @@
   (for-each (lambda (needle) (forbid-text "flake.nix" needle))
     '("elmPackages.elm" "elm.js" "site/Main.elm" "site-palette.wasm"
       "palette-loader.js" "maximin_palette.c"))
+  (for-each (lambda (needle) (forbid-text "site/app.mjs" needle))
+    '("function filterEntries" ".toLowerCase()" ".includes(needle)" "source === learnerPath"))
+  (for-each (lambda (needle) (forbid-text "site/site.less" needle))
+    '("filterEntries" "toLowerCase" "source === learnerPath"))
+  (for-each (lambda (needle) (forbid-text "index.html" needle))
+    '("search" "filterEntries" "scope ==="))
   (require-text "site/site.less" "Atkinson Hyperlegible Mono")
   (require-text "site/site.less" "Iosevka")
   (require-text ".ci/fennel/palette_css.fnl" "0.7328")
