@@ -245,14 +245,11 @@
               "-i" "site" "site/MonolithSearch.agda")))
       "compile pure Agda search to ES module JavaScript")
     (require-file (string-append js-out "/jAgda.Site.MonolithSearch.mjs"))
-    (require-file (string-append js-out "/jAgda/Agda/Builtin/String.mjs"))
+    (require-file (string-append js-out "/jAgda.Agda.Builtin.String.mjs"))
     (must-run (lambda () (run (cp "site/app.mjs" ,app))) "copy DOM-only adapter")
     (must-run
-      (lambda () (run (cp ,(string-append js-out "/jAgda.Site.MonolithSearch.mjs") ,out-dir)))
-      "copy generated pure search module")
-    (must-run
-      (lambda () (run (cp "-R" ,(string-append js-out "/jAgda") ,out-dir)))
-      "copy generated Agda JS runtime")
+      (lambda () (run (cp "-R" ,(string-append js-out "/.") ,out-dir)))
+      "copy generated Agda ES modules and runtime")
     (must-run (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
               "generate Pages catalog")
     (verify-catalog catalog)
