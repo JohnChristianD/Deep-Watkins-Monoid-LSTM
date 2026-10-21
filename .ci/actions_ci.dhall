@@ -786,7 +786,7 @@ let selectedScripts =
 let script =
   Optional/fold ScriptEntry Text
     (List/head ScriptEntry selectedScripts)
-    ''echo "unknown CI lane; valid names are defined in actions_ci.dhall" >&2; exit 2''
+    "echo \"unknown CI lane; valid names are defined in actions_ci.dhall\" >&2; exit 2"
     (\(entry : ScriptEntry) -> entry.mapValue)
 
 in policyGate ++ "\n" ++ script
