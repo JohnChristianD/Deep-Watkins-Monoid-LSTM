@@ -1218,4 +1218,6 @@ siteSearchExactScopeRegression =
 
 siteSearchMetadataIsNotSearchableRegression : Bool
 siteSearchMetadataIsNotSearchableRegression =
-  not (siteSearchMatches "only-path" "all" "Visible" "Nat" "only-path")
+  not (siteSearchMatches
+    "FullCoupled/CanonicalLearnerMonolith.agda" "all" "Visible" "Nat"
+    "FullCoupled/CanonicalLearnerMonolith.agda")
