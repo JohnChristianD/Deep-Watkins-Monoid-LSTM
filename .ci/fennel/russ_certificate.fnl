@@ -216,6 +216,8 @@
   "constructive propositional core consistency theorem is missing")
 (assert (contains theorem-source "RUSSPrinciplePackage")
   "explicit RUSS extension-principle interface is missing")
+(assert (contains theorem-source "RUSSPrinciplePackage = RussianRecursiveMathematicsBasis")
+  "RUSS proof theory must reuse the canonical assumption signature without duplication")
 
 (local out (assert (io.open ".ci/discovery/russ-global-certificate.dhall" "w")))
 (out:write "{\n")
