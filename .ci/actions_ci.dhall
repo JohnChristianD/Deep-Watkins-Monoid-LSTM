@@ -215,8 +215,6 @@ let policyGate = ''
 
 let Lane = < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >
 
-let lane : Text = env:CI_LANE
-
 let scripts = {
   AgdaLearner = ''
     set -euo pipefail
@@ -783,13 +781,7 @@ DHALL
     echo 'agda-all=pass'
   ''}
 
-let ScriptEntry = { mapKey : Text, mapValue : Text }
-
-let script =
-  List/fold ScriptEntry (toMap scripts) Text
-    (\(entry : ScriptEntry) ->
-      \(selected : Text) ->
-        if Text/contains ("." ++ entry.mapKey ++ ")") lane then entry.mapValue else selected)
-    "echo \"unknown CI lane; valid names are defined in actions_ci.dhall\" >&2; exit 2"
-
-in policyGate ++ "\n" ++ script
+in
+  { Lane = Lane
+  , render = \(lane : Lane) -> policyGate ++ "\n" ++ merge scripts lane
+  }

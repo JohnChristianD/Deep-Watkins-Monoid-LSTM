@@ -37,8 +37,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/pages"
-          CI_LANE='(< AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >.Pages) : < AgdaLearner | AgdaTheorem | AgdaSafe | Agda2Hs | FennelPresentation | Pages | Discovery | EconlibCrossrepo | EconlibEquilibriumSearch | StrictExistenceImpossibility | StationaryCycleImpossibility | IsomorphismTransport | SemanticContract | Surface | Versions | AutoMerge | All >' PAGES_OUTPUT_DIR="${RUNNER_TEMP}/pages" \
-            nix develop .#presentation -c bash -e -c 'dhall text --file .ci/actions_ci.dhall | bash -e'
+          CI_LANE="Pages" PAGES_OUTPUT_DIR="${RUNNER_TEMP}/pages" \
+            nix develop .#presentation -c bash -e -c 'printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$CI_LANE" | dhall text | bash -e'
           test -s "${RUNNER_TEMP}/pages/elm.js"
 
       - name: Create Pages shell
