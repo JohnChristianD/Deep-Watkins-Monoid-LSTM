@@ -269,14 +269,14 @@
 (local actions-source (read-file ".ci/actions_ci.dhall"))
 (local workflow-source (read-file ".github/workflows/nix-composition.yml"))
 (local lane-line
-  (assert (string.match actions-source "let Lane = < ([^\\n]+) >")
+  (assert (string.match actions-source "let Lane = < ([^\n]+) >")
     "Dhall CI Lane union is missing"))
 (local script-lanes {})
 (var script-lane-count 0)
 (var inside-scripts false)
 (var found-scripts false)
 (var found-script-end false)
-(each [_ line (ipairs (fun.totable (string.gmatch actions-source "[^\\n]+")))]
+(each [_ line (ipairs (fun.totable (string.gmatch actions-source "[^\n]+")))]
   (when (string.find line "let scripts = {" 1 true)
     (set inside-scripts true)
     (set found-scripts true))
