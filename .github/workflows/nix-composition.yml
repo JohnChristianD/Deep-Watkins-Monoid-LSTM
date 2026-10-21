@@ -171,7 +171,7 @@ jobs:
           test -s "${RUNNER_TEMP}/pages/site.css"
           ! test -e "${RUNNER_TEMP}/pages/app.mjs"
           ! test -e "${RUNNER_TEMP}/pages/monolith-content.mjs"
-          ! find "${RUNNER_TEMP}/pages" -type f -name 'jAgda.*.mjs' | grep -q .
+          ! find "${RUNNER_TEMP}/pages" -type f -name 'jAgda.*.mjs' -print -quit | grep -q .
           ! grep -Eiq '<script|<input|<button|filter-row|siteSearchMatches' "${RUNNER_TEMP}/pages/index.html"
 
   backends:
