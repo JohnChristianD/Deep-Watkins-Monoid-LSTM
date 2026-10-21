@@ -17,6 +17,7 @@
 
   function clamp01(value) { return Math.max(0, Math.min(1, value)); }
 
+  /* CAT02 LMS matrix: preserve the existing three-channel transform. */
   function cat02Lms(rgb) {
     return [
       0.7328 * rgb.r + 0.4296 * rgb.g - 0.1624 * rgb.b,
