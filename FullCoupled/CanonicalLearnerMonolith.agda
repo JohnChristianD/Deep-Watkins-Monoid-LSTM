@@ -62,7 +62,8 @@ open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Size public
-open import Agda.Builtin.Reflection using (Level)
+open import Agda.Primitive public
+open import Agda.Builtin.Reflection hiding (Level)
 
 ------------------------------------------------------------------------
 -- Shared constructive-computability assumptions and interfaces.
