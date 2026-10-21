@@ -66,7 +66,7 @@ const body = `<main class="shell">
       <p class="eyebrow">Formal specification / proof surface</p>
       <h1>${escapeHtml(page.sitePageTitle)}</h1>
       <p class="lede">${escapeHtml(page.sitePageOverview)}</p>
-      <p class="result-count">${catalog.entries.length} declarations · ${catalog.sourceFiles.length} canonical source files</p>
+      <p class="site-stats">${catalog.entries.length} declarations · ${catalog.sourceFiles.length} canonical source files</p>
     </section>
     <section class="section" id="sources">
       <h2>The two canonical source files</h2>
@@ -80,7 +80,7 @@ const body = `<main class="shell">
     </section>
     <section class="section" id="declarations">
       <h2>Complete declaration index</h2>
-      <p class="section-lede">A static, source-linked listing. There is no client-side search, filtering, or selection state.</p>
+      <p class="section-lede">A complete static listing of source-linked declarations.</p>
       ${declarationIndex}
     </section>
     <footer class="footer">Declaration presence is not evidence of theorem correctness or global consistency.</footer>
