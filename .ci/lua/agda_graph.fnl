@@ -4,10 +4,12 @@
 ; Do not enumerate the project-wide Agda import graph here: graph-search
 ; helpers and tutorial/legacy modules are not part of the documented surface.
 (local source-files
-  (fun.totable
-    [ "FullCoupled/CanonicalLearnerMonolith.agda"
-      "FullCoupled/TheoremsMonolith.agda"
-    ]))
+  [ "FullCoupled/CanonicalLearnerMonolith.agda"
+    "FullCoupled/TheoremsMonolith.agda"
+  ])
+
+(assert (= (# (fun.totable (fun.range 1 2))) 2)
+  "Luafun range/totable iterator protocol changed")
 
 (local read-file
   (fn [path]
@@ -161,10 +163,12 @@
       (elm-escape entry.signature)
       (elm-escape entry.category))))
 
-(local rendered-source-files [])
-(each [_ path (ipairs source-files)]
-  (table.insert rendered-source-files
-    (string.format "    \"%s\"" (elm-escape path))))
+(local rendered-source-files
+  (fun.totable
+    (fun.map
+      (fn [index]
+        (string.format "    \"%s\"" (elm-escape (. source-files index))))
+      (fun.range 1 (# source-files))))
 
 (local output-path (assert (. arg 1) "usage: agda_graph.fnl OUTPUT.elm"))
 (local output (assert (io.open output-path "w")))

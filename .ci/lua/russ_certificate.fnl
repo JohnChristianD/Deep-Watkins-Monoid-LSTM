@@ -3,10 +3,12 @@
 ; Machine-readable audit of the two canonical monoliths only.
 ; This is a static trust-surface certificate, never a consistency proof.
 (local source-files
-  (fun.totable
-    [ "FullCoupled/CanonicalLearnerMonolith.agda"
-      "FullCoupled/TheoremsMonolith.agda"
-    ]))
+  [ "FullCoupled/CanonicalLearnerMonolith.agda"
+    "FullCoupled/TheoremsMonolith.agda"
+  ])
+
+(assert (= (# (fun.totable (fun.range 1 2))) 2)
+  "Luafun range/totable iterator protocol changed")
 
 (local read-file (fn [path]
   (local file (assert (io.open path "r") (.. "cannot read " path)))
