@@ -10,6 +10,7 @@
 --lossy-unification
 --experimental-lazy-instances
 --polarity
+--backtracking-instance-searches
 --large-indices
 --no-forced-argument-recursion
 --with-K
@@ -46,9 +47,9 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
 open import Haskell.Prelude public
-open import Haskell.Law public hiding (trustMe; cong; map-id; map-++)
+open import Haskell.Law public
 open import Haskell.Law.Ord.Ordering public
-open import Haskell.Law.Equality public hiding (trustMe; cong)
+open import Haskell.Law.Equality public
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
@@ -60,6 +61,7 @@ open import Haskell.Extra.Delay public
 open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
+open import Agda.Primitive public
 open import Agda.Primitive using (Level)
 
 ------------------------------------------------------------------------
