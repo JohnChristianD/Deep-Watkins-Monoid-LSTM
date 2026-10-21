@@ -39,7 +39,13 @@
       (cond ((> (+ i n) total) count)
             ((string=? (substring text i (+ i n)) needle)
              (loop (+ i n) (+ count 1)))
-            (else (loop (+ i 1) count))))))
+            (else (loop (+ i 1) count)))))
+
+(define (count-lines-containing text needle)
+  (let loop ((lines (lines-of text)) (count 0))
+    (if (null? lines)
+        count
+        (loop (cdr lines) (if (contains? (car lines) needle) (+ count 1) count))))))
 
 (define (fail message)
   (display "official-nix-surface=fail: ")
@@ -95,11 +101,19 @@
           (else (loop (cdr lines) inside)))))
 
 (define (check-monolith path)
-  (let ((text (read-file path)))
+  (let ((text (read-file path))
+        (lines (lines-of (read-file path))))
     (if (not (contains? text "--with-K"))
         (fail (string-append "expected --with-K in " path)))
-    (if (contains? text "--cubical")
-        (fail (string-append "Cubical mode conflicts with --with-K path: " path)))
+    (let options-loop ((rest lines) (inside #t))
+      (if (and inside (pair? rest))
+          (let ((line (string-trim-both (car rest))))
+            (if (and (> (string-length line) 0)
+                     (char=? (string-ref line 0) #\\-)
+                     (contains? line "--cubical"))
+                (fail (string-append "Cubical mode conflicts with --with-K path: " path)))
+            (if (not (string=? line "#-}"))
+                (options-loop (cdr rest) #t))))
     (for-each
       (lambda (line)
         (let ((item (string-trim-both line)))
@@ -107,8 +121,8 @@
                   (contains? item "open import Cubical ")
                   (contains? item "import Cubical.")
                   (contains? item "import Cubical "))
-              (fail (string-append "direct Cubical import is not permitted: " path))))
-      (lines-of text))))
+              (fail (string-append "direct Cubical import is not permitted: " path)))))
+      lines)))
 
 (define (string-trim-both s)
   (let ((n (string-length s)))
@@ -157,10 +171,7 @@
 (require-contains "flake.nix" "github:NixOS/nixpkgs/")
 (require-contains "flake.nix" "nixpkgs.url = \"github:NixOS/nixpkgs/")
 (require-contains "flake.nix" "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f")
-(let ((input-count
-        (length
-          (filter (lambda (line) (contains? line "url = \"github:"))
-                  (lines-of (read-file "flake.nix"))))))
+(let ((input-count (count-lines-containing (read-file "flake.nix") "url = \"github:")))
   (if (not (= input-count 2))
       (fail (string-append "expected 2 pinned GitHub inputs; found " (number->string input-count)))))
 
