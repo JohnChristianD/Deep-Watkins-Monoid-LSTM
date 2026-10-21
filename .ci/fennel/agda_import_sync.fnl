@@ -40,6 +40,22 @@
     (set found (string.find source needle cursor true)))
   count)
 
+
+(fn split-preserving-empty-lines [source]
+  (local lines [])
+  (var cursor 1)
+  (while true
+    (local ending (string.find source "\\n" cursor true))
+    (if ending
+        (do
+          (table.insert lines (string.sub source cursor (- ending 1)))
+          (set cursor (+ ending 1)))
+        (do
+          (when (<= cursor (# source))
+            (table.insert lines (string.sub source cursor)))
+          (break))))
+  lines)
+
 (fn cubical-marker [line]
   (or
     (string.match line "^%s*open%s+import%s+Cubical%.")
@@ -155,7 +171,7 @@
   "canonical learner public import block must end at the primitive import boundary")
 (local normalize-public-import-surface
   (fn [source]
-    (local lines (fun.totable (string.gmatch source "[^\n]+")))
+    (local lines (split-preserving-empty-lines source))
     (local rendered [])
     (var in-public-surface false)
     (each [_ line (ipairs lines)]
