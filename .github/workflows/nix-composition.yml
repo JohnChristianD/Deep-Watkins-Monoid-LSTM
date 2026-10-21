@@ -102,22 +102,6 @@ jobs:
         timeout-minutes: 15
         run: nix run .#streamly-tools-check
 
-      - name: Build and smoke-test Agda Forth/Scheme backends
-        timeout-minutes: 15
-        run: |
-          set -euo pipefail
-          tmp="$(mktemp -d)"
-          trap 'rm -rf "$tmp"' EXIT
-          nix build -L .#agda2forth --out-link "$tmp/agda2forth"
-          test -x "$tmp/agda2forth/bin/agda2forth"
-          "$tmp/agda2forth/bin/agda2forth" --help >/dev/null
-          nix build -L .#agda2scheme --out-link "$tmp/agda2scheme"
-          test -x "$tmp/agda2scheme/bin/agda2scheme"
-          "$tmp/agda2scheme/bin/agda2scheme" --help >/dev/null
-          nix build -L .#ccforth --out-link "$tmp/ccforth"
-          "$tmp/ccforth/bin/ccforth" -version
-          nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
-
       - name: Run semantic lanes in one Nix environment
         timeout-minutes: 25
         run: |
@@ -176,10 +160,36 @@ jobs:
             run_lane Pages
           '
 
+  backends:
+    name: Build Agda Forth/Scheme backends
+    needs: policy
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
+        with:
+          installer-version: '2.35.1'
+      - name: Build and smoke-test Agda Forth/Scheme backends
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          nix build -L .#agda2forth --out-link "$tmp/agda2forth"
+          test -x "$tmp/agda2forth/bin/agda2forth"
+          "$tmp/agda2forth/bin/agda2forth" --help >/dev/null
+          nix build -L .#agda2scheme --out-link "$tmp/agda2scheme"
+          test -x "$tmp/agda2scheme/bin/agda2scheme"
+          "$tmp/agda2scheme/bin/agda2scheme" --help >/dev/null
+          nix build -L .#ccforth --out-link "$tmp/ccforth"
+          "$tmp/ccforth/bin/ccforth" -version
+          nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
+
   auto-merge:
     name: Enable auto-merge only after explicit approval
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft
-    needs: [agda, semantic, pages, versions]
+    needs: [agda, semantic, pages, versions, backends]
     runs-on: ubuntu-22.04
     permissions:
       contents: read
