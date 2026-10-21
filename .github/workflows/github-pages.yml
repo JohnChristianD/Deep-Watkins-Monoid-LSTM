@@ -40,6 +40,9 @@ jobs:
           CI_LANE="Pages" PAGES_OUTPUT_DIR="${RUNNER_TEMP}/pages" \
             nix develop .#presentation -c bash -e -c 'printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$CI_LANE" | dhall text | bash -e'
           test -s "${RUNNER_TEMP}/pages/elm.js"
+          test -s "${RUNNER_TEMP}/pages/site.css"
+          test -s "${RUNNER_TEMP}/pages/site-palette.wasm"
+          test -s "${RUNNER_TEMP}/pages/palette-loader.js"
 
       - name: Create Pages shell
         run: |
@@ -62,7 +65,7 @@ jobs:
           <body>
             <div id="app"></div>
             <script src="elm.js"></script>
-            <script>Elm.Main.init({ node: document.getElementById("app") });</script>
+            <script src="palette-loader.js"></script>
           </body>
           </html>
           HTML
