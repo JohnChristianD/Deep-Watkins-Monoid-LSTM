@@ -38,8 +38,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/pages"
-          CI_LANE="Pages" PAGES_OUTPUT_DIR="${RUNNER_TEMP}/pages" \
-            nix develop .#presentation -c bash -e -c 'printf "let config = ./.ci/actions_ci.dhall in config.render config.Lane.%s\\n" "$CI_LANE" | dhall text | bash -e'
+          PAGES_OUTPUT_DIR="${RUNNER_TEMP}/pages" \
+            nix develop .#presentation -c scsh -s .ci/scsh/ci-lanes.scsh Pages
           cp index.html "${RUNNER_TEMP}/pages/index.html"
           touch "${RUNNER_TEMP}/pages/.nojekyll"
           test -s "${RUNNER_TEMP}/pages/index.html"
