@@ -275,11 +275,12 @@ let scripts = {
     test -f .ci/fennel/ascii_surface.fnl
     test -f site/app.js
     test -f site/site.less
-    test -f site/palette-loader.js
-    test -f .ci/wasm/maximin_palette.c
-    test -f .ci/wasm/palette-smoke.cjs
+    test -f .ci/fennel/palette_css.fnl
     test -f .ci/presentation-smoke.cjs
     nix run .#fennel-ascii-surface
+    nix run .#fennel-palette-css -- "$tmp/palette.css"
+    test -s "$tmp/palette.css"
+    test "$(grep -c '^  --palette-' "$tmp/palette.css")" -eq 6
     nix run .#fennel-monolith-content -- "$tmp/monolith-content.js"
     test -s "$tmp/monolith-content.js"
     node --check "$tmp/monolith-content.js"
@@ -314,14 +315,15 @@ let scripts = {
     grep -Fq '"siteEntry": "index.html"' "$tmp/presentation-contract.json"
     grep -Fq '"lessStylesheet": "site/site.less"' "$tmp/presentation-contract.json"
     grep -Fq '"compiledStylesheet": "site.css"' "$tmp/presentation-contract.json"
-    grep -Fq '"wasmPaletteSource": ".ci/wasm/maximin_palette.c"' "$tmp/presentation-contract.json"
-    grep -Fq '"compiledWasm": "site-palette.wasm"' "$tmp/presentation-contract.json"
-    grep -Fq '"paletteLoader": "site/palette-loader.js"' "$tmp/presentation-contract.json"
+    grep -Fq '"paletteCssGenerator": ".ci/fennel/palette_css.fnl"' "$tmp/presentation-contract.json"
+    grep -Fq '"paletteRoleRegistry": "site/site.less"' "$tmp/presentation-contract.json"
     ! grep -Eiq 'elm\.js|Elm\.Main\.init|elmPackages\.elm|elm make|site/Main\.elm|elm-application\.dhall|GeneratedMonolithContent\.elm|GeneratedTheoremSurface\.elm' flake.nix .github/workflows/github-pages.yml .ci/presentation-contract.dhall index.html site .ci/fennel
     grep -Fq 'Atkinson Hyperlegible Mono' site/site.less
     grep -Fq 'Iosevka' site/site.less
     grep -Fq 'https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono' site/site.less
-    grep -Fq 'CAT02 LMS matrix' .ci/wasm/maximin_palette.c
+    grep -Fq '0.7328' .ci/fennel/palette_css.fnl
+    grep -Fq '0.4296' .ci/fennel/palette_css.fnl
+    grep -Fq '0.9834' .ci/fennel/palette_css.fnl
     grep -Fq '.shell' site/site.less
     grep -Fq 'Russian constructivism (RUSS): trust-surface inventory' site/app.js
     grep -Fq 'Declaration index' site/app.js
@@ -331,27 +333,25 @@ let scripts = {
     ! grep -Fq 'entry.source.toLowerCase' site/app.js
     grep -Fq 'russianRecursiveMathematicsAssumptions' FullCoupled/CanonicalLearnerMonolith.agda
     ! grep -Fq 'Mirth' site/app.js
-    grep -Fq 'palette_size(void)' .ci/wasm/maximin_palette.c
     output_dir="$tmp"
     if [ -n "$(printenv PAGES_OUTPUT_DIR 2>/dev/null || true)" ]; then
       output_dir="$(printenv PAGES_OUTPUT_DIR)"
     fi
     mkdir -p "$output_dir"
     lessc site/site.less "$output_dir/site.css"
+    nix run .#fennel-palette-css -- "$tmp/palette.css"
+    cat "$tmp/palette.css" >> "$output_dir/site.css"
     test -s "$output_dir/site.css"
-    NIX_CFLAGS_COMPILE= NIX_CXXFLAGS_COMPILE= clang --target=wasm32-unknown-unknown -O2 -nostdlib -fno-builtin -Wl,--no-entry -Wl,--export=palette_init -Wl,--export=palette_size -Wl,--export=palette_color -Wl,--export-memory -Wl,--allow-undefined .ci/wasm/maximin_palette.c -o "$output_dir/site-palette.wasm"
-    cp site/palette-loader.js "$output_dir/palette-loader.js"
     cp site/app.js "$output_dir/app.js"
     nix run .#fennel-monolith-content -- "$output_dir/monolith-content.js"
     node --check "$output_dir/monolith-content.js"
     node --check "$output_dir/app.js"
-    test -s "$output_dir/site-palette.wasm"
-    test -s "$output_dir/palette-loader.js"
     test -s "$output_dir/app.js"
     test -s "$output_dir/monolith-content.js"
-    WASM_FILE="$output_dir/site-palette.wasm" node .ci/wasm/palette-smoke.cjs
     node .ci/presentation-smoke.cjs "$output_dir/monolith-content.js"
-    echo "pages-build=pass (native JavaScript; no Elm toolchain)"
+    grep -Fq -- '--palette-ink:' "$output_dir/site.css"
+    grep -Fq -- '--palette-ink-on-accent:' "$output_dir/site.css"
+    echo "pages-build=pass (native JavaScript, build-time palette CSS; no Elm/Wasm toolchain)"
     '',
   Discovery = ''
     set -euo pipefail

@@ -464,6 +464,20 @@ PY
             program = "${script}/bin/fennel-monolith-content";
           };
 
+          fennel-palette-css = let
+            script = pkgs.writeShellApplication {
+              name = "fennel-palette-css";
+              runtimeInputs = [ (fennelRuntime system) pkgs.coreutils ];
+              text = ''
+                set -euo pipefail
+                exec ${fennelRuntime system}/bin/fennel .ci/fennel/palette_css.fnl "$@"
+              '';
+            };
+          in {
+            type = "app";
+            program = "${script}/bin/fennel-palette-css";
+          };
+
           fennel-ascii-surface = let
             script = pkgs.writeShellApplication {
               name = "fennel-ascii-surface";
@@ -1080,8 +1094,6 @@ PY
               pkgs.gnugrep
               pkgs.gnused
               pkgs.lessc
-              pkgs.llvmPackages.clang-unwrapped
-              pkgs.llvmPackages.lld
               pkgs.nodejs
               pkgs.dhall
               pkgs.dhall-json

@@ -8,8 +8,7 @@
 , siteEntry = "index.html"
 , lessStylesheet = "site/site.less"
 , compiledStylesheet = "site.css"
-, wasmPaletteSource = ".ci/wasm/maximin_palette.c"
-, compiledWasm = "site-palette.wasm"
-, paletteLoader = "site/palette-loader.js"
+, paletteCssGenerator = ".ci/fennel/palette_css.fnl"
+, paletteRoleRegistry = "site/site.less"
 , asciiGenerator = ".ci/fennel/ascii_surface.fnl"
 }

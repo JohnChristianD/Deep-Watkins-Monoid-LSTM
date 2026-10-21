@@ -44,8 +44,6 @@ jobs:
           touch "${RUNNER_TEMP}/pages/.nojekyll"
           test -s "${RUNNER_TEMP}/pages/index.html"
           test -s "${RUNNER_TEMP}/pages/site.css"
-          test -s "${RUNNER_TEMP}/pages/site-palette.wasm"
-          test -s "${RUNNER_TEMP}/pages/palette-loader.js"
           test -s "${RUNNER_TEMP}/pages/app.js"
           test -s "${RUNNER_TEMP}/pages/monolith-content.js"
 
