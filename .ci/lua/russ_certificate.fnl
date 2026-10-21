@@ -82,7 +82,7 @@
     (local item (trim raw))
     (local leading (or (string.match raw "^%s*") ""))
     (local indentation (string.len leading))
-    (local declaration nil)
+    (var declaration nil)
     (when (and (>= postulate-indent 0)
                (<= indentation postulate-indent)
                (not (= item "postulate")))
