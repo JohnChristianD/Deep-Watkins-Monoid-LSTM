@@ -165,13 +165,12 @@ Constructive foundations — Russian constructivism (RUSS) only:
     The archived Stanford entry is a dated source, not independent corroboration.
     Global RUSS certification remains blocked until every trusted interface and
     transitive dependency is classified.
-Lua/Elm:
-  * Keep Fennel for orchestration and use the pinned Luafun module directly.
-    Fennel and MoonScript can call ordinary Lua libraries; Teal can too but
-    typed coverage for Luafun requires a maintained declaration file.
-  * .ci/fennel/agda_graph.fnl indexes declarations from exactly the two canonical
-    monoliths into GeneratedMonolithContent.elm. Elm renders that generated
-    catalog directly; it does not load Fennel or Lua at runtime.
+Fennel/Elm:
+  * Fennel is the only orchestration source and calls the pinned Luafun module
+    inside the LuaJIT-backed Fennel runtime. The smoke test checks jit.version
+    and exercises Luafun.map through Fennel; no standalone Lua script is used.
+  * .ci/fennel/agda_graph.fnl derives the Elm declaration catalog from exactly
+    the two canonical monoliths. Fennel runs at build time; Elm never loads it.
   * Pages/Elm must be validated by the existing Nix presentation lane.
 
 Only this file owns project policy text and lane commands. The GitHub workflow
