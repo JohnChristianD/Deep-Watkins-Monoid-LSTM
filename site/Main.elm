@@ -325,6 +325,14 @@ view model =
                         ]
                     , div [] (List.map (entryCard model) (List.take searchLimit entries))
                     ]
+                , section [ HA.id "palette", HA.class "section" ]
+                    [ h2 [] [ text "Maximin perceptual palette" ]
+                    , p [ HA.class "section-lede" ]
+                        [ text "The local WebAssembly palette preserves the CAT02LMS opponent transform and farthest-point maximin rule. Its candidate budget grows with the semantic role count; the selected palette is not limited to six colors." ]
+                    , div [ HA.class "palette", HA.id "wasm-palette" ] []
+                    , p [ HA.class "palette-caption", HA.id "wasm-palette-caption" ]
+                        [ text "Initializing the adaptive CAT02LMS maximin palette." ]
+                    ]
                 , footer [ HA.class "footer" ]
                     [ text
                         ("Source scope: "
