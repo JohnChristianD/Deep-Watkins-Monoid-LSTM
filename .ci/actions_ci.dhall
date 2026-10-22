@@ -22,8 +22,10 @@ Real arithmetic:
 Graph semantics:
   * Distinguish the Agda import DAG, law-dependency paths, and symbolic e-graph.
     None is a proof term or evidence that a theorem's statement is true.
-  * Production graphAStarFirst stays eager A*. Its current score is
-    999999*g + 1000000*h, ties insert incoming-first, and best-g is indexed by
+  * Production graphAStarFirst uses deferred expansion: pending edges are
+    queued with lower-bound 999999*g, and exact 999999*g + 1000000*h priority
+    is evaluated only after pop. Eager A* remains a differential reference;
+    ties insert incoming-first, and best-g is indexed by
     law ID. These choices mirror parts of JAxtar's standard A* semantics, not
     JAxtar's batched JAX execution.
   * Deferred A* is not production until Agda proves its full contract is not

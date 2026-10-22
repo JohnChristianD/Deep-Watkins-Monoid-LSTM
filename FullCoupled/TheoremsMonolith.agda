@@ -31,20 +31,17 @@
 module FullCoupled.TheoremsMonolith where
 
 -- Merged external import surface; internal FullCoupled imports remain module-local.
-open import Haskell.Prelude hiding (Int; String; Char; Type; ⊤; tt)
+open import Haskell.Prelude hiding (String; Char; Type; ⊤; tt)
 
 -- Define the theorem module's integer shorthand from the official
 -- Prelude before importing the learner module later in this file. Do not
 -- refer forward to the learner's private compatibility notation.
-Int : Set
-Int = Integer
-
 infixl 31 _+Int_
-_+Int_ : Int → Int → Int
+_+Int_ : Integer → Integer → Integer
 _+Int_ = _+_
 
 infixl 31 _*Int_
-_*Int_ : Int → Int → Int
+_*Int_ : Integer → Integer → Integer
 _*Int_ = _*_
 
 -- Compiler-facing subset of the Agda 2.8.0.2 Reflection ABI used below.
@@ -305,7 +302,7 @@ syntax try-fun t f = try t or-else f
 -- `_+_` to disambiguate natural/integer/rational addition.
 open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
 open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
-open import FullCoupled.CanonicalLearnerMonolith as C hiding (Int; _+Int_; _*Int_; gruStep)
+open import FullCoupled.CanonicalLearnerMonolith as C hiding (_+Int_; _*Int_; gruStep)
 
 ------------------------------------------------------------------------
 -- Re-export shared constructive-computability assumptions from the
@@ -1418,7 +1415,7 @@ record CanonicalSafeTacticNormalizationTheorem : Set₁ where
       (epsilon + succ zero) * scale ＝
       (epsilon * scale) + scale
     integerRingNormalization :
-      ∀ (i j k : Int) →
+      ∀ (i j k : Integer) →
       i + (j + k) ＝ (i + j) + k
     listMonoidNormalization :
       ∀ (xs ys zs : List C.IntCode) →
@@ -2372,8 +2369,8 @@ record IntegerLayerNormSemanticState : Set where
   field
     epsilon : ℕ
     input : List C.IntCode
-    centered : List Int
-    radicand : Int
+    centered : List Integer
+    radicand : Integer
 open IntegerLayerNormSemanticState public
 
 integerLayerNormSemanticInterpret :
@@ -2964,14 +2961,14 @@ integerLayerNorm-radicand-epsilon-succ :
   C.integerLayerNormRadicand xs (succ epsilon)
   ＝
   C.integerLayerNormRadicand xs epsilon
-  +Int
+  +Integer
   (pos (length xs * length xs))
 integerLayerNorm-radicand-epsilon-succ xs epsilon =
   trans
     (cong
       (λ n →
         C.integerLayerNormVarianceNumerator xs
-        +Int
+        +Integer
         (pos n))
       (integerLayerNorm-epsilon-contribution-succ xs epsilon))
     (sym
@@ -3044,7 +3041,7 @@ integerLayerNorm-radicand-epsilon-linear :
   C.integerLayerNormRadicand xs epsilon
   ＝
   C.integerLayerNormVarianceNumerator xs
-  +Int
+  +Integer
   (pos (epsilon * length xs * length xs))
 integerLayerNorm-radicand-epsilon-linear xs zero =
   trans
@@ -3068,7 +3065,7 @@ integerLayerNorm-radicand-epsilon-linear xs (succ epsilon) =
         (cong
           (λ n →
             C.integerLayerNormVarianceNumerator xs
-            +Int
+            +Integer
             (pos n))
           (sym
             (integerLayerNorm-epsilon-contribution-succ
@@ -3090,14 +3087,14 @@ record IntegerLayerNormEpsilonRayGrowthTheorem : Set₁ where
       C.integerLayerNormRadicand xs (succ epsilon)
       ＝
       C.integerLayerNormRadicand xs epsilon
-      +Int
+      +Integer
       (pos (length xs * length xs))
     linearRay :
       ∀ (xs : List C.IntCode) (epsilon : ℕ) →
       C.integerLayerNormRadicand xs epsilon
       ＝
       C.integerLayerNormVarianceNumerator xs
-      +Int
+      +Integer
       (pos (epsilon * length xs * length xs))
 
 open IntegerLayerNormEpsilonRayGrowthTheorem public
@@ -6534,43 +6531,43 @@ record UniformSupportTsallisBoundary
 -- a Python runtime, JIT compiler, or tracer.
 ------------------------------------------------------------------------
 
-jaxIntegerSum : List Int → Int
+jaxIntegerSum : List Integer → Integer
 jaxIntegerSum [] = pos 0
 jaxIntegerSum (x ∷ xs) =
-  x +Int jaxIntegerSum xs
+  x +Integer jaxIntegerSum xs
 
-jaxAffine : Int → Int
+jaxAffine : Integer → Integer
 jaxAffine x =
-  (pos 2) *Int x +Int (pos 1)
+  (pos 2) *Integer x +Integer (pos 1)
 
-jaxVmapAffine : List Int → List Int
+jaxVmapAffine : List Integer → List Integer
 jaxVmapAffine =
   map jaxAffine
 
 jaxVmapAffine-law :
   ∀ xs →
   jaxVmapAffine xs ＝
-  map (λ x → (pos 2) *Int x +Int (pos 1)) xs
+  map (λ x → (pos 2) *Integer x +Integer (pos 1)) xs
 jaxVmapAffine-law xs = refl
 
-jaxPrefixSum : Int → List Int → List Int
+jaxPrefixSum : Integer → List Integer → List Integer
 jaxPrefixSum carry [] = []
 jaxPrefixSum carry (x ∷ xs) =
-  let next = carry +Int x in
+  let next = carry +Integer x in
   next ∷ jaxPrefixSum next xs
 
-jaxAssociativePrefixSum : List Int → List Int
+jaxAssociativePrefixSum : List Integer → List Integer
 jaxAssociativePrefixSum [] = []
 jaxAssociativePrefixSum (x ∷ xs) =
   x ∷ jaxPrefixSum x xs
 
-jaxSequentialPrefixSum : Int → List Int → List Int
+jaxSequentialPrefixSum : Integer → List Integer → List Integer
 jaxSequentialPrefixSum carry [] = []
 jaxSequentialPrefixSum carry (x ∷ xs) =
-  let next = carry +Int x in
+  let next = carry +Integer x in
   next ∷ jaxSequentialPrefixSum next xs
 
-jaxSequentialPrefixSumFromZero : List Int → List Int
+jaxSequentialPrefixSumFromZero : List Integer → List Integer
 jaxSequentialPrefixSumFromZero [] = []
 jaxSequentialPrefixSumFromZero (x ∷ xs) =
   x ∷ jaxSequentialPrefixSum x xs
@@ -6683,7 +6680,7 @@ jaxSparsemaxPolicyIndex-law K q c = refl
 
 jaxIntegerLayerNormCenteredNumerators :
   List C.IntCode →
-  List Int
+  List Integer
 jaxIntegerLayerNormCenteredNumerators =
   C.integerLayerNormCenteredNumerators
 
@@ -6696,7 +6693,7 @@ jaxIntegerLayerNormCenteredNumerators-law xs = refl
 jaxIntegerLayerNormRadicand :
   List C.IntCode →
   ℕ →
-  Int
+  Integer
 jaxIntegerLayerNormRadicand =
   C.integerLayerNormRadicand
 
@@ -6709,7 +6706,7 @@ jaxIntegerLayerNormRadicand-law xs epsilon = refl
 jaxBatchedIntegerLayerNormRadicand :
   List (List C.IntCode) →
   ℕ →
-  List Int
+  List Integer
 jaxBatchedIntegerLayerNormRadicand batch epsilon =
   map
     (λ xs → jaxIntegerLayerNormRadicand xs epsilon)
@@ -6778,8 +6775,8 @@ jaxBatchedGRUHiddenStep-law :
     (zipGRUStatesInts states xs)
 jaxBatchedGRUHiddenStep-law states xs = refl
 jaxJittedScanSum :
-  List Int →
-  Int
+  List Integer →
+  Integer
 jaxJittedScanSum =
   jaxIntegerSum
 
@@ -6817,7 +6814,7 @@ record JAXExecutionMirrorReproof : Set₁ where
     vmapAffine :
       ∀ xs →
       jaxVmapAffine xs ＝
-      map (λ x → (pos 2) *Int x +Int (pos 1)) xs
+      map (λ x → (pos 2) *Integer x +Integer (pos 1)) xs
     associativePrefixSum :
       ∀ xs →
       jaxAssociativePrefixSum xs ＝
@@ -6939,12 +6936,12 @@ record CanonicalLearnerBairdSevenStarWitness
     targetIsSolid : 1 ＝ 1
     rewardIsZero : ⊤
     discountIs99Over100 : 99 ＝ 99
-    upperStateValue : Int → Int → Int
+    upperStateValue : Integer → Integer → Integer
     upperStateValueEquation :
       ∀ w₈ wᵢ →
       upperStateValue w₈ wᵢ ＝
       2 * wᵢ + w₈
-    lowerStateValue : Int → Int → Int
+    lowerStateValue : Integer → Integer → Integer
     lowerStateValueEquation :
       ∀ w₇ w₈ →
       lowerStateValue w₇ w₈ ＝
@@ -8776,7 +8773,7 @@ nat-plus-one n =
     (cong succ (zero-right-neutral n))
 
 integer-nat-plus-one :
-  ∀ n → (pos n) +Int (pos 1) ＝ pos (succ n)
+  ∀ n → (pos n) +Integer (pos 1) ＝ pos (succ n)
 integer-nat-plus-one n =
   cong pos (nat-plus-one n)
 
@@ -8789,7 +8786,7 @@ f4-zero-L2-unit-step-code :
         s
         C.oneIntCode))
   ＝
-  C.intCodeValue (C.thetaQ s) +Int (pos 1)
+  C.intCodeValue (C.thetaQ s) +Integer (pos 1)
 f4-zero-L2-unit-step-code s =
   trans
     (cong C.intCodeValue
@@ -8798,7 +8795,7 @@ f4-zero-L2-unit-step-code s =
         s
         C.oneIntCode))
     (ℤ-zero-right-neutral
-      (C.intCodeValue (C.thetaQ s) +Int (pos 1)))
+      (C.intCodeValue (C.thetaQ s) +Integer (pos 1)))
 
 f4-unit-forcing-linear-growth :
   ∀ n s →
@@ -8810,7 +8807,7 @@ f4-unit-forcing-linear-growth :
         n
         s))
   ＝
-  C.intCodeValue (C.thetaQ s) +Int (pos n)
+  C.intCodeValue (C.thetaQ s) +Integer (pos n)
 f4-unit-forcing-linear-growth zero s =
   sym (ℤ-zero-right-neutral (C.intCodeValue (C.thetaQ s)))
 f4-unit-forcing-linear-growth (succ n) s =
@@ -8819,7 +8816,7 @@ f4-unit-forcing-linear-growth (succ n) s =
       (f4Orbit (C.f4IntUKernel C.zeroIntCode) C.oneIntCode n s))
     (trans
       (cong
-        (λ z → z +Int (pos 1))
+        (λ z → z +Integer (pos 1))
         (f4-unit-forcing-linear-growth n s))
       (trans
         (ℤ+-assoc
@@ -8827,7 +8824,7 @@ f4-unit-forcing-linear-growth (succ n) s =
           (pos n)
           (pos 1))
         (cong
-          (λ z → C.intCodeValue (C.thetaQ s) +Int z)
+          (λ z → C.intCodeValue (C.thetaQ s) +Integer z)
           (integer-nat-plus-one n))))
 
 nat-succ-not-le :
@@ -8866,7 +8863,7 @@ f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
         growth
         (trans
           (cong
-            (λ z → z +Int (pos (succ B)))
+            (λ z → z +Integer (pos (succ B)))
             (cong C.intCodeValue thetaZero))
           (ℤ-zero-left-neutral (pos (succ B))))
     impossibleOrder :
@@ -12208,8 +12205,8 @@ noUnconditionalCanonicalPriceDerivation-twoWorld =
 -- Canonical Integer-GRU token encoding: global left inverse, injectivity,
 -- and exact recurrent conjugacy.
 --
--- CanonicalToken is the unbounded integer carrier Int and IntCode is an exact
--- Int wrapper. The decoder below is therefore global and total. This proves
+-- CanonicalToken is the unbounded integer carrier Integer and IntCode is an exact
+-- Integer wrapper. The decoder below is therefore global and total. This proves
 -- global injectivity directly from the left-inverse law; no separate
 -- separation axiom is required. Continuity is only asserted for the
 -- repository's discrete topology, not an analytic topology.
