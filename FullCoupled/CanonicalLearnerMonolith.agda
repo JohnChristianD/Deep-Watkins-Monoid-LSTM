@@ -1129,7 +1129,7 @@ variable
   A B C       : Set ℓ
   P Q         : A → Set ℓ
   x y z       : A
-  f g h       : (x : A) → P x
+  mapFunction g h : (x : A) → P x
   b b₁ b₂ b₃  : Bool
   k l m n     : Nat
   xs ys zs    : List A
@@ -1173,11 +1173,11 @@ canonical-map-identity : map (λ x → x) xs ≡ xs
 canonical-map-identity {xs = []}     = refl
 canonical-map-identity {xs = x ∷ xs} = cong (_∷_ x) canonical-map-identity
 
-map-fuse : map f (map g xs) ≡ map (λ x → f (g x)) xs
+map-fuse : map mapFunction (map g xs) ≡ map (λ x → mapFunction (g x)) xs
 map-fuse {xs = []}     = refl
 map-fuse {xs = x ∷ xs} = cong (_∷_ _) map-fuse
 
-map-++ : map f (xs ++ ys) ≡ (map f xs) ++ (map f ys)
+map-++ : map mapFunction (xs ++ ys) ≡ (map mapFunction xs) ++ (map mapFunction ys)
 map-++ {xs = []}     = refl
 map-++ {xs = x ∷ xs} = cong (_∷_ _) (map-++ {xs = xs})
 
