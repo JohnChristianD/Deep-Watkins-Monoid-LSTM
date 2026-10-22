@@ -206,6 +206,7 @@ wordsStringAcc (c ∷ rest) current with isSpace c | current
 
 wordsString : String -> List String
 wordsString source = wordsStringAcc source []
+{-# COMPILE AGDA2HS wordsString #-}
 
 firstWord : String -> Maybe String
 firstWord source =
