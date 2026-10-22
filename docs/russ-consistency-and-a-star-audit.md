@@ -1,6 +1,6 @@
 RUSS computation, metatheory, and theorem-search audit
 
-Audit baseline: Deep-Watkins-Monoid-LSTM, main revision 3e549630b3f5120f1005c5e9752bf87f756afe49 (22 October 2026, before repair branch `fix/russ-computation-and-agda-reds-20261022`). Recompute CI and the generated SHA-256 inventory against the repair commit before treating any check as complete.
+Audit baseline: repair branch `fix/agda-russ-fennel-pages-20261022`, based on the repository's current `main`. Every validation claim must be tied to exact-head CI and source hashes; an earlier cancelled or failing workflow is not evidence that a later source revision passes.
 
 Computational interpretation
 
@@ -57,10 +57,10 @@ The canonical learner now defines runMachineFuel and runMachineWithFuel. Both ar
 
 Repair-branch regression findings (2026-10-22)
 
-The pre-repair head fails both monolith checks at the same upstream name-clash: the unrenamed public Prelude import brings `Int` into scope before the local RUSS interface declares its own `Int`. Preserve the existing namespace contract by renaming Prelude's export to `PreludeInt`; keep the explicit local import of `Int` in `ConstructiveComputabilityPostulates`.
+The public `Haskell.Prelude` import should remain unrenamed. The earlier `PreludeInt` workaround is unnecessary now that the canonical learner no longer declares its own `Int = Integer` and `ℤ = Integer` compatibility aliases. The current exact-head compiler failure is instead a genuine local/import clash: the learner's stream section defines `cong`, already exported by `Haskell.Law.Equality`. Remove that duplicate and use the imported congruence lemma; retain local `trans` and `sym` because those names are deliberately hidden at the import boundary.
 
-The same revision's extracted stream wrapper also rebinds `SIZEUNIV` after the selected dependency closure has already registered Agda's sized-type builtins. The stream module should consume `Size`, `Size<`, and `∞` via the public exports of `Haskell.Prim.Thunk`, not repeat compiler-owned `BUILTIN` bindings. This respects the project's Agda2HS import boundary.
+The stream wrapper consumes `Size`, `Size<`, and `∞` via the public exports of `Haskell.Prim.Thunk`, avoiding duplicate compiler-owned sized-type builtin registrations.
 
-The semantic-source-closure Scheme script had a missing closing parenthesis in its `.dot` argument predicate, so the conditional's expression boundary was malformed. Its syntax fix is independent of Agda proof validity.
+The semantic-source-closure Scheme script had one excess right parenthesis in its `.dot` argument predicate, malformed the `let*` binding boundary, and caused an unbound `dot-file` failure. The syntax correction is independent of Agda proof validity.
 
-The static-site JavaScript is a build-time renderer: it performs file I/O at the CLI boundary, whereas its mapping/escaping/string assembly are deterministic transformations and the generated page has no client-side JavaScript runtime. This is not a claim that the current Fennel utilities are globally pure or immutable; they still contain build-time I/O and some mutable local construction. A stricter purity guarantee needs to define and test the pure computational core separately from file/process effects.
+The static-site JavaScript is a build-time renderer: file I/O belongs at the CLI boundary, and the generated page contains no browser JavaScript. The current Fennel catalog generator still uses mutable locals and table insertion, so it does not yet satisfy the requested full immutable-core discipline. A strict purity guarantee needs a separately tested functional core, with filesystem/process effects confined to the generator adapter.
