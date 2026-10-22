@@ -1123,11 +1123,11 @@ map-fuse : map mapFunction (map g xs) ≡ map (λ x → mapFunction (g x)) xs
 map-fuse {xs = []}     = refl
 map-fuse {xs = x ∷ xs} = cong (_∷_ _) map-fuse
 
-map-++ : map mapFunction (xs ++ ys) ≡ (map mapFunction xs) ++ (map mapFunction ys)
-map-++ {xs = []}     = refl
-map-++ {xs = x ∷ xs} = cong (_∷_ _) (map-++ {xs = xs})
+canonical-map-append : map mapFunction (xs ++ ys) ≡ (map mapFunction xs) ++ (map mapFunction ys)
+canonical-map-append {xs = []}     = refl
+canonical-map-append {xs = x ∷ xs} = cong (_∷_ _) (canonical-map-append {xs = xs})
 
-{-# REWRITE canonical-map-identity map-fuse map-++ #-}
+{-# REWRITE canonical-map-identity map-fuse canonical-map-append #-}
 
 -- Constructive transport over the reflexive-only relation used as the
 -- equality substrate for potential quotient interfaces. This kernel lemma

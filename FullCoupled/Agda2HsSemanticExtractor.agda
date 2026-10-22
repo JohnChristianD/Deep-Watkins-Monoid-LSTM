@@ -193,17 +193,40 @@ trimWhitespace source =
   dropTrailingSpaces
     (dropLeadingSpaces source)
 
+-- Source-level whitespace tokenization. The standard Haskell.Prim.String
+-- words implementation calls the JS Char primitive primIsSpace, which is
+-- absent in Agda 2.8's emitted Char module on this target. Keep the tokenizer
+-- on the same literal-pattern path as the other parser primitives.
+splitWordChars : CharList -> CharList × CharList
+splitWordChars [] = [] , []
+splitWordChars (c ∷ rest) with isSpace c
+... | True = [] , c ∷ rest
+... | False with splitWordChars rest
+...   | word , suffix = c ∷ word , suffix
+
+wordsString : String -> List String
+wordsString source with dropLeadingSpaces source
+... | [] = []
+... | trimmed with splitWordChars trimmed
+...   | word , rest = word ∷ wordsString rest
+
 firstWord : String -> Maybe String
 firstWord source =
-  case words source of λ where
+  case wordsString source of λ where
     [] -> Nothing
     (word ∷ _) -> Just word
 
 secondWord : String -> Maybe String
 secondWord source =
-  case words source of λ where
+  case wordsString source of λ where
     (_ ∷ word ∷ _) -> Just word
     _ -> Nothing
+
+firstWordRegression : firstWord "  module Example" ≡ Just "module"
+firstWordRegression = refl
+
+secondWordRegression : secondWord "module Example where" ≡ Just "Example"
+secondWordRegression = refl
 
 -- Only ASCII delimiters are searched by the source reader. Keep the
 -- delimiter in the function's pattern so generated JavaScript does not need
@@ -1077,7 +1100,7 @@ isRecordField law =
 
 normalizeSignature : String -> String
 normalizeSignature signature =
-  unwordsString (words signature)
+  unwordsString (wordsString signature)
 
 normalizedSignature : SemanticLaw -> String
 normalizedSignature law =

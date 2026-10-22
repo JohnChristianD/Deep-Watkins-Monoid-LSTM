@@ -326,6 +326,9 @@ open ConstructiveComputabilityPostulates public using
   ; Neg
   ; Decidable
   ; SigmaWitness
+  ; sigma-witness
+  ; sigmaValue
+  ; sigmaEvidence
   ; PropExists
   ; RecursiveProgram
   ; ComputesRelation
@@ -517,6 +520,198 @@ module RUSSProofTheory where
     Neg (RUSSDerivation [] russFalsehood)
   russCurrentBasisRelativeConsistency =
     russCoreConsistency russianRecursiveMathematicsAssumptions
+
+
+  ----------------------------------------------------------------------
+  -- A computational finite-stage semantics for decidable Markov search.
+  --
+  -- Each bounded stage is structurally recursive on its bound and computes
+  -- either a witness carrying proof of P n, or an explicit fuel-exhausted
+  -- result. The completeness lemma uses a witness at the bound to show that
+  -- this search must return a witness somewhere in the inspected prefix.
+  --
+  -- This is an executable operational component, not yet Pédrot's syntactic
+  -- presheaf model of MLTT. In particular, the existing Markov assumption
+  -- still projects a witness from double-negated existence opaquely; this
+  -- finite evaluator does not pretend that an unbounded search terminates
+  -- without such semantic justification.
+  --
+  -- XDS-Agda illustrates that selected denotational equations can be made
+  -- computational by rewrite rules and then regression-checked. No such
+  -- RUSS-specific rewrite rule is needed here: the bounded evaluator reduces
+  -- by ordinary pattern matching, and the regression below is checked by refl.
+  -- A rewrite rule alone would not supply the required MLTT/presheaf model,
+  -- nor prove confluence, subject reduction, canonicity, or consistency.
+  ----------------------------------------------------------------------
+
+  data RUSSBoundedSearchResult (P : Nat → Set) : Set where
+    russSearchFound : SigmaWitness Nat P → RUSSBoundedSearchResult P
+    russSearchFuelExhausted : RUSSBoundedSearchResult P
+
+  -- Search indices 0 through fuel, in increasing order. This function always
+  -- terminates for a finite bound; FuelExhausted means only "not found yet".
+  russSearchBounded :
+    (P : Nat → Set) →
+    (fuel : Nat) →
+    ((n : Nat) → Decidable (P n)) →
+    RUSSBoundedSearchResult P
+  russSearchBounded P zero decide with decide zero
+  ... | yes evidence = russSearchFound (sigma-witness zero evidence)
+  ... | no _ = russSearchFuelExhausted
+  russSearchBounded P (suc fuel) decide with russSearchBounded P fuel decide
+  ... | russSearchFound witness = russSearchFound witness
+  ... | russSearchFuelExhausted with decide (suc fuel)
+  ...   | yes evidence = russSearchFound (sigma-witness (suc fuel) evidence)
+  ...   | no _ = russSearchFuelExhausted
+
+  -- Finite adequacy: if P holds at the current bound, the search through that
+  -- bound yields a genuine witness. An earlier hit is retained; otherwise the
+  -- decision at the current index must be positive.
+  russSearchBoundedWitness :
+    (P : Nat → Set) →
+    (fuel : Nat) →
+    ((n : Nat) → Decidable (P n)) →
+    P fuel →
+    SigmaWitness Nat P
+  russSearchBoundedWitness P zero decide evidence with decide zero
+  ... | yes found = sigma-witness zero found
+  ... | no absent = russEliminateFalse (absent evidence)
+  russSearchBoundedWitness P (suc fuel) decide evidence
+    with russSearchBounded P fuel decide
+  ... | russSearchFound witness = witness
+  ... | russSearchFuelExhausted with decide (suc fuel)
+  ...   | yes found = sigma-witness (suc fuel) found
+  ...   | no absent = russEliminateFalse (absent evidence)
+
+  -- XDS-style definitional regression: the bounded search computes the
+  -- least witness in this concrete decidable example without a new rewrite.
+  data RUSSSearchRegressionPredicate : Nat → Set where
+    russSearchRegressionWitness :
+      RUSSSearchRegressionPredicate (suc zero)
+
+  russSearchRegressionDecision :
+    (n : Nat) → Decidable (RUSSSearchRegressionPredicate n)
+  russSearchRegressionDecision zero = no (λ ())
+  russSearchRegressionDecision (suc zero) = yes russSearchRegressionWitness
+  russSearchRegressionDecision (suc (suc _)) = no (λ ())
+
+  russBoundedSearchRegression :
+    russSearchBounded
+      RUSSSearchRegressionPredicate
+      (suc (suc zero))
+      russSearchRegressionDecision
+    ≡ russSearchFound
+        (sigma-witness (suc zero) russSearchRegressionWitness)
+  russBoundedSearchRegression = refl
+
+  russBoundedSearchWitnessRegression :
+    sigmaValue
+      (russSearchBoundedWitness
+        RUSSSearchRegressionPredicate
+        (suc zero)
+        russSearchRegressionDecision
+        russSearchRegressionWitness)
+    ≡ suc zero
+  russBoundedSearchWitnessRegression = refl
+
+
+
+  ----------------------------------------------------------------------
+  -- Pédrot-inspired dynamic-prompt base for the RUSS search semantics.
+  --
+  -- Stages are Boolean predicates on candidate indices. The preorder is
+  -- p <= q iff every index true at q is true at p; the top stage is the
+  -- everywhere-false predicate, and its meet is pointwise disjunction.
+  -- This matches the base preorder and top/meet shape used in Pédrot's
+  -- Markov model. The bounded evaluator above supplies executable finite
+  -- observations of these predicates.
+  --
+  -- Prompt exceptions are indexed by a stage and require a witness at each
+  -- refinement of that stage. Consequently the exception fibre at top is
+  -- empty, since top itself is one of its refinements and is everywhere
+  -- false. This formalizes a key invariant of the prompt construction, not
+  -- the full model: dependent type/context translation, substitution,
+  -- conversion preservation, and soundness remain to be formalized before
+  -- claiming a Pédrot-style model of Agda MLTT.
+  ----------------------------------------------------------------------
+
+  RUSSStage : Set
+  RUSSStage = Nat → Bool
+
+  RUSSStageLeq : RUSSStage → RUSSStage → Set
+  RUSSStageLeq p q = (n : Nat) → q n ≡ True → p n ≡ True
+
+  russStageLeqRefl :
+    (stage : RUSSStage) → RUSSStageLeq stage stage
+  russStageLeqRefl stage n evidence = evidence
+
+  russStageLeqTrans :
+    (p q r : RUSSStage) →
+    RUSSStageLeq p q →
+    RUSSStageLeq q r →
+    RUSSStageLeq p r
+  russStageLeqTrans p q r pLeQ qLeR n rIsTrue =
+    pLeQ n (qLeR n rIsTrue)
+
+  russBoolOr : Bool → Bool → Bool
+  russBoolOr True _ = True
+  russBoolOr False value = value
+
+  russStageTop : RUSSStage
+  russStageTop _ = False
+
+  russStageMeet : RUSSStage → RUSSStage → RUSSStage
+  russStageMeet p q n = russBoolOr (p n) (q n)
+
+  russFalseNotTrue : False ≡ True → EmptyComputability
+  russFalseNotTrue ()
+
+  russStageBelowTop :
+    (stage : RUSSStage) → RUSSStageLeq stage russStageTop
+  russStageBelowTop stage n evidence =
+    russEliminateFalse (russFalseNotTrue evidence)
+
+  russStageMeetLeLeft :
+    (p q : RUSSStage) →
+    RUSSStageLeq (russStageMeet p q) p
+  russStageMeetLeLeft p q n pIsTrue with p n
+  ... | True = refl
+  ... | False = russEliminateFalse (russFalseNotTrue pIsTrue)
+
+  russStageMeetLeRight :
+    (p q : RUSSStage) →
+    RUSSStageLeq (russStageMeet p q) q
+  russStageMeetLeRight p q n qIsTrue with q n
+  ... | True = refl
+  ... | False = russEliminateFalse (russFalseNotTrue qIsTrue)
+
+  -- A stage-indexed prompt exception: at stage p it must provide a
+  -- witness for every refinement q <= p. The top fibre is empty.
+  RUSSPromptExceptionAt : RUSSStage → Set₁
+  RUSSPromptExceptionAt stage =
+    (refinement : RUSSStage) →
+    RUSSStageLeq refinement stage →
+    SigmaWitness Nat (λ n → refinement n ≡ True)
+
+  russPromptExceptionAtTopAbsent :
+    RUSSPromptExceptionAt russStageTop → EmptyComputability
+  russPromptExceptionAtTopAbsent exception =
+    russFalseNotTrue
+      (sigmaEvidence
+        (exception russStageTop (russStageLeqRefl russStageTop)))
+
+  -- Definitional regressions for the dynamic-prompt base. No REWRITE pragma
+  -- is required: the stage operations compute by ordinary pattern matching.
+  russStageMeetTopRegression :
+    (n : Nat) →
+    russStageMeet russStageTop russStageTop n ≡ False
+  russStageMeetTopRegression n = refl
+
+  russStageMeetTrueRegression :
+    (q : RUSSStage) (n : Nat) →
+    russStageMeet (λ _ → True) q n ≡ True
+  russStageMeetTrueRegression q n = refl
+
 
 open RUSSProofTheory public
 
