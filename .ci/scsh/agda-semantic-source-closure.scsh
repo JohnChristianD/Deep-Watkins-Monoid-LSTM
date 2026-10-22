@@ -47,7 +47,7 @@
            (if (null? rest)
                '()
                (if (and (string? (car rest))
-                        (ends-with? (car rest) ".dot")
+                        (ends-with? (car rest) ".dot"))
                    rest
                    (find-dot (cdr rest)))))))
        (dot-file (if (pair? args) (car args) #f))
