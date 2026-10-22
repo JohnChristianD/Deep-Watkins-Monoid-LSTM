@@ -1204,7 +1204,7 @@ macro
         bindTC (＝-type-info τ) λ where
           (_ , _ , l , _) →
             unify goal
-              (def (quote ap)
+              (def (quote cong)
                 (𝓋𝓇𝒶 ($-head l) ∷ 𝓋𝓇𝒶 p ∷ [])))
       or-else unify goal p
 
@@ -1254,7 +1254,7 @@ module ExactSearchInversion (fe : FunExt) where
     inverse E y ＝ x
   inverse-selects-preimage E y x h =
     trans
-      (ap (inverse E) (sym h))
+      (cong (inverse E) (sym h))
       (inverse-forward E x)
 
   forward-is-equiv :
@@ -1346,7 +1346,7 @@ nat-ring-solver-layernorm-step :
 nat-ring-solver-layernorm-step epsilon scale =
   trans
     (distributivity-mult-over-addition' epsilon 1 scale)
-    (ap (λ x → epsilon * scale + x)
+    (cong (λ x → epsilon * scale + x)
       (trans (mult-commutativity 1 scale) (mult-right-id scale)))
 
 nat-ring-solver-normalization-theorem :
@@ -1462,7 +1462,7 @@ statisticalEncodeInjective :
   {s t : State} →
   encode R s ＝ encode R t →
   s ＝ t
-statisticalEncodeInjective R eq = ap (decode R) eq
+statisticalEncodeInjective R eq = cong (decode R) eq
 
 statisticalEncodeDistinguishes :
   ∀ {State Observation : Set}
@@ -1848,7 +1848,7 @@ eGraph-context :
   related (congruence R) e f →
   context (interpret R e) ＝ context (interpret R f)
 eGraph-context R context h =
-  ap context (sound R h)
+  cong context (sound R h)
 
 eGraph-rewrite-context :
   ∀ {Expression State : Set}
@@ -1858,7 +1858,7 @@ eGraph-rewrite-context :
   related (congruence R) e f →
   step (interpret R e) ＝ step (interpret R f)
 eGraph-rewrite-context R step h =
-  ap step (sound R h)
+  cong step (sound R h)
 
 ------------------------------------------------------------------------
 -- The semantic e-graph contract is deliberately proof-only. It closes
@@ -2024,7 +2024,7 @@ aStar-plan-append-identity-right :
   xs ++ [] ＝ xs
 aStar-plan-append-identity-right [] = refl
 aStar-plan-append-identity-right (x ∷ xs) =
-  ap (x ∷_) (aStar-plan-append-identity-right xs)
+  cong (x ∷_) (aStar-plan-append-identity-right xs)
 
 aStar-plan-monoid-theorem :
   ∀ (Expression : Set) →
@@ -2930,15 +2930,15 @@ nat-ring-solver-layernorm-contribution :
 nat-ring-solver-layernorm-contribution xs epsilon =
   let n = length xs in
   (succ epsilon ℕ* n) ℕ* n
-    ＝⟨ ap (_ℕ* n) (NatMult.mult-commutativity (succ epsilon) n) ⟩
+    ＝⟨ cong (_ℕ* n) (NatMult.mult-commutativity (succ epsilon) n) ⟩
   (n ℕ* succ epsilon) ℕ* n
     ＝⟨ refl ⟩
   (n + n ℕ* epsilon) ℕ* n
     ＝⟨ NatMult.distributivity-mult-over-addition' n (n ℕ* epsilon) n ⟩
   (n ℕ* n) + (n ℕ* epsilon) ℕ* n
-    ＝⟨ ap ((n ℕ* n) +_) (NatMult.mult-associativity n epsilon n) ⟩
+    ＝⟨ cong ((n ℕ* n) +_) (NatMult.mult-associativity n epsilon n) ⟩
   (n ℕ* n) + n ℕ* (epsilon ℕ* n)
-    ＝⟨ ap ((n ℕ* n) +_) (NatMult.mult-commutativity n (epsilon ℕ* n)) ⟩
+    ＝⟨ cong ((n ℕ* n) +_) (NatMult.mult-commutativity n (epsilon ℕ* n)) ⟩
   (n ℕ* n) + (epsilon ℕ* n) ℕ* n
     ＝⟨ addition-commutativity (n ℕ* n) ((epsilon ℕ* n) ℕ* n) ⟩
   (epsilon ℕ* n) ℕ* n + (n ℕ* n) ∎
@@ -2968,7 +2968,7 @@ integerLayerNorm-radicand-epsilon-succ :
   (pos (length xs * length xs))
 integerLayerNorm-radicand-epsilon-succ xs epsilon =
   trans
-    (ap
+    (cong
       (λ n →
         C.integerLayerNormVarianceNumerator xs
         +Int
@@ -3065,7 +3065,7 @@ integerLayerNorm-radicand-epsilon-linear xs (succ epsilon) =
             (C.integerLayerNormVarianceNumerator xs)
             (pos (epsilon * length xs * length xs))
             (pos (length xs * length xs))))
-        (ap
+        (cong
           (λ n →
             C.integerLayerNormVarianceNumerator xs
             +Int
@@ -3315,7 +3315,7 @@ iterateConjugacy encode stepConjugacy zero s = refl
 iterateConjugacy {learnerStep = learnerStep} {physicalStep = physicalStep} encode stepConjugacy (succ n) s =
   trans
     (stepConjugacy (C.iterate learnerStep n s))
-    (ap
+    (cong
       physicalStep
       (iterateConjugacy encode stepConjugacy n s))
 
@@ -3364,7 +3364,7 @@ prefixScanConjugacy R (x ∷ xs) s =
       R
       xs
       (learnerStep R s x))
-    (ap
+    (cong
       (prefixScan (physicalStep R) xs)
       (stepConjugacy R s x))
 
@@ -3593,7 +3593,7 @@ fractalLevelInjective :
 fractalLevelInjective F level eq =
   trans
     (decodeEncode F level _)
-    (ap (decode F level) eq)
+    (cong (decode F level) eq)
 
 fractalTransportedEncodeInjective :
   ∀ {Level State Observation : Set}
@@ -3878,7 +3878,7 @@ coherentLimitDecoder-left-inverse {limitEncode = limitEncode} C level state fini
   trans
     (sym (decoderCoherence C level (limitEncode state)))
     (trans
-      (ap (decode C level) (projectionEncode C level state))
+      (cong (decode C level) (projectionEncode C level state))
       finiteLeftInverse)
 
 ------------------------------------------------------------------------
@@ -3938,7 +3938,7 @@ limitSeparation-from-left-inverse L {s} {t} eq =
   trans
     (sym (decodeEncode L s))
     (trans
-      (ap (limitDecode L) eq)
+      (cong (limitDecode L) eq)
       (decodeEncode L t))
 
 limitInjective-from-left-inverse :
@@ -4150,7 +4150,7 @@ gruFractalLimitConvergence-limitInjective W =
 ------------------------------------------------------------------------
 
 
-false-not-true : ¬ (false ＝ true)
+false-not-true : ¬ (False ＝ True)
 false-not-true ()
 
 constant-limit : Bool → ⊤
@@ -4293,7 +4293,7 @@ stepConjugacy-iterate {sourceStep = sourceStep} {targetStep = targetStep} W zero
 stepConjugacy-iterate {sourceStep = sourceStep} {targetStep = targetStep} W (succ n) a =
   trans
     (stepConjugacy-iterate {sourceStep = sourceStep} {targetStep = targetStep} W n (sourceStep a))
-    (ap
+    (cong
       (iterateIsomorphism targetStep n)
       (stepCommutes W a))
 
@@ -4742,7 +4742,7 @@ commutingSquareTheorem-from-square {step = step} {observe = observe} {featureSte
     deriveIterateSquare (succ n) s =
       trans
         (square (commutingIterate step n s))
-        (ap featureStep (deriveIterateSquare n s))
+        (cong featureStep (deriveIterateSquare n s))
 
 record FreeMonoidActionHomomorphism
   (State Feature : Set)
@@ -4821,7 +4821,7 @@ recurrentPrefix-scan-lifts-conjugacy replace step h xs (succ n) s =
       xs
       n
       (step s (xs n)))
-    (ap
+    (cong
       (λ q →
         C.recurrentPrefixState
           (C.recurrentNetwork step)
@@ -4932,7 +4932,7 @@ canonicalFullLearner-iterate-conjugacy replace K h (succ n) s =
   trans
     (canonicalFullLearner-iterate-conjugacy
       replace K h n (C.canonicalFullStep K s))
-    (ap
+    (cong
       (C.iterateCanonical K n)
       (h s))
 
@@ -4997,8 +4997,8 @@ productRecurrentPrefix-correct RA RB xs (succ n) s t =
     (λ a b →
       (C.runNetwork RA a (xs n) ,
        C.runNetwork RB b (xs n)))
-    (ap pr₁ (productRecurrentPrefix-correct RA RB xs n s t))
-    (ap pr₂ (productRecurrentPrefix-correct RA RB xs n s t))
+    (cong pr₁ (productRecurrentPrefix-correct RA RB xs n s t))
+    (cong pr₂ (productRecurrentPrefix-correct RA RB xs n s t))
 
 informationPreserving-symbolic-task-factorization :
   ∀ {State Feature Output : Set}
@@ -5010,7 +5010,7 @@ informationPreserving-symbolic-task-factorization :
   target s ＝ target (inverse (observe s))
 informationPreserving-symbolic-task-factorization
   observe inverse leftInverse target s =
-  ap target (sym (leftInverse s))
+  cong target (sym (leftInverse s))
 
 informationPreserving-all-tasks-injective :
   ∀ {State Feature : Set}
@@ -5216,7 +5216,7 @@ canonicalWatkinsTarget-endogenous-leftInverse :
 canonicalWatkinsTarget-endogenous-leftInverse K observe inverse leftInverse s =
   trans
     (C.canonicalWatkinsTarget-law K s)
-    (ap
+    (cong
       (λ t →
         C.intCodeAdd
           (C.intCodeAdd
@@ -5252,7 +5252,7 @@ canonicalOrbit-state-injective K s {m} {n} eq =
     (trans
       (sym (C.canonicalTotalCountAfter K m s))
       (trans
-        (ap (λ t → C.totalCount (C.lcbCounts t)) eq)
+        (cong (λ t → C.totalCount (C.lcbCounts t)) eq)
         (C.canonicalTotalCountAfter K n s)))
 
 
@@ -5313,7 +5313,7 @@ discreteExactUniversalUAPFromLeftInverse :
 discreteExactUniversalUAPFromLeftInverse observe inverse leftInverse =
   discreteExactUniversalUAP
     (λ {Output} target feature → target (inverse feature))
-    (λ {Output} target s → sym (ap target (leftInverse s)))
+    (λ {Output} target s → sym (cong target (leftInverse s)))
 
 discreteLeftInverse-observe-injective :
   ∀ {State Feature : Set}
@@ -5651,15 +5651,15 @@ canonicalIterateComposition :
   C.iterateCanonical K (m + n) s ＝
   C.iterateCanonical K n (C.iterateCanonical K m s)
 canonicalIterateComposition K m zero s =
-  ap
+  cong
     (λ k → C.iterateCanonical K k s)
     (zero-right-neutral m)
 canonicalIterateComposition K m (succ n) s =
   trans
-    (ap
+    (cong
       (λ k → C.iterateCanonical K k s)
       (succ-right m n))
-    (ap
+    (cong
       (C.canonicalFullStep K)
       (canonicalIterateComposition K m n s))
 
@@ -5677,12 +5677,12 @@ recurrentPrefixStepWork-split :
   recurrentPrefixStepWork m + recurrentPrefixStepWork n
 recurrentPrefixStepWork-split m zero =
   trans
-    (ap recurrentPrefixStepWork (zero-right-neutral m))
+    (cong recurrentPrefixStepWork (zero-right-neutral m))
     (sym (zero-right-neutral (recurrentPrefixStepWork m)))
 recurrentPrefixStepWork-split m (succ n) =
   trans
-    (ap recurrentPrefixStepWork (succ-right m n))
-    (ap succ (recurrentPrefixStepWork-split m n))
+    (cong recurrentPrefixStepWork (succ-right m n))
+    (cong succ (recurrentPrefixStepWork-split m n))
 
 canonicalNatIndexedExactUniversalReadout :
   ∀ {Feature Output : Set}
@@ -5697,7 +5697,7 @@ canonicalNatIndexedExactUniversalReadout :
   target (inverse (observe (C.iterateCanonical K n s)))
 canonicalNatIndexedExactUniversalReadout
   K s observe inverse leftInverse target n =
-  ap
+  cong
     target
     (sym (leftInverse (C.iterateCanonical K n s)))
 
@@ -6018,7 +6018,7 @@ guardedTraceGlobalInjective R {s} {t} eq =
   trans
     (sym (GuardedTraceDenseRepresentation.leftInverse R s))
     (trans
-      (ap (GuardedTraceDenseRepresentation.decode R) eq)
+      (cong (GuardedTraceDenseRepresentation.decode R) eq)
       (GuardedTraceDenseRepresentation.leftInverse R t))
 
 guardedTracePointSeparation :
@@ -6079,7 +6079,7 @@ guardedTraceIterateConjugacy
   C (succ n) s =
   trans
     (GuardedTraceConjugacy.stepConjugacy C (iterateUpdate stateStep n s))
-    (ap
+    (cong
       featureStep
       (guardedTraceIterateConjugacy C n s))
 
@@ -6223,7 +6223,7 @@ iterateStep-fixed :
 iterateStep-fixed step fixed zero = refl
 iterateStep-fixed step fixed (succ n) =
   trans
-    (ap
+    (cong
       (iterateStep step n)
       fixed)
     (iterateStep-fixed step fixed n)
@@ -6259,7 +6259,7 @@ gruInjectiveTailStability-tailFixedPoint
       (stepConjugacy W
         (iterateStep stateStep n s))
       (trans
-        (ap
+        (cong
           featureStep
           (iterateConjugacy
             encode
@@ -6345,7 +6345,7 @@ successor-never-globally-eventually-fixed-at-zero h =
       ∀ n → iterateUpdate succ n 1 ＝ succ n
     iterateUpdate-succ zero = refl
     iterateUpdate-succ (succ n) =
-      ap succ (iterateUpdate-succ n)
+      cong succ (iterateUpdate-succ n)
 
     no-succ-zero : ∀ {n : ℕ} → succ n ≢ 0
     no-succ-zero ()
@@ -7076,7 +7076,7 @@ globalConjugacyEquivalence-iterate G zero s = refl
 globalConjugacyEquivalence-iterate {step = step} {featureStep = featureStep} G (succ n) s =
   trans
     (GlobalConjugacyEquivalence.forward G (iterateState step n s))
-    (ap
+    (cong
       featureStep
       (globalConjugacyEquivalence-iterate G n s))
 
@@ -7140,7 +7140,7 @@ canonicalTokenLogitTrace-append :
     (C.canonicalTokenListState xs s)
 canonicalTokenLogitTrace-append K [] ys s = refl
 canonicalTokenLogitTrace-append K (t ∷ xs) ys s =
-  ap
+  cong
     (λ trace →
       C.logits K s ∷ trace)
     (canonicalTokenLogitTrace-append
@@ -7203,7 +7203,7 @@ exactFunctionIsomorphismTransport {isoA = isoA} {isoB = isoB} f =
         (f (StateIsomorphism.from isoA a)))
     (λ x →
       sym
-        (ap
+        (cong
           (λ y → StateIsomorphism.to isoB (f y))
           (StateIsomorphism.from-to isoA x)))
 
@@ -7283,7 +7283,7 @@ generalizedRepresentationTransportComposition =
     (λ isoS isoT isoU f g fA gB fCommutes gCommutes x →
       trans
         (gCommutes (f x))
-        (ap gB (fCommutes x)))
+        (cong gB (fCommutes x)))
 
 record CanonicalExactRNNLMTheorem : Set₁ where
   constructor canonicalExactRNNLMTheorem
@@ -7443,7 +7443,7 @@ haarLinearTransform-append :
 haarLinearTransform-append T accumulator [] ys =
   refl
 haarLinearTransform-append T accumulator (x ∷ xs) ys =
-  ap
+  cong
     (λ tail →
       let
         nextAccumulator =
@@ -7475,7 +7475,7 @@ canonicalHaarAttentionRecurrent-append :
     (canonicalHaarAttentionRecurrent accumulator xs s)
 canonicalHaarAttentionRecurrent-append accumulator xs ys s =
   trans
-    (ap
+    (cong
       (λ outputs →
         C.recurrentListState
           C.canonicalGRURecurrentNetwork
@@ -7507,7 +7507,7 @@ canonicalHaarFeature-recurrent-step :
   ＝
   C.gruStep s x
 canonicalHaarFeature-recurrent-step s x =
-  ap
+  cong
     (C.gruStep s)
     (C.canonicalHaarFeatureReconstruct x)
 
@@ -7538,7 +7538,7 @@ canonicalHaarFeature-recurrent-prefix (x ∷ xs) s =
         (C.intCodeSub
           (pr₁ (C.canonicalCReLU8 x))
           (pr₂ (C.canonicalCReLU8 x)))))
-    (ap
+    (cong
       (C.recurrentListState
         C.canonicalGRURecurrentNetwork
         xs)
@@ -7776,7 +7776,7 @@ klaAffineProjection-not-injective derive =
     t = klaFullBeliefState a C.oneIntCode
   in
   false-not-true
-    (ap KLAFullBeliefState.precision
+    (cong KLAFullBeliefState.precision
       (derive {s = s} {t = t} refl))
 
 record KLAPrecisionBridgeWitness : Set₁ where
@@ -8643,7 +8643,7 @@ finiteMixedNash-cycle-transport
       (to iso s)
   targetIterateEquality =
     trans
-      (ap
+      (cong
         (to iso)
         (eGraphAStarIterate-isomorphism
           (step W)
@@ -8709,7 +8709,7 @@ finiteMixedNash-from-GRU-tail
             stateStep
             n
             s)))
-      (ap
+      (cong
         encode
         fixed))
 
@@ -8773,12 +8773,12 @@ nat-plus-one :
 nat-plus-one n =
   trans
     (succ-right n zero)
-    (ap succ (zero-right-neutral n))
+    (cong succ (zero-right-neutral n))
 
 integer-nat-plus-one :
   ∀ n → (pos n) +Int (pos 1) ＝ pos (succ n)
 integer-nat-plus-one n =
-  ap pos (nat-plus-one n)
+  cong pos (nat-plus-one n)
 
 f4-zero-L2-unit-step-code :
   ∀ s →
@@ -8792,7 +8792,7 @@ f4-zero-L2-unit-step-code :
   C.intCodeValue (C.thetaQ s) +Int (pos 1)
 f4-zero-L2-unit-step-code s =
   trans
-    (ap C.intCodeValue
+    (cong C.intCodeValue
       (C.f4ParameterInvariant
         (C.f4IntUKernel C.zeroIntCode)
         s
@@ -8818,7 +8818,7 @@ f4-unit-forcing-linear-growth (succ n) s =
     (f4-zero-L2-unit-step-code
       (f4Orbit (C.f4IntUKernel C.zeroIntCode) C.oneIntCode n s))
     (trans
-      (ap
+      (cong
         (λ z → z +Int (pos 1))
         (f4-unit-forcing-linear-growth n s))
       (trans
@@ -8826,7 +8826,7 @@ f4-unit-forcing-linear-growth (succ n) s =
           (C.intCodeValue (C.thetaQ s))
           (pos n)
           (pos 1))
-        (ap
+        (cong
           (λ z → C.intCodeValue (C.thetaQ s) +Int z)
           (integer-nat-plus-one n))))
 
@@ -8865,9 +8865,9 @@ f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
       trans
         growth
         (trans
-          (ap
+          (cong
             (λ z → z +Int (pos (succ B)))
-            (ap C.intCodeValue thetaZero))
+            (cong C.intCodeValue thetaZero))
           (ℤ-zero-left-neutral (pos (succ B))))
     impossibleOrder :
       pos (succ B) ≤ pos B
@@ -8990,7 +8990,7 @@ distributionalStationaryAggregate-stationary :
 distributionalStationaryAggregate-stationary W =
   trans
     (sym (aggregateStepCommutes W _))
-    (ap
+    (cong
       aggregate
       (StationaryLimitTheorem.limitPreserved
         (stationaryLimit W)
@@ -9300,7 +9300,7 @@ continuousHodgeMaxwell-global-encode-injective D {x} {y} eq =
   trans
     (sym (decodeEncode D x))
     (trans
-      (ap (decode D) eq)
+      (cong (decode D) eq)
       (decodeEncode D y))
 
 record ConnectedContinuousHodgeMaxwellGRURepresentationTheorem
@@ -9413,7 +9413,7 @@ canonical-learner-hodge-maxwell-step-conjugacy :
 canonical-learner-hodge-maxwell-step-conjugacy
   W K s =
   trans
-    (ap
+    (cong
       (encode (semantics (hodgeRepresentation W)))
       (sym (learnerStepConjugacy W K s)))
     (conjugacy
@@ -10606,7 +10606,7 @@ factorTransitionAfterIterate W zero s =
 factorTransitionAfterIterate W (succ n) s =
   trans
     (factorTransitionAfterIterate W n (step s))
-    (ap
+    (cong
       (iterateIsomorphism (factorStep W) n)
       (observe-step W s))
 
@@ -11018,7 +11018,7 @@ successorMeasureAfterIterate W (succ n) s =
   trans
     (successor W (iterateStep (step W) n s))
     (trans
-      (ap succ (successorMeasureAfterIterate W n s))
+      (cong succ (successorMeasureAfterIterate W n s))
       (sym (succ-right (measure W s) n)))
 
 successorMeasureOrbitInjective :
@@ -11038,7 +11038,7 @@ successorMeasureOrbitInjective W s {m} {n} eq =
     (trans
       (sym (successorMeasureAfterIterate W m s))
       (trans
-        (ap (measure W) eq)
+        (cong (measure W) eq)
         (successorMeasureAfterIterate W n s)))
 
 natSucProgress : ∀ n → n < succ n
@@ -12143,7 +12143,7 @@ noUnconditionalCanonicalPriceDerivation C D =
          (equilibrium₁ C)
      , transportCanonicalPriceSupport
          (sym
-           (ap
+           (cong
              (derive D)
              (sameObservation C)))
          (sound D
@@ -12245,7 +12245,7 @@ canonicalIntegerGRUTokenEncodingInjective {s} {t} eq =
   trans
     (sym (decodeEncode canonical-integer-gru-token-encoding-left-inverse s))
     (trans
-      (ap canonicalTokenDecode eq)
+      (cong canonicalTokenDecode eq)
       (decodeEncode canonical-integer-gru-token-encoding-left-inverse t))
 
 record CanonicalIntegerGRUGlobalConjugateTheorem : Set₁ where
@@ -12501,7 +12501,7 @@ eGraphEconomicFixedOrbit :
 eGraphEconomicFixedOrbit W zero = refl
 eGraphEconomicFixedOrbit {update = update} W (succ n) =
   trans
-    (ap update (eGraphEconomicFixedOrbit W n))
+    (cong update (eGraphEconomicFixedOrbit W n))
     (stationary W)
 
 record EGraphEconomicRepresentationWitness
@@ -12543,7 +12543,7 @@ eGraphEconomicRepresentationInjective W {s} {t} eq =
         (reconstruction W)
         s))
     (trans
-      (ap
+      (cong
         (ContinuousLeftInverseTheorem.inverse
           (reconstruction W))
         eq)
