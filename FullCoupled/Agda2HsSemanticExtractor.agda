@@ -2,7 +2,7 @@ module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude
 open import Haskell.Prim using
-  ( eqNat; monusNat; AgdaString )
+  ( eqNat; monusNat; AgdaString; primIsAscii; primIsAlpha; primIsDigit )
 
 incrementExtractorNat : Nat → Nat
 incrementExtractorNat n = n + 1
@@ -10,19 +10,15 @@ incrementExtractorNat n = n + 1
 CharList : Type
 CharList = List Char
 
-charBetween : Char → Char → Char → Bool
-charBetween lower upper value =
-  if lower <= value then
-    if value <= upper then True else False
-  else
-    False
-
+-- Use Agda's character-class primitives rather than Ord Char. The latter
+-- reaches primCharToNat in generated JavaScript; that helper is not available
+-- in the current JS target closure. Intersecting with ASCII preserves the
+-- intended identifier alphabet rather than accepting arbitrary Unicode letters.
 isAsciiAlpha : Char → Bool
-isAsciiAlpha c =
-  charBetween 'A' 'Z' c || charBetween 'a' 'z' c
+isAsciiAlpha c = primIsAscii c && primIsAlpha c
 
 isAsciiDigit : Char → Bool
-isAsciiDigit c = charBetween '0' '9' c
+isAsciiDigit c = primIsAscii c && primIsDigit c
 
 isAsciiAlphaRegression : Bool
 isAsciiAlphaRegression =
@@ -1070,7 +1066,6 @@ semanticLawContainer = lawContainer
 
 
 
-{-# COMPILE AGDA2HS charBetween #-}
 {-# COMPILE AGDA2HS isAsciiAlpha #-}
 {-# COMPILE AGDA2HS isAsciiDigit #-}
 {-# COMPILE AGDA2HS isSourceSpace #-}
