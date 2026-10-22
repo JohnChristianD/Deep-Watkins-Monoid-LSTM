@@ -46,6 +46,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
 open import Haskell.Prelude public renaming (Int to PreludeInt)
+open import Haskell.Prim.Integer public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public hiding (trans; sym)
 open import Haskell.Law.Functor.FromMonad public
