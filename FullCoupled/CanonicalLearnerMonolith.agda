@@ -1047,31 +1047,46 @@ module ConstructiveComputabilityPostulates where
       ScottErshovEffectiveDomainData.approximationLeast domain
 
   ----------------------------------------------------------------------
-  -- Scott-Ershov computational approximation equations.
+  -- Scott-Ershov computational approximation contract.
   --
-  -- Following the distinction in Cockx–Tabareau–Winterhalter's rewriting
-  -- theory, the equations below are explicit computational assumptions of
-  -- each supplied approximation machine, not postulates about every domain.
-  -- Registering these equations makes the zero-stage and successor-stage
-  -- behavior judgmental. They are disjoint rewrite heads, checked by the
-  -- monolith's existing --confluence-check setting.
+  -- The approximation operation is deliberately opaque. The two equations
+  -- below are its explicit computational assumptions: at stage zero it
+  -- yields bottom; at a successor stage it applies the supplied step.
+  --
+  -- Cockx, Tabareau, and Winterhalter, "The Taming of the Rew" (POPL 2021),
+  -- require rewrite rules to preserve subject reduction and be confluent.
+  -- These rules have a neutral postulated head and disjoint zero/successor
+  -- patterns, so their computational effect is explicit rather than hidden
+  -- in a record projection. The existing Agda confluence check is the gate.
+  --
+  -- Mosses, Cockx, and Reus, "Mechanising Denotational Semantics in Agda"
+  -- (MFPS 2026; XDS-Agda) demonstrates Scott-Strachey embeddings, while
+  -- explicitly warning that postulated domain properties still need a
+  -- semantic consistency account. This contract is not itself such a model.
   ----------------------------------------------------------------------
 
   record ScottErshovComputationalDomain (D : Set) : Set₁ where
     constructor scottErshovComputationalDomain
     field
       scottErshovBottom : D
-      scottErshovApproximation : D → Nat → D
       scottErshovApproximationStep : D → D → D
-      scottErshovApproximationAtZero :
-        (x : D) →
-        scottErshovApproximation x zero ≡ scottErshovBottom
-      scottErshovApproximationAtSuccessor :
-        (x : D) (n : Nat) →
-        scottErshovApproximation x (suc n) ≡
-          scottErshovApproximationStep x (scottErshovApproximation x n)
 
   open ScottErshovComputationalDomain public
+
+  postulate
+    scottErshovApproximation :
+      {D : Set} → ScottErshovComputationalDomain D → D → Nat → D
+
+    scottErshovApproximationAtZero :
+      {D : Set} (domain : ScottErshovComputationalDomain D) (x : D) →
+      scottErshovApproximation domain x zero ≡ scottErshovBottom domain
+
+    scottErshovApproximationAtSuccessor :
+      {D : Set} (domain : ScottErshovComputationalDomain D)
+      (x : D) (n : Nat) →
+      scottErshovApproximation domain x (suc n) ≡
+        scottErshovApproximationStep domain x
+          (scottErshovApproximation domain x n)
 
   {-# REWRITE scottErshovApproximationAtZero scottErshovApproximationAtSuccessor #-}
 
@@ -1129,55 +1144,42 @@ variable
   A B C       : Set ℓ
   P Q         : A → Set ℓ
   x y z       : A
-  f g h       : (x : A) → P x
-  b b₁ b₂ b₃  : Bool
-  k l m n     : Nat
+  mapFunction g h : (x : A) → P x
+  k l mNat n   : Nat
   xs ys zs    : List A
-
-cong : (f : A → B) → x ≡ y → f x ≡ f y
-cong f refl = refl
 
 transport : (P : A → Set ℓ) → x ≡ y → P x → P y
 transport P refl p = p
 
-+comm : m + n ≡ n + m
-+comm {m = zero}  = refl
-+comm {m = suc m} = cong suc (+comm {m = m})
++comm : mNat + n ≡ n + mNat
++comm {mNat = zero}  = refl
++comm {mNat = suc m} = cong suc (+comm {mNat = m})
 
 zero+ : zero + n ≡ n
 zero+ = refl
 
-suc+ : (suc m) + n ≡ suc (m + n)
+suc+ : (suc mNat) + n ≡ suc (mNat + n)
 suc+ = refl
 
-+zero : m + zero ≡ m
-+zero {m = zero}  = refl
-+zero {m = suc m} = cong suc +zero
++zero : mNat + zero ≡ mNat
++zero {mNat = zero}  = refl
++zero {mNat = suc m} = cong suc +zero
 
-+suc : m + (suc n) ≡ suc (m + n)
-+suc {m = zero}  = refl
-+suc {m = suc m} = cong suc +suc
++suc : mNat + (suc n) ≡ suc (mNat + n)
++suc {mNat = zero}  = refl
++suc {mNat = suc m} = cong suc +suc
 
 {-# REWRITE +zero +suc #-}
-
-map : (A → B) → List A → List B
-map f []       = []
-map f (x ∷ xs) = (f x) ∷ (map f xs)
-
-infixr 5 _++_
-_++_ : List A → List A → List A
-[]       ++ ys = ys
-(x ∷ xs) ++ ys = x ∷ (xs ++ ys)
 
 canonical-map-identity : map (λ x → x) xs ≡ xs
 canonical-map-identity {xs = []}     = refl
 canonical-map-identity {xs = x ∷ xs} = cong (_∷_ x) canonical-map-identity
 
-map-fuse : map f (map g xs) ≡ map (λ x → f (g x)) xs
+map-fuse : map mapFunction (map g xs) ≡ map (λ x → mapFunction (g x)) xs
 map-fuse {xs = []}     = refl
 map-fuse {xs = x ∷ xs} = cong (_∷_ _) map-fuse
 
-map-++ : map f (xs ++ ys) ≡ (map f xs) ++ (map f ys)
+map-++ : map mapFunction (xs ++ ys) ≡ (map mapFunction xs) ++ (map mapFunction ys)
 map-++ {xs = []}     = refl
 map-++ {xs = x ∷ xs} = cong (_∷_ _) (map-++ {xs = xs})
 
@@ -1253,8 +1255,8 @@ _*Int_ : Int → Int → Int
 _*Int_ = _ℤ*_
 
 
-cong₂ : ∀ {A B C : Set} (f : A → B → C) {x y : A} {u v : B} → x ＝ y → u ＝ v → f x u ＝ f y v
-cong₂ f refl refl = refl
+cong₂Custom : ∀ {A B C : Set} (f : A → B → C) {x y : A} {u v : B} → x ＝ y → u ＝ v → f x u ＝ f y v
+cong₂Custom f refl refl = refl
 
 trans : ∀ {A : Set} {x y z : A} → x ＝ y → y ＝ z → x ＝ z
 trans refl q = q
@@ -1850,10 +1852,10 @@ monoidAffine-id = monoidAffine oneIntCode zeroIntCode
 
 monoidAffine-assoc : ∀ a b c → (a ∘ₘ b) ∘ₘ c ＝ a ∘ₘ (b ∘ₘ c)
 monoidAffine-assoc (monoidAffine a₁ b₁) (monoidAffine a₂ b₂) (monoidAffine a₃ b₃) =
-  cong₂ monoidAffine
+  cong₂Custom monoidAffine
     (intCode*-assoc a₁ a₂ a₃)
     (trans
-      (cong₂ intCodeAdd
+      (cong₂Custom intCodeAdd
         (intCode*-assoc a₁ a₂ b₃)
         refl)
       (trans
@@ -1870,7 +1872,7 @@ monoidAffine-assoc (monoidAffine a₁ b₁) (monoidAffine a₂ b₂) (monoidAffi
 
 monoidAffine-idˡ : ∀ a → monoidAffine-id ∘ₘ a ＝ a
 monoidAffine-idˡ (monoidAffine a b) =
-  cong₂ monoidAffine
+  cong₂Custom monoidAffine
     (intCode*-idˡ a)
     (trans
       (ap (λ z → intCodeAdd z zeroIntCode) (intCode*-idˡ b))
@@ -1878,7 +1880,7 @@ monoidAffine-idˡ (monoidAffine a b) =
 
 monoidAffine-idʳ : ∀ a → a ∘ₘ monoidAffine-id ＝ a
 monoidAffine-idʳ (monoidAffine a b) =
-  cong₂ monoidAffine
+  cong₂Custom monoidAffine
     (intCode*-idʳ a)
     (trans
       (ap (λ z → intCodeAdd z b) (intCode*-zeroʳ a))
@@ -2545,7 +2547,7 @@ canonicalHaarFeatureInjective {x} {y} eq =
   trans
     (sym (canonicalHaarFeatureReconstruct x))
     (trans
-      (cong₂
+      (cong₂Custom
         (λ a b → intCodeSub a b)
         (ap pr₁ eq)
         (ap pr₂ eq))
@@ -2578,7 +2580,7 @@ haarAccumulator-op-assoc
   (a₁ , b₁)
   (a₂ , b₂)
   (a₃ , b₃) =
-  cong₂ _,_
+  cong₂Custom _,_
     (intCode+-assoc a₁ a₂ a₃)
     (intCode+-assoc b₁ b₂ b₃)
 
@@ -2586,7 +2588,7 @@ haarAccumulator-op-idˡ :
   ∀ x →
   haarAccumulator-op haarAccumulator-id x ＝ x
 haarAccumulator-op-idˡ (a , b) =
-  cong₂ _,_
+  cong₂Custom _,_
     (intCode+-idˡ a)
     (intCode+-idˡ b)
 
@@ -2594,7 +2596,7 @@ haarAccumulator-op-idʳ :
   ∀ x →
   haarAccumulator-op x haarAccumulator-id ＝ x
 haarAccumulator-op-idʳ (a , b) =
-  cong₂ _,_
+  cong₂Custom _,_
     (intCode+-idʳ a)
     (intCode+-idʳ b)
 
