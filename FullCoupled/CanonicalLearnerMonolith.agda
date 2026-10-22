@@ -69,6 +69,14 @@ infix 4 _＝_
 _＝_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
 _＝_ = _≡_
 
+-- Minimal pure product projections. These used to arrive transitively from
+-- an undeclared TypeTopology import; define their computational meaning here.
+pr₁ : ∀ {X Y : Set} → X × Y → X
+pr₁ (x , _) = x
+
+pr₂ : ∀ {X Y : Set} → X × Y → Y
+pr₂ (_ , y) = y
+
 ------------------------------------------------------------------------
 -- Shared constructive-computability assumptions and interfaces.
 --
@@ -2101,8 +2109,8 @@ topCodes zero xs = []
 topCodes (suc k) [] = []
 topCodes (suc k) ((x , a) ∷ xs) = intCodeMagnitude x ∷ topCodes k xs
 
--- TypeTopology arithmetic aliases stay local: do not import the agda2hs
--- Prelude here, since its builtin Nat is a different source type.
+-- Natural-number arithmetic aliases stay local so calculations use this
+-- module's single ℕ source type throughout.
 infixl 7 _*ℕ_
 _*ℕ_ : ℕ → ℕ → ℕ
 x *ℕ zero = zero
@@ -2946,9 +2954,9 @@ canonicalCReLU8 x =
   canonicalReLU8 x , canonicalReLU8 (intCodeNeg x)
 
 ------------------------------------------------------------------------
--- Rational CReLU': CReLU with the negative ReLU branch replaced by the
--- exact rational softsign branch, matching the SignReLU shape while
--- keeping the paired positive/negative CReLU representation.
+-- Fraction-code CReLU': CReLU with a numerator/denominator softsign map on
+-- the negative branch. This is executable fraction-code arithmetic, not a
+-- normalized quotient-type rational or a proof of rational-code equivalence.
 ------------------------------------------------------------------------
 
 canonicalSignReLU' : Dyadic → Dyadic
