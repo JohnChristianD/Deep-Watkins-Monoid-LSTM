@@ -862,7 +862,7 @@ matchesPrefix :
 matchesPrefix [] _ = True
 matchesPrefix (_ ∷ _) [] = False
 matchesPrefix (needle ∷ needles) (candidate ∷ candidates) =
-  if stringEqual needle candidate then
+  if stringEqual (needle ∷ []) (candidate ∷ []) then
     matchesPrefix needles candidates
   else
     False
