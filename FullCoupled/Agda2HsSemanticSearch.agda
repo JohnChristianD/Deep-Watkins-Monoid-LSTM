@@ -1179,9 +1179,10 @@ graphAStarFirstEager laws seed =
         (MkGraphAStarNode (graphNodePlan seed) initialCost ∷ [])
         (MkGraphAStarBest root initialCost ∷ [])
 
--- Preserve standard eager A* as the production default. The lower-bound
--- deferred variant stays opt-in until real graph benchmarks justify promoting
--- it; it is not assumed to be faster merely because it delays evaluation.
+-- Production A* defers successor materialisation and heuristic evaluation.
+-- Eager A* remains as a differential reference. Deferred evaluation avoids
+-- constructing successor paths and computing exact priorities before pop;
+-- this Agda list implementation does not claim JAxtar's JAX batching.
 graphAStarFirst :
   List GraphLaw ->
   GraphNode ->
