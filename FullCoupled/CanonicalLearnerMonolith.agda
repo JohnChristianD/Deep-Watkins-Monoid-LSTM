@@ -1269,6 +1269,8 @@ not-less-than-itself zero ()
 not-less-than-itself (succ n) (natLtStep smaller) =
   not-less-than-itself n smaller
 
+ℤ : Set
+ℤ = Integer
 
 Int : Set
 Int = ℤ
@@ -1289,8 +1291,6 @@ infixl 31 _ℤ*_
 _ℤ*_ : ℤ → ℤ → ℤ
 _ℤ*_ = _*_
 
-ℤ : Set
-ℤ = Integer
 
 ℤ+-assoc : ∀ (x y z : ℤ) → (x ℤ+ y) ℤ+ z ≡ x ℤ+ (y ℤ+ z)
 ℤ+-assoc = addInteger-assoc
