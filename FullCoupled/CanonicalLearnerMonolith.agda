@@ -1269,6 +1269,7 @@ not-less-than-itself zero ()
 not-less-than-itself (succ n) (natLtStep smaller) =
   not-less-than-itself n smaller
 
+
 Int : Set
 Int = ℤ
 
