@@ -81,6 +81,23 @@ isAsciiDigit '7' = True
 isAsciiDigit '8' = True
 isAsciiDigit '9' = True
 isAsciiDigit _ = False
+
+isAsciiAlphaRegression : Bool
+isAsciiAlphaRegression =
+  isAsciiAlpha 'A' && isAsciiAlpha 'z' && not (isAsciiAlpha '7')
+
+isAsciiAlphaRegressionChecked :
+  isAsciiAlphaRegression ≡ True
+isAsciiAlphaRegressionChecked = refl
+
+isAsciiDigitRegression : Bool
+isAsciiDigitRegression =
+  isAsciiDigit '0' && isAsciiDigit '9' && not (isAsciiDigit 'x')
+
+isAsciiDigitRegressionChecked :
+  isAsciiDigitRegression ≡ True
+isAsciiDigitRegressionChecked = refl
+
 isSourceSpace : Char → Bool
 isSourceSpace ' ' = True
 isSourceSpace '\n' = True
