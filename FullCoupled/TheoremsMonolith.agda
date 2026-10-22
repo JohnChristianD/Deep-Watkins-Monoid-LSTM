@@ -326,6 +326,8 @@ open ConstructiveComputabilityPostulates public using
   ; Neg
   ; Decidable
   ; SigmaWitness
+  ; sigma-witness
+  ; sigmaValue
   ; PropExists
   ; RecursiveProgram
   ; ComputesRelation
@@ -517,6 +519,100 @@ module RUSSProofTheory where
     Neg (RUSSDerivation [] russFalsehood)
   russCurrentBasisRelativeConsistency =
     russCoreConsistency russianRecursiveMathematicsAssumptions
+
+
+  ----------------------------------------------------------------------
+  -- A computational finite-stage semantics for decidable Markov search.
+  --
+  -- Each bounded stage is structurally recursive on its bound and computes
+  -- either a witness carrying proof of P n, or an explicit fuel-exhausted
+  -- result. The completeness lemma uses a witness at the bound to show that
+  -- this search must return a witness somewhere in the inspected prefix.
+  --
+  -- This is an executable operational component, not yet Pédrot's syntactic
+  -- presheaf model of MLTT. In particular, the existing Markov assumption
+  -- still projects a witness from double-negated existence opaquely; this
+  -- finite evaluator does not pretend that an unbounded search terminates
+  -- without such semantic justification.
+  --
+  -- XDS-Agda illustrates that selected denotational equations can be made
+  -- computational by rewrite rules and then regression-checked. No such
+  -- RUSS-specific rewrite rule is needed here: the bounded evaluator reduces
+  -- by ordinary pattern matching, and the regression below is checked by refl.
+  -- A rewrite rule alone would not supply the required MLTT/presheaf model,
+  -- nor prove confluence, subject reduction, canonicity, or consistency.
+  ----------------------------------------------------------------------
+
+  data RUSSBoundedSearchResult (P : Nat → Set) : Set where
+    russSearchFound : SigmaWitness Nat P → RUSSBoundedSearchResult P
+    russSearchFuelExhausted : RUSSBoundedSearchResult P
+
+  -- Search indices 0 through fuel, in increasing order. This function always
+  -- terminates for a finite bound; FuelExhausted means only "not found yet".
+  russSearchBounded :
+    (P : Nat → Set) →
+    (fuel : Nat) →
+    ((n : Nat) → Decidable (P n)) →
+    RUSSBoundedSearchResult P
+  russSearchBounded P zero decide with decide zero
+  ... | yes evidence = russSearchFound (sigma-witness zero evidence)
+  ... | no _ = russSearchFuelExhausted
+  russSearchBounded P (suc fuel) decide with russSearchBounded P fuel decide
+  ... | russSearchFound witness = russSearchFound witness
+  ... | russSearchFuelExhausted with decide (suc fuel)
+  ...   | yes evidence = russSearchFound (sigma-witness (suc fuel) evidence)
+  ...   | no _ = russSearchFuelExhausted
+
+  -- Finite adequacy: if P holds at the current bound, the search through that
+  -- bound yields a genuine witness. An earlier hit is retained; otherwise the
+  -- decision at the current index must be positive.
+  russSearchBoundedWitness :
+    (P : Nat → Set) →
+    (fuel : Nat) →
+    ((n : Nat) → Decidable (P n)) →
+    P fuel →
+    SigmaWitness Nat P
+  russSearchBoundedWitness P zero decide evidence with decide zero
+  ... | yes found = sigma-witness zero found
+  ... | no absent = russEliminateFalse (absent evidence)
+  russSearchBoundedWitness P (suc fuel) decide evidence
+    with russSearchBounded P fuel decide
+  ... | russSearchFound witness = witness
+  ... | russSearchFuelExhausted with decide (suc fuel)
+  ...   | yes found = sigma-witness (suc fuel) found
+  ...   | no absent = russEliminateFalse (absent evidence)
+
+  -- XDS-style definitional regression: the bounded search computes the
+  -- least witness in this concrete decidable example without a new rewrite.
+  data RUSSSearchRegressionPredicate : Nat → Set where
+    russSearchRegressionWitness :
+      RUSSSearchRegressionPredicate (suc zero)
+
+  russSearchRegressionDecision :
+    (n : Nat) → Decidable (RUSSSearchRegressionPredicate n)
+  russSearchRegressionDecision zero = no (λ ())
+  russSearchRegressionDecision (suc zero) = yes russSearchRegressionWitness
+  russSearchRegressionDecision (suc (suc _)) = no (λ ())
+
+  russBoundedSearchRegression :
+    russSearchBounded
+      RUSSSearchRegressionPredicate
+      (suc (suc zero))
+      russSearchRegressionDecision
+    ≡ russSearchFound
+        (sigma-witness (suc zero) russSearchRegressionWitness)
+  russBoundedSearchRegression = refl
+
+  russBoundedSearchWitnessRegression :
+    sigmaValue
+      (russSearchBoundedWitness
+        RUSSSearchRegressionPredicate
+        (suc zero)
+        russSearchRegressionDecision
+        russSearchRegressionWitness)
+    ≡ suc zero
+  russBoundedSearchWitnessRegression = refl
+
 
 open RUSSProofTheory public
 
