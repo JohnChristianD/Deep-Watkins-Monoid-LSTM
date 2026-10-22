@@ -16,7 +16,7 @@
   (fun.totable
     (fun.filter
       (fn [path] (not (= path "")))
-      (read-lines "git ls-files '*.elm' '*.html' '*.js' | LC_ALL=C sort"))))
+      (read-lines "git ls-files '*.html' '*.js' '*.mjs' | LC_ALL=C sort"))))
 (each [_ path (ipairs files)]
   (local data (read-file path))
   (each [_ char (ipairs (fun.totable (string.gmatch data ".")))]
