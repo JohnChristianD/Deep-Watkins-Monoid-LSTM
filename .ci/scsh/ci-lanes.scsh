@@ -161,7 +161,7 @@
     ((string=? lane "All") (check-policy) (check-agda-theorem) (check-russ) (check-pages))
     (else (fail (string-append "unknown lane: " lane)))))
 
-(let ((args (command-line-arguments)))
+(let ((args command-line-arguments))
   (if (null? args)
       (fail "usage: ci-lanes.scsh Policy|AgdaLearner|AgdaTheorem|RUSS|Pages|All"))
   (run-lane (car args)))
