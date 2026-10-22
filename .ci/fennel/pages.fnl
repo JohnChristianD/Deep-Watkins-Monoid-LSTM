@@ -24,38 +24,43 @@
   [ "FullCoupled/CanonicalLearnerMonolith.agda"
     "FullCoupled/TheoremsMonolith.agda" ])
 
+(local fun (require :fun))
+
+(local is-declaration-line (fn [line]
+  (and
+    (> (string.len line) 0)
+    (= (string.match line "^%S") (string.sub line 1 1))
+    (not (string.match line "^%-%-"))
+    (not (= (string.sub line 1 3) "{-#"))
+    (not (string.match line "^module%s+"))
+    (not (string.match line "^open%s+"))
+    (not (string.match line "^infix"))
+    (not (string.match line "^syntax%s+"))
+    (not (string.match line "^pattern%s+"))
+    (not (string.match line "^postulate%s*$"))
+    (not (string.match line "^primitive%s*$"))
+    (string.match line "^([^:]+)%s*:")
+    (string.match line "^[^:]+:%s*(.*)$"))))
+
+(local declaration-row (fn [path line]
+  (let [clean-name (trim (string.match line "^([^:]+)%s*:"))
+        clean-signature (trim (string.match line "^[^:]+:%s*(.*)$"))]
+    (string.format
+      "<tr><td><code>%s</code></td><td><code>%s</code></td><td><code>%s</code></td></tr>"
+      (escape-html path)
+      (escape-html clean-name)
+      (escape-html (if (= clean-signature "") "(signature continues)" clean-signature)))))
+
 (local declaration-rows (fn [path source]
-  (local lines
-    (icollect [line (string.gmatch (.. source "\n") "(.-)\n")]
-      line))
-  (icollect [line-number line (ipairs lines)
-             :when
-             (and
-               (> (string.len line) 0)
-               (= (string.match line "^%S") (string.sub line 1 1))
-               (not (string.match line "^%-%-"))
-               (not (= (string.sub line 1 3) "{-#"))
-               (not (string.match line "^module%s+"))
-               (not (string.match line "^open%s+"))
-               (not (string.match line "^infix"))
-               (not (string.match line "^syntax%s+"))
-               (not (string.match line "^pattern%s+"))
-               (not (string.match line "^postulate%s*$"))
-               (not (string.match line "^primitive%s*$"))
-               (string.match line "^([^:]+)%s*:")
-               (string.match line "^[^:]+:%s*(.*)$"))]
-    (let [clean-name (string.gsub (string.match line "^([^:]+)%s*:") "^%s*(.-)%s*$" "%1")
-          clean-signature (string.gsub (string.match line "^[^:]+:%s*(.*)$") "^%s*(.-)%s*$" "%1")]
-      (string.format
-        "<tr><td><code>%s</code></td><td><code>%s</code></td><td>%d</td><td><code>%s</code></td></tr>"
-        (escape-html path)
-        (escape-html clean-name)
-        line-number
-        (escape-html (if (= clean-signature "") "(signature continues)" clean-signature)))))))
+  (fun.totable
+    (fun.map
+      (fn [line] (declaration-row path line))
+      (fun.filter is-declaration-line
+        (string.gmatch (.. source "\n") "(.-)\n")))))
 (local render-section (fn [path title]
   (local rows (declaration-rows path (read-file path)))
   (string.format
-    "<section><h2>%s</h2><p>Source: <code>%s</code>. Entries are extracted from source text; extraction is not a proof certificate.</p><div class=\"table-wrap\"><table><thead><tr><th>Source</th><th>Declaration</th><th>Line</th><th>Signature prefix</th></tr></thead><tbody>%s</tbody></table></div></section>"
+    "<section><h2>%s</h2><p>Source: <code>%s</code>. Entries are extracted from source text; extraction is not a proof certificate.</p><div class=\"table-wrap\"><table><thead><tr><th>Source</th><th>Declaration</th><th>Signature prefix</th></tr></thead><tbody>%s</tbody></table></div></section>"
     (escape-html title)
     (escape-html path)
     (table.concat rows "\n"))))
