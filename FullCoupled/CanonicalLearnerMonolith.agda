@@ -1145,8 +1145,7 @@ variable
   P Q         : A → Set ℓ
   x y z       : A
   mapFunction g h : (x : A) → P x
-  b b₁ b₂ b₃  : Bool
-  k l m n     : Nat
+  k l mNat n   : Nat
   xs ys zs    : List A
 
 cong : (f : A → B) → x ≡ y → f x ≡ f y
@@ -1155,23 +1154,23 @@ cong f refl = refl
 transport : (P : A → Set ℓ) → x ≡ y → P x → P y
 transport P refl p = p
 
-+comm : m + n ≡ n + m
-+comm {m = zero}  = refl
-+comm {m = suc m} = cong suc (+comm {m = m})
++comm : mNat + n ≡ n + mNat
++comm {mNat = zero}  = refl
++comm {mNat = suc m} = cong suc (+comm {mNat = m})
 
 zero+ : zero + n ≡ n
 zero+ = refl
 
-suc+ : (suc m) + n ≡ suc (m + n)
+suc+ : (suc mNat) + n ≡ suc (mNat + n)
 suc+ = refl
 
-+zero : m + zero ≡ m
-+zero {m = zero}  = refl
-+zero {m = suc m} = cong suc +zero
++zero : mNat + zero ≡ mNat
++zero {mNat = zero}  = refl
++zero {mNat = suc m} = cong suc +zero
 
-+suc : m + (suc n) ≡ suc (m + n)
-+suc {m = zero}  = refl
-+suc {m = suc m} = cong suc +suc
++suc : mNat + (suc n) ≡ suc (mNat + n)
++suc {mNat = zero}  = refl
++suc {mNat = suc m} = cong suc +suc
 
 {-# REWRITE +zero +suc #-}
 
