@@ -537,10 +537,6 @@ graphDependenciesCovered (dependency ∷ dependencies) plan =
   else
     False
 
-graphDependenciesEmpty : List String → Bool
-graphDependenciesEmpty [] = True
-graphDependenciesEmpty (_ ∷ _) = False
-
 graphPlanHeadIsLeaf :
   List String ->
   List GraphLaw ->
@@ -552,7 +548,9 @@ graphPlanHeadIsLeaf plan laws =
       case graphLawForName terminal laws of λ where
         Nothing -> False
         (Just law) ->
-          graphDependenciesEmpty (graphLawDependencies law)
+          case graphLawDependencies law of λ where
+            [] -> True
+            (_ ∷ _) -> False
 
 graphMaximalDependencyChain :
   List String ->
@@ -914,10 +912,9 @@ graphAStarHeuristic laws node =
       case graphLawForName terminal laws of λ where
         Nothing -> 0
         (Just law) ->
-          if graphDependenciesEmpty (graphLawDependencies law) then
-            0
-          else
-            incrementSearchNat 0
+          case graphLawDependencies law of λ where
+            [] -> 0
+            (_ ∷ _) -> incrementSearchNat 0
 
 -- JAxtar's default cost_weight is 1 - 1e-6. For Nat costs, scale its
 -- f = cost_weight * g + h by 1,000,000 to compare the equivalent integer
