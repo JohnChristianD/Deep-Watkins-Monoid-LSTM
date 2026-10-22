@@ -94,7 +94,7 @@ allRequiredCovered (c ∷ cs) covered =
 planContains : String → List String → Bool
 planContains name [] = False
 planContains name (x ∷ xs) =
-  if name == x then
+  if Extractor.stringEqual name x then
     True
   else
     planContains name xs
@@ -390,7 +390,7 @@ graphLawForName :
   String -> List GraphLaw -> Maybe GraphLaw
 graphLawForName _ [] = Nothing
 graphLawForName name (law ∷ laws) =
-  if name == (graphLawName law) then
+  if Extractor.stringEqual name (graphLawName law) then
     Just law
   else
     graphLawForName name laws
@@ -409,7 +409,7 @@ graphLawAddDependency name dependency [] =
   MkGraphLaw name (dependency ∷ []) ∷ []
 graphLawAddDependency name dependency
   (law ∷ laws) =
-  case name == graphLawName law of λ where
+  case Extractor.stringEqual name (graphLawName law) of λ where
     True ->
       case planContains dependency (graphLawDependencies law) of λ where
         True -> MkGraphLaw name (graphLawDependencies law) ∷ laws
@@ -422,7 +422,7 @@ graphLawAddDependency name dependency
 ensureGraphLaw : String -> List GraphLaw -> List GraphLaw
 ensureGraphLaw name [] = MkGraphLaw name [] ∷ []
 ensureGraphLaw name (law ∷ laws) =
-  if name == (graphLawName law) then
+  if Extractor.stringEqual name (graphLawName law) then
     law ∷ laws
   else
     law ∷ ensureGraphLaw name laws
@@ -537,6 +537,10 @@ graphDependenciesCovered (dependency ∷ dependencies) plan =
   else
     False
 
+graphDependenciesEmpty : List String → Bool
+graphDependenciesEmpty [] = True
+graphDependenciesEmpty (_ ∷ _) = False
+
 graphPlanHeadIsLeaf :
   List String ->
   List GraphLaw ->
@@ -548,7 +552,7 @@ graphPlanHeadIsLeaf plan laws =
       case graphLawForName terminal laws of λ where
         Nothing -> False
         (Just law) ->
-          graphLawDependencies law == []
+          graphDependenciesEmpty (graphLawDependencies law)
 
 graphMaximalDependencyChain :
   List String ->
@@ -672,7 +676,7 @@ parseDotLine : String -> List (String × String)
 parseDotLine line =
   case words line of λ where
     (source ∷ separator ∷ target ∷ rest) ->
-      case separator == "->" of λ where
+      case Extractor.stringEqual separator "->" of λ where
         True -> (stripDotToken source , stripDotToken target) ∷ []
         False -> []
     _ -> []
@@ -685,14 +689,14 @@ parseDotQuotedEdgeRegression : Bool
 parseDotQuotedEdgeRegression =
   case parseDotLine "\"A.Module\" -> \"B.Module\";" of λ where
     ((source , target) ∷ []) ->
-      source == "A.Module" && target == "B.Module"
+      Extractor.stringEqual source "A.Module" && Extractor.stringEqual target "B.Module"
     _ -> False
 
 parseDotAttributeEdgeRegression : Bool
 parseDotAttributeEdgeRegression =
   case parseDotLine "\"A\" -> \"B\" [style=solid];" of λ where
     ((source , target) ∷ []) ->
-      source == "A" && target == "B"
+      Extractor.stringEqual source "A" && Extractor.stringEqual target "B"
     _ -> False
 
 parseDotMalformedLineRegression : Bool
@@ -763,7 +767,7 @@ semanticLawForName :
   Maybe Extractor.SemanticLaw
 semanticLawForName _ [] = Nothing
 semanticLawForName requested (law ∷ laws) =
-  if Extractor.semanticLawName law == requested then
+  if Extractor.stringEqual (Extractor.semanticLawName law) requested then
     Just law
   else
     semanticLawForName requested laws
@@ -771,34 +775,35 @@ semanticLawForName requested (law ∷ laws) =
 -- Case/separator normalization repairs registry display aliases only. It does
 -- not invent semantic edges or equate different theorem statements.
 normalizeIdentifierChar : Char -> String
-normalizeIdentifierChar value =
-  if value == 'A' then "a" else
-  if value == 'B' then "b" else
-  if value == 'C' then "c" else
-  if value == 'D' then "d" else
-  if value == 'E' then "e" else
-  if value == 'F' then "f" else
-  if value == 'G' then "g" else
-  if value == 'H' then "h" else
-  if value == 'I' then "i" else
-  if value == 'J' then "j" else
-  if value == 'K' then "k" else
-  if value == 'L' then "l" else
-  if value == 'M' then "m" else
-  if value == 'N' then "n" else
-  if value == 'O' then "o" else
-  if value == 'P' then "p" else
-  if value == 'Q' then "q" else
-  if value == 'R' then "r" else
-  if value == 'S' then "s" else
-  if value == 'T' then "t" else
-  if value == 'U' then "u" else
-  if value == 'V' then "v" else
-  if value == 'W' then "w" else
-  if value == 'X' then "x" else
-  if value == 'Y' then "y" else
-  if value == 'Z' then "z" else
-  if value == '-' || value == '_' then "" else value ∷ []
+normalizeIdentifierChar 'A' = "a"
+normalizeIdentifierChar 'B' = "b"
+normalizeIdentifierChar 'C' = "c"
+normalizeIdentifierChar 'D' = "d"
+normalizeIdentifierChar 'E' = "e"
+normalizeIdentifierChar 'F' = "f"
+normalizeIdentifierChar 'G' = "g"
+normalizeIdentifierChar 'H' = "h"
+normalizeIdentifierChar 'I' = "i"
+normalizeIdentifierChar 'J' = "j"
+normalizeIdentifierChar 'K' = "k"
+normalizeIdentifierChar 'L' = "l"
+normalizeIdentifierChar 'M' = "m"
+normalizeIdentifierChar 'N' = "n"
+normalizeIdentifierChar 'O' = "o"
+normalizeIdentifierChar 'P' = "p"
+normalizeIdentifierChar 'Q' = "q"
+normalizeIdentifierChar 'R' = "r"
+normalizeIdentifierChar 'S' = "s"
+normalizeIdentifierChar 'T' = "t"
+normalizeIdentifierChar 'U' = "u"
+normalizeIdentifierChar 'V' = "v"
+normalizeIdentifierChar 'W' = "w"
+normalizeIdentifierChar 'X' = "x"
+normalizeIdentifierChar 'Y' = "y"
+normalizeIdentifierChar 'Z' = "z"
+normalizeIdentifierChar '-' = ""
+normalizeIdentifierChar '_' = ""
+normalizeIdentifierChar value = value ∷ []
 
 normalizeIdentifier : String -> String
 normalizeIdentifier [] = ""
@@ -811,8 +816,9 @@ semanticLawForNormalizedName :
   Maybe Extractor.SemanticLaw
 semanticLawForNormalizedName requested [] = Nothing
 semanticLawForNormalizedName requested (law ∷ laws) =
-  if normalizeIdentifier (Extractor.semanticLawName law)
-       == normalizeIdentifier requested then
+  if Extractor.stringEqual
+       (normalizeIdentifier (Extractor.semanticLawName law))
+       (normalizeIdentifier requested) then
     Just law
   else
     semanticLawForNormalizedName requested laws
@@ -828,8 +834,9 @@ semanticLawForRequiredName requested laws =
 
 semanticIdentifierNormalizationRegression : Bool
 semanticIdentifierNormalizationRegression =
-  normalizeIdentifier "CanonicalAQLoopTheorem"
-    == normalizeIdentifier "canonical-aq-loop-theorem"
+  Extractor.stringEqual
+    (normalizeIdentifier "CanonicalAQLoopTheorem")
+    (normalizeIdentifier "canonical-aq-loop-theorem")
 
 semanticIdentifierNormalizationRegressionChecked :
   semanticIdentifierNormalizationRegression ≡ True
@@ -860,7 +867,7 @@ graphAStarKnownCost :
   String -> List GraphAStarBestCost -> Maybe Nat
 graphAStarKnownCost _ [] = Nothing
 graphAStarKnownCost requested (known ∷ remaining) =
-  if requested == graphAStarBestName known then
+  if Extractor.stringEqual requested (graphAStarBestName known) then
     Just (graphAStarBestG known)
   else
     graphAStarKnownCost requested remaining
@@ -870,7 +877,7 @@ graphAStarRememberCost :
 graphAStarRememberCost name cost [] =
   MkGraphAStarBest name cost ∷ []
 graphAStarRememberCost name cost (known ∷ remaining) =
-  if name == graphAStarBestName known then
+  if Extractor.stringEqual name (graphAStarBestName known) then
     MkGraphAStarBest name cost ∷ remaining
   else
     known ∷ graphAStarRememberCost name cost remaining
@@ -907,7 +914,7 @@ graphAStarHeuristic laws node =
       case graphLawForName terminal laws of λ where
         Nothing -> 0
         (Just law) ->
-          if graphLawDependencies law == [] then
+          if graphDependenciesEmpty (graphLawDependencies law) then
             0
           else
             incrementSearchNat 0
@@ -1243,7 +1250,7 @@ graphAStarDeferredPriorityLowerBoundRegressionChecked = refl
 graphStringPathEqual : List String -> List String -> Bool
 graphStringPathEqual [] [] = True
 graphStringPathEqual (left ∷ lefts) (right ∷ rights) =
-  left == right && graphStringPathEqual lefts rights
+  Extractor.stringEqual left right && graphStringPathEqual lefts rights
 graphStringPathEqual _ _ = False
 
 -- A* must prefer the direct leaf over a longer sibling branch. This checks
@@ -1401,7 +1408,7 @@ graphReachableNames (_ ∷ fuel) (name ∷ pending) seen laws =
 graphRemoveName : String -> List String -> List String
 graphRemoveName name [] = []
 graphRemoveName name (candidate ∷ rest) =
-  if name == candidate then
+  if Extractor.stringEqual name candidate then
     rest
   else
     candidate ∷ graphRemoveName name rest
@@ -1475,7 +1482,7 @@ graphPathCountLookup :
   String -> List (String × Nat) -> Maybe Nat
 graphPathCountLookup target [] = Nothing
 graphPathCountLookup target ((name , count) ∷ counts) =
-  if target == name then Just count
+  if Extractor.stringEqual target name then Just count
   else graphPathCountLookup target counts
 
 graphPathCountDependencies :
@@ -1601,7 +1608,7 @@ graphPathCountRegressionChecked = refl
 graphPrecedes : String -> String -> List String -> Bool
 graphPrecedes target later [] = False
 graphPrecedes target later (name ∷ rest) =
-  if name == target then
+  if Extractor.stringEqual name target then
     graphContains later rest
   else
     graphPrecedes target later rest
@@ -2161,9 +2168,9 @@ semanticLawSeedFilterRegressionChecked = refl
 emptyTypeSignature : String -> Bool
 emptyTypeSignature signature =
   let normalized = normalizeIdentifier (Extractor.normalizeSignature signature)
-  in normalized == "⊥"
-       || normalized == "data.empty.⊥"
-       || normalized == "agda.builtin.empty.⊥"
+  in Extractor.stringEqual normalized "⊥"
+       || Extractor.stringEqual normalized "data.empty.⊥"
+       || Extractor.stringEqual normalized "agda.builtin.empty.⊥"
 
 inconsistencyCandidateLaws :
   List Extractor.SemanticLaw -> List Extractor.SemanticLaw
