@@ -2,6 +2,7 @@ module FullCoupled.Agda2HsTheoremGraphEGraph where
 
 open import Haskell.Prelude
 open import Haskell.Prim using (eqNat; monusNat)
+import FullCoupled.Agda2HsSemanticExtractor as Extractor
 
 incrementEGraphNat : Nat → Nat
 incrementEGraphNat n = n + 1
@@ -138,7 +139,7 @@ lookupNatPair key ((candidate , value) ∷ rest) =
 lookupStringPair : String -> List (String × Nat) -> Maybe Nat
 lookupStringPair _ [] = Nothing
 lookupStringPair key ((candidate , value) ∷ rest) =
-  if key == candidate then Just value else lookupStringPair key rest
+  if Extractor.stringEqual key candidate then Just value else lookupStringPair key rest
 
 lookupNatPairRegression : Bool
 lookupNatPairRegression =
@@ -207,7 +208,7 @@ canonicalNode graph (MkENode symbol children) =
 
 sameENode : ENode -> ENode -> Bool
 sameENode (MkENode sx xs) (MkENode sy ys) =
-  if sx == sy then listEqualNat xs ys else False
+  if Extractor.stringEqual sx sy then listEqualNat xs ys else False
 
 findBindingByNode : EGraph -> ENode -> List Binding -> Maybe Nat
 findBindingByNode _ _ [] = Nothing
@@ -336,7 +337,7 @@ mutual
   matchNodes symbol patterns target graph
     (MkBinding (MkENode candidate children) bindingId ∷ rest) sub =
     if root graph bindingId == target then
-      if candidate == symbol then
+      if Extractor.stringEqual candidate symbol then
         matchChildren patterns children graph sub
         ++ matchNodes symbol patterns target graph rest sub
       else matchNodes symbol patterns target graph rest sub

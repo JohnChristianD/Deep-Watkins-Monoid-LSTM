@@ -46,7 +46,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
 open import Haskell.Prelude public renaming (Int to PreludeInt)
-open import Haskell.Prim.Integer public using (pos; negsuc)
+open import Haskell.Prim public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public hiding (trans; sym)
 open import Haskell.Law.Functor.FromMonad public
@@ -1735,8 +1735,8 @@ intCodeMul x y = intCode (intCodeValue x *Int intCodeValue y)
 
 intNeg : Int → Int
 intNeg (pos zero) = pos zero
-intNeg (pos (suc n)) = negsucc n
-intNeg (negsucc n) = pos (suc n)
+intNeg (pos (suc n)) = negsuc n
+intNeg (negsuc n) = pos (suc n)
 
 intCodeNeg : IntCode → IntCode
 intCodeNeg x = intCode (intNeg (intCodeValue x))
@@ -1820,7 +1820,7 @@ data Signed : Set where
 signedCode : IntCode → Signed
 signedCode (intCode (pos 0)) = signedZer
 signedCode (intCode (pos (suc n))) = signedPos (suc n)
-signedCode (intCode (negsucc n)) = signedNeg (suc n)
+signedCode (intCode (negsuc n)) = signedNeg (suc n)
 
 data BoolLike : Set where
   enabled disabled : BoolLike
@@ -2088,7 +2088,7 @@ integerLayerNormValue {xs} config certificate x =
 
 intCodeMagnitude : IntCode → ℕ
 intCodeMagnitude (intCode (pos n)) = n
-intCodeMagnitude (intCode (negsucc n)) = suc n
+intCodeMagnitude (intCode (negsuc n)) = suc n
 
 infixl 6 _∸_
 _∸_ : ℕ → ℕ → ℕ
@@ -2177,7 +2177,7 @@ fromNatDyadic n exponent =
 
 dyadicNumerator : Dyadic → ℕ
 dyadicNumerator ((pos n , d) , _) = n
-dyadicNumerator ((negsucc n , d) , _) = zero
+dyadicNumerator ((negsuc n , d) , _) = zero
 
 dyadicDenominator : Dyadic → ℕ
 dyadicDenominator ((z , d) , _) =
@@ -2229,12 +2229,12 @@ data HardSign : Set where
 hardSignNonnegative : IntCode → HardSign
 hardSignNonnegative (intCode (pos 0)) = zeroSign
 hardSignNonnegative (intCode (pos (suc n))) = positiveSign
-hardSignNonnegative (intCode (negsucc n)) = negativeSign
+hardSignNonnegative (intCode (negsuc n)) = negativeSign
 
 hardSign : IntCode → HardSign
 hardSign (intCode (pos 0)) = zeroSign
 hardSign (intCode (pos (suc n))) = positiveSign
-hardSign (intCode (negsucc n)) = negativeSign
+hardSign (intCode (negsuc n)) = negativeSign
 
 hardSignGate : IntCode → IntCode
 hardSignGate x with hardSign x
@@ -2343,7 +2343,7 @@ data MonoidLSTMGate : Set where
 monoidLSTMGateOf : IntCode → MonoidLSTMGate
 monoidLSTMGateOf (intCode (pos 0)) = monoidHold
 monoidLSTMGateOf (intCode (pos (suc n))) = monoidAccum
-monoidLSTMGateOf (intCode (negsucc n)) = monoidReset
+monoidLSTMGateOf (intCode (negsuc n)) = monoidReset
 
 monoidLSTMCellStep : MonoidLSTMGate → IntCode → IntCode → IntCode
 monoidLSTMCellStep monoidHold c x = c
@@ -2936,8 +2936,8 @@ canonicalCReLU8 x =
 ------------------------------------------------------------------------
 
 canonicalSignReLU' : ℚ → ℚ
-canonicalSignReLU' (((negsucc n , a) , _)) =
-  toℚ (negsucc n , a + suc n)
+canonicalSignReLU' (((negsuc n , a) , _)) =
+  toℚ (negsuc n , a + suc n)
 canonicalSignReLU' q = q
 
 CanonicalCReLUPrimePair : Set
@@ -2984,7 +2984,7 @@ canonicalHaarFeatureReconstruct
 canonicalHaarFeatureReconstruct
   (intCode (pos (suc n))) = refl
 canonicalHaarFeatureReconstruct
-  (intCode (negsucc n)) = intCode+-idˡ (intCode (negsucc n))
+  (intCode (negsuc n)) = intCode+-idˡ (intCode (negsuc n))
 
 canonicalHaarFeatureInjective :
   ∀ {x y} →

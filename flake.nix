@@ -565,11 +565,11 @@ PY
                 printf '%s\n' '{-# OPTIONS --confluence-check #-}' 'module ConstructiveExceptionSemantics where' > "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '
                   /^module ConstructiveExceptionSemantics where$/ { capture=1; next }
-                  # Stop when the extracted nested module returns to top-level
-                  # learner semantics. The former record-⊤ sentinel was pruned
-                  # as unused, so relying on it leaked the rest of the monolith
-                  # into this standalone Agda2HS extraction.
-                  /^Int : Set$/ { if (capture) capture=0 }
+                  # Stop at the next module boundary. The constructive
+                  # integer-law module now follows this exception module; using
+                  # a later top-level alias would leak its imports/proofs into
+                  # this standalone extraction and break parsing.
+                  /^module CanonicalIntegerLaws where$/ { if (capture) capture=0 }
                   capture { sub(/^  /, ""); print }
                 ' FullCoupled/CanonicalLearnerMonolith.agda >> "$tmp/ConstructiveExceptionSemantics.agda"
                 awk '

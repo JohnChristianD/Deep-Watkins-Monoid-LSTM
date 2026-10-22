@@ -1,7 +1,7 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude
-open import Haskell.Prim using (eqNat; monusNat; AgdaString)
+open import Haskell.Prim using (eqNat; monusNat; AgdaString; primStringFromList; primStringEquality)
 
 incrementExtractorNat : Nat → Nat
 incrementExtractorNat n = n + 1
@@ -9,11 +9,21 @@ incrementExtractorNat n = n + 1
 CharList : Type
 CharList = List Char
 
--- This module's String is the official Agda2HS List Char representation.
--- Compare using the library's Eq instance so Agda2HS emits ordinary Haskell
--- list equality instead of Agda builtin-string primitives unavailable there.
+-- Agda's native JavaScript backend has builtin string equality, while
+-- Agda2HS represents this module's String as [Char]. Give the extractor's
+-- two builtin operations their equivalent pure Haskell implementations;
+-- keep the proof-facing Agda definition free of postulates and extra files.
+{-# FOREIGN AGDA2HS
+primStringFromList :: [Char] -> String
+primStringFromList = id
+
+primStringEquality :: String -> String -> Bool
+primStringEquality = (==)
+#-}
+
 stringEqual : String → String → Bool
-stringEqual left right = left == right
+stringEqual left right =
+  primStringEquality (primStringFromList left) (primStringFromList right)
 {-# COMPILE AGDA2HS stringEqual #-}
 
 
