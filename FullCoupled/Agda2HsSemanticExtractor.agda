@@ -199,11 +199,10 @@ trimWhitespace source =
 wordsStringAcc : CharList -> CharList -> List String
 wordsStringAcc [] [] = []
 wordsStringAcc [] current = reverse current ∷ []
-wordsStringAcc (c ∷ rest) current with isSpace c
-... | True with current
-...   | [] = wordsStringAcc rest []
-...   | _ = reverse current ∷ wordsStringAcc rest []
-... | False = wordsStringAcc rest (c ∷ current)
+wordsStringAcc (c ∷ rest) current with isSpace c | current
+... | True | [] = wordsStringAcc rest []
+... | True | _ = reverse current ∷ wordsStringAcc rest []
+... | False | _ = wordsStringAcc rest (c ∷ current)
 
 wordsString : String -> List String
 wordsString source = wordsStringAcc source []
