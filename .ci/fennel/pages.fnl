@@ -94,7 +94,7 @@
   (local after (+ start (string.len needle)))
   (.. (string.sub source 1 (- start 1))
       replacement
-      (string.sub source after)))
+      (string.sub source after))))
 
 (local rendered
   (replace-first template "<!-- GENERATED_CONTENT -->" generated-content))
