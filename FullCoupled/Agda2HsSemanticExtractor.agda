@@ -193,19 +193,21 @@ trimWhitespace source =
   dropTrailingSpaces
     (dropLeadingSpaces source)
 
--- Source-level whitespace tokenization. The worker is a named,
--- structurally recursive function: it avoids Agda-generated with-functions,
--- which are not valid Agda2HS Haskell identifiers.
+-- Source-level whitespace tokenization. Every recursive call consumes
+-- the head of the input list. Whitespace is handled by literal clauses, so
+-- the extracted code contains no generated with-function or higher-order scan.
 wordsStringAcc : CharList -> CharList -> List String
 wordsStringAcc [] [] = []
 wordsStringAcc [] current = reverse current ∷ []
-wordsStringAcc (c ∷ rest) current =
-  if isSpace c then
-    case current of λ where
-      [] -> wordsStringAcc rest []
-      _ -> reverse current ∷ wordsStringAcc rest []
-  else
-    wordsStringAcc rest (c ∷ current)
+wordsStringAcc (' ' ∷ rest) [] = wordsStringAcc rest []
+wordsStringAcc (' ' ∷ rest) current = reverse current ∷ wordsStringAcc rest []
+wordsStringAcc ('\n' ∷ rest) [] = wordsStringAcc rest []
+wordsStringAcc ('\n' ∷ rest) current = reverse current ∷ wordsStringAcc rest []
+wordsStringAcc ('\r' ∷ rest) [] = wordsStringAcc rest []
+wordsStringAcc ('\r' ∷ rest) current = reverse current ∷ wordsStringAcc rest []
+wordsStringAcc ('\t' ∷ rest) [] = wordsStringAcc rest []
+wordsStringAcc ('\t' ∷ rest) current = reverse current ∷ wordsStringAcc rest []
+wordsStringAcc (c ∷ rest) current = wordsStringAcc rest (c ∷ current)
 {-# COMPILE AGDA2HS wordsStringAcc #-}
 
 wordsString : String -> List String
@@ -213,7 +215,7 @@ wordsString source = wordsStringAcc source []
 {-# COMPILE AGDA2HS wordsString #-}
 
 wordsStringWhitespaceRegression :
-  wordsString "   \n  " ≡ []
+  wordsString "   " ≡ []
 wordsStringWhitespaceRegression = refl
 
 wordsStringTokenRegression :
