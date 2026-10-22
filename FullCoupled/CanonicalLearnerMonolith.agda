@@ -1264,7 +1264,7 @@ data _<ℕ_ : ℕ → ℕ → Set where
   natLtZeroSucc : ∀ {n} → zero <ℕ succ n
   natLtStep : ∀ {m n} → m <ℕ n → succ m <ℕ succ n
 
-not-less-than-itself : (n : ℕ) → n <ℕ n → EmptyComputability
+not-less-than-itself : (n : ℕ) → n <ℕ n → ⊥
 not-less-than-itself zero ()
 not-less-than-itself (succ n) (natLtStep smaller) =
   not-less-than-itself n smaller
