@@ -45,7 +45,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
-open import Haskell.Prelude public renaming (Int to PreludeInt)
+open import Haskell.Prelude public
 open import Haskell.Prim public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public hiding (trans; sym)
@@ -82,7 +82,7 @@ module ConstructiveComputabilityPostulates where
   -- no excluded-middle axiom in this module. The outer monolith's Prop-valued
   -- observational equality/rewrite rules remain limited extensionality; no
   -- identity-level function-extensionality postulate is added.
-  open import Haskell.Prelude using (Nat; zero; suc; Bool; True; False; List; []; _∷_; _≡_; refl)
+  open import Haskell.Prelude using (Nat; Int; zero; suc; Bool; True; False; List; []; _∷_; _≡_; refl)
 
   data EmptyComputability : Set where
 
