@@ -614,6 +614,104 @@ module RUSSProofTheory where
   russBoundedSearchWitnessRegression = refl
 
 
+
+  ----------------------------------------------------------------------
+  -- Pédrot-inspired dynamic-prompt base for the RUSS search semantics.
+  --
+  -- Stages are Boolean predicates on candidate indices. The preorder is
+  -- p <= q iff every index true at q is true at p; the top stage is the
+  -- everywhere-false predicate, and its meet is pointwise disjunction.
+  -- This matches the base preorder and top/meet shape used in Pédrot's
+  -- Markov model. The bounded evaluator above supplies executable finite
+  -- observations of these predicates.
+  --
+  -- Prompt exceptions are indexed by a stage and require a witness at each
+  -- refinement of that stage. Consequently the exception fibre at top is
+  -- empty, since top itself is one of its refinements and is everywhere
+  -- false. This formalizes a key invariant of the prompt construction, not
+  -- the full model: dependent type/context translation, substitution,
+  -- conversion preservation, and soundness remain to be formalized before
+  -- claiming a Pédrot-style model of Agda MLTT.
+  ----------------------------------------------------------------------
+
+  RUSSStage : Set
+  RUSSStage = Nat → Bool
+
+  RUSSStageLeq : RUSSStage → RUSSStage → Set
+  RUSSStageLeq p q = (n : Nat) → q n ≡ True → p n ≡ True
+
+  russStageLeqRefl :
+    (stage : RUSSStage) → RUSSStageLeq stage stage
+  russStageLeqRefl stage n evidence = evidence
+
+  russStageLeqTrans :
+    (p q r : RUSSStage) →
+    RUSSStageLeq p q →
+    RUSSStageLeq q r →
+    RUSSStageLeq p r
+  russStageLeqTrans p q r pLeQ qLeR n rIsTrue =
+    pLeQ n (qLeR n rIsTrue)
+
+  russBoolOr : Bool → Bool → Bool
+  russBoolOr True _ = True
+  russBoolOr False value = value
+
+  russStageTop : RUSSStage
+  russStageTop _ = False
+
+  russStageMeet : RUSSStage → RUSSStage → RUSSStage
+  russStageMeet p q n = russBoolOr (p n) (q n)
+
+  russFalseNotTrue : False ≡ True → EmptyComputability
+  russFalseNotTrue ()
+
+  russStageBelowTop :
+    (stage : RUSSStage) → RUSSStageLeq stage russStageTop
+  russStageBelowTop stage n evidence =
+    russEliminateFalse (russFalseNotTrue evidence)
+
+  russStageMeetLeLeft :
+    (p q : RUSSStage) →
+    RUSSStageLeq (russStageMeet p q) p
+  russStageMeetLeLeft p q n pIsTrue with p n
+  ... | True = refl
+  ... | False = russEliminateFalse (russFalseNotTrue pIsTrue)
+
+  russStageMeetLeRight :
+    (p q : RUSSStage) →
+    RUSSStageLeq (russStageMeet p q) q
+  russStageMeetLeRight p q n qIsTrue with q n
+  ... | True = refl
+  ... | False = russEliminateFalse (russFalseNotTrue qIsTrue)
+
+  -- A stage-indexed prompt exception: at stage p it must provide a
+  -- witness for every refinement q <= p. The top fibre is empty.
+  RUSSPromptExceptionAt : RUSSStage → Set₁
+  RUSSPromptExceptionAt stage =
+    (refinement : RUSSStage) →
+    RUSSStageLeq refinement stage →
+    SigmaWitness Nat (λ n → refinement n ≡ True)
+
+  russPromptExceptionAtTopAbsent :
+    RUSSPromptExceptionAt russStageTop → EmptyComputability
+  russPromptExceptionAtTopAbsent exception =
+    russFalseNotTrue
+      (sigmaEvidence
+        (exception russStageTop (russStageLeqRefl russStageTop)))
+
+  -- Definitional regressions for the dynamic-prompt base. No REWRITE pragma
+  -- is required: the stage operations compute by ordinary pattern matching.
+  russStageMeetTopRegression :
+    (n : Nat) →
+    russStageMeet russStageTop russStageTop n ≡ False
+  russStageMeetTopRegression n = refl
+
+  russStageMeetTrueRegression :
+    (q : RUSSStage) (n : Nat) →
+    russStageMeet (λ _ → True) q n ≡ True
+  russStageMeetTrueRegression q n = refl
+
+
 open RUSSProofTheory public
 
 
