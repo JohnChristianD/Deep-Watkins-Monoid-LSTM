@@ -1186,7 +1186,7 @@ graphAStarFirst :
   List GraphLaw ->
   GraphNode ->
   Maybe (List String)
-graphAStarFirst laws seed = graphAStarFirstEager laws seed
+graphAStarFirst laws seed = graphAStarFirstDeferred laws seed
 
 -- JAxtar-style deferred A*: queue child IDs and their parent paths with a
 -- lower-bound score; materialise the successor path and exact score on pop.
