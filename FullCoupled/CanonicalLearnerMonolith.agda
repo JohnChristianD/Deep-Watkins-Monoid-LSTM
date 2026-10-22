@@ -3406,7 +3406,7 @@ module MonoidLSTMStreams where
   -- reissuing BUILTIN SIZEUNIV after Agda.Builtin.Size is loaded fails with
   -- DuplicateBuiltinBinding. The nested module consumes the existing names.
   -- Agda2HS compiles recursive streams through this erased-size lazy tail.
-  open import Haskell.Prim.Thunk using (Thunk; force)
+  open import Haskell.Prim.Thunk using (Thunk; force; Size; Size<_; ∞)
   
   -- a stream carries the size of the observation depth available to its tail.
   -- Each tail is available at a strictly smaller size. This proves productivity
