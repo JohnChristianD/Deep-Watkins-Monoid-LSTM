@@ -10,13 +10,18 @@ incrementExtractorNat n = n + 1
 CharList : Type
 CharList = List Char
 
--- Compare parser strings through Agda2HS's native-string primitive.
--- The Haskell.Prim Char Eq instance calls primCharToNat, which is absent
--- from this pinned JS target; List Char equality therefore fails at runtime.
--- Native-string equality and List-to-string conversion have JS implementations.
+-- JS and Haskell need distinct implementations because this pinned
+-- JavaScript target lacks the generic Char primitive used by List equality.
+-- Keep native-string equality in Agda reduction/JS; map only the Agda2HS
+-- extraction to the official Eq instance for the library's List Char string.
+stringEqualHaskell : String → String → Bool
+stringEqualHaskell left right = left == right
+{-# COMPILE AGDA2HS stringEqualHaskell #-}
+
 stringEqual : String → String → Bool
 stringEqual left right =
   primStringEquality (primStringFromList left) (primStringFromList right)
+{-# COMPILE AGDA2HS stringEqual to stringEqualHaskell #-}
 
 -- Match the ASCII alphabet directly. The pinned Agda JavaScript backend in
 -- this build does not emit the required character primitives for its builtin
@@ -193,22 +198,34 @@ trimWhitespace source =
   dropTrailingSpaces
     (dropLeadingSpaces source)
 
--- Source-level whitespace tokenization. The local scanner recurses
--- structurally on the remaining input and keeps the current token reversed.
--- Keeping the worker local lets Agda2HS compile the exported tokenizer without
--- requiring a separate backend mapping for an implementation detail.
+-- Source-level whitespace tokenization. Every recursive call consumes
+-- the head of the input list. Whitespace is handled by literal clauses, so
+-- the extracted code contains no generated with-function or higher-order scan.
+wordsStringAcc : CharList -> CharList -> List String
+wordsStringAcc [] [] = []
+wordsStringAcc [] current = reverse current ∷ []
+wordsStringAcc (' ' ∷ rest) [] = wordsStringAcc rest []
+wordsStringAcc (' ' ∷ rest) current = reverse current ∷ wordsStringAcc rest []
+wordsStringAcc ('\n' ∷ rest) [] = wordsStringAcc rest []
+wordsStringAcc ('\n' ∷ rest) current = reverse current ∷ wordsStringAcc rest []
+wordsStringAcc ('\r' ∷ rest) [] = wordsStringAcc rest []
+wordsStringAcc ('\r' ∷ rest) current = reverse current ∷ wordsStringAcc rest []
+wordsStringAcc ('\t' ∷ rest) [] = wordsStringAcc rest []
+wordsStringAcc ('\t' ∷ rest) current = reverse current ∷ wordsStringAcc rest []
+wordsStringAcc (c ∷ rest) current = wordsStringAcc rest (c ∷ current)
+{-# COMPILE AGDA2HS wordsStringAcc #-}
+
 wordsString : String -> List String
 wordsString source = wordsStringAcc source []
-  where
-    wordsStringAcc : CharList -> CharList -> List String
-    wordsStringAcc [] [] = []
-    wordsStringAcc [] current = reverse current ∷ []
-    wordsStringAcc (c ∷ rest) current with isSpace c | current
-    ... | True | [] = wordsStringAcc rest []
-    ... | True | _ = reverse current ∷ wordsStringAcc rest []
-    ... | False | _ = wordsStringAcc rest (c ∷ current)
-
 {-# COMPILE AGDA2HS wordsString #-}
+
+wordsStringWhitespaceRegression :
+  wordsString "   " ≡ []
+wordsStringWhitespaceRegression = refl
+
+wordsStringTokenRegression :
+  wordsString "  module Example  where " ≡ ("module" ∷ "Example" ∷ "where" ∷ [])
+wordsStringTokenRegression = refl
 
 firstWord : String -> Maybe String
 firstWord source =

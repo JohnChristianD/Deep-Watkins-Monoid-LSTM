@@ -33,16 +33,19 @@ module FullCoupled.TheoremsMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude hiding (Int; String; Char; Type; ⊤; tt)
 
+-- Define the theorem module's integer shorthand from the official
+-- Prelude before importing the learner module later in this file. Do not
+-- refer forward to the learner's private compatibility notation.
 Int : Set
-Int = ℤ
+Int = Integer
 
 infixl 31 _+Int_
 _+Int_ : Int → Int → Int
-_+Int_ = _ℤ+_
+_+Int_ = _+_
 
 infixl 31 _*Int_
 _*Int_ : Int → Int → Int
-_*Int_ = _ℤ*_
+_*Int_ = _*_
 
 -- Compiler-facing subset of the Agda 2.8.0.2 Reflection ABI used below.
 -- Primitive signatures, builtin tags, and reflected syntax constructors

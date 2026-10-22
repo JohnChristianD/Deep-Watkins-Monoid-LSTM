@@ -45,9 +45,9 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
-open import Haskell.Prelude public
+open import Haskell.Prelude public renaming (Int to PreludeInt)
 open import Haskell.Law.Ord.Ordering public
-open import Haskell.Law.Equality public
+open import Haskell.Law.Equality public hiding (trans; sym)
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
@@ -60,6 +60,13 @@ open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Primitive public
+
+-- Preserve the file's established fullwidth equality notation as a purely
+-- definitional alias of Prelude propositional equality. No new axiom or
+-- extensionality principle is introduced by this compatibility name.
+infix 4 _＝_
+_＝_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
+_＝_ = _≡_
 
 ------------------------------------------------------------------------
 -- Shared constructive-computability assumptions and interfaces.
@@ -1249,22 +1256,358 @@ module ConstructiveExceptionSemantics where
     onException e
 
 
+-- The pinned Agda2HS integer-law module contains a Nat/Num inference
+-- failure in subtraction-times-multiplication. Keep the needed constructive
+-- proofs local to the canonical monolith, and state that boundary with primitive
+-- Nat arithmetic rather than importing the failing module.
+module CanonicalIntegerLaws where
+  
+  open import Haskell.Prim
+  open import Haskell.Prim.Num
+  open import Haskell.Prim.Integer
+  
+  open import Haskell.Law.Equality
+  open import Haskell.Law.Num.Def
+  open import Haskell.Law.Num.Nat
+  
+  -- Open the internal definitions because
+  -- these must be transparent for proofs.
+  open Haskell.Prim.Integer.Internal
+  
+  addInteger-idˡ : ∀ (x : Integer) → 0 + x ≡ x
+  addInteger-idˡ (pos _)    = refl
+  addInteger-idˡ (negsuc _) = cong negsuc refl
+  
+  addInteger-idʳ : ∀ (x : Integer) → x + 0 ≡ x
+  addInteger-idʳ (pos n)    = cong pos    $ addNat-idʳ n
+  addInteger-idʳ (negsuc _) = cong negsuc refl
+  
+  mulInteger-idˡ : ∀ (x : Integer) → 1 * x ≡ x
+  mulInteger-idˡ (pos x)    = cong pos    (addNat-idʳ x)
+  mulInteger-idˡ (negsuc x) = cong negsuc (addNat-idʳ x)
+  
+  mulInteger-idʳ : ∀ (x : Integer) → x * 1 ≡ x
+  mulInteger-idʳ (pos x)    = cong pos    (mulNat-idʳ x)
+  mulInteger-idʳ (negsuc x) = cong negsuc (mulNat-idʳ x)
+  
+  subNat-refl : ∀ (x : Nat) → subNat x x ≡ 0
+  subNat-refl zero    = refl
+  subNat-refl (suc x) = subNat-refl x
+  
+  n-n≡0-Nat : ∀ (x y : Nat) → subNat (x + y) x ≡ pos y
+  n-n≡0-Nat x       zero    rewrite addNat-idʳ x = subNat-refl x
+  n-n≡0-Nat zero    (suc _) = refl
+  n-n≡0-Nat (suc x) (suc y) = n-n≡0-Nat x (suc y)
+  
+  n-n≡0-Integer : ∀ (x : Integer) → x + (negateInteger x) ≡ 0
+  n-n≡0-Integer (pos zero)    = refl
+  n-n≡0-Integer (pos (suc x)) = subNat-refl x
+  n-n≡0-Integer (negsuc x)    = subNat-refl x
+  
+  mulInteger-zeroˡ : ∀ (x : Integer) → 0 * x ≡ 0
+  mulInteger-zeroˡ (pos _)    = refl
+  mulInteger-zeroˡ (negsuc _) = refl
+  
+  mulInteger-zeroʳ : ∀ (x : Integer) → x * 0 ≡ 0
+  mulInteger-zeroʳ (pos n)    = cong pos (mulNat-zeroʳ n)
+  mulInteger-zeroʳ (negsuc n) rewrite mulNat-zeroʳ n = refl
+  
+  addInteger-comm : ∀ (x y : Integer) → x + y ≡ y + x
+  addInteger-comm (pos x)    (pos y)    = cong pos (addNat-comm x y)
+  addInteger-comm (pos _)    (negsuc _) = refl
+  addInteger-comm (negsuc _) (pos _)    = refl
+  addInteger-comm (negsuc x) (negsuc y) = cong negsuc (cong suc (addNat-comm x y))
+  
+  subNat|x-[y+z]≡x-y-z : ∀ (x y z : Nat) → subNat x (y + suc z) ≡ subNat x y + negsuc z
+  subNat|x-[y+z]≡x-y-z _       zero    _ = refl
+  subNat|x-[y+z]≡x-y-z zero    (suc y) z = cong negsuc (addNat-suc y z)
+  subNat|x-[y+z]≡x-y-z (suc x) (suc y) z = subNat|x-[y+z]≡x-y-z x y z
+  
+  subNat|x-y+z≡[x+z]-y : ∀ (x y z : Nat) → subNat x y + pos (suc z) ≡ subNat (x + suc z) y
+  subNat|x-y+z≡[x+z]-y _       zero    _ = refl
+  subNat|x-y+z≡[x+z]-y zero    (suc _) _ = refl
+  subNat|x-y+z≡[x+z]-y (suc x) (suc y) z = subNat|x-y+z≡[x+z]-y x y z
+  
+  subNat-cong-suc : ∀ (x y : Nat) → subNat (suc x) y ≡ pos 1 + subNat x y
+  subNat-cong-suc _       zero    = refl
+  subNat-cong-suc zero    (suc _) = refl
+  subNat-cong-suc (suc x) (suc y) = subNat-cong-suc x y
+  
+  subNat|x+[y-z]≡[1+x]+[y-[1+z]] : ∀ (x y z : Nat) → pos x + subNat y z ≡ pos (suc x) + subNat y (suc z)
+  subNat|x+[y-z]≡[1+x]+[y-[1+z]] x zero    zero    = cong pos (addNat-idʳ x)
+  subNat|x+[y-z]≡[1+x]+[y-[1+z]] x (suc y) zero    = cong pos (addNat-suc x y)
+  subNat|x+[y-z]≡[1+x]+[y-[1+z]] _ zero    (suc _) = refl
+  subNat|x+[y-z]≡[1+x]+[y-[1+z]] x (suc y) (suc z) = subNat|x+[y-z]≡[1+x]+[y-[1+z]] x y z
+  
+  subNat|x-y+[1+z]≡[1+x]+[z-y] : ∀ (x y z : Nat) → subNat x y + pos (suc z) ≡ pos (suc x) + subNat z y
+  subNat|x-y+[1+z]≡[1+x]+[z-y] x       zero    z    = cong pos (addNat-suc x z)
+  subNat|x-y+[1+z]≡[1+x]+[z-y] zero    (suc _) zero = refl
+  subNat|x-y+[1+z]≡[1+x]+[z-y] zero    (suc y) (suc z) = subNat-cong-suc z y
+  subNat|x-y+[1+z]≡[1+x]+[z-y] (suc x) (suc y) z       =
+    subNat x y + pos (suc z)             ≡⟨ subNat|x-y+[1+z]≡[1+x]+[z-y] x y z ⟩
+    pos (suc x)       + subNat z y       ≡⟨ subNat|x+[y-z]≡[1+x]+[y-[1+z]] (suc x) z y ⟩
+    pos (suc (suc x)) + subNat z (suc y) ∎
+  
+  subNat|[1+x+y]-z≡[1+x]+[y-z] : ∀ (x y z : Nat) → subNat (suc x + y) z ≡ pos (suc x) + subNat y z
+  subNat|[1+x+y]-z≡[1+x]+[y-z] _ _       zero    = refl
+  subNat|[1+x+y]-z≡[1+x]+[y-z] x zero    (suc z) = cong (λ eq → subNat eq z) (addNat-idʳ x)
+  subNat|[1+x+y]-z≡[1+x]+[y-z] x (suc y) (suc z) =
+    subNat (x + suc y) z     ≡⟨ sym (subNat|x-y+z≡[x+z]-y x z y) ⟩
+    subNat x z + pos (suc y) ≡⟨ subNat|x-y+[1+z]≡[1+x]+[z-y] x z y ⟩
+    pos (suc x) + subNat y z ∎
+  
+  subNat|x-y+[-[1+z]]≡x-z+[-[1+y]] : ∀ (x y z : Nat) → subNat x y + negsuc z ≡ subNat x z + negsuc y
+  subNat|x-y+[-[1+z]]≡x-z+[-[1+y]] x y z = begin
+    subNat x y + negsuc z ≡⟨ sym (subNat|x-[y+z]≡x-y-z x y z) ⟩
+    subNat x (y + suc z)  ≡⟨ cong (subNat x) (addNat-comm y (suc z)) ⟩
+    subNat x (suc z + y)  ≡⟨ cong (subNat x) (sym (addNat-suc z y)) ⟩
+    subNat x (z + suc y)  ≡⟨ subNat|x-[y+z]≡x-y-z x z y ⟩
+    subNat x z + negsuc y ∎
+  
+  subNat-cong-+ : ∀ (x y z : Nat) → subNat (x + y) (x + z) ≡ subNat y z
+  subNat-cong-+ x       y zero rewrite addNat-idʳ x = n-n≡0-Nat x y
+  subNat-cong-+ zero    _ (suc _) = refl
+  subNat-cong-+ (suc x) y (suc z) = subNat-cong-+ x y (suc z)
+  
+  -- Use primitive natural arithmetic here. The generic Num instance
+  -- leaves metas in the pinned upstream proof at this exact reduction boundary.
+  subNat-cong-addNat : ∀ (x y z : Nat) → subNat (addNat x y) (addNat x z) ≡ subNat y z
+  subNat-cong-addNat zero y z = refl
+  subNat-cong-addNat (suc x) y z = subNat-cong-addNat x y z
+  
+  subNat-distrib-minus :
+    ∀ (m n o : Nat) →
+    subNat n o * pos m ≡ subNat (mulNat n m) (mulNat o m)
+  subNat-distrib-minus _ _ zero = refl
+  subNat-distrib-minus zero zero (suc o)
+    rewrite mulNat-zeroʳ o = refl
+  subNat-distrib-minus (suc _) zero (suc _) = refl
+  subNat-distrib-minus zero (suc n) (suc o)
+    rewrite mulNat-zeroʳ o
+          | mulInteger-zeroʳ (subNat n o)
+          | mulNat-zeroʳ n = refl
+  subNat-distrib-minus (suc m) (suc n) (suc o) =
+    subNat n o * pos (suc m)
+      ≡⟨ subNat-distrib-minus (suc m) n o ⟩
+    subNat (mulNat n (suc m)) (mulNat o (suc m))
+      ≡⟨ sym (subNat-cong-addNat m (mulNat n (suc m)) (mulNat o (suc m))) ⟩
+    subNat
+      (addNat m (mulNat n (suc m)))
+      (addNat m (mulNat o (suc m))) ∎
+  
+  subNat-mult-flip-negsuc : ∀ (m n o : Nat) → subNat o n * negsuc m ≡ subNat n o * pos (suc m)
+  subNat-mult-flip-negsuc _ zero    zero    = refl
+  subNat-mult-flip-negsuc _ zero    (suc _) = refl
+  subNat-mult-flip-negsuc _ (suc _) zero    = refl
+  subNat-mult-flip-negsuc m (suc n) (suc o) = subNat-mult-flip-negsuc m n o
+  
+  subNat-distrib-minus-cong-+ :
+    ∀ (m n o : Nat) →
+    subNat o n * pos (suc m) ≡
+    subNat (addNat m (mulNat o (suc m)))
+           (addNat m (mulNat n (suc m)))
+  subNat-distrib-minus-cong-+ m n o =
+    subNat o n * pos (suc m)
+      ≡⟨ subNat-distrib-minus (suc m) o n ⟩
+    subNat (mulNat o (suc m)) (mulNat n (suc m))
+      ≡⟨ sym (subNat-cong-addNat m (mulNat o (suc m)) (mulNat n (suc m))) ⟩
+    subNat (addNat m (mulNat o (suc m)))
+           (addNat m (mulNat n (suc m))) ∎
+  
+  
+  addInteger-assoc : ∀ (x y z : Integer) → (x + y) + z ≡ x + (y + z)
+  addInteger-assoc (pos zero) j k rewrite addInteger-idˡ      j  | addInteger-idˡ (j + k) = refl
+  addInteger-assoc i (pos zero) k rewrite addInteger-idʳ  i      | addInteger-idˡ      k  = refl
+  addInteger-assoc i j (pos zero) rewrite addInteger-idʳ (i + j) | addInteger-idʳ  j      = refl
+  addInteger-assoc (negsuc m) (negsuc n) (pos (suc o)) =
+    (negsuc m + negsuc n) + pos (suc o)       ≡⟨⟩
+    negsuc (suc (m + n)) + pos (suc o)        ≡⟨⟩
+    subNat o (suc m + n)                      ≡⟨ cong (subNat o) (addNat-comm (suc m) n) ⟩
+    subNat o (n + suc m)                      ≡⟨ subNat|x-[y+z]≡x-y-z o n m ⟩
+    subNat o n + negsuc m                     ≡⟨ addInteger-comm (subNat o n) (negsuc m) ⟩
+    negsuc m + subNat o n                     ≡⟨⟩
+    negsuc m + (negsuc n + pos (suc o))       ∎
+  addInteger-assoc (negsuc m) (pos (suc n)) (pos (suc o)) =
+    (negsuc m + pos (suc n)) + pos (suc o)    ≡⟨⟩
+    subNat n m + pos (suc o)                  ≡⟨ subNat|x-y+z≡[x+z]-y n m o ⟩
+    subNat (n + suc o) m                      ≡⟨⟩
+    negsuc m + pos (suc (n + suc o))          ≡⟨⟩
+    negsuc m + (pos (suc n) + pos (suc o))    ∎
+  addInteger-assoc (pos (suc m)) (negsuc n) (negsuc o) =
+    (pos (suc m) + negsuc n) + negsuc o       ≡⟨⟩
+    subNat m n + negsuc o                     ≡⟨ sym $ subNat|x-[y+z]≡x-y-z m n o ⟩
+    subNat m (n + suc o)                      ≡⟨ cong (subNat m) (addNat-suc n o) ⟩
+    subNat m (suc (n + o))                    ≡⟨⟩
+    pos (suc m) + (negsuc (suc (n + o)))      ≡⟨⟩
+    pos (suc m) + (negsuc n + negsuc o)       ∎
+  addInteger-assoc (pos (suc m)) (negsuc n) (pos (suc o)) =
+    (pos (suc m) + negsuc n) + pos (suc o)    ≡⟨⟩
+    subNat m n + pos (suc o)                  ≡⟨ subNat|x-y+[1+z]≡[1+x]+[z-y] m n o ⟩
+    pos (suc m) + subNat o n                  ≡⟨⟩
+    pos (suc m) + (negsuc n + pos (suc o))    ∎
+  addInteger-assoc (pos (suc x)) (pos (suc y)) (negsuc z) = begin
+    (pos (suc x) + pos (suc y)) + negsuc z    ≡⟨⟩
+    pos (suc (x + (suc y))) + negsuc z        ≡⟨ cong (_+ negsuc z) (cong pos (cong suc (addNat-suc x y))) ⟩
+    pos (suc (suc (x + y))) + negsuc z        ≡⟨⟩
+    subNat (suc (x + y)) z                    ≡⟨⟩
+    subNat (suc  x + y)  z                    ≡⟨ subNat|[1+x+y]-z≡[1+x]+[y-z] x y z ⟩
+    pos (suc x) + subNat y z                  ≡⟨⟩
+    pos (suc x) + (pos (suc y)   + negsuc z)  ∎
+  addInteger-assoc (negsuc m) (negsuc n) (negsuc o) = cong negsuc $ cong suc $
+    suc ((m + n) + o)                         ≡⟨ cong suc (addNat-assoc m n o) ⟩
+    suc (m + (n + o))                         ≡⟨ sym (addNat-suc m (n + o)) ⟩
+    m + (suc (n + o))                         ∎
+  addInteger-assoc (negsuc m) (pos (suc n)) (negsuc o) =
+    (negsuc m + pos (suc n)) + negsuc o       ≡⟨⟩
+    subNat n m + negsuc o                     ≡⟨ subNat|x-y+[-[1+z]]≡x-z+[-[1+y]] n m o ⟩
+    subNat n o + negsuc m                     ≡⟨ addInteger-comm (subNat n o) (negsuc m) ⟩
+    negsuc m + subNat n o                     ≡⟨⟩
+    negsuc m + (pos (suc n) - pos (suc o))    ∎
+  addInteger-assoc (pos (suc m)) (pos (suc n)) (pos (suc o)) = cong pos (addNat-assoc (suc m) (suc n) (suc o))
+  
+  distribute-1ˡ : ∀ (x y : Nat) → x * (1 + y) ≡ x + (y * x)
+  distribute-1ˡ x y = begin
+    x * (suc y) ≡⟨ mulNat-suc x y ⟩
+    x + (x * y) ≡⟨ cong (x +_) (mulNat-comm x y) ⟩
+    x + (y * x) ∎
+  
+  mulInteger-comm : ∀ (x y : Integer) → x * y ≡ y * x
+  mulInteger-comm (pos x)    (pos y)    = cong pos (mulNat-comm x y)
+  mulInteger-comm (pos x)    (negsuc y) = cong negNat $       distribute-1ˡ x y
+  mulInteger-comm (negsuc x) (pos y)    = cong negNat $ sym $ distribute-1ˡ y x
+  mulInteger-comm (negsuc x) (negsuc y) = cong pos $ cong suc $
+    y + (x * (suc y)) ≡⟨ cong (y +_) (distribute-1ˡ x y) ⟩
+    y + (x + (y * x)) ≡⟨ cong (y +_) (cong (x +_) (mulNat-comm y x)) ⟩
+    y + (x + (x * y)) ≡⟨ sym (addNat-assoc y x (x * y)) ⟩
+    (y + x) + (x * y) ≡⟨ cong (_+ x * y) (addNat-comm y x) ⟩
+    (x + y) + (x * y) ≡⟨ addNat-assoc x y (x * y) ⟩
+    x + (y + (x * y)) ≡⟨ cong (x +_) (sym (distribute-1ˡ y x)) ⟩
+    x + (y * (suc x)) ∎
+  
+  distrib-lemma : ∀ (m n o : Nat) → suc (m + ((n + o) * suc m)) ≡ (n * suc m) + (suc (m + (o * suc m)))
+  distrib-lemma m n o =
+    suc (m + ((n + o) * suc m))             ≡⟨ cong suc (cong (m +_) (mulNat-distributeʳ-addNat (suc m) n o)) ⟩
+    suc (m + ((n * suc m)   + (o * suc m))) ≡⟨⟩
+     suc m + ((n * suc m)   + (o * suc m))  ≡⟨ sym (addNat-assoc (suc m) (n * suc m) (o * suc m) ) ⟩
+    (suc m +  (n * suc m))  + (o * suc m)   ≡⟨ cong (_+ o * suc m) (addNat-comm (suc m) (n * suc m)) ⟩
+    ((n * suc m) +  suc  m) + (o * suc m)   ≡⟨ addNat-assoc (n * suc m) (suc m) (o * suc m) ⟩
+     (n * suc m) + (suc (m  + (o * suc m))) ∎
+  
+  distrib-lemma2 : ∀ (m n o : Nat) → m + ((n * suc m) + (suc m + (o * suc m))) ≡ suc ((m + (n * suc m)) + (m + (o * suc m)))
+  distrib-lemma2 m n o =
+     m + (    (n * suc m) + (suc  m + (o * suc m))) ≡⟨⟩
+     m + (    (n * suc m) +  suc (m + (o * suc m))) ≡⟨ sym (addNat-assoc m (n * suc m) (suc (m + (o * suc m)))) ⟩
+    (m +      (n * suc m)) + suc (m + (o * suc m))  ≡⟨ addNat-suc (m + (n * suc m)) (m + (o * suc m)) ⟩
+    suc ((m + (n * suc m)) +     (m + (o * suc m))) ∎
+  
+  mulInteger-distributeʳ-addInteger : ∀ (x y z : Integer) → (y + z) * x ≡ (y * x) + (z * x)
+  mulInteger-distributeʳ-addInteger (pos zero) j k rewrite mulInteger-zeroʳ j | mulInteger-zeroʳ k | mulInteger-zeroʳ (j + k) = refl
+  mulInteger-distributeʳ-addInteger i (pos zero) k rewrite addInteger-idˡ k   | mulInteger-zeroˡ i | addInteger-idˡ   (k * i) = refl
+  mulInteger-distributeʳ-addInteger i j (pos zero) rewrite addInteger-idʳ j   | mulInteger-zeroˡ i | addInteger-idʳ   (j * i) = refl
+  mulInteger-distributeʳ-addInteger (negsuc m)    (negsuc n)    (pos (suc o)) = begin
+    subNat o n * negsuc m                      ≡⟨ subNat-mult-flip-negsuc m n o ⟩
+    subNat n o * pos (suc m)                   ≡⟨ subNat-distrib-minus-cong-+ m o n ⟩
+    subNat (m + (n * suc m)) (m + (o * suc m)) ∎
+  mulInteger-distributeʳ-addInteger (negsuc m)    (pos (suc n)) (pos (suc o)) = cong negsuc $ begin
+    m + ((n + suc o) * suc m)                       ≡⟨ cong (m +_) (mulNat-distributeʳ-addNat (suc m) n (suc o)) ⟩
+    m + (     (n * suc m) + (suc m + (o * suc m)))  ≡⟨ distrib-lemma2 m n o ⟩
+    suc ((m + (n * suc m)) +     (m + (o * suc m))) ∎ -- Y
+  mulInteger-distributeʳ-addInteger (pos (suc m)) (negsuc n)    (negsuc o)    = cong negsuc $ begin
+    m + (suc (m + ((n + o) * suc m)))               ≡⟨⟩
+    m + (suc m  + ((n + o) * suc m))                ≡⟨ cong (m +_) (distrib-lemma m n o) ⟩
+    m + (     (n * suc m) + (suc m + (o * suc m)))  ≡⟨ distrib-lemma2 m n o ⟩
+    suc ((m + (n * suc m)) + (m + (o * suc m)))     ∎ -- Y
+  mulInteger-distributeʳ-addInteger (pos (suc m)) (negsuc n)    (pos (suc o)) = subNat-distrib-minus-cong-+ m n o
+  mulInteger-distributeʳ-addInteger (pos (suc m)) (pos (suc n)) (negsuc o)    = subNat-distrib-minus-cong-+ m o n
+  mulInteger-distributeʳ-addInteger (negsuc m)    (negsuc n)    (negsuc o)    = cong pos $ cong suc $
+    m + (suc (m + ((n + o) * suc m)))           ≡⟨⟩
+    m + (suc m  + ((n + o) * suc m))            ≡⟨ cong (m +_) (distrib-lemma m n o) ⟩
+    m + ((n * suc m) + (suc m  + (o * suc m)))  ≡⟨ sym (addNat-assoc m (n * suc m) (suc m + (o * suc m))) ⟩
+    (m + (n * suc m)) + (suc (m + (o * suc m))) ∎ -- X
+  mulInteger-distributeʳ-addInteger (negsuc m)    (pos (suc n)) (negsuc o)    =
+    subNat n o * negsuc m                      ≡⟨ subNat-mult-flip-negsuc m o n ⟩
+    subNat o n * pos (suc m)                   ≡⟨ subNat-distrib-minus-cong-+ m n o ⟩
+    subNat (m + (o * suc m)) (m + (n * suc m)) ∎
+  mulInteger-distributeʳ-addInteger (pos (suc m)) (pos (suc n)) (pos (suc o)) = cong pos $ cong suc $
+    m + ((n + suc o) * suc m)                   ≡⟨ cong (m +_) (mulNat-distributeʳ-addNat (suc m) n (suc o)) ⟩
+    m + ((n * suc m) + (suc m  + (o * suc m)))  ≡⟨ sym (addNat-assoc m (n * suc m) (suc m + (o * suc m))) ⟩
+    (m + (n * suc m)) + (suc m  + (o * suc m))  ≡⟨⟩
+    (m + (n * suc m)) + (suc (m + (o * suc m))) ∎ -- X
+  
+  mulInteger-distributeˡ-addInteger : ∀ (x y z : Integer) → x * (y + z) ≡ (x * y) + (x * z)
+  mulInteger-distributeˡ-addInteger x y z
+    -- This proof works the very same as addNat-distributeˡ-mulNat.
+    rewrite (mulInteger-comm x (y + z)) -- makes or goal become: (y + z) * x ≡ (x * y) + (x * z)
+    rewrite (mulInteger-comm x y)       -- makes or goal become: (y + z) * x ≡ (y * x) + (x * z)
+    rewrite (mulInteger-comm x z)       -- makes or goal become: (y + z) * x ≡ (y * x) + (z * x)
+    = mulInteger-distributeʳ-addInteger x y z
+  
+  mulInteger-assoc-lemma-2 : ∀ (m n o : Nat) → (n + m * suc n) * suc o ≡ (n * suc o) + (m * suc (o + (n * suc o)))
+  mulInteger-assoc-lemma-2 m n o =            begin
+    (n + (m * suc n)) * (suc o)               ≡⟨ mulNat-distributeʳ-addNat (suc o) n (m * suc n) ⟩
+    (n * (suc o)) + ((m * suc n) * (suc o))   ≡⟨ cong (n * suc o +_) (mulNat-assoc m (suc n) (suc o)) ⟩
+    (n * suc o) + (m * suc (o + (n * suc o))) ∎
+  
+  mulInteger-assoc-lemma : ∀ (m n o : Nat)
+    → o + ((n + m * suc n) * suc o) ≡ (o + (n * suc o)) + (m * suc (o + (n * suc o)))
+  mulInteger-assoc-lemma m n o =                      begin
+      o + ((n + m * suc n) * suc o)                   ≡⟨ cong (o +_) (mulInteger-assoc-lemma-2 m n o) ⟩
+      o + ((n * suc o) + (m * suc (o + (n * suc o)))) ≡⟨ sym (addNat-assoc o (n * suc o) (m * suc (o + (n * suc o)))) ⟩
+      (o + (n * suc o)) + (m * suc (o + (n * suc o))) ∎
+  
+  mulInteger-assoc : ∀ (x y z : Integer) → (x * y) * z ≡ x * (y * z)
+  mulInteger-assoc (pos zero) j k rewrite mulInteger-zeroˡ j | mulInteger-zeroˡ k | mulInteger-zeroˡ (j * k) = refl
+  mulInteger-assoc i (pos zero) k rewrite mulInteger-zeroʳ i | mulInteger-zeroˡ k | mulInteger-zeroʳ i       = refl
+  mulInteger-assoc i j (pos zero) rewrite mulInteger-zeroʳ j | mulInteger-zeroʳ i | mulInteger-zeroʳ (i * j) = refl
+  mulInteger-assoc (negsuc m)    (negsuc n)    (pos (suc o)) = cong pos (cong suc (mulInteger-assoc-lemma m n o))
+  mulInteger-assoc (negsuc m)    (pos (suc n)) (pos (suc o)) = cong negsuc        (mulInteger-assoc-lemma m n o)
+  mulInteger-assoc (pos (suc m)) (negsuc n)    (negsuc o)    = cong pos (cong suc (mulInteger-assoc-lemma m n o))
+  mulInteger-assoc (pos (suc m)) (negsuc n)    (pos (suc o)) = cong negsuc        (mulInteger-assoc-lemma m n o)
+  mulInteger-assoc (pos (suc m)) (pos (suc n)) (negsuc o)    = cong negsuc        (mulInteger-assoc-lemma m n o)
+  mulInteger-assoc (negsuc m)    (negsuc n)    (negsuc o)    = cong negsuc        (mulInteger-assoc-lemma m n o)
+  mulInteger-assoc (negsuc m)    (pos (suc n)) (negsuc o)    = cong pos (cong suc (mulInteger-assoc-lemma m n o))
+  mulInteger-assoc (pos (suc m)) (pos (suc n)) (pos (suc o)) = cong pos (cong suc (mulInteger-assoc-lemma m n o))
+  
+  instance
+    iLawfulNumInteger : IsLawfulNum Integer
+    iLawfulNumInteger .IsLawfulNum.+-assoc = addInteger-assoc
+    iLawfulNumInteger .IsLawfulNum.+-comm = addInteger-comm
+    iLawfulNumInteger .IsLawfulNum.+-idˡ x = addInteger-idˡ x
+    iLawfulNumInteger .IsLawfulNum.+-idʳ x = addInteger-idʳ x
+    iLawfulNumInteger .IsLawfulNum.neg-inv x = n-n≡0-Integer x
+    iLawfulNumInteger .IsLawfulNum.*-assoc = mulInteger-assoc
+    iLawfulNumInteger .IsLawfulNum.*-idˡ x = mulInteger-idˡ x
+    iLawfulNumInteger .IsLawfulNum.*-idʳ x = mulInteger-idʳ x
+    iLawfulNumInteger .IsLawfulNum.distributeˡ = mulInteger-distributeˡ-addInteger
+    iLawfulNumInteger .IsLawfulNum.distributeʳ = mulInteger-distributeʳ-addInteger
+  
+open CanonicalIntegerLaws public using
+  ( addInteger-idˡ
+  ; addInteger-idʳ
+  ; addInteger-assoc
+  ; mulInteger-idˡ
+  ; mulInteger-idʳ
+  ; mulInteger-zeroˡ
+  ; mulInteger-zeroʳ
+  ; mulInteger-distributeˡ-addInteger
+  ; mulInteger-assoc
+  )
+
 -- The learner's older mathematical notation is mapped onto the official
 -- Agda2HS Prelude types. Keep this compatibility layer local: no extra
 -- Agda monolith or third-party theory is introduced.
 ℕ : Set
 ℕ = Nat
 
-pattern succ n = suc n
 
 infix 4 _<ℕ_
 data _<ℕ_ : ℕ → ℕ → Set where
-  natLtZeroSucc : ∀ {n} → zero <ℕ succ n
-  natLtStep : ∀ {m n} → m <ℕ n → succ m <ℕ succ n
+  natLtZeroSucc : ∀ {n} → zero <ℕ suc n
+  natLtStep : ∀ {m n} → m <ℕ n → suc m <ℕ suc n
 
 not-less-than-itself : (n : ℕ) → n <ℕ n → ⊥
 not-less-than-itself zero ()
-not-less-than-itself (succ n) (natLtStep smaller) =
+not-less-than-itself (suc n) (natLtStep smaller) =
   not-less-than-itself n smaller
 
 ℤ : Set
@@ -1354,8 +1697,8 @@ intCodeMul x y = intCode (intCodeValue x *Int intCodeValue y)
 
 intNeg : Int → Int
 intNeg (pos zero) = pos zero
-intNeg (pos (succ n)) = negsucc n
-intNeg (negsucc n) = pos (succ n)
+intNeg (pos (suc n)) = negsucc n
+intNeg (negsucc n) = pos (suc n)
 
 intCodeNeg : IntCode → IntCode
 intCodeNeg x = intCode (intNeg (intCodeValue x))
@@ -1401,32 +1744,32 @@ intCodeRoundtrip n = refl
 
 plus-zero : ∀ n → n + zero ＝ n
 plus-zero zero = refl
-plus-zero (succ n) = ap succ (plus-zero n)
+plus-zero (suc n) = ap suc (plus-zero n)
 
-plus-succ : ∀ (m n : ℕ) → m + succ n ＝ succ (m + n)
+plus-succ : ∀ (m n : ℕ) → m + suc n ＝ suc (m + n)
 plus-succ zero n = refl
-plus-succ (succ m) n = refl
+plus-succ (suc m) n = refl
 
-plus-succ-lt : ∀ (m n : ℕ) → m <ℕ (m + succ n)
+plus-succ-lt : ∀ (m n : ℕ) → m <ℕ (m + suc n)
 plus-succ-lt zero n = natLtZeroSucc
-plus-succ-lt (succ m) n = natLtStep (plus-succ-lt m n)
+plus-succ-lt (suc m) n = natLtStep (plus-succ-lt m n)
 
-plus-succ-not-self : ∀ (m n : ℕ) → m + succ n ≠ m
+plus-succ-not-self : ∀ (m n : ℕ) → m + suc n ≠ m
 plus-succ-not-self m n eq =
   not-less-than-itself m (transport (λ z → m <ℕ z) eq (plus-succ-lt m n))
 
-succ-succ-lt : ∀ (n : ℕ) → n <ℕ succ (succ n)
+succ-succ-lt : ∀ (n : ℕ) → n <ℕ suc (suc n)
 succ-succ-lt zero = natLtZeroSucc
-succ-succ-lt (succ n) = natLtStep (succ-succ-lt n)
+succ-succ-lt (suc n) = natLtStep (succ-succ-lt n)
 
-succ-succ-not-self : ∀ n → succ (succ n) ≠ n
+succ-succ-not-self : ∀ n → suc (suc n) ≠ n
 succ-succ-not-self n eq =
-  not-less-than-itself (succ (succ n))
-    (transport (λ z → z <ℕ succ (succ n)) (sym eq) (succ-succ-lt n))
+  not-less-than-itself (suc (suc n))
+    (transport (λ z → z <ℕ suc (suc n)) (sym eq) (succ-succ-lt n))
 
 iterate : ∀ {S : Set} → (S → S) → ℕ → S → S
 iterate step zero s = s
-iterate step (succ n) s = step (iterate step n s)
+iterate step (suc n) s = step (iterate step n s)
 
 OrbitNonFixed : ∀ {S : Set} {step : S → S} → S → Set
 OrbitNonFixed {step = step} s = ∀ n → iterate step n s ≠ step (iterate step n s)
@@ -1438,8 +1781,8 @@ data Signed : Set where
 
 signedCode : IntCode → Signed
 signedCode (intCode (pos 0)) = signedZer
-signedCode (intCode (pos (succ n))) = signedPos (succ n)
-signedCode (intCode (negsucc n)) = signedNeg (succ n)
+signedCode (intCode (pos (suc n))) = signedPos (suc n)
+signedCode (intCode (negsucc n)) = signedNeg (suc n)
 
 data BoolLike : Set where
   enabled disabled : BoolLike
@@ -1465,25 +1808,25 @@ zeroCounts _ = zero
 
 natEq : ℕ → ℕ → BoolLike
 natEq zero zero = enabled
-natEq zero (succ n) = disabled
-natEq (succ m) zero = disabled
-natEq (succ m) (succ n) = natEq m n
+natEq zero (suc n) = disabled
+natEq (suc m) zero = disabled
+natEq (suc m) (suc n) = natEq m n
 
 natLt : ℕ → ℕ → BoolLike
 natLt zero zero = disabled
-natLt zero (succ n) = enabled
-natLt (succ m) zero = disabled
-natLt (succ m) (succ n) = natLt m n
+natLt zero (suc n) = enabled
+natLt (suc m) zero = disabled
+natLt (suc m) (suc n) = natLt m n
 
 natLE : ℕ → ℕ → BoolLike
 natLE zero n = enabled
-natLE (succ m) zero = disabled
-natLE (succ m) (succ n) = natLE m n
+natLE (suc m) zero = disabled
+natLE (suc m) (suc n) = natLE m n
 
 maxNat : ℕ → ℕ → ℕ
 maxNat zero n = n
-maxNat (succ m) zero = succ m
-maxNat (succ m) (succ n) = succ (maxNat m n)
+maxNat (suc m) zero = suc m
+maxNat (suc m) (suc n) = suc (maxNat m n)
 
 updateAt : ∀ {A : Set} → QFunction {A} → ℕ → IntCode → QFunction {A}
 updateAt q a r i with natEq i a
@@ -1492,7 +1835,7 @@ updateAt q a r i with natEq i a
 
 incAt : ∀ {A : Set} → CountFunction {A} → ℕ → CountFunction {A}
 incAt c a i with natEq i a
-... | enabled = succ (c i)
+... | enabled = suc (c i)
 ... | disabled = c i
 
 record CriticState (A : Set) : Set where
@@ -1534,12 +1877,12 @@ open LCBCountKernel public
 
 finiteLCBBonus8 : ℕ → IntCode
 finiteLCBBonus8 zero = intCodeOfNat 127
-finiteLCBBonus8 (succ zero) = intCodeOfNat 63
-finiteLCBBonus8 (succ (succ zero)) = intCodeOfNat 31
-finiteLCBBonus8 (succ (succ (succ zero))) = intCodeOfNat 15
-finiteLCBBonus8 (succ (succ (succ (succ zero)))) = intCodeOfNat 7
-finiteLCBBonus8 (succ (succ (succ (succ (succ zero))))) = intCodeOfNat 3
-finiteLCBBonus8 (succ (succ (succ (succ (succ (succ zero)))))) = intCodeOfNat 1
+finiteLCBBonus8 (suc zero) = intCodeOfNat 63
+finiteLCBBonus8 (suc (suc zero)) = intCodeOfNat 31
+finiteLCBBonus8 (suc (suc (suc zero))) = intCodeOfNat 15
+finiteLCBBonus8 (suc (suc (suc (suc zero)))) = intCodeOfNat 7
+finiteLCBBonus8 (suc (suc (suc (suc (suc zero))))) = intCodeOfNat 3
+finiteLCBBonus8 (suc (suc (suc (suc (suc (suc zero)))))) = intCodeOfNat 1
 finiteLCBBonus8 _ = zeroIntCode
 
 lcbNegate : IntCode → IntCode
@@ -1574,9 +1917,9 @@ compareInt8 x y with compare (intCodeValue x) (intCodeValue y)
 
 compareNat : ℕ → ℕ → ComparisonResult
 compareNat zero zero = equal
-compareNat zero (succ _) = less
-compareNat (succ _) zero = greater
-compareNat (succ m) (succ n) = compareNat m n
+compareNat zero (suc _) = less
+compareNat (suc _) zero = greater
+compareNat (suc m) (suc n) = compareNat m n
 
 scoreBefore : ScoreEntry → ScoreEntry → Bool
 scoreBefore (s₁ , a₁) (s₂ , a₂) with compareInt8 s₁ s₂
@@ -1600,7 +1943,7 @@ sortScores (x ∷ xs) = insertScore x (sortScores xs)
 natAt : ℕ → List ℕ → ℕ
 natAt k [] = zero
 natAt zero (x ∷ xs) = x
-natAt (succ k) (x ∷ xs) = natAt k xs
+natAt (suc k) (x ∷ xs) = natAt k xs
 
 sumList : List ℕ → ℕ
 sumList [] = zero
@@ -1707,25 +2050,25 @@ integerLayerNormValue {xs} config certificate x =
 
 intCodeMagnitude : IntCode → ℕ
 intCodeMagnitude (intCode (pos n)) = n
-intCodeMagnitude (intCode (negsucc n)) = succ n
+intCodeMagnitude (intCode (negsucc n)) = suc n
 
 infixl 6 _∸_
 _∸_ : ℕ → ℕ → ℕ
 zero ∸ n = zero
-succ m ∸ zero = succ m
-succ m ∸ succ n = m ∸ n
+suc m ∸ zero = suc m
+suc m ∸ suc n = m ∸ n
 
 topCodes : ℕ → List ScoreEntry → List ℕ
 topCodes zero xs = []
-topCodes (succ k) [] = []
-topCodes (succ k) ((x , a) ∷ xs) = intCodeMagnitude x ∷ topCodes k xs
+topCodes (suc k) [] = []
+topCodes (suc k) ((x , a) ∷ xs) = intCodeMagnitude x ∷ topCodes k xs
 
 -- TypeTopology arithmetic aliases stay local: do not import the agda2hs
 -- Prelude here, since its builtin Nat is a different source type.
 infixl 7 _*ℕ_
 _*ℕ_ : ℕ → ℕ → ℕ
 x *ℕ zero = zero
-x *ℕ succ y = x + x *ℕ y
+x *ℕ suc y = x + x *ℕ y
 
 infixl 6 _+ℕ_
 _+ℕ_ : ℕ → ℕ → ℕ
@@ -1738,12 +2081,12 @@ supportValid xs temperature k with natLt (sumList (topCodes k xs)) (((k *ℕ nat
 
 searchSupport : List ScoreEntry → ℕ → ℕ → ℕ → ℕ → ℕ
 searchSupport xs temperature zero current best = best
-searchSupport xs temperature (succ n) current best with supportValid xs temperature current
-... | enabled = searchSupport xs temperature n (succ current) (maxNat best current)
-... | disabled = searchSupport xs temperature n (succ current) best
+searchSupport xs temperature (suc n) current best with supportValid xs temperature current
+... | enabled = searchSupport xs temperature n (suc current) (maxNat best current)
+... | disabled = searchSupport xs temperature n (suc current) best
 
 supportSize : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ
-supportSize K q c = searchSupport (sortScores (scoreList K q c)) sparsemaxTemperature (length (candidates K)) (succ zero) (succ zero)
+supportSize K q c = searchSupport (sortScores (scoreList K q c)) sparsemaxTemperature (length (candidates K)) (suc zero) (suc zero)
 
 record SparseWeight : Set where
   constructor sparseWeight
@@ -1779,7 +2122,7 @@ sparsemaxPolicy K q c = selectPositive K q c (sortScores (scoreList K q c))
 
 updateLCBCount : ∀ {A : Set} → ℕ → LCBCountState A → LCBCountState A
 updateLCBCount {A} a (lcbCountState counts total) =
-  lcbCountState (incAt {A = A} counts a) (succ total)
+  lcbCountState (incAt {A = A} counts a) (suc total)
 
 ------------------------------------------------------------------------
 -- TypeTopology Rationals supplies the canonical exact rational carrier.
@@ -1800,7 +2143,7 @@ dyadicNumerator ((negsucc n , d) , _) = zero
 
 dyadicDenominator : Dyadic → ℕ
 dyadicDenominator ((z , d) , _) =
-  succ d
+  suc d
 
 dyadicDivide : ℕ → Dyadic → ℕ
 dyadicDivide n ((z , d) , _) =
@@ -1809,7 +2152,7 @@ dyadicDivide n ((z , d) , _) =
 qLog8 : IntCode → Dyadic
 qLog8 x with intCodeMagnitude x
 ... | zero = fromNatDyadic 1 zero
-... | succ n = fromNatDyadic (128 ∸ succ n) (succ n)
+... | suc n = fromNatDyadic (128 ∸ suc n) (suc n)
 
 munchausenScale8 : ℕ
 munchausenScale8 = 16
@@ -1817,10 +2160,10 @@ munchausenScale8 = 16
 signedDyadicBias8 : Dyadic → IntCode
 signedDyadicBias8 q with dyadicNumerator q
 ... | zero = zeroIntCode
-... | succ n = intCodeNeg
+... | suc n = intCodeNeg
   (intCodeOfNat
     (dyadicDivide
-      (munchausenScale8 *ℕ succ n)
+      (munchausenScale8 *ℕ suc n)
       q))
 
 qLog2Bias8 : IntCode → IntCode
@@ -1847,12 +2190,12 @@ data HardSign : Set where
 
 hardSignNonnegative : IntCode → HardSign
 hardSignNonnegative (intCode (pos 0)) = zeroSign
-hardSignNonnegative (intCode (pos (succ n))) = positiveSign
+hardSignNonnegative (intCode (pos (suc n))) = positiveSign
 hardSignNonnegative (intCode (negsucc n)) = negativeSign
 
 hardSign : IntCode → HardSign
 hardSign (intCode (pos 0)) = zeroSign
-hardSign (intCode (pos (succ n))) = positiveSign
+hardSign (intCode (pos (suc n))) = positiveSign
 hardSign (intCode (negsucc n)) = negativeSign
 
 hardSignGate : IntCode → IntCode
@@ -1961,7 +2304,7 @@ data MonoidLSTMGate : Set where
 
 monoidLSTMGateOf : IntCode → MonoidLSTMGate
 monoidLSTMGateOf (intCode (pos 0)) = monoidHold
-monoidLSTMGateOf (intCode (pos (succ n))) = monoidAccum
+monoidLSTMGateOf (intCode (pos (suc n))) = monoidAccum
 monoidLSTMGateOf (intCode (negsucc n)) = monoidReset
 
 monoidLSTMCellStep : MonoidLSTMGate → IntCode → IntCode → IntCode
@@ -2296,7 +2639,7 @@ recurrentPrefixState :
   State →
   State
 recurrentPrefixState R xs zero s = s
-recurrentPrefixState R xs (succ n) s =
+recurrentPrefixState R xs (suc n) s =
   runNetwork R
     (recurrentPrefixState R xs n s)
     (xs n)
@@ -2309,7 +2652,7 @@ recurrentPrefixEndomorphism :
   Endomorphism State
 recurrentPrefixEndomorphism R xs zero =
   identityEndomorphism
-recurrentPrefixEndomorphism R xs (succ n) =
+recurrentPrefixEndomorphism R xs (suc n) =
   composeEndomorphism
     (recurrentInputEndomorphism R (xs n))
     (recurrentPrefixEndomorphism R xs n)
@@ -2326,7 +2669,7 @@ recurrentPrefix-correct :
   ＝
   recurrentPrefixState R xs n s
 recurrentPrefix-correct R xs zero s = refl
-recurrentPrefix-correct R xs (succ n) s =
+recurrentPrefix-correct R xs (suc n) s =
   ap
     (λ z → runNetwork R z (xs n))
     (recurrentPrefix-correct R xs n s)
@@ -2356,7 +2699,7 @@ recurrentPrefix-split R xs m zero s =
   ap
     (λ k → recurrentPrefixState R xs k s)
     (plus-zero m)
-recurrentPrefix-split R xs m (succ n) s =
+recurrentPrefix-split R xs m (suc n) s =
   trans
     (ap
       (λ k → recurrentPrefixState R xs k s)
@@ -2556,7 +2899,7 @@ canonicalCReLU8 x =
 
 canonicalSignReLU' : ℚ → ℚ
 canonicalSignReLU' (((negsucc n , a) , _)) =
-  toℚ (negsucc n , a + succ n)
+  toℚ (negsucc n , a + suc n)
 canonicalSignReLU' q = q
 
 CanonicalCReLUPrimePair : Set
@@ -2601,7 +2944,7 @@ canonicalHaarFeatureReconstruct :
 canonicalHaarFeatureReconstruct
   (intCode (pos 0)) = refl
 canonicalHaarFeatureReconstruct
-  (intCode (pos (succ n))) = refl
+  (intCode (pos (suc n))) = refl
 canonicalHaarFeatureReconstruct
   (intCode (negsucc n)) = intCode+-idˡ (intCode (negsucc n))
 
@@ -3522,7 +3865,7 @@ learnerStreamAt :
   LearnerStream i A →
   A
 learnerStreamAt zero trace = learnerStreamHead trace
-learnerStreamAt (succ n) trace =
+learnerStreamAt (suc n) trace =
   learnerStreamAt n (learnerStreamTail trace)
 
 
@@ -3532,9 +3875,9 @@ iterateCanonical-step-shift :
   (n : ℕ)
   (s : FullLearnerState A) →
   iterateCanonical K n (canonicalFullStep K s) ＝
-  iterateCanonical K (succ n) s
+  iterateCanonical K (suc n) s
 iterateCanonical-step-shift K zero s = refl
-iterateCanonical-step-shift K (succ n) s =
+iterateCanonical-step-shift K (suc n) s =
   ap (canonicalFullStep K) (iterateCanonical-step-shift K n s)
 
 canonicalLearnerTraceAt :
@@ -3545,7 +3888,7 @@ canonicalLearnerTraceAt :
   learnerStreamAt n (canonicalLearnerTrace K s) ＝
   iterateCanonical K n s
 canonicalLearnerTraceAt K s zero = refl
-canonicalLearnerTraceAt K s (succ n) =
+canonicalLearnerTraceAt K s (suc n) =
   trans
     (canonicalLearnerTraceAt K (canonicalFullStep K s) n)
     (iterateCanonical-step-shift K n s)
@@ -3581,7 +3924,7 @@ canonicalFullStep-qLog K s = refl
 canonicalFullStep-qLogControl : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → qLogControl (canonicalFullStep K s) ＝ canonicalQLogControlStep K s
 canonicalFullStep-qLogControl K s = refl
 
-canonicalTotalCountStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (canonicalFullStep K s)) ＝ succ (totalCount (lcbCounts s))
+canonicalTotalCountStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (canonicalFullStep K s)) ＝ suc (totalCount (lcbCounts s))
 canonicalTotalCountStep K s = refl
 
 canonicalNoFixedPoint :
@@ -3590,40 +3933,40 @@ canonicalNoFixedPoint :
 canonicalNoFixedPoint K s eq =
   plus-succ-not-self (totalCount (lcbCounts s)) zero
     (trans (plus-succ (totalCount (lcbCounts s)) zero)
-      (trans (ap succ (plus-zero (totalCount (lcbCounts s))))
+      (trans (ap suc (plus-zero (totalCount (lcbCounts s))))
         (trans (sym (canonicalTotalCountStep K s))
           (ap (λ t → totalCount (lcbCounts t)) eq))))
 
 iterateCanonical : ∀ {A} → FullLearnerKernel A → ℕ → FullLearnerState A → FullLearnerState A
 iterateCanonical K zero s = s
-iterateCanonical K (succ n) s = canonicalFullStep K (iterateCanonical K n s)
+iterateCanonical K (suc n) s = canonicalFullStep K (iterateCanonical K n s)
 
 canonicalTotalCountAfter :
   ∀ {A} (K : FullLearnerKernel A) (n : ℕ) (s : FullLearnerState A) →
   totalCount (lcbCounts (iterateCanonical K n s)) ＝
   totalCount (lcbCounts s) + n
 canonicalTotalCountAfter K zero s = sym (plus-zero (totalCount (lcbCounts s)))
-canonicalTotalCountAfter K (succ n) s =
+canonicalTotalCountAfter K (suc n) s =
   trans
     (canonicalTotalCountStep K (iterateCanonical K n s))
     (trans
-      (ap succ (canonicalTotalCountAfter K n s))
+      (ap suc (canonicalTotalCountAfter K n s))
       (sym (plus-succ (totalCount (lcbCounts s)) n)))
 
-canonicalAperiodic : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (succ n) s ≠ s
+canonicalAperiodic : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ≠ s
 canonicalAperiodic K s n cyc = plus-succ-not-self (totalCount (lcbCounts s)) n
   (trans
-    (sym (canonicalTotalCountAfter K (succ n) s))
+    (sym (canonicalTotalCountAfter K (suc n) s))
     (ap (λ t → totalCount (lcbCounts t)) cyc))
 
 canonicalOrbitNonFixed : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K n s ≠ canonicalFullStep K (iterateCanonical K n s)
 canonicalOrbitNonFixed K s n eq =
   canonicalNoFixedPoint K (iterateCanonical K n s) (eq ⁻¹)
 
-canonicalNoNontrivialFiniteCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (succ n) s ＝ s → 𝟘
+canonicalNoNontrivialFiniteCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ＝ s → 𝟘
 canonicalNoNontrivialFiniteCycle K s n cyc = canonicalAperiodic K s n cyc
 
-canonicalTotalCountIterate2 : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (iterateCanonical K 2 s)) ＝ succ (succ (totalCount (lcbCounts s)))
+canonicalTotalCountIterate2 : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (iterateCanonical K 2 s)) ＝ suc (suc (totalCount (lcbCounts s)))
 canonicalTotalCountIterate2 K s = refl
 
 canonicalNoCountedTwoCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → iterateCanonical K 2 s ＝ s → 𝟘
