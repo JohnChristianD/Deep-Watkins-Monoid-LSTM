@@ -45,7 +45,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
-open import Haskell.Prelude public renaming (Int to PreludeInt)
+open import Haskell.Prelude public
 open import Haskell.Prim public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public hiding (trans; sym)
@@ -1656,11 +1656,6 @@ not-less-than-itself zero ()
 not-less-than-itself (suc n) (natLtStep smaller) =
   not-less-than-itself n smaller
 
-ℤ : Set
-ℤ = Integer
-
-Int : Set
-Int = ℤ
 
 infixl 31 _+Int_
 _+Int_ : Int → Int → Int
