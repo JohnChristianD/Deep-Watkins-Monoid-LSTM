@@ -17,6 +17,7 @@ CharList = List Char
 stringEqual : String → String → Bool
 stringEqual left right =
   primStringEquality (primStringFromList left) (primStringFromList right)
+{-# COMPILE AGDA2HS stringEqual #-}
 
 -- Match the ASCII alphabet directly. The pinned Agda JavaScript backend in
 -- this build does not emit the required character primitives for its builtin
