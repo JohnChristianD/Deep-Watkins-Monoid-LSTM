@@ -1,8 +1,7 @@
 (local fun (require :fun))
 
-; Pure colour-space and maximin-selection core. Arrays are read-only inputs;
-; candidate/chosen collections are persistent linked lists. Filesystem output
-; is isolated at the final adapter boundary.
+; Pure colour-space and maximin-selection core. Candidate/chosen collections
+; are persistent linked lists. File access is isolated at this outer adapter.
 
 (local read-file (fn [path]
   (local file (assert (io.open path "r") (.. "cannot read " path)))
@@ -42,15 +41,13 @@
   (local r (clamp01 (+ light (* 0.34 (math.cos hue)))))
   (local g (clamp01 (+ light (* 0.34 (math.cos (- hue DEG120)))))
   (local b (clamp01 (+ light (* 0.34 (math.cos (+ hue DEG120)))))
+  (local l (+ (* 0.7328 r) (* 0.4296 g) (* -0.1624 b)))
+  (local m (+ (* -0.7036 r) (* 1.6975 g) (* 0.0061 b)))
+  (local s (+ (* 0.0030 r) (* 0.0136 g) (* 0.9834 b)))
   {:r r :g g :b b
-   :L (/ (+ (* 0.7328 r) (* 0.4296 g) (* -0.1624 b)
-            (* -0.7036 r) (* 1.6975 g) (* 0.0061 b)
-            (* 0.0030 r) (* 0.0136 g) (* 0.9834 b)) SQRT3)
-   :A (/ (- (+ (* 0.7328 r) (* 0.4296 g) (* -0.1624 b))
-            (+ (* -0.7036 r) (* 1.6975 g) (* 0.0061 b)) SQRT2)
-   :B (/ (+ (+ (* 0.7328 r) (* 0.4296 g) (* -0.1624 b))
-            (+ (* -0.7036 r) (* 1.6975 g) (* 0.0061 b))
-            (* -2.0 (+ (* 0.0030 r) (* 0.0136 g) (* 0.9834 b)))) SQRT6)}))
+   :L (/ (+ l m s) SQRT3)
+   :A (/ (- l m) SQRT2)
+   :B (/ (+ l m (* -2.0 s)) SQRT6)}))
 
 (local distance-squared (fn [left right]
   (local dL (- left.L right.L))
@@ -90,17 +87,19 @@
       (if (not candidates.tail)
           {:colour candidates.head
            :score (minimum-distance chosen candidates.head)}
-          (local first-colour candidates.head)
-          (local first-score (minimum-distance chosen first-colour))
-          (local rest-best (farthest chosen candidates.tail))
-          (if (>= first-score rest-best.score)
-              {:colour first-colour :score first-score}
-              rest-best))))
+          (do
+            (local first-colour candidates.head)
+            (local first-score (minimum-distance chosen first-colour))
+            (local rest-best (farthest chosen candidates.tail))
+            (if (>= first-score rest-best.score)
+                {:colour first-colour :score first-score}
+                rest-best)))))
 
 (local without-colour (fn without-colour [candidates chosen]
   (if (not candidates)
       nil
-      (local rest (without-colour candidates.tail chosen)
+      (do
+        (local rest (without-colour candidates.tail chosen))
         (if (> (distance-squared candidates.head chosen) 0.0)
             {:head candidates.head :tail rest}
             rest))))
@@ -110,13 +109,14 @@
       chosen
       (if (not candidates)
           chosen
-          (local selected
-            (if chosen
-                (. (farthest chosen candidates) :colour)
-                candidates.head)
-            (local remaining (without-colour candidates selected)
-              (choose-colours remaining
-                (list-append chosen selected) target))))))
+          (do
+            (local selected
+              (if chosen
+                  (. (farthest chosen candidates) :colour)
+                  candidates.head))
+            (local remaining (without-colour candidates selected))
+            (choose-colours remaining
+              (list-append chosen selected) target)))))
 
 (local rgb-hex (fn [colour]
   (string.format "#%02X%02X%02X"
