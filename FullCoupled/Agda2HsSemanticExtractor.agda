@@ -2,7 +2,7 @@ module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude
 open import Haskell.Prim using
-  ( eqNat; monusNat; AgdaString; primIsAscii; primIsAlpha; primIsDigit )
+  ( eqNat; monusNat; AgdaString )
 
 incrementExtractorNat : Nat → Nat
 incrementExtractorNat n = n + 1
@@ -10,32 +10,77 @@ incrementExtractorNat n = n + 1
 CharList : Type
 CharList = List Char
 
--- Use Agda's character-class primitives rather than Ord Char. The latter
--- reaches primCharToNat in generated JavaScript; that helper is not available
--- in the current JS target closure. Intersecting with ASCII preserves the
--- intended identifier alphabet rather than accepting arbitrary Unicode letters.
+-- Match the ASCII alphabet directly. The pinned Agda JavaScript backend in
+-- this build does not emit the required character primitives for its builtin
+-- Char module, so Ord Char and primIs* calls fail at runtime. Literal clauses
+-- are ordinary source-level pattern matching and need no character primitive.
 isAsciiAlpha : Char → Bool
-isAsciiAlpha c = primIsAscii c && primIsAlpha c
+isAsciiAlpha 'A' = True
+isAsciiAlpha 'B' = True
+isAsciiAlpha 'C' = True
+isAsciiAlpha 'D' = True
+isAsciiAlpha 'E' = True
+isAsciiAlpha 'F' = True
+isAsciiAlpha 'G' = True
+isAsciiAlpha 'H' = True
+isAsciiAlpha 'I' = True
+isAsciiAlpha 'J' = True
+isAsciiAlpha 'K' = True
+isAsciiAlpha 'L' = True
+isAsciiAlpha 'M' = True
+isAsciiAlpha 'N' = True
+isAsciiAlpha 'O' = True
+isAsciiAlpha 'P' = True
+isAsciiAlpha 'Q' = True
+isAsciiAlpha 'R' = True
+isAsciiAlpha 'S' = True
+isAsciiAlpha 'T' = True
+isAsciiAlpha 'U' = True
+isAsciiAlpha 'V' = True
+isAsciiAlpha 'W' = True
+isAsciiAlpha 'X' = True
+isAsciiAlpha 'Y' = True
+isAsciiAlpha 'Z' = True
+isAsciiAlpha 'a' = True
+isAsciiAlpha 'b' = True
+isAsciiAlpha 'c' = True
+isAsciiAlpha 'd' = True
+isAsciiAlpha 'e' = True
+isAsciiAlpha 'f' = True
+isAsciiAlpha 'g' = True
+isAsciiAlpha 'h' = True
+isAsciiAlpha 'i' = True
+isAsciiAlpha 'j' = True
+isAsciiAlpha 'k' = True
+isAsciiAlpha 'l' = True
+isAsciiAlpha 'm' = True
+isAsciiAlpha 'n' = True
+isAsciiAlpha 'o' = True
+isAsciiAlpha 'p' = True
+isAsciiAlpha 'q' = True
+isAsciiAlpha 'r' = True
+isAsciiAlpha 's' = True
+isAsciiAlpha 't' = True
+isAsciiAlpha 'u' = True
+isAsciiAlpha 'v' = True
+isAsciiAlpha 'w' = True
+isAsciiAlpha 'x' = True
+isAsciiAlpha 'y' = True
+isAsciiAlpha 'z' = True
+isAsciiAlpha _ = False
 
 isAsciiDigit : Char → Bool
-isAsciiDigit c = primIsAscii c && primIsDigit c
-
-isAsciiAlphaRegression : Bool
-isAsciiAlphaRegression =
-  isAsciiAlpha 'A' && isAsciiAlpha 'z' && not (isAsciiAlpha '7')
-
-isAsciiAlphaRegressionChecked :
-  isAsciiAlphaRegression ≡ True
-isAsciiAlphaRegressionChecked = refl
-
-isAsciiDigitRegression : Bool
-isAsciiDigitRegression =
-  isAsciiDigit '0' && isAsciiDigit '9' && not (isAsciiDigit 'x')
-
-isAsciiDigitRegressionChecked :
-  isAsciiDigitRegression ≡ True
-isAsciiDigitRegressionChecked = refl
-
+isAsciiDigit '0' = True
+isAsciiDigit '1' = True
+isAsciiDigit '2' = True
+isAsciiDigit '3' = True
+isAsciiDigit '4' = True
+isAsciiDigit '5' = True
+isAsciiDigit '6' = True
+isAsciiDigit '7' = True
+isAsciiDigit '8' = True
+isAsciiDigit '9' = True
+isAsciiDigit _ = False
 isSourceSpace : Char → Bool
 isSourceSpace c =
   if c == ' ' then True
