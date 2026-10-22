@@ -1047,6 +1047,47 @@ module ConstructiveComputabilityPostulates where
       ScottErshovEffectiveDomainData.approximationLeast domain
 
   ----------------------------------------------------------------------
+  -- Scott-Ershov computational approximation equations.
+  --
+  -- Following the distinction in Cockx–Tabareau–Winterhalter's rewriting
+  -- theory, the equations below are explicit computational assumptions of
+  -- each supplied approximation machine, not postulates about every domain.
+  -- Registering these equations makes the zero-stage and successor-stage
+  -- behavior judgmental. They are disjoint rewrite heads, checked by the
+  -- monolith's existing --confluence-check setting.
+  ----------------------------------------------------------------------
+
+  record ScottErshovComputationalDomain (D : Set) : Set₁ where
+    constructor scottErshovComputationalDomain
+    field
+      scottErshovBottom : D
+      scottErshovApproximation : D → Nat → D
+      scottErshovApproximationStep : D → D → D
+      scottErshovApproximationAtZero :
+        (x : D) →
+        scottErshovApproximation x zero ≡ scottErshovBottom
+      scottErshovApproximationAtSuccessor :
+        (x : D) (n : Nat) →
+        scottErshovApproximation x (suc n) ≡
+          scottErshovApproximationStep x (scottErshovApproximation x n)
+
+  open ScottErshovComputationalDomain public
+
+  {-# REWRITE scottErshovApproximationAtZero scottErshovApproximationAtSuccessor #-}
+
+  scottErshovApproximationAtZeroRegression :
+    (D : Set) (domain : ScottErshovComputationalDomain D) (x : D) →
+    scottErshovApproximation domain x zero ≡ scottErshovBottom domain
+  scottErshovApproximationAtZeroRegression D domain x = refl
+
+  scottErshovApproximationAtSuccessorRegression :
+    (D : Set) (domain : ScottErshovComputationalDomain D)
+    (x : D) (n : Nat) →
+    scottErshovApproximation domain x (suc n) ≡
+      scottErshovApproximationStep domain x (scottErshovApproximation domain x n)
+  scottErshovApproximationAtSuccessorRegression D domain x n = refl
+
+  ----------------------------------------------------------------------
   -- Henkin construction with consistency and witness hypotheses explicit.
   -- A result is returned with a concrete model witness and satisfaction
   -- evidence; completeness is not asserted for an unspecified proof system.
@@ -2911,7 +2952,14 @@ module MonoidLSTMStreams where
   open import Haskell.Prelude
     using (Nat; zero; suc; List; []; _∷_; _≡_; refl; _+_)
   open import Agda.Primitive using (Level; _⊔_)
-  open import Agda.Builtin.Size using (Size; Size<_; ∞)
+  -- Bind Agda's sized-type primitives here rather than importing
+  -- Agda.Builtin.Size. These names are introduced by their BUILTIN pragmas.
+  {-# BUILTIN SIZEUNIV SizeUniv #-}
+  {-# BUILTIN SIZE Size #-}
+  {-# BUILTIN SIZELT Size<_ #-}
+  {-# BUILTIN SIZESUC ↑_ #-}
+  {-# BUILTIN SIZEINF ∞ #-}
+  {-# BUILTIN SIZEMAX _⊔ˢ_ #-}
   -- Agda2HS compiles recursive streams through this erased-size lazy tail.
   open import Haskell.Prim.Thunk using (Thunk; force)
   

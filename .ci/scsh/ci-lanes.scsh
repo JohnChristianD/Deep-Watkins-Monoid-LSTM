@@ -144,6 +144,17 @@
       "graphTwoLeafBranchesRegressionChecked = refl"
       "graphCycleIsRejectedRegressionChecked = refl"
       "sourceOnlyLegacyBoundaryRegressionChecked = refl"))
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda"
+    "scottErshovApproximationAtZeroRegression")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "module RUSSProofTheory where")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russSoundness")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russCoreConsistency")
+  (for-each
+    (lambda (path)
+      (forbid-text path "import Agda.Builtin.")
+      (forbid-text path "open import Agda.Builtin."))
+    '("FullCoupled/CanonicalLearnerMonolith.agda"
+      "FullCoupled/TheoremsMonolith.agda"))
   (check-agda "FullCoupled/CanonicalLearnerMonolith.agda")
   (check-agda "FullCoupled/TheoremsMonolith.agda")
   (display "canonical-learner-monolith=kernel-checked-relative-to-trusted-imports-and-postulates\n")
@@ -365,7 +376,7 @@
               "build Agda2Forth")
     (must-run (lambda () (run (mkdir "-p" ,forth-dir))) "create Forth temp dir")
     (write-file source
-      "module BackendSmoke where\nopen import Agda.Builtin.Nat using (Nat; zero; suc; _+_)\ndouble : Nat → Nat\ndouble n = n + n\n")
+      "module BackendSmoke where\ndata Nat : Set where\n  zero : Nat\n  suc : Nat → Nat\n{-# BUILTIN NATURAL Nat #-}\n\ninfixl 6 _+_\n_+_ : Nat → Nat → Nat\nzero + n = n\nsuc m + n = suc (m + n)\n{-# BUILTIN NATPLUS _+_ #-}\n\ndouble : Nat → Nat\ndouble n = n + n\n")
     (must-run (lambda () (run (cp ,source ,forth-dir))) "copy backend Agda test")
     (must-run
       (lambda () (run (,(string-append tmp "/agda2forth/bin/agda2forth")
