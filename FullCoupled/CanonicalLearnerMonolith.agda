@@ -3176,10 +3176,10 @@ record FullLearnerKernel (A : Set) : Set₁ where
 open FullLearnerKernel public
 
 CanonicalFullLearnerState : Set₁
-CanonicalFullLearnerState = FullLearnerState 𝟙
+CanonicalFullLearnerState = FullLearnerState ⊤
 
 CanonicalFullLearnerKernel : Set₁
-CanonicalFullLearnerKernel = FullLearnerKernel 𝟙
+CanonicalFullLearnerKernel = FullLearnerKernel ⊤
 
 canonicalPolicy : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → ℕ
 canonicalPolicy K s = sparsemaxPolicy (actionSpaceK K) (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s))) (valuesCount (lcbCounts s))
