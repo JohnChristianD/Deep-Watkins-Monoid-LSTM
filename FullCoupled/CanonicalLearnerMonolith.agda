@@ -2187,9 +2187,21 @@ dyadicDenominator : Dyadic → ℕ
 dyadicDenominator (_ , denominatorMinusOne) =
   suc denominatorMinusOne
 
+-- Total quotient/remainder by a positive natural. Structural
+-- recursion on the numerator keeps this evaluator accepted by Agda's
+-- termination checker; divisor zero has explicit total behavior.
+fractionDivision : ℕ → ℕ → ℕ × ℕ
+fractionDivision _ zero = zero , zero
+fractionDivision zero (suc _) = zero , zero
+fractionDivision (suc n) (suc d)
+  with fractionDivision n (suc d)
+... | quotient , remainder with natEq (suc remainder) (suc d)
+...   | enabled = suc quotient , zero
+...   | disabled = quotient , suc remainder
+
 dyadicDivide : ℕ → Dyadic → ℕ
 dyadicDivide n (_ , denominatorMinusOne) =
-  pr₁ (division n denominatorMinusOne)
+  pr₁ (fractionDivision n (suc denominatorMinusOne))
 
 qLog8 : IntCode → Dyadic
 qLog8 x with intCodeMagnitude x
