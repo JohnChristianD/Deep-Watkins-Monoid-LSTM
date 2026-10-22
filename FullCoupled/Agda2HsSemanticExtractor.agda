@@ -193,22 +193,32 @@ trimWhitespace source =
   dropTrailingSpaces
     (dropLeadingSpaces source)
 
--- Source-level whitespace tokenization. The local scanner recurses
--- structurally on the remaining input and keeps the current token reversed.
--- Keeping the worker local lets Agda2HS compile the exported tokenizer without
--- requiring a separate backend mapping for an implementation detail.
+-- Source-level whitespace tokenization. The worker is a named,
+-- structurally recursive function: it avoids Agda-generated with-functions,
+-- which are not valid Agda2HS Haskell identifiers.
+wordsStringAcc : CharList -> CharList -> List String
+wordsStringAcc [] [] = []
+wordsStringAcc [] current = reverse current ∷ []
+wordsStringAcc (c ∷ rest) current =
+  if isSpace c then
+    case current of λ where
+      [] -> wordsStringAcc rest []
+      _ -> reverse current ∷ wordsStringAcc rest []
+  else
+    wordsStringAcc rest (c ∷ current)
+{-# COMPILE AGDA2HS wordsStringAcc #-}
+
 wordsString : String -> List String
 wordsString source = wordsStringAcc source []
-  where
-    wordsStringAcc : CharList -> CharList -> List String
-    wordsStringAcc [] [] = []
-    wordsStringAcc [] current = reverse current ∷ []
-    wordsStringAcc (c ∷ rest) current with isSpace c | current
-    ... | True | [] = wordsStringAcc rest []
-    ... | True | _ = reverse current ∷ wordsStringAcc rest []
-    ... | False | _ = wordsStringAcc rest (c ∷ current)
-
 {-# COMPILE AGDA2HS wordsString #-}
+
+wordsStringWhitespaceRegression :
+  wordsString "   \n  " ≡ []
+wordsStringWhitespaceRegression = refl
+
+wordsStringTokenRegression :
+  wordsString "  module Example  where " ≡ ("module" ∷ "Example" ∷ "where" ∷ [])
+wordsStringTokenRegression = refl
 
 firstWord : String -> Maybe String
 firstWord source =
