@@ -2,13 +2,21 @@ module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude
 open import Haskell.Prim using
-  ( eqNat; monusNat; AgdaString )
+  ( eqNat; monusNat; AgdaString; primStringFromList; primStringEquality )
 
 incrementExtractorNat : Nat → Nat
 incrementExtractorNat n = n + 1
 
 CharList : Type
 CharList = List Char
+
+-- Compare parser strings through Agda2HS's native-string primitive.
+-- The Haskell.Prim Char Eq instance calls primCharToNat, which is absent
+-- from this pinned JS target; List Char equality therefore fails at runtime.
+-- Native-string equality and List-to-string conversion have JS implementations.
+stringEqual : String → String → Bool
+stringEqual left right =
+  primStringEquality (primStringFromList left) (primStringFromList right)
 
 -- Match the ASCII alphabet directly. The pinned Agda JavaScript backend in
 -- this build does not emit the required character primitives for its builtin
@@ -243,7 +251,7 @@ splitFirstEqualsString source =
 planContains : String -> List String -> Bool
 planContains _ [] = False
 planContains name (candidate ∷ rest) =
-  if name == candidate then
+  if stringEqual name candidate then
     True
   else
     planContains name rest
@@ -294,7 +302,7 @@ topLevelHeader line =
       case topLevelLine line of λ where
         False -> Nothing
         True ->
-          case syntaxHead headerName || headerName == "--" of λ where
+          case syntaxHead headerName || stringEqual headerName "--" of λ where
             True -> Nothing
             False ->
               case lineContainsColon line of λ where
@@ -338,7 +346,7 @@ topLevelRecordHeader line =
   case firstWord line of λ where
     Nothing -> Nothing
     (Just firstName) ->
-      case firstName == "record" of λ where
+      case stringEqual firstName "record" of λ where
         True -> topLevelRecordHeaderAtTopLevel line
         False -> Nothing
 
@@ -347,7 +355,7 @@ topLevelRecordHeaderRegression =
   case topLevelRecordHeader "record Example : Set where" of λ where
     Nothing -> False
     (Just (recordName , recordType)) ->
-      recordName == "Example" && recordType == "Set where"
+      stringEqual recordName "Example" && stringEqual recordType "Set where"
 
 topLevelRecordHeaderRegressionChecked :
   topLevelRecordHeaderRegression ≡ True
@@ -382,7 +390,7 @@ bodyClause name line =
       case topLevelLine line of λ where
         False -> Nothing
         True ->
-          case lineName == name of λ where
+          case stringEqual lineName name of λ where
             False -> Nothing
             True ->
               case lineContainsEquals line of λ where
@@ -395,7 +403,7 @@ bodyClauseRegression : Bool
 bodyClauseRegression =
   case bodyClause "sample" "sample = body" of λ where
     Nothing -> False
-    (Just body) -> body == "body"
+    (Just body) -> stringEqual body "body"
 
 bodyClauseRegressionChecked :
   bodyClauseRegression ≡ True
@@ -497,7 +505,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
         Nothing ->
           case topLevelDeclarationHeader line of λ where
             (Just nextName) ->
-              if nextName == name then
+              if stringEqual nextName name then
                 scanLines
                   sourceFile
                   rest
@@ -536,7 +544,7 @@ scanLines sourceFile (line ∷ rest) state accumulator =
     (ScanBodyState name signatureReversed bodyReversed) ->
       case topLevelDeclarationHeader line of λ where
         (Just nextName) ->
-          if nextName == name then
+          if stringEqual nextName name then
             scanLines
               sourceFile
               rest
@@ -594,9 +602,9 @@ recordHeaderIsolationRegression =
       "ordinary : Example" ∷
       [] ) of λ where
     (declaration ∷ _) ->
-      declName declaration == "Example" &&
-      declSignature declaration == "Set where" &&
-      declBody declaration == ""
+      stringEqual (declName declaration) "Example" &&
+      stringEqual (declSignature declaration) "Set where" &&
+      stringEqual (declBody declaration) ""
     _ -> False
 
 recordHeaderIsolationRegressionChecked :
@@ -632,7 +640,7 @@ recordFieldHeader line =
       case leadingSpaceCount line >= incrementExtractorNat (incrementExtractorNat (incrementExtractorNat (incrementExtractorNat 0))) of λ where
         False -> Nothing
         True ->
-          case candidate == "field" || syntaxHead candidate of λ where
+          case stringEqual candidate "field" || syntaxHead candidate of λ where
             True -> Nothing
             False ->
               case lineContainsColon line of λ where
@@ -707,7 +715,7 @@ scanRecordFields sourceFile (line ∷ rest) state accumulator =
                 (RecordWaiting recordName)
                 accumulator
             (Just lineWord) ->
-              case lineWord == "field" of λ where
+              case stringEqual lineWord "field" of λ where
                 True ->
                   scanRecordFields
                     sourceFile
@@ -786,7 +794,7 @@ recordFieldNamesFor container (candidate ∷ rest) =
     SemanticTopLevel ->
       recordFieldNamesFor container rest
     SemanticRecordField ->
-      if declContainer candidate == container then
+      if stringEqual (declContainer candidate) container then
         declName candidate ∷ recordFieldNamesFor container rest
       else
         recordFieldNamesFor container rest
@@ -826,9 +834,9 @@ recordFieldIsolationRegression =
     (fieldDecl ∷ _) ->
       case declKind fieldDecl of λ where
         SemanticRecordField ->
-          declName fieldDecl == "Example.fieldValue" &&
-          declSignature fieldDecl == "Nat" &&
-          declContainer fieldDecl == "Example"
+          stringEqual (declName fieldDecl) "Example.fieldValue" &&
+          stringEqual (declSignature fieldDecl) "Nat" &&
+          stringEqual (declContainer fieldDecl) "Example"
         SemanticTopLevel -> False
     _ -> False
 
@@ -854,7 +862,7 @@ matchesPrefix :
 matchesPrefix [] _ = True
 matchesPrefix (_ ∷ _) [] = False
 matchesPrefix (needle ∷ needles) (candidate ∷ candidates) =
-  if needle == candidate then
+  if stringEqual (needle ∷ []) (candidate ∷ []) then
     matchesPrefix needles candidates
   else
     False
@@ -911,9 +919,9 @@ findDependencies originSource name text (candidate ∷ rest) accumulator =
       targetId = targetSource ++ "#" ++ targetName
       alreadySeen = planContains targetId accumulator
       found =
-        if targetName == name || alreadySeen then
+        if stringEqual targetName name || alreadySeen then
           False
-        else if targetSource == originSource then
+        else if stringEqual targetSource originSource then
           containsIdentifier text targetName
         else
           containsIdentifier text ("." ++ targetName)
@@ -946,7 +954,7 @@ recordFieldGraphEdgeRegression =
   in
   case declarations of λ where
     (root ∷ []) ->
-      declBody root == "Example.fieldValue" &&
+      stringEqual (declBody root) "Example.fieldValue" &&
       containsIdentifier (dependencyText root) "Example.fieldValue"
     _ -> False
 
@@ -956,12 +964,12 @@ recordFieldGraphEdgeRegressionChecked = refl
 
 semanticSignature : SemanticDecl -> Bool
 semanticSignature decl =
-  declName decl /= "" &&
-  declSignature decl /= ""
+  not (stringEqual (declName decl) "") &&
+  not (stringEqual (declSignature decl) "")
 
 semanticReflexive : SemanticDecl -> Bool
 semanticReflexive decl =
-  trimWhitespace (declBody decl) == "refl"
+  stringEqual (trimWhitespace (declBody decl)) "refl"
 
 hasAtLeastTwoDependencies : List String -> Bool
 hasAtLeastTwoDependencies (_ ∷ _ ∷ _) = True
@@ -1030,7 +1038,7 @@ readAllSources (sourceFile ∷ rest) accumulator = do
 filterNonEmpty : List String -> List String
 filterNonEmpty [] = []
 filterNonEmpty (line ∷ rest) =
-  if trimWhitespace line == "" then
+  if stringEqual (trimWhitespace line) "" then
     filterNonEmpty rest
   else
     line ∷ filterNonEmpty rest

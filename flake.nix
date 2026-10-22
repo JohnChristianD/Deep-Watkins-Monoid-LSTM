@@ -639,9 +639,7 @@ PY
                 grep -Fq "ScottErshovEffectiveDomainData" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "HenkinTheoryInterface" "$tmp/ConstructiveComputabilityPostulates.agda"
                 grep -Fq "compactApproximationComputes x n = refl" "$tmp/ConstructiveComputabilityPostulates.agda"
-                # One trust block supplies the RUSS basis; second supplies the
-                # separate Scott-Ershov approximation computation contract.
-                test "$(grep -c '^postulate$' "$tmp/ConstructiveComputabilityPostulates.agda")" -eq 2
+                test "$(grep -c '^postulate$' "$tmp/ConstructiveComputabilityPostulates.agda")" -eq 1
                 if grep -Eiq '(^|[^[:alnum:]_])(excludedMiddle|lawOfExcludedMiddle|excludedMiddleAxiom|LEM)([^[:alnum:]_]|$)' "$tmp/ConstructiveComputabilityPostulates.agda"; then
                   echo "excluded-middle declaration in constructive computability interface" >&2
                   exit 1
