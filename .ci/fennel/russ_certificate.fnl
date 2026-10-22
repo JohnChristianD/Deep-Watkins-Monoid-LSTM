@@ -184,7 +184,8 @@
   (table.insert rendered-rewrite-rules
     (string.format "    \"%s\"" identifier)))
 
-(assert (= learner.postulates 1) "learner RUSS trust boundary changed: audit before updating certificate")
+; The RUSS basis and Scott-Ershov rewrite contract are separate explicit trust entries.
+(assert (= learner.postulates 2) "learner postulate surface changed: audit before updating certificate")
 (assert (= learner.rewritePragmas 3) "learner rewrite surface changed: audit before updating certificate")
 (assert (= theorems.postulates 7) "theorem monolith postulate surface changed: audit before updating certificate")
 (assert (= theorems.primitiveBlocks 2) "theorem Reflection/TC primitive surface changed: audit before updating certificate")
