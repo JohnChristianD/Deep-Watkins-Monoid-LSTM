@@ -45,7 +45,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
-open import Haskell.Prelude public
+open import Haskell.Prelude public renaming (Int to PreludeInt)
 open import Haskell.Prim public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public hiding (trans; sym)
@@ -68,6 +68,14 @@ open import Agda.Primitive public
 infix 4 _＝_
 _＝_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
 _＝_ = _≡_
+
+-- Minimal pure product projections. These used to arrive transitively from
+-- an undeclared TypeTopology import; define their computational meaning here.
+pr₁ : ∀ {X Y : Set} → X × Y → X
+pr₁ (x , _) = x
+
+pr₂ : ∀ {X Y : Set} → X × Y → Y
+pr₂ (_ , y) = y
 
 ------------------------------------------------------------------------
 -- Shared constructive-computability assumptions and interfaces.
@@ -1745,35 +1753,35 @@ intCodeSub : IntCode → IntCode → IntCode
 intCodeSub x y = intCode (intCodeValue x +Int intCodeValue (intCodeNeg y))
 
 intCode+-assoc : ∀ a b c → intCodeAdd (intCodeAdd a b) c ＝ intCodeAdd a (intCodeAdd b c)
-intCode+-assoc a b c = ap intCode (ℤ+-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
+intCode+-assoc a b c = cong intCode (ℤ+-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
 
 intCode*-assoc : ∀ a b c → intCodeMul (intCodeMul a b) c ＝ intCodeMul a (intCodeMul b c)
-intCode*-assoc a b c = ap intCode (ℤ*-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
+intCode*-assoc a b c = cong intCode (ℤ*-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
 
 sym : ∀ {A : Set} {x y : A} → x ＝ y → y ＝ x
 sym refl = refl
 
 intCode*-distribˡ : ∀ a b c → intCodeMul a (intCodeAdd b c) ＝ intCodeAdd (intCodeMul a b) (intCodeMul a c)
 intCode*-distribˡ a b c =
-  ap intCode (distributivity-mult-over-ℤ' (intCodeValue b) (intCodeValue c) (intCodeValue a))
+  cong intCode (distributivity-mult-over-ℤ' (intCodeValue b) (intCodeValue c) (intCodeValue a))
 
 intCode*-idˡ : ∀ a → intCodeMul oneIntCode a ＝ a
-intCode*-idˡ a = ap intCode (ℤ-mult-left-id (intCodeValue a))
+intCode*-idˡ a = cong intCode (ℤ-mult-left-id (intCodeValue a))
 
 intCode*-idʳ : ∀ a → intCodeMul a oneIntCode ＝ a
-intCode*-idʳ a = ap intCode (ℤ-mult-right-id (intCodeValue a))
+intCode*-idʳ a = cong intCode (ℤ-mult-right-id (intCodeValue a))
 
 intCode*-zeroʳ : ∀ a → intCodeMul a zeroIntCode ＝ zeroIntCode
-intCode*-zeroʳ a = ap intCode (ℤ-zero-right-is-zero (intCodeValue a))
+intCode*-zeroʳ a = cong intCode (ℤ-zero-right-is-zero (intCodeValue a))
 
 intCode*-zeroˡ : ∀ a → intCodeMul zeroIntCode a ＝ zeroIntCode
-intCode*-zeroˡ a = ap intCode (ℤ-zero-left-base (intCodeValue a))
+intCode*-zeroˡ a = cong intCode (ℤ-zero-left-base (intCodeValue a))
 
 intCode+-idˡ : ∀ a → intCodeAdd zeroIntCode a ＝ a
-intCode+-idˡ a = ap intCode (ℤ-zero-left-neutral (intCodeValue a))
+intCode+-idˡ a = cong intCode (ℤ-zero-left-neutral (intCodeValue a))
 
 intCode+-idʳ : ∀ a → intCodeAdd a zeroIntCode ＝ a
-intCode+-idʳ a = ap intCode (ℤ-zero-right-neutral (intCodeValue a))
+intCode+-idʳ a = cong intCode (ℤ-zero-right-neutral (intCodeValue a))
 
 intCodeRoundtrip : ∀ n → intCodeValue (intCodeOfNat n) ＝ pos n
 intCodeRoundtrip n = refl
@@ -1782,7 +1790,7 @@ intCodeRoundtrip n = refl
 
 plus-zero : ∀ n → n + zero ＝ n
 plus-zero zero = refl
-plus-zero (suc n) = ap suc (plus-zero n)
+plus-zero (suc n) = cong suc (plus-zero n)
 
 plus-succ : ∀ (m n : ℕ) → m + suc n ＝ suc (m + n)
 plus-succ zero n = refl
@@ -1961,18 +1969,18 @@ compareNat (suc m) (suc n) = compareNat m n
 
 scoreBefore : ScoreEntry → ScoreEntry → Bool
 scoreBefore (s₁ , a₁) (s₂ , a₂) with compareInt8 s₁ s₂
-... | less = false
-... | greater = true
+... | less = False
+... | greater = True
 ... | equal with compareNat a₁ a₂
-... | less = false
-... | equal = true
-... | greater = true
+... | less = False
+... | equal = True
+... | greater = True
 
 insertScore : ScoreEntry → List ScoreEntry → List ScoreEntry
 insertScore x [] = x ∷ []
 insertScore x (y ∷ ys) with scoreBefore x y
-... | true = x ∷ y ∷ ys
-... | false = y ∷ insertScore x ys
+... | True = x ∷ y ∷ ys
+... | False = y ∷ insertScore x ys
 
 sortScores : List ScoreEntry → List ScoreEntry
 sortScores [] = []
@@ -2101,8 +2109,8 @@ topCodes zero xs = []
 topCodes (suc k) [] = []
 topCodes (suc k) ((x , a) ∷ xs) = intCodeMagnitude x ∷ topCodes k xs
 
--- TypeTopology arithmetic aliases stay local: do not import the agda2hs
--- Prelude here, since its builtin Nat is a different source type.
+-- Natural-number arithmetic aliases stay local so calculations use this
+-- module's single ℕ source type throughout.
 infixl 7 _*ℕ_
 _*ℕ_ : ℕ → ℕ → ℕ
 x *ℕ zero = zero
@@ -2132,11 +2140,11 @@ record SparseWeight : Set where
 open SparseWeight public
 
 sparsemaxWeight : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
-sparsemaxWeight {A} K q c a = sparseWeight (((k *ℕ intCodeMagnitude (scoreA {A = A} q c a)) +ℕ sparsemaxTemperature) ∸ s) (k *ℕ sparsemaxTemperature)
+sparsemaxWeight {A} K q c a = sparseWeight (((supportK *ℕ intCodeMagnitude (scoreA {A = A} q c a)) +ℕ sparsemaxTemperature) ∸ scoreSum) (supportK *ℕ sparsemaxTemperature)
   where
-    xs = sortScores (scoreList K q c)
-    k = supportSize K q c
-    s = sumList (topCodes k xs)
+    scoreEntries = sortScores (scoreList K q c)
+    supportK = supportSize K q c
+    scoreSum = sumList (topCodes supportK scoreEntries)
 
 weightPositive : SparseWeight → BoolLike
 weightPositive (sparseWeight n d) with natEq n zero
@@ -2163,29 +2171,45 @@ updateLCBCount {A} a (lcbCountState counts total) =
   lcbCountState (incAt {A = A} counts a) (suc total)
 
 ------------------------------------------------------------------------
--- TypeTopology Rationals supplies the canonical exact rational carrier.
--- The legacy Dyadic helper names remain stable for theorem/registry
--- surfaces, but their carrier is now TypeTopology's rational type.
+-- Local executable fraction encoding.
+--
+-- Store signed numerator and denominator-minus-one explicitly. This keeps
+-- the canonical learner within its declared Nix import closure. This is a
+-- fraction code, not a normalized quotient-type rational; equality between
+-- different codes would require an explicit normalization theorem. The
+-- established Dyadic helper names remain stable for the learner surface.
 ------------------------------------------------------------------------
 
 Dyadic : Set
-Dyadic = ℚ
+Dyadic = Int × ℕ
 
 fromNatDyadic : ℕ → ℕ → Dyadic
-fromNatDyadic n exponent =
-  toℚ (pos n , exponent)
+fromNatDyadic n denominatorMinusOne =
+  pos n , denominatorMinusOne
 
 dyadicNumerator : Dyadic → ℕ
-dyadicNumerator ((pos n , d) , _) = n
-dyadicNumerator ((negsuc n , d) , _) = zero
+dyadicNumerator (pos n , _) = n
+dyadicNumerator (negsuc _ , _) = zero
 
 dyadicDenominator : Dyadic → ℕ
-dyadicDenominator ((z , d) , _) =
-  suc d
+dyadicDenominator (_ , denominatorMinusOne) =
+  suc denominatorMinusOne
+
+-- Total quotient/remainder by a positive natural. Structural
+-- recursion on the numerator keeps this evaluator accepted by Agda's
+-- termination checker; divisor zero has explicit total behavior.
+fractionDivision : ℕ → ℕ → ℕ × ℕ
+fractionDivision _ zero = zero , zero
+fractionDivision zero (suc _) = zero , zero
+fractionDivision (suc n) (suc d)
+  with fractionDivision n (suc d)
+... | quotient , remainder with natEq (suc remainder) (suc d)
+...   | enabled = suc quotient , zero
+...   | disabled = quotient , suc remainder
 
 dyadicDivide : ℕ → Dyadic → ℕ
-dyadicDivide n ((z , d) , _) =
-  pr₁ (division n d)
+dyadicDivide n (_ , denominatorMinusOne) =
+  pr₁ (fractionDivision n (suc denominatorMinusOne))
 
 qLog8 : IntCode → Dyadic
 qLog8 x with intCodeMagnitude x
@@ -2310,7 +2334,7 @@ monoidAffine-assoc (monoidAffine a₁ b₁) (monoidAffine a₂ b₂) (monoidAffi
           (intCodeMul a₁ (intCodeMul a₂ b₃))
           (intCodeMul a₁ b₂)
           b₁))
-        (ap
+        (cong
           (λ z → intCodeAdd z b₁)
           (sym (intCode*-distribˡ
             a₁
@@ -2322,7 +2346,7 @@ monoidAffine-idˡ (monoidAffine a b) =
   cong₂Custom monoidAffine
     (intCode*-idˡ a)
     (trans
-      (ap (λ z → intCodeAdd z zeroIntCode) (intCode*-idˡ b))
+      (cong (λ z → intCodeAdd z zeroIntCode) (intCode*-idˡ b))
       (intCode+-idʳ b))
 
 monoidAffine-idʳ : ∀ a → a ∘ₘ monoidAffine-id ＝ a
@@ -2330,7 +2354,7 @@ monoidAffine-idʳ (monoidAffine a b) =
   cong₂Custom monoidAffine
     (intCode*-idʳ a)
     (trans
-      (ap (λ z → intCodeAdd z b) (intCode*-zeroʳ a))
+      (cong (λ z → intCodeAdd z b) (intCode*-zeroʳ a))
       (intCode+-idˡ b))
 
 applyMonoidAffine : MonoidAffine → IntCode → IntCode
@@ -2368,17 +2392,17 @@ monoidLSTMCellStep-is-affine monoidHold c x =
 monoidLSTMCellStep-is-affine monoidWrite c x =
   trans
     (sym (intCode+-idˡ (leaky2 x)))
-    (ap
+    (cong
       (λ z → intCodeAdd z (leaky2 x))
       (sym (intCode*-zeroˡ c)))
 monoidLSTMCellStep-is-affine monoidReset c x =
   trans
     (sym (intCode+-idˡ zeroIntCode))
-    (ap
+    (cong
       (λ z → intCodeAdd z zeroIntCode)
       (sym (intCode*-zeroˡ c)))
 monoidLSTMCellStep-is-affine monoidAccum c x =
-  ap (λ z → intCodeAdd z (leaky2 x)) (sym (intCode*-idˡ c))
+  cong (λ z → intCodeAdd z (leaky2 x)) (sym (intCode*-idˡ c))
 
 scanMonoidAffine : List IntCode → MonoidAffine
 scanMonoidAffine [] = monoidAffine-id
@@ -2708,7 +2732,7 @@ recurrentPrefix-correct :
   recurrentPrefixState R xs n s
 recurrentPrefix-correct R xs zero s = refl
 recurrentPrefix-correct R xs (suc n) s =
-  ap
+  cong
     (λ z → runNetwork R z (xs n))
     (recurrentPrefix-correct R xs n s)
 
@@ -2734,15 +2758,15 @@ recurrentPrefix-split :
     n
     (recurrentPrefixState R xs m s)
 recurrentPrefix-split R xs m zero s =
-  ap
+  cong
     (λ k → recurrentPrefixState R xs k s)
     (plus-zero m)
 recurrentPrefix-split R xs m (suc n) s =
   trans
-    (ap
+    (cong
       (λ k → recurrentPrefixState R xs k s)
       (plus-succ m n))
-    (ap
+    (cong
       (λ z → runNetwork R z (xs (m + n)))
       (recurrentPrefix-split R xs m n s))
 
@@ -2930,22 +2954,27 @@ canonicalCReLU8 x =
   canonicalReLU8 x , canonicalReLU8 (intCodeNeg x)
 
 ------------------------------------------------------------------------
--- Rational CReLU': CReLU with the negative ReLU branch replaced by the
--- exact rational softsign branch, matching the SignReLU shape while
--- keeping the paired positive/negative CReLU representation.
+-- Fraction-code CReLU': CReLU with a numerator/denominator softsign map on
+-- the negative branch. This is executable fraction-code arithmetic, not a
+-- normalized quotient-type rational or a proof of rational-code equivalence.
 ------------------------------------------------------------------------
 
-canonicalSignReLU' : ℚ → ℚ
-canonicalSignReLU' (((negsuc n , a) , _)) =
-  toℚ (negsuc n , a + suc n)
+canonicalSignReLU' : Dyadic → Dyadic
+canonicalSignReLU' (negsuc n , denominatorMinusOne) =
+  negsuc n , denominatorMinusOne + suc n
 canonicalSignReLU' q = q
 
-CanonicalCReLUPrimePair : Set
-CanonicalCReLUPrimePair = ℚ × ℚ
+dyadicNegate : Dyadic → Dyadic
+dyadicNegate (numerator , denominatorMinusOne) =
+  intNeg numerator , denominatorMinusOne
 
-canonicalCReLU' : ℚ → CanonicalCReLUPrimePair
+CanonicalCReLUPrimePair : Set
+CanonicalCReLUPrimePair = Dyadic × Dyadic
+
+canonicalCReLU' : Dyadic → CanonicalCReLUPrimePair
 canonicalCReLU' x =
-  canonicalSignReLU' x , canonicalSignReLU' (- x)
+  canonicalSignReLU' x , canonicalSignReLU' (dyadicNegate x)
+
 
 canonicalHaarFeature : IntCode → CanonicalHaarPair
 canonicalHaarFeature x =
@@ -2996,8 +3025,8 @@ canonicalHaarFeatureInjective {x} {y} eq =
     (trans
       (cong₂Custom
         (λ a b → intCodeSub a b)
-        (ap pr₁ eq)
-        (ap pr₂ eq))
+        (cong pr₁ eq)
+        (cong pr₂ eq))
       (canonicalHaarFeatureReconstruct y))
 
 record HaarFeaturedLinearTransformer : Set where
@@ -3147,10 +3176,10 @@ record FullLearnerKernel (A : Set) : Set₁ where
 open FullLearnerKernel public
 
 CanonicalFullLearnerState : Set₁
-CanonicalFullLearnerState = FullLearnerState 𝟙
+CanonicalFullLearnerState = FullLearnerState ⊤
 
 CanonicalFullLearnerKernel : Set₁
-CanonicalFullLearnerKernel = FullLearnerKernel 𝟙
+CanonicalFullLearnerKernel = FullLearnerKernel ⊤
 
 canonicalPolicy : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → ℕ
 canonicalPolicy K s = sparsemaxPolicy (actionSpaceK K) (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s))) (valuesCount (lcbCounts s))
@@ -3225,7 +3254,7 @@ hardSparse-to-softSparse-zero :
 hardSparse-to-softSparse-zero K s h {a} distinct =
   transport (λ n → n ≤ zero)
     (sym (h distinct))
-    (zero-least zero)
+    z≤n
 
 softSparse-zero-to-hardSparse :
   ∀ {A}
@@ -3234,7 +3263,7 @@ softSparse-zero-to-hardSparse :
   SoftSparseBounded K s zero →
   HardSparse K s
 softSparse-zero-to-hardSparse K s h {a} distinct =
-  zero-least'' _ (h distinct)
+  sym (≤-antisym z≤n (h distinct))
 
 replaceOptimizer : ∀ {A} → FullLearnerState A → F4IntUState → FullLearnerState A
 replaceOptimizer s o = fullLearnerState (watkins s) (gru s) o
@@ -3401,16 +3430,12 @@ module MonoidLSTMStreams where
   open import Haskell.Prelude
     using (Nat; zero; suc; List; []; _∷_; _≡_; refl; _+_)
   open import Agda.Primitive using (Level; _⊔_)
-  -- Bind Agda's sized-type primitives here rather than importing
-  -- Agda.Builtin.Size. These names are introduced by their BUILTIN pragmas.
-  {-# BUILTIN SIZEUNIV SizeUniv #-}
-  {-# BUILTIN SIZE Size #-}
-  {-# BUILTIN SIZELT Size<_ #-}
-  {-# BUILTIN SIZESUC ↑_ #-}
-  {-# BUILTIN SIZEINF ∞ #-}
-  {-# BUILTIN SIZEMAX _⊔ˢ_ #-}
+  -- The compiler-owned sized-type builtins are already registered by
+  -- the selected Agda profile. Do not bind them a second time here:
+  -- reissuing BUILTIN SIZEUNIV after Agda.Builtin.Size is loaded fails with
+  -- DuplicateBuiltinBinding. The nested module consumes the existing names.
   -- Agda2HS compiles recursive streams through this erased-size lazy tail.
-  open import Haskell.Prim.Thunk using (Thunk; force)
+  open import Haskell.Prim.Thunk using (Thunk; force; Size; Size<_; ∞)
   
   -- a stream carries the size of the observation depth available to its tail.
   -- Each tail is available at a strictly smaller size. This proves productivity
@@ -3916,7 +3941,7 @@ iterateCanonical-step-shift :
   iterateCanonical K (suc n) s
 iterateCanonical-step-shift K zero s = refl
 iterateCanonical-step-shift K (suc n) s =
-  ap (canonicalFullStep K) (iterateCanonical-step-shift K n s)
+  cong (canonicalFullStep K) (iterateCanonical-step-shift K n s)
 
 canonicalLearnerTraceAt :
   ∀ {A}
@@ -3971,9 +3996,9 @@ canonicalNoFixedPoint :
 canonicalNoFixedPoint K s eq =
   plus-succ-not-self (totalCount (lcbCounts s)) zero
     (trans (plus-succ (totalCount (lcbCounts s)) zero)
-      (trans (ap suc (plus-zero (totalCount (lcbCounts s))))
+      (trans (cong suc (plus-zero (totalCount (lcbCounts s))))
         (trans (sym (canonicalTotalCountStep K s))
-          (ap (λ t → totalCount (lcbCounts t)) eq))))
+          (cong (λ t → totalCount (lcbCounts t)) eq))))
 
 iterateCanonical : ∀ {A} → FullLearnerKernel A → ℕ → FullLearnerState A → FullLearnerState A
 iterateCanonical K zero s = s
@@ -3988,29 +4013,29 @@ canonicalTotalCountAfter K (suc n) s =
   trans
     (canonicalTotalCountStep K (iterateCanonical K n s))
     (trans
-      (ap suc (canonicalTotalCountAfter K n s))
+      (cong suc (canonicalTotalCountAfter K n s))
       (sym (plus-succ (totalCount (lcbCounts s)) n)))
 
 canonicalAperiodic : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ≠ s
 canonicalAperiodic K s n cyc = plus-succ-not-self (totalCount (lcbCounts s)) n
   (trans
     (sym (canonicalTotalCountAfter K (suc n) s))
-    (ap (λ t → totalCount (lcbCounts t)) cyc))
+    (cong (λ t → totalCount (lcbCounts t)) cyc))
 
 canonicalOrbitNonFixed : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K n s ≠ canonicalFullStep K (iterateCanonical K n s)
 canonicalOrbitNonFixed K s n eq =
   canonicalNoFixedPoint K (iterateCanonical K n s) (eq ⁻¹)
 
-canonicalNoNontrivialFiniteCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ＝ s → 𝟘
+canonicalNoNontrivialFiniteCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ＝ s → ⊥
 canonicalNoNontrivialFiniteCycle K s n cyc = canonicalAperiodic K s n cyc
 
 canonicalTotalCountIterate2 : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (iterateCanonical K 2 s)) ＝ suc (suc (totalCount (lcbCounts s)))
 canonicalTotalCountIterate2 K s = refl
 
-canonicalNoCountedTwoCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → iterateCanonical K 2 s ＝ s → 𝟘
+canonicalNoCountedTwoCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → iterateCanonical K 2 s ＝ s → ⊥
 canonicalNoCountedTwoCycle K s cyc = succ-succ-not-self (totalCount (lcbCounts s))
   (trans (sym (canonicalTotalCountIterate2 K s))
-    (ap (λ t → totalCount (lcbCounts t)) cyc))
+    (cong (λ t → totalCount (lcbCounts t)) cyc))
 
 temperatureCodeLaw : sparsemaxTemperature ＝ 16
 temperatureCodeLaw = refl
@@ -4051,7 +4076,7 @@ canonicalTokenEncodeInjective {left} {right} encodedEquality =
   trans
     (sym (canonicalTokenEncodeLeftInverse left))
     (trans
-      (ap intCodeValue encodedEquality)
+      (cong intCodeValue encodedEquality)
       (canonicalTokenEncodeLeftInverse right))
 
 -- Any representation with an exact left inverse is globally injective.
@@ -4067,7 +4092,7 @@ leftInverseImpliesInjective observe inverse leftInverse {left} {right} observati
   trans
     (sym (leftInverse left))
     (trans
-      (ap inverse observationEquality)
+      (cong inverse observationEquality)
       (leftInverse right))
 
 canonicalTokenEncodeList : CanonicalTokenSequence → List IntCode
@@ -4077,7 +4102,7 @@ canonicalTokenEncodeListLeftInverse :
   ∀ tokens → map intCodeValue (canonicalTokenEncodeList tokens) ＝ tokens
 canonicalTokenEncodeListLeftInverse [] = refl
 canonicalTokenEncodeListLeftInverse (token ∷ tokens) =
-  ap (_∷_ token) (canonicalTokenEncodeListLeftInverse tokens)
+  cong (_∷_ token) (canonicalTokenEncodeListLeftInverse tokens)
 
 canonicalTokenEncodeListInjective :
   ∀ {left right} →
@@ -4087,7 +4112,7 @@ canonicalTokenEncodeListInjective {left} {right} encodedEquality =
   trans
     (sym (canonicalTokenEncodeListLeftInverse left))
     (trans
-      (ap (map intCodeValue) encodedEquality)
+      (cong (map intCodeValue) encodedEquality)
       (canonicalTokenEncodeListLeftInverse right))
 
 canonicalTokenStep : GRUState → CanonicalToken → GRUState
