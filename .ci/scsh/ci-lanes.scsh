@@ -96,7 +96,7 @@
       (require-text path "--rewriting")
       (for-each (lambda (needle) (forbid-text path needle))
         '("open import Cubical." "open import Cubical "
-          "lawOfExcludedMiddle" "ExcludedMiddle" "classicalAxiom"))
+          "lawOfExcludedMiddle" "ExcludedMiddle" "classicalAxiom")))
     '("FullCoupled/CanonicalLearnerMonolith.agda"
       "FullCoupled/TheoremsMonolith.agda"))
   (display "official-nix-surface=pass\n"))
@@ -112,6 +112,7 @@
 
 (define (check-russ)
   (check-agda-theorem)
+  (must-run (lambda () (run (mkdir "-p" "build"))) "create RUSS audit output directory")
   (must-run
     (lambda ()
       (run (,(fennel-command) ".ci/fennel/russ_certificate.fnl" "build/russ-audit.dhall")))
