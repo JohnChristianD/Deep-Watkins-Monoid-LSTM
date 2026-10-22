@@ -184,8 +184,8 @@
   (table.insert rendered-rewrite-rules
     (string.format "    \"%s\"" identifier)))
 
-(assert (= learner.postulates 1) "learner postulate surface changed: audit before updating certificate")
-(assert (= learner.rewritePragmas 2) "learner rewrite surface changed: audit before updating certificate")
+(assert (= learner.postulates 1) "learner RUSS trust boundary changed: audit before updating certificate")
+(assert (= learner.rewritePragmas 3) "learner rewrite surface changed: audit before updating certificate")
 (assert (= theorems.postulates 7) "theorem monolith postulate surface changed: audit before updating certificate")
 (assert (= theorems.primitiveBlocks 2) "theorem Reflection/TC primitive surface changed: audit before updating certificate")
 (assert (= theorems.rewritePragmas 0) "theorem monolith rewrite surface changed: audit before updating certificate")
