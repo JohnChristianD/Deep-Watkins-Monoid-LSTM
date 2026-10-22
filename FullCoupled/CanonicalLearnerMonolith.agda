@@ -45,7 +45,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
-open import Haskell.Prelude public
+open import Haskell.Prelude public renaming (Int to PreludeInt)
 open import Haskell.Prim public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public hiding (trans; sym)
@@ -3401,14 +3401,10 @@ module MonoidLSTMStreams where
   open import Haskell.Prelude
     using (Nat; zero; suc; List; []; _∷_; _≡_; refl; _+_)
   open import Agda.Primitive using (Level; _⊔_)
-  -- Bind Agda's sized-type primitives here rather than importing
-  -- Agda.Builtin.Size. These names are introduced by their BUILTIN pragmas.
-  {-# BUILTIN SIZEUNIV SizeUniv #-}
-  {-# BUILTIN SIZE Size #-}
-  {-# BUILTIN SIZELT Size<_ #-}
-  {-# BUILTIN SIZESUC ↑_ #-}
-  {-# BUILTIN SIZEINF ∞ #-}
-  {-# BUILTIN SIZEMAX _⊔ˢ_ #-}
+  -- The compiler-owned sized-type builtins are already registered by
+  -- the selected Agda profile. Do not bind them a second time here:
+  -- reissuing BUILTIN SIZEUNIV after Agda.Builtin.Size is loaded fails with
+  -- DuplicateBuiltinBinding. The nested module consumes the existing names.
   -- Agda2HS compiles recursive streams through this erased-size lazy tail.
   open import Haskell.Prim.Thunk using (Thunk; force)
   
