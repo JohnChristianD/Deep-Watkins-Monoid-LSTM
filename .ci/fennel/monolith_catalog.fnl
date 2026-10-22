@@ -171,18 +171,17 @@
         entry.line (js-escape entry.signature) (js-escape entry.category)))
     entries))
 
-(local render-sources
-  (fn render-sources [index]
-    (if (> index (# source-files))
-        ""
-        (.. "    \"" (js-escape (. source-files index)) "\""
-            (if (< index (# source-files)) ",\n" "")
-            (render-sources (+ index 1))))))
+(local rendered-sources
+  (fun.totable
+    (fun.map
+      (fn [index]
+        (string.format "    \"%s\"" (js-escape (. source-files index))))
+      (fun.range 1 (# source-files))))
 
 (local catalog-source
   (.. "export const MonolithContent = Object.freeze({\n"
       "  sourceFiles: Object.freeze([\n"
-      (render-sources 1)
+      (table.concat rendered-sources ",\n")
       "\n  ]),\n"
       "  entries: Object.freeze([\n"
       (list-join ",\n" rendered-entries)
