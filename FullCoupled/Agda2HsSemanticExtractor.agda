@@ -1,8 +1,7 @@
 module FullCoupled.Agda2HsSemanticExtractor where
 
 open import Haskell.Prelude
-open import Haskell.Prim using
-  ( eqNat; monusNat; AgdaString; primStringFromList; primStringEquality )
+open import Haskell.Prim using (eqNat; monusNat; AgdaString)
 
 incrementExtractorNat : Nat → Nat
 incrementExtractorNat n = n + 1
@@ -10,18 +9,13 @@ incrementExtractorNat n = n + 1
 CharList : Type
 CharList = List Char
 
--- JS and Haskell need distinct implementations because this pinned
--- JavaScript target lacks the generic Char primitive used by List equality.
--- Keep native-string equality in Agda reduction/JS; map only the Agda2HS
--- extraction to the official Eq instance for the library's List Char string.
-stringEqualHaskell : String → String → Bool
-stringEqualHaskell left right = left == right
-{-# COMPILE AGDA2HS stringEqualHaskell #-}
-
+-- This module's String is the official Agda2HS List Char representation.
+-- Compare using the library's Eq instance so Agda2HS emits ordinary Haskell
+-- list equality instead of Agda builtin-string primitives unavailable there.
 stringEqual : String → String → Bool
-stringEqual left right =
-  primStringEquality (primStringFromList left) (primStringFromList right)
-{-# COMPILE AGDA2HS stringEqual to stringEqualHaskell #-}
+stringEqual left right = left == right
+{-# COMPILE AGDA2HS stringEqual #-}
+
 
 -- Match the ASCII alphabet directly. The pinned Agda JavaScript backend in
 -- this build does not emit the required character primitives for its builtin

@@ -46,6 +46,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
 open import Haskell.Prelude public renaming (Int to PreludeInt)
+open import Haskell.Prim.Integer public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public hiding (trans; sym)
 open import Haskell.Law.Functor.FromMonad public
@@ -224,6 +225,34 @@ module ConstructiveComputabilityPostulates where
       machineTraceOutput :
         registerContents finalMachineState zero ≡ output
 
+  -- A nontrivial constructive witness tying the operational evaluator
+  -- to the finite-trace relation used by the ECT₀ signature: increment
+  -- register zero, jump to the halt instruction, and exhibit output one.
+  machineIncrementTrace :
+    ComputationTrace
+      (incrementRegister zero (suc zero) ∷ haltInstruction ∷ [])
+      zero (suc zero)
+  machineIncrementTrace = record
+    { finalMachineState =
+        machineConfiguration (suc zero)
+          (updateRegister zero (suc zero) (initialRegisters zero))
+    ; machineTrace =
+        machineStepsCons
+          (incrementStep
+            {pc = zero}
+            {register = zero}
+            {target = suc zero}
+            {store = initialRegisters zero}
+            refl)
+          machineStepsRefl
+    ; machineTraceHalted =
+        machineHalted
+          {pc = suc zero}
+          {store = updateRegister zero (suc zero) (initialRegisters zero)}
+          refl
+    ; machineTraceOutput = refl
+    }
+
   -- A total, fuel-bounded operational evaluator for the explicit register
   -- machine. Its result distinguishes a halt observation from fuel exhaustion.
   -- Exhaustion is inconclusive; only a halt plus a valid ComputationTrace
@@ -265,6 +294,15 @@ module ConstructiveComputabilityPostulates where
     store zero
   machineRunRegisterZero (machineRunFuelExhausted (machineConfiguration pc store)) =
     store zero
+
+  machineIncrementOutputRegression :
+    machineRunRegisterZero
+      (runMachineWithFuel
+        (suc (suc zero))
+        (incrementRegister zero (suc zero) ∷ haltInstruction ∷ [])
+        zero)
+    ≡ suc zero
+  machineIncrementOutputRegression = refl
 
   machineHaltRegression :
     runMachineWithFuel
