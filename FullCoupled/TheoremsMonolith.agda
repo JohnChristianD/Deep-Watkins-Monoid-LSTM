@@ -12916,21 +12916,18 @@ eGraphEconomicFiniteCandidatePriceComposition-from-path path =
 
 
 ------------------------------------------------------------------------
--- Constructive/RUSS proof-theory core.
+-- Constructive intuitionistic core, separated from the RUSS signature model.
 --
--- This proves soundness and empty-context consistency for an intuitionistic
--- propositional calculus in the Agda object theory. It deliberately does not
--- turn Markov's Principle, Church's Thesis, or countable choice into hidden
--- postulates. Their exact schema interfaces are stated below as a separate
--- package, with the program/evaluation relation left explicit. No inhabitant
--- of that package or model for the full RUSS extension is claimed here.
---
--- The theorem is therefore a real, kernel-checkable core proof, not an
--- unconditional consistency certificate for this monolith's transitive
--- imports, reflection primitives, rewrite rules, or all RUSS extensions.
+-- The first RUSSProofTheory module above interprets Markov, ECT₀, and
+-- proposition-level countable choice relative to the canonical basis.
+-- This second development contains only the intuitionistic implication/
+-- conjunction/truth/falsity calculus. Give it its own module identity so
+-- both kernel-checkable arguments survive without a duplicate module name.
+-- Neither development certifies consistency of the repository's transitive
+-- import closure or supplies a model of the combined RUSS signature.
 ------------------------------------------------------------------------
 
-module RUSSProofTheory where
+module RUSSIntuitionisticCore where
 
   data RUSSFormula : Set where
     russAtom : ℕ → RUSSFormula
