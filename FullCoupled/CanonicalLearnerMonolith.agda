@@ -47,6 +47,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- explicit variable block owns its identifiers without namespace clashes.
 open import Haskell.Prelude public renaming (Int to PreludeInt)
 open import Haskell.Law public
+open import Haskell.Law.Num.Integer public
 open import Haskell.Law.Ord.Ordering public
 open import Haskell.Law.Equality public
 open import Haskell.Law.Functor.FromMonad public
@@ -1250,16 +1251,75 @@ module ConstructiveExceptionSemantics where
     onException e
 
 
+-- The learner's older mathematical notation is mapped onto the official
+-- Agda2HS Prelude types. Keep this compatibility layer local: no extra
+-- Agda monolith or third-party theory is introduced.
+ℕ : Set
+ℕ = Nat
+
+pattern succ n = suc n
+
+infix 4 _<ℕ_
+data _<ℕ_ : ℕ → ℕ → Set where
+  natLtZeroSucc : ∀ {n} → zero <ℕ succ n
+  natLtStep : ∀ {m n} → m <ℕ n → succ m <ℕ succ n
+
+not-less-than-itself : (n : ℕ) → n <ℕ n → EmptyComputability
+not-less-than-itself zero ()
+not-less-than-itself (succ n) (natLtStep smaller) =
+  not-less-than-itself n smaller
+
 Int : Set
 Int = ℤ
 
 infixl 31 _+Int_
 _+Int_ : Int → Int → Int
-_+Int_ = _ℤ+_
+_+Int_ = _+_
 
 infixl 31 _*Int_
 _*Int_ : Int → Int → Int
-_*Int_ = _ℤ*_
+_*Int_ = _*_
+
+infixl 31 _ℤ+_
+_ℤ+_ : ℤ → ℤ → ℤ
+_ℤ+_ = _+_
+
+infixl 31 _ℤ*_
+_ℤ*_ : ℤ → ℤ → ℤ
+_ℤ*_ = _*_
+
+ℤ : Set
+ℤ = Integer
+
+ℤ+-assoc : ∀ (x y z : ℤ) → (x ℤ+ y) ℤ+ z ≡ x ℤ+ (y ℤ+ z)
+ℤ+-assoc = addInteger-assoc
+
+ℤ*-assoc : ∀ (x y z : ℤ) → (x ℤ* y) ℤ* z ≡ x ℤ* (y ℤ* z)
+ℤ*-assoc = mulInteger-assoc
+
+distributivity-mult-over-ℤ' :
+  ∀ (x y z : ℤ) →
+  z ℤ* (x ℤ+ y) ≡ (z ℤ* x) ℤ+ (z ℤ* y)
+distributivity-mult-over-ℤ' x y z =
+  mulInteger-distributeˡ-addInteger z x y
+
+ℤ-mult-left-id : ∀ (x : ℤ) → 1 ℤ* x ≡ x
+ℤ-mult-left-id = mulInteger-idˡ
+
+ℤ-mult-right-id : ∀ (x : ℤ) → x ℤ* 1 ≡ x
+ℤ-mult-right-id = mulInteger-idʳ
+
+ℤ-zero-right-is-zero : ∀ (x : ℤ) → x ℤ* 0 ≡ 0
+ℤ-zero-right-is-zero = mulInteger-zeroʳ
+
+ℤ-zero-left-base : ∀ (x : ℤ) → 0 ℤ* x ≡ 0
+ℤ-zero-left-base = mulInteger-zeroˡ
+
+ℤ-zero-left-neutral : ∀ (x : ℤ) → 0 ℤ+ x ≡ x
+ℤ-zero-left-neutral = addInteger-idˡ
+
+ℤ-zero-right-neutral : ∀ (x : ℤ) → x ℤ+ 0 ≡ x
+ℤ-zero-right-neutral = addInteger-idʳ
 
 
 cong₂Custom : ∀ {A B C : Set} (f : A → B → C) {x y : A} {u v : B} → x ＝ y → u ＝ v → f x u ＝ f y v
@@ -1349,21 +1409,21 @@ plus-succ zero n = refl
 plus-succ (succ m) n = refl
 
 plus-succ-lt : ∀ (m n : ℕ) → m <ℕ (m + succ n)
-plus-succ-lt m zero = ≤-refl (succ m)
-plus-succ-lt m (succ n) = ≤-+ m (succ n)
+plus-succ-lt zero n = natLtZeroSucc
+plus-succ-lt (succ m) n = natLtStep (plus-succ-lt m n)
 
 plus-succ-not-self : ∀ (m n : ℕ) → m + succ n ≠ m
 plus-succ-not-self m n eq =
   not-less-than-itself m (transport (λ z → m <ℕ z) eq (plus-succ-lt m n))
 
 succ-succ-lt : ∀ (n : ℕ) → n <ℕ succ (succ n)
-succ-succ-lt zero = ≤-succ zero
-succ-succ-lt (succ n) = ≤-succ (succ n)
+succ-succ-lt zero = natLtZeroSucc
+succ-succ-lt (succ n) = natLtStep (succ-succ-lt n)
 
 succ-succ-not-self : ∀ n → succ (succ n) ≠ n
 succ-succ-not-self n eq =
   not-less-than-itself (succ (succ n))
-    (transport (λ z → z <ℕ succ (succ n)) (eq ⁻¹) (succ-succ-lt n))
+    (transport (λ z → z <ℕ succ (succ n)) (sym eq) (succ-succ-lt n))
 
 iterate : ∀ {S : Set} → (S → S) → ℕ → S → S
 iterate step zero s = s
@@ -1508,10 +1568,10 @@ data ComparisonResult : Set where
   less equal greater : ComparisonResult
 
 compareInt8 : IntCode → IntCode → ComparisonResult
-compareInt8 x y with ℤ-trichotomous (intCodeValue x) (intCodeValue y)
-... | inl _ = less
-... | inr (inl _) = equal
-... | inr (inr _) = greater
+compareInt8 x y with compare (intCodeValue x) (intCodeValue y)
+... | LT = less
+... | EQ = equal
+... | GT = greater
 
 compareNat : ℕ → ℕ → ComparisonResult
 compareNat zero zero = equal
