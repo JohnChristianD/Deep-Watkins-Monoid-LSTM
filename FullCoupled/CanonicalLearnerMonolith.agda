@@ -2166,29 +2166,37 @@ updateLCBCount {A} a (lcbCountState counts total) =
   lcbCountState (incAt {A = A} counts a) (suc total)
 
 ------------------------------------------------------------------------
--- Local executable fraction encoding.
---
--- Store signed numerator and denominator-minus-one explicitly. This keeps
--- the canonical learner within its declared Nix import closure. This is a
--- fraction code, not a normalized quotient-type rational; equality between
--- different codes would require an explicit normalization theorem. The
--- established Dyadic helper names remain stable for the learner surface.
+-- Agda2HS Prelude does not expose Rational. Keep an exact executable
+-- rational code: a signed Integer numerator and denominator-minus-one.
+-- The denominator is positive by construction because it is recovered with
+-- suc; denominator zero is not representable. Codes are not gcd-normalized,
+-- and code equality is not equality of mathematical fractions.
 ------------------------------------------------------------------------
 
-Dyadic : Set
-Dyadic = Integer × ℕ
+RationalCode : Set
+RationalCode = Integer × ℕ
 
-fromNatDyadic : ℕ → ℕ → Dyadic
-fromNatDyadic n denominatorMinusOne =
+fromNatRationalCode : ℕ → ℕ → RationalCode
+fromNatRationalCode n denominatorMinusOne =
   pos n , denominatorMinusOne
 
-dyadicNumerator : Dyadic → ℕ
-dyadicNumerator (pos n , _) = n
-dyadicNumerator (negsuc _ , _) = zero
+rationalCodeNumerator : RationalCode → Integer
+rationalCodeNumerator (numerator , _) = numerator
 
-dyadicDenominator : Dyadic → ℕ
-dyadicDenominator (_ , denominatorMinusOne) =
+rationalCodeNumeratorMagnitude : RationalCode → ℕ
+rationalCodeNumeratorMagnitude (pos n , _) = n
+rationalCodeNumeratorMagnitude (negsuc _ , _) = zero
+
+rationalCodeDenominator : RationalCode → ℕ
+rationalCodeDenominator (_ , denominatorMinusOne) =
   suc denominatorMinusOne
+
+rationalCodeCrossProductEqual : RationalCode → RationalCode → Set
+rationalCodeCrossProductEqual
+  (leftNumerator , leftDenominatorMinusOne)
+  (rightNumerator , rightDenominatorMinusOne) =
+  (leftNumerator *Integer pos (suc rightDenominatorMinusOne)) ＝
+  (rightNumerator *Integer pos (suc leftDenominatorMinusOne))
 
 -- Total quotient/remainder by a positive natural. Structural
 -- recursion on the numerator keeps this evaluator accepted by Agda's
@@ -2202,30 +2210,30 @@ fractionDivision (suc n) (suc d)
 ...   | enabled = suc quotient , zero
 ...   | disabled = quotient , suc remainder
 
-dyadicDivide : ℕ → Dyadic → ℕ
-dyadicDivide n (_ , denominatorMinusOne) =
+rationalCodeDivideMagnitude : ℕ → RationalCode → ℕ
+rationalCodeDivideMagnitude n (_ , denominatorMinusOne) =
   pr₁ (fractionDivision n (suc denominatorMinusOne))
 
-qLog8 : IntCode → Dyadic
+qLog8 : IntCode → RationalCode
 qLog8 x with intCodeMagnitude x
-... | zero = fromNatDyadic 1 zero
-... | suc n = fromNatDyadic (128 ∸ suc n) (suc n)
+... | zero = fromNatRationalCode 1 zero
+... | suc n = fromNatRationalCode (128 ∸ suc n) (suc n)
 
 munchausenScale8 : ℕ
 munchausenScale8 = 16
 
-signedDyadicBias8 : Dyadic → IntCode
-signedDyadicBias8 q with dyadicNumerator q
+signedRationalCodeBias8 : RationalCode → IntCode
+signedRationalCodeBias8 q with rationalCodeNumeratorMagnitude q
 ... | zero = zeroIntCode
 ... | suc n = intCodeNeg
   (intCodeOfNat
-    (dyadicDivide
+    (rationalCodeDivideMagnitude
       (munchausenScale8 *ℕ suc n)
       q))
 
 qLog2Bias8 : IntCode → IntCode
 qLog2Bias8 x =
-  signedDyadicBias8 (qLog8 x)
+  signedRationalCodeBias8 (qLog8 x)
 
 negativeAlpha8 : IntCode
 negativeAlpha8 = intCodeOfNat 255
@@ -2523,8 +2531,8 @@ zeroGRUNoise = zeroMonoidLSTMNoise
 zeroGlobalControl : GlobalControl
 zeroGlobalControl = zeroMonoidLSTMControl
 
-dyadicCode : Dyadic → IntCode
-dyadicCode q = intCodeOfNat (dyadicNumerator q)
+rationalCodeCode : RationalCode → IntCode
+rationalCodeCode q = intCodeOfNat (rationalCodeNumeratorMagnitude q)
 
 identityActivation8 : IntCode → IntCode
 identityActivation8 x = x
@@ -2950,25 +2958,25 @@ canonicalCReLU8 x =
 
 ------------------------------------------------------------------------
 -- Fraction-code CReLU': CReLU with a numerator/denominator softsign map on
--- the negative branch. This is executable fraction-code arithmetic, not a
+-- the negative branch. This is executable rational-code arithmetic, not a
 -- normalized quotient-type rational or a proof of rational-code equivalence.
 ------------------------------------------------------------------------
 
-canonicalSignReLU' : Dyadic → Dyadic
+canonicalSignReLU' : RationalCode → RationalCode
 canonicalSignReLU' (negsuc n , denominatorMinusOne) =
   negsuc n , denominatorMinusOne + suc n
 canonicalSignReLU' q = q
 
-dyadicNegate : Dyadic → Dyadic
-dyadicNegate (numerator , denominatorMinusOne) =
+rationalCodeNegate : RationalCode → RationalCode
+rationalCodeNegate (numerator , denominatorMinusOne) =
   intNeg numerator , denominatorMinusOne
 
 CanonicalCReLUPrimePair : Set
-CanonicalCReLUPrimePair = Dyadic × Dyadic
+CanonicalCReLUPrimePair = RationalCode × RationalCode
 
-canonicalCReLU' : Dyadic → CanonicalCReLUPrimePair
+canonicalCReLU' : RationalCode → CanonicalCReLUPrimePair
 canonicalCReLU' x =
-  canonicalSignReLU' x , canonicalSignReLU' (dyadicNegate x)
+  canonicalSignReLU' x , canonicalSignReLU' (rationalCodeNegate x)
 
 
 canonicalHaarFeature : IntCode → CanonicalHaarPair
@@ -3157,7 +3165,7 @@ record FullLearnerState (A : Set) : Set₁ where
     optimizer : F4IntUState
     lcbCounts : LCBCountState A
     qLogControl : SignedQLogControl
-    qLogValue : Dyadic
+    qLogValue : RationalCode
     haarAccumulator : HaarAccumulator
 open FullLearnerState public
 
@@ -3301,7 +3309,7 @@ canonicalQLogControlFeedback : ∀ {A} → FullLearnerState A → IntCode
 canonicalQLogControlFeedback s = coefficient (qLogControl s)
 
 canonicalQLogValueFeedback : ∀ {A} → FullLearnerState A → IntCode
-canonicalQLogValueFeedback s = dyadicCode (qLogValue s)
+canonicalQLogValueFeedback s = rationalCodeCode (qLogValue s)
 
 canonicalEndogenousFeedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
 canonicalEndogenousFeedback K s =
@@ -3400,7 +3408,7 @@ canonicalOptimizerStep-qMunchausen-L2 K s = refl
 canonicalCountStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → LCBCountState A
 canonicalCountStep K s = updateLCBCount (canonicalPolicy K s) (lcbCounts s)
 
-canonicalQLogStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → Dyadic
+canonicalQLogStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → RationalCode
 canonicalQLogStep K s = qLog8 (canonicalPolicyWeightCode K s)
 
 canonicalFullStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → FullLearnerState A
@@ -4886,4 +4894,5 @@ module CanonicalBellmanOrderTheory where
             (snd
               (uniformQApproximation
                 state (nnGreedyPolicy M state)))))
+
 
