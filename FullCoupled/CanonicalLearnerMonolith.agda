@@ -1961,18 +1961,18 @@ compareNat (suc m) (suc n) = compareNat m n
 
 scoreBefore : ScoreEntry → ScoreEntry → Bool
 scoreBefore (s₁ , a₁) (s₂ , a₂) with compareInt8 s₁ s₂
-... | less = false
-... | greater = true
+... | less = False
+... | greater = True
 ... | equal with compareNat a₁ a₂
-... | less = false
-... | equal = true
-... | greater = true
+... | less = False
+... | equal = True
+... | greater = True
 
 insertScore : ScoreEntry → List ScoreEntry → List ScoreEntry
 insertScore x [] = x ∷ []
 insertScore x (y ∷ ys) with scoreBefore x y
-... | true = x ∷ y ∷ ys
-... | false = y ∷ insertScore x ys
+... | True = x ∷ y ∷ ys
+... | False = y ∷ insertScore x ys
 
 sortScores : List ScoreEntry → List ScoreEntry
 sortScores [] = []
