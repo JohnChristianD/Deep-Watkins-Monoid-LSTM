@@ -10,14 +10,18 @@ incrementExtractorNat n = n + 1
 CharList : Type
 CharList = List Char
 
--- Compare parser strings through Agda2HS's native-string primitive.
--- The Haskell.Prim Char Eq instance calls primCharToNat, which is absent
--- from this pinned JS target; List Char equality therefore fails at runtime.
--- Native-string equality and List-to-string conversion have JS implementations.
+-- JS and Haskell need distinct implementations because this pinned
+-- JavaScript target lacks the generic Char primitive used by List equality.
+-- Keep native-string equality in Agda reduction/JS; map only the Agda2HS
+-- extraction to the official Eq instance for the library's List Char string.
+stringEqualHaskell : String → String → Bool
+stringEqualHaskell left right = left == right
+{-# COMPILE AGDA2HS stringEqualHaskell #-}
+
 stringEqual : String → String → Bool
 stringEqual left right =
   primStringEquality (primStringFromList left) (primStringFromList right)
-{-# COMPILE AGDA2HS stringEqual #-}
+{-# COMPILE AGDA2HS stringEqual to stringEqualHaskell #-}
 
 -- Match the ASCII alphabet directly. The pinned Agda JavaScript backend in
 -- this build does not emit the required character primitives for its builtin
