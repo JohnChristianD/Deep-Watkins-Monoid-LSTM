@@ -9,3 +9,4 @@
 --polarity
 --no-postfix-projections
 --experimental-lazy-instances
+--verbose=26
