@@ -218,6 +218,69 @@ module ConstructiveComputabilityPostulates where
       machineTraceOutput :
         registerContents finalMachineState zero ≡ output
 
+  -- A total, fuel-bounded operational evaluator for the explicit register
+  -- machine. Its result distinguishes a halt observation from fuel exhaustion.
+  -- Exhaustion is inconclusive; only a halt plus a valid ComputationTrace
+  -- certifies a completed computation.
+  data MachineRunResult : Set where
+    machineRunHalted : MachineConfiguration → MachineRunResult
+    machineRunFuelExhausted : MachineConfiguration → MachineRunResult
+
+  runMachineFuel :
+    (fuel : Nat) →
+    (program : RecursiveProgram) →
+    MachineConfiguration →
+    MachineRunResult
+  runMachineFuel zero program configuration =
+    machineRunFuelExhausted configuration
+  runMachineFuel (suc fuel) program (machineConfiguration pc store)
+    with lookupInstruction program pc
+  ... | haltInstruction = machineRunHalted (machineConfiguration pc store)
+  ... | incrementRegister register target =
+    runMachineFuel fuel program
+      (machineConfiguration target
+        (updateRegister register (suc (store register)) store))
+  ... | decrementOrJump register onZero onPositive with store register
+  ...   | zero =
+    runMachineFuel fuel program
+      (machineConfiguration onZero store)
+  ...   | suc value =
+    runMachineFuel fuel program
+      (machineConfiguration onPositive
+        (updateRegister register value store))
+
+  runMachineWithFuel :
+    Nat → RecursiveProgram → Nat → MachineRunResult
+  runMachineWithFuel fuel program input =
+    runMachineFuel fuel program (initialConfiguration input)
+
+  machineRunRegisterZero : MachineRunResult → Nat
+  machineRunRegisterZero (machineRunHalted (machineConfiguration pc store)) =
+    store zero
+  machineRunRegisterZero (machineRunFuelExhausted (machineConfiguration pc store)) =
+    store zero
+
+  machineHaltRegression :
+    runMachineWithFuel
+      (suc zero)
+      (haltInstruction ∷ [])
+      (suc zero)
+    ≡ machineRunHalted (initialConfiguration (suc zero))
+  machineHaltRegression = refl
+
+  machineFuelExhaustionRegression : Bool
+  machineFuelExhaustionRegression with
+    runMachineWithFuel
+      (suc zero)
+      (incrementRegister zero zero ∷ [])
+      zero
+  ... | machineRunHalted _ = False
+  ... | machineRunFuelExhausted _ = True
+
+  machineFuelExhaustionRegressionChecked :
+    machineFuelExhaustionRegression ≡ True
+  machineFuelExhaustionRegressionChecked = refl
+
   record ComputesFunction
     (program : RecursiveProgram) (f : Nat → Nat) : Set where
     field
