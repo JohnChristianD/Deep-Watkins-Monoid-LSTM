@@ -344,18 +344,34 @@ module RUSSProofTheory where
   ----------------------------------------------------------------------
   -- A small explicit proof theory for the selected RUSS principles.
   --
-  -- Motivating work: Pédrot's Russian-constructivism account and his
-  -- quotation-based Church thesis construction in Rocq; computational
-  -- assumptions and their type-preservation boundary follow Cockx,
-  -- Tabareau, and Winterhalter. This calculus makes the three project
-  -- principles explicit as axiom schemas and proves soundness by induction.
+  -- Metatheoretic anchors:
+  -- * Pierre-Marie Pédrot, "Russian Constructivism in a Prefascist Theory,"
+  --   LICS 2020, https://doi.org/10.1145/3373718.3394740. The paper constructs
+  --   a syntactic presheaf model of CIC interpreting Markov's Principle while
+  --   preserving canonicity and decidability of type-checking. It motivates
+  --   a model-based treatment of MP; it does not certify this repository's
+  --   combined RUSS, ECT0, countable-choice, or Scott-Ershov assumptions.
+  -- * Pédrot, "Upon This Quote I Will Build My Church Thesis," LICS 2024,
+  --   https://doi.org/10.1145/3661814.3662070. Its quotation-based extension
+  --   of MLTT derives internal Church's Thesis and proves consistency,
+  --   strong normalization, and canonicity in a logical-relations model,
+  --   mechanized in Coq. It is not a drop-in proof for Agda's full import
+  --   closure or for this project's extra RUSS/choice signature.
+  -- * Cockx, Tabareau, and Winterhalter, "The Taming of the Rew," POPL 2021,
+  --   https://doi.org/10.1145/3434341, motivates explicit rewrite rules and
+  --   their subject-reduction/confluence obligations.
+  --
+  -- The present natural-deduction calculus is an Agda formalization of a
+  -- signature-relative soundness argument, not Pédrot's presheaf or logical-
+  -- relations model. XDS-Agda's Scott-Strachey embeddings
+  -- (https://pdmosses.github.io/xds-agda/) likewise demonstrate mechanization,
+  -- not consistency of arbitrary domain postulates.
   --
   -- BOUNDARY: this is a relative consistency theorem for this object calculus
   -- interpreted in the Agda types supplied by the chosen basis. It is NOT a
-  -- consistency proof for Agda, CIC/Rocq, or the transitive imports of this
-  -- repository, nor does it prove that this project's ECT0/choice signatures
-  -- coincide with every textbook formulation of RUSS. Those remain separate
-  -- model and trust-boundary obligations.
+  -- consistency proof for Agda, CIC/Rocq, or this repository's transitive
+  -- imports. The project's ECT0 and Prop-valued choice signatures still need
+  -- a model/relative-consistency argument for the exact combined theory.
   ----------------------------------------------------------------------
 
   data RUSSAxiomTag : Set where
