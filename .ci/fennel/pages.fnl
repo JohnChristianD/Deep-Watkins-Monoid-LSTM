@@ -15,23 +15,23 @@
   (string.gsub (string.gsub s "^%s+" "") "%s+$" "")))
 
 (local escape-html (fn [s]
-  (var out (string.gsub s "&" "&amp;"))
-  (set out (string.gsub out "<" "&lt;"))
-  (set out (string.gsub out ">" "&gt;"))
-  (set out (string.gsub out "\"" "&quot;"))
-  (set out (string.gsub out "'" "&#39;"))
-  out))
-
+  (let [amp (string.gsub s "&" "&amp;")]
+    (let [lt (string.gsub amp "<" "&lt;")]
+      (let [gt (string.gsub lt ">" "&gt;")]
+        (let [quoted (string.gsub gt "\"" "&quot;")]
+          (string.gsub quoted "'" "&#39;")))))))
 (local source-files
   [ "FullCoupled/CanonicalLearnerMonolith.agda"
     "FullCoupled/TheoremsMonolith.agda" ])
 
 (local declaration-rows (fn [path source]
-  (local rows [])
-  (var line-number 0)
-  (each [line (string.gmatch (.. source "\n") "(.-)\n")]
-    (set line-number (+ line-number 1))
-    (when (and (> (string.len line) 0)
+  (local lines
+    (icollect [line (string.gmatch (.. source "\n") "(.-)\n")]
+      line))
+  (icollect [line-number line (ipairs lines)
+             :when
+             (and
+               (> (string.len line) 0)
                (= (string.match line "^%S") (string.sub line 1 1))
                (not (string.match line "^%-%-"))
                (not (= (string.sub line 1 3) "{-#"))
@@ -41,24 +41,17 @@
                (not (string.match line "^syntax%s+"))
                (not (string.match line "^pattern%s+"))
                (not (string.match line "^postulate%s*$"))
-               (not (string.match line "^primitive%s*$")))
-      (local name (string.match line "^([^:]+)%s*:"))
-      (local signature (string.match line "^[^:]+:%s*(.*)$"))
-      (when (and name signature)
-        (local clean-name (trim name))
-        (local clean-signature (trim signature))
-        (when (and (> (string.len clean-name) 0)
-                   (not (string.match clean-name "^%-%-"))
-                   (not (= (string.sub clean-name 1 3) "{-#")))
-          (table.insert rows
-            (string.format
-              "<tr><td><code>%s</code></td><td><code>%s</code></td><td>%d</td><td><code>%s</code></td></tr>"
-              (escape-html path)
-              (escape-html clean-name)
-              line-number
-              (escape-html (if (= clean-signature "") "(signature continues)" clean-signature))))))))
-  rows))
-
+               (not (string.match line "^primitive%s*$"))
+               (string.match line "^([^:]+)%s*:")
+               (string.match line "^[^:]+:%s*(.*)$"))]
+    (let [clean-name (string.gsub (string.match line "^([^:]+)%s*:") "^%s*(.-)%s*$" "%1")
+          clean-signature (string.gsub (string.match line "^[^:]+:%s*(.*)$") "^%s*(.-)%s*$" "%1")]
+      (string.format
+        "<tr><td><code>%s</code></td><td><code>%s</code></td><td>%d</td><td><code>%s</code></td></tr>"
+        (escape-html path)
+        (escape-html clean-name)
+        line-number
+        (escape-html (if (= clean-signature "") "(signature continues)" clean-signature))))))
 (local render-section (fn [path title]
   (local rows (declaration-rows path (read-file path)))
   (string.format
