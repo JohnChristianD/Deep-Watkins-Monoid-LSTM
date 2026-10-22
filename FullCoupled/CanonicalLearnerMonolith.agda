@@ -90,7 +90,7 @@ module ConstructiveComputabilityPostulates where
   -- no excluded-middle axiom in this module. The outer monolith's Prop-valued
   -- observational equality/rewrite rules remain limited extensionality; no
   -- identity-level function-extensionality postulate is added.
-  open import Haskell.Prelude using (Nat; Int; zero; suc; Bool; True; False; List; []; _∷_; _≡_; refl)
+  open import Haskell.Prelude using (Nat; Integer; zero; suc; Bool; True; False; List; []; _∷_; _≡_; refl)
 
   data EmptyComputability : Set where
 
@@ -1658,11 +1658,11 @@ not-less-than-itself (suc n) (natLtStep smaller) =
 
 
 infixl 31 _+Int_
-_+Int_ : Int → Int → Int
+_+Int_ : Integer → Integer → Integer
 _+Int_ = _+_
 
 infixl 31 _*Int_
-_*Int_ : Int → Int → Int
+_*Int_ : Integer → Integer → Integer
 _*Int_ = _*_
 
 infixl 31 _ℤ+_
@@ -1715,11 +1715,11 @@ trans refl q = q
 
 record IntCode : Set where
   constructor intCode
-  field intCodeValue : Int
+  field intCodeValue : Integer
 open IntCode public
 
 intCodeStateSpace : Set
-intCodeStateSpace = Int
+intCodeStateSpace = Integer
 
 zeroIntCode : IntCode
 zeroIntCode = intCode (pos 0)
@@ -1731,12 +1731,12 @@ intCodeOfNat : ℕ → IntCode
 intCodeOfNat n = intCode (pos n)
 
 intCodeAdd : IntCode → IntCode → IntCode
-intCodeAdd x y = intCode (intCodeValue x +Int intCodeValue y)
+intCodeAdd x y = intCode (intCodeValue x +Integer intCodeValue y)
 
 intCodeMul : IntCode → IntCode → IntCode
-intCodeMul x y = intCode (intCodeValue x *Int intCodeValue y)
+intCodeMul x y = intCode (intCodeValue x *Integer intCodeValue y)
 
-intNeg : Int → Int
+intNeg : Integer → Integer
 intNeg (pos zero) = pos zero
 intNeg (pos (suc n)) = negsuc n
 intNeg (negsuc n) = pos (suc n)
@@ -1745,7 +1745,7 @@ intCodeNeg : IntCode → IntCode
 intCodeNeg x = intCode (intNeg (intCodeValue x))
 
 intCodeSub : IntCode → IntCode → IntCode
-intCodeSub x y = intCode (intCodeValue x +Int intCodeValue (intCodeNeg y))
+intCodeSub x y = intCode (intCodeValue x +Integer intCodeValue (intCodeNeg y))
 
 intCode+-assoc : ∀ a b c → intCodeAdd (intCodeAdd a b) c ＝ intCodeAdd a (intCodeAdd b c)
 intCode+-assoc a b c = cong intCode (ℤ+-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
@@ -2000,31 +2000,31 @@ sumList (x ∷ xs) = x + sumList xs
 -- proof surface.
 ------------------------------------------------------------------------
 
-integerCodeSum : List IntCode → Int
+integerCodeSum : List IntCode → Integer
 integerCodeSum [] = pos 0
-integerCodeSum (x ∷ xs) = intCodeValue x +Int integerCodeSum xs
+integerCodeSum (x ∷ xs) = intCodeValue x +Integer integerCodeSum xs
 
-integerCodeSumList : List Int → Int
+integerCodeSumList : List Integer → Integer
 integerCodeSumList [] = pos 0
-integerCodeSumList (x ∷ xs) = x +Int integerCodeSumList xs
+integerCodeSumList (x ∷ xs) = x +Integer integerCodeSumList xs
 
 integerLayerNormCenteredNumerator :
-  List IntCode → IntCode → Int
+  List IntCode → IntCode → Integer
 integerLayerNormCenteredNumerator xs x =
-  (pos (length xs)) *Int intCodeValue x +Int intNeg (integerCodeSum xs)
+  (pos (length xs)) *Integer intCodeValue x +Integer intNeg (integerCodeSum xs)
 
 integerLayerNormCenteredNumerators :
-  List IntCode → List Int
+  List IntCode → List Integer
 integerLayerNormCenteredNumerators xs =
   map
     (λ x → integerLayerNormCenteredNumerator xs x)
     xs
 
-integerLayerNormSquare : Int → Int
-integerLayerNormSquare z = z *Int z
+integerLayerNormSquare : Integer → Integer
+integerLayerNormSquare z = z *Integer z
 
 integerLayerNormVarianceNumerator :
-  List IntCode → Int
+  List IntCode → Integer
 integerLayerNormVarianceNumerator xs =
   integerCodeSumList
     (map
@@ -2032,7 +2032,7 @@ integerLayerNormVarianceNumerator xs =
       (integerLayerNormCenteredNumerators xs))
 
 integerLayerNormEpsilonContribution :
-  List IntCode → ℕ → Int
+  List IntCode → ℕ → Integer
 integerLayerNormEpsilonContribution xs epsilon =
   intCodeValue
     (intCodeMul
@@ -2040,10 +2040,10 @@ integerLayerNormEpsilonContribution xs epsilon =
       (intCodeMul (intCodeOfNat (length xs)) (intCodeOfNat (length xs))))
 
 integerLayerNormRadicand :
-  List IntCode → ℕ → Int
+  List IntCode → ℕ → Integer
 integerLayerNormRadicand xs epsilon =
   integerLayerNormVarianceNumerator xs
-  +Int
+  +Integer
   integerLayerNormEpsilonContribution xs epsilon
 
 record IntegerLayerNormConfig : Set where
@@ -2067,7 +2067,7 @@ open IntegerLayerNormCertificate public
 record IntegerLayerNormValue : Set where
   constructor mkIntegerLayerNormValue
   field
-    numerator : Int
+    numerator : Integer
     denominator : ℕ
     denominatorNonZero : denominator ≠ zero
 open IntegerLayerNormValue public
@@ -2080,11 +2080,11 @@ integerLayerNormValue :
   IntegerLayerNormValue
 integerLayerNormValue {xs} config certificate x =
   mkIntegerLayerNormValue
-    (intCodeValue (gamma config) *Int
-      (intCodeValue (fixedScale config) *Int
+    (intCodeValue (gamma config) *Integer
+      (intCodeValue (fixedScale config) *Integer
         integerLayerNormCenteredNumerator xs x)
-     +Int
-     (intCodeValue (beta config) *Int (pos (root certificate))))
+     +Integer
+     (intCodeValue (beta config) *Integer (pos (root certificate))))
     (root certificate)
     (rootNonZero certificate)
 
@@ -2176,7 +2176,7 @@ updateLCBCount {A} a (lcbCountState counts total) =
 ------------------------------------------------------------------------
 
 Dyadic : Set
-Dyadic = Int × ℕ
+Dyadic = Integer × ℕ
 
 fromNatDyadic : ℕ → ℕ → Dyadic
 fromNatDyadic n denominatorMinusOne =
@@ -4042,7 +4042,7 @@ canonicalPersistent : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A)
 canonicalPersistent = canonicalPersistentGRUPreservation
 
 CanonicalToken : Set
-CanonicalToken = Int
+CanonicalToken = Integer
 
 CanonicalTokenSequence : Set
 CanonicalTokenSequence = List CanonicalToken
@@ -4050,7 +4050,7 @@ CanonicalTokenSequence = List CanonicalToken
 canonicalTokenEncode : CanonicalToken → IntCode
 canonicalTokenEncode = intCode
 
--- IntCode is an exact wrapper around the repository's unbounded mathematical Int. Its intCodeValue
+-- IntCode is an exact wrapper around the repository's unbounded mathematical Integer. Its intCodeValue
 -- projection is a left inverse, hence the token transport is globally
 -- injective (this is not a bounded machine-byte encoding).
 canonicalTokenEncodeLeftInverse :
