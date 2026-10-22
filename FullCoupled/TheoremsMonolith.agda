@@ -3409,7 +3409,7 @@ CanonicalLearnerPermutationInvariant =
   C.runMonoidLSTMCell ys c
 
 canonicalNegativeOne8 : C.IntCode
-canonicalNegativeOne8 = C.intCode (negsucc zero)
+canonicalNegativeOne8 = C.intCode (negsuc zero)
 
 canonicalPermutation-swap :
   CanonicalListPermutation
