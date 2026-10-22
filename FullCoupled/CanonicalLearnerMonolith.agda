@@ -1148,9 +1148,6 @@ variable
   k l mNat n   : Nat
   xs ys zs    : List A
 
-cong : (f : A → B) → x ≡ y → f x ≡ f y
-cong f refl = refl
-
 transport : (P : A → Set ℓ) → x ≡ y → P x → P y
 transport P refl p = p
 
@@ -1173,15 +1170,6 @@ suc+ = refl
 +suc {mNat = suc m} = cong suc +suc
 
 {-# REWRITE +zero +suc #-}
-
-map : (A → B) → List A → List B
-map f []       = []
-map f (x ∷ xs) = (f x) ∷ (map f xs)
-
-infixr 5 _++_
-_++_ : List A → List A → List A
-[]       ++ ys = ys
-(x ∷ xs) ++ ys = x ∷ (xs ++ ys)
 
 canonical-map-identity : map (λ x → x) xs ≡ xs
 canonical-map-identity {xs = []}     = refl
@@ -1267,8 +1255,8 @@ _*Int_ : Int → Int → Int
 _*Int_ = _ℤ*_
 
 
-cong₂ : ∀ {A B C : Set} (f : A → B → C) {x y : A} {u v : B} → x ＝ y → u ＝ v → f x u ＝ f y v
-cong₂ f refl refl = refl
+cong₂Custom : ∀ {A B C : Set} (f : A → B → C) {x y : A} {u v : B} → x ＝ y → u ＝ v → f x u ＝ f y v
+cong₂Custom f refl refl = refl
 
 trans : ∀ {A : Set} {x y z : A} → x ＝ y → y ＝ z → x ＝ z
 trans refl q = q
@@ -1864,10 +1852,10 @@ monoidAffine-id = monoidAffine oneIntCode zeroIntCode
 
 monoidAffine-assoc : ∀ a b c → (a ∘ₘ b) ∘ₘ c ＝ a ∘ₘ (b ∘ₘ c)
 monoidAffine-assoc (monoidAffine a₁ b₁) (monoidAffine a₂ b₂) (monoidAffine a₃ b₃) =
-  cong₂ monoidAffine
+  cong₂Custom monoidAffine
     (intCode*-assoc a₁ a₂ a₃)
     (trans
-      (cong₂ intCodeAdd
+      (cong₂Custom intCodeAdd
         (intCode*-assoc a₁ a₂ b₃)
         refl)
       (trans
@@ -1884,7 +1872,7 @@ monoidAffine-assoc (monoidAffine a₁ b₁) (monoidAffine a₂ b₂) (monoidAffi
 
 monoidAffine-idˡ : ∀ a → monoidAffine-id ∘ₘ a ＝ a
 monoidAffine-idˡ (monoidAffine a b) =
-  cong₂ monoidAffine
+  cong₂Custom monoidAffine
     (intCode*-idˡ a)
     (trans
       (ap (λ z → intCodeAdd z zeroIntCode) (intCode*-idˡ b))
@@ -1892,7 +1880,7 @@ monoidAffine-idˡ (monoidAffine a b) =
 
 monoidAffine-idʳ : ∀ a → a ∘ₘ monoidAffine-id ＝ a
 monoidAffine-idʳ (monoidAffine a b) =
-  cong₂ monoidAffine
+  cong₂Custom monoidAffine
     (intCode*-idʳ a)
     (trans
       (ap (λ z → intCodeAdd z b) (intCode*-zeroʳ a))
@@ -2559,7 +2547,7 @@ canonicalHaarFeatureInjective {x} {y} eq =
   trans
     (sym (canonicalHaarFeatureReconstruct x))
     (trans
-      (cong₂
+      (cong₂Custom
         (λ a b → intCodeSub a b)
         (ap pr₁ eq)
         (ap pr₂ eq))
@@ -2592,7 +2580,7 @@ haarAccumulator-op-assoc
   (a₁ , b₁)
   (a₂ , b₂)
   (a₃ , b₃) =
-  cong₂ _,_
+  cong₂Custom _,_
     (intCode+-assoc a₁ a₂ a₃)
     (intCode+-assoc b₁ b₂ b₃)
 
@@ -2600,7 +2588,7 @@ haarAccumulator-op-idˡ :
   ∀ x →
   haarAccumulator-op haarAccumulator-id x ＝ x
 haarAccumulator-op-idˡ (a , b) =
-  cong₂ _,_
+  cong₂Custom _,_
     (intCode+-idˡ a)
     (intCode+-idˡ b)
 
@@ -2608,7 +2596,7 @@ haarAccumulator-op-idʳ :
   ∀ x →
   haarAccumulator-op x haarAccumulator-id ＝ x
 haarAccumulator-op-idʳ (a , b) =
-  cong₂ _,_
+  cong₂Custom _,_
     (intCode+-idʳ a)
     (intCode+-idʳ b)
 
