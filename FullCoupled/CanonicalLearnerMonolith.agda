@@ -1745,35 +1745,35 @@ intCodeSub : IntCode → IntCode → IntCode
 intCodeSub x y = intCode (intCodeValue x +Int intCodeValue (intCodeNeg y))
 
 intCode+-assoc : ∀ a b c → intCodeAdd (intCodeAdd a b) c ＝ intCodeAdd a (intCodeAdd b c)
-intCode+-assoc a b c = ap intCode (ℤ+-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
+intCode+-assoc a b c = cong intCode (ℤ+-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
 
 intCode*-assoc : ∀ a b c → intCodeMul (intCodeMul a b) c ＝ intCodeMul a (intCodeMul b c)
-intCode*-assoc a b c = ap intCode (ℤ*-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
+intCode*-assoc a b c = cong intCode (ℤ*-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
 
 sym : ∀ {A : Set} {x y : A} → x ＝ y → y ＝ x
 sym refl = refl
 
 intCode*-distribˡ : ∀ a b c → intCodeMul a (intCodeAdd b c) ＝ intCodeAdd (intCodeMul a b) (intCodeMul a c)
 intCode*-distribˡ a b c =
-  ap intCode (distributivity-mult-over-ℤ' (intCodeValue b) (intCodeValue c) (intCodeValue a))
+  cong intCode (distributivity-mult-over-ℤ' (intCodeValue b) (intCodeValue c) (intCodeValue a))
 
 intCode*-idˡ : ∀ a → intCodeMul oneIntCode a ＝ a
-intCode*-idˡ a = ap intCode (ℤ-mult-left-id (intCodeValue a))
+intCode*-idˡ a = cong intCode (ℤ-mult-left-id (intCodeValue a))
 
 intCode*-idʳ : ∀ a → intCodeMul a oneIntCode ＝ a
-intCode*-idʳ a = ap intCode (ℤ-mult-right-id (intCodeValue a))
+intCode*-idʳ a = cong intCode (ℤ-mult-right-id (intCodeValue a))
 
 intCode*-zeroʳ : ∀ a → intCodeMul a zeroIntCode ＝ zeroIntCode
-intCode*-zeroʳ a = ap intCode (ℤ-zero-right-is-zero (intCodeValue a))
+intCode*-zeroʳ a = cong intCode (ℤ-zero-right-is-zero (intCodeValue a))
 
 intCode*-zeroˡ : ∀ a → intCodeMul zeroIntCode a ＝ zeroIntCode
-intCode*-zeroˡ a = ap intCode (ℤ-zero-left-base (intCodeValue a))
+intCode*-zeroˡ a = cong intCode (ℤ-zero-left-base (intCodeValue a))
 
 intCode+-idˡ : ∀ a → intCodeAdd zeroIntCode a ＝ a
-intCode+-idˡ a = ap intCode (ℤ-zero-left-neutral (intCodeValue a))
+intCode+-idˡ a = cong intCode (ℤ-zero-left-neutral (intCodeValue a))
 
 intCode+-idʳ : ∀ a → intCodeAdd a zeroIntCode ＝ a
-intCode+-idʳ a = ap intCode (ℤ-zero-right-neutral (intCodeValue a))
+intCode+-idʳ a = cong intCode (ℤ-zero-right-neutral (intCodeValue a))
 
 intCodeRoundtrip : ∀ n → intCodeValue (intCodeOfNat n) ＝ pos n
 intCodeRoundtrip n = refl
@@ -1782,7 +1782,7 @@ intCodeRoundtrip n = refl
 
 plus-zero : ∀ n → n + zero ＝ n
 plus-zero zero = refl
-plus-zero (suc n) = ap suc (plus-zero n)
+plus-zero (suc n) = cong suc (plus-zero n)
 
 plus-succ : ∀ (m n : ℕ) → m + suc n ＝ suc (m + n)
 plus-succ zero n = refl
@@ -2310,7 +2310,7 @@ monoidAffine-assoc (monoidAffine a₁ b₁) (monoidAffine a₂ b₂) (monoidAffi
           (intCodeMul a₁ (intCodeMul a₂ b₃))
           (intCodeMul a₁ b₂)
           b₁))
-        (ap
+        (cong
           (λ z → intCodeAdd z b₁)
           (sym (intCode*-distribˡ
             a₁
@@ -2322,7 +2322,7 @@ monoidAffine-idˡ (monoidAffine a b) =
   cong₂Custom monoidAffine
     (intCode*-idˡ a)
     (trans
-      (ap (λ z → intCodeAdd z zeroIntCode) (intCode*-idˡ b))
+      (cong (λ z → intCodeAdd z zeroIntCode) (intCode*-idˡ b))
       (intCode+-idʳ b))
 
 monoidAffine-idʳ : ∀ a → a ∘ₘ monoidAffine-id ＝ a
@@ -2330,7 +2330,7 @@ monoidAffine-idʳ (monoidAffine a b) =
   cong₂Custom monoidAffine
     (intCode*-idʳ a)
     (trans
-      (ap (λ z → intCodeAdd z b) (intCode*-zeroʳ a))
+      (cong (λ z → intCodeAdd z b) (intCode*-zeroʳ a))
       (intCode+-idˡ b))
 
 applyMonoidAffine : MonoidAffine → IntCode → IntCode
@@ -2368,17 +2368,17 @@ monoidLSTMCellStep-is-affine monoidHold c x =
 monoidLSTMCellStep-is-affine monoidWrite c x =
   trans
     (sym (intCode+-idˡ (leaky2 x)))
-    (ap
+    (cong
       (λ z → intCodeAdd z (leaky2 x))
       (sym (intCode*-zeroˡ c)))
 monoidLSTMCellStep-is-affine monoidReset c x =
   trans
     (sym (intCode+-idˡ zeroIntCode))
-    (ap
+    (cong
       (λ z → intCodeAdd z zeroIntCode)
       (sym (intCode*-zeroˡ c)))
 monoidLSTMCellStep-is-affine monoidAccum c x =
-  ap (λ z → intCodeAdd z (leaky2 x)) (sym (intCode*-idˡ c))
+  cong (λ z → intCodeAdd z (leaky2 x)) (sym (intCode*-idˡ c))
 
 scanMonoidAffine : List IntCode → MonoidAffine
 scanMonoidAffine [] = monoidAffine-id
@@ -2708,7 +2708,7 @@ recurrentPrefix-correct :
   recurrentPrefixState R xs n s
 recurrentPrefix-correct R xs zero s = refl
 recurrentPrefix-correct R xs (suc n) s =
-  ap
+  cong
     (λ z → runNetwork R z (xs n))
     (recurrentPrefix-correct R xs n s)
 
@@ -2734,15 +2734,15 @@ recurrentPrefix-split :
     n
     (recurrentPrefixState R xs m s)
 recurrentPrefix-split R xs m zero s =
-  ap
+  cong
     (λ k → recurrentPrefixState R xs k s)
     (plus-zero m)
 recurrentPrefix-split R xs m (suc n) s =
   trans
-    (ap
+    (cong
       (λ k → recurrentPrefixState R xs k s)
       (plus-succ m n))
-    (ap
+    (cong
       (λ z → runNetwork R z (xs (m + n)))
       (recurrentPrefix-split R xs m n s))
 
@@ -2996,8 +2996,8 @@ canonicalHaarFeatureInjective {x} {y} eq =
     (trans
       (cong₂Custom
         (λ a b → intCodeSub a b)
-        (ap pr₁ eq)
-        (ap pr₂ eq))
+        (cong pr₁ eq)
+        (cong pr₂ eq))
       (canonicalHaarFeatureReconstruct y))
 
 record HaarFeaturedLinearTransformer : Set where
@@ -3912,7 +3912,7 @@ iterateCanonical-step-shift :
   iterateCanonical K (suc n) s
 iterateCanonical-step-shift K zero s = refl
 iterateCanonical-step-shift K (suc n) s =
-  ap (canonicalFullStep K) (iterateCanonical-step-shift K n s)
+  cong (canonicalFullStep K) (iterateCanonical-step-shift K n s)
 
 canonicalLearnerTraceAt :
   ∀ {A}
@@ -3967,9 +3967,9 @@ canonicalNoFixedPoint :
 canonicalNoFixedPoint K s eq =
   plus-succ-not-self (totalCount (lcbCounts s)) zero
     (trans (plus-succ (totalCount (lcbCounts s)) zero)
-      (trans (ap suc (plus-zero (totalCount (lcbCounts s))))
+      (trans (cong suc (plus-zero (totalCount (lcbCounts s))))
         (trans (sym (canonicalTotalCountStep K s))
-          (ap (λ t → totalCount (lcbCounts t)) eq))))
+          (cong (λ t → totalCount (lcbCounts t)) eq))))
 
 iterateCanonical : ∀ {A} → FullLearnerKernel A → ℕ → FullLearnerState A → FullLearnerState A
 iterateCanonical K zero s = s
@@ -3984,14 +3984,14 @@ canonicalTotalCountAfter K (suc n) s =
   trans
     (canonicalTotalCountStep K (iterateCanonical K n s))
     (trans
-      (ap suc (canonicalTotalCountAfter K n s))
+      (cong suc (canonicalTotalCountAfter K n s))
       (sym (plus-succ (totalCount (lcbCounts s)) n)))
 
 canonicalAperiodic : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ≠ s
 canonicalAperiodic K s n cyc = plus-succ-not-self (totalCount (lcbCounts s)) n
   (trans
     (sym (canonicalTotalCountAfter K (suc n) s))
-    (ap (λ t → totalCount (lcbCounts t)) cyc))
+    (cong (λ t → totalCount (lcbCounts t)) cyc))
 
 canonicalOrbitNonFixed : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K n s ≠ canonicalFullStep K (iterateCanonical K n s)
 canonicalOrbitNonFixed K s n eq =
@@ -4006,7 +4006,7 @@ canonicalTotalCountIterate2 K s = refl
 canonicalNoCountedTwoCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → iterateCanonical K 2 s ＝ s → 𝟘
 canonicalNoCountedTwoCycle K s cyc = succ-succ-not-self (totalCount (lcbCounts s))
   (trans (sym (canonicalTotalCountIterate2 K s))
-    (ap (λ t → totalCount (lcbCounts t)) cyc))
+    (cong (λ t → totalCount (lcbCounts t)) cyc))
 
 temperatureCodeLaw : sparsemaxTemperature ＝ 16
 temperatureCodeLaw = refl
@@ -4047,7 +4047,7 @@ canonicalTokenEncodeInjective {left} {right} encodedEquality =
   trans
     (sym (canonicalTokenEncodeLeftInverse left))
     (trans
-      (ap intCodeValue encodedEquality)
+      (cong intCodeValue encodedEquality)
       (canonicalTokenEncodeLeftInverse right))
 
 -- Any representation with an exact left inverse is globally injective.
@@ -4063,7 +4063,7 @@ leftInverseImpliesInjective observe inverse leftInverse {left} {right} observati
   trans
     (sym (leftInverse left))
     (trans
-      (ap inverse observationEquality)
+      (cong inverse observationEquality)
       (leftInverse right))
 
 canonicalTokenEncodeList : CanonicalTokenSequence → List IntCode
@@ -4073,7 +4073,7 @@ canonicalTokenEncodeListLeftInverse :
   ∀ tokens → map intCodeValue (canonicalTokenEncodeList tokens) ＝ tokens
 canonicalTokenEncodeListLeftInverse [] = refl
 canonicalTokenEncodeListLeftInverse (token ∷ tokens) =
-  ap (_∷_ token) (canonicalTokenEncodeListLeftInverse tokens)
+  cong (_∷_ token) (canonicalTokenEncodeListLeftInverse tokens)
 
 canonicalTokenEncodeListInjective :
   ∀ {left right} →
@@ -4083,7 +4083,7 @@ canonicalTokenEncodeListInjective {left} {right} encodedEquality =
   trans
     (sym (canonicalTokenEncodeListLeftInverse left))
     (trans
-      (ap (map intCodeValue) encodedEquality)
+      (cong (map intCodeValue) encodedEquality)
       (canonicalTokenEncodeListLeftInverse right))
 
 canonicalTokenStep : GRUState → CanonicalToken → GRUState
