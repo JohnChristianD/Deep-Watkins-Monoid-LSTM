@@ -62,6 +62,13 @@ open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Primitive public
 
+-- Preserve the file's established fullwidth equality notation as a purely
+-- definitional alias of Prelude propositional equality. No new axiom or
+-- extensionality principle is introduced by this compatibility name.
+infix 4 _＝_
+_＝_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
+_＝_ = _≡_
+
 ------------------------------------------------------------------------
 -- Shared constructive-computability assumptions and interfaces.
 --
