@@ -1047,31 +1047,46 @@ module ConstructiveComputabilityPostulates where
       ScottErshovEffectiveDomainData.approximationLeast domain
 
   ----------------------------------------------------------------------
-  -- Scott-Ershov computational approximation equations.
+  -- Scott-Ershov computational approximation contract.
   --
-  -- Following the distinction in Cockx–Tabareau–Winterhalter's rewriting
-  -- theory, the equations below are explicit computational assumptions of
-  -- each supplied approximation machine, not postulates about every domain.
-  -- Registering these equations makes the zero-stage and successor-stage
-  -- behavior judgmental. They are disjoint rewrite heads, checked by the
-  -- monolith's existing --confluence-check setting.
+  -- The approximation operation is deliberately opaque. The two equations
+  -- below are its explicit computational assumptions: at stage zero it
+  -- yields bottom; at a successor stage it applies the supplied step.
+  --
+  -- Cockx, Tabareau, and Winterhalter, "The Taming of the Rew" (POPL 2021),
+  -- require rewrite rules to preserve subject reduction and be confluent.
+  -- These rules have a neutral postulated head and disjoint zero/successor
+  -- patterns, so their computational effect is explicit rather than hidden
+  -- in a record projection. The existing Agda confluence check is the gate.
+  --
+  -- Mosses, Cockx, and Reus, "Mechanising Denotational Semantics in Agda"
+  -- (MFPS 2026; XDS-Agda) demonstrates Scott-Strachey embeddings, while
+  -- explicitly warning that postulated domain properties still need a
+  -- semantic consistency account. This contract is not itself such a model.
   ----------------------------------------------------------------------
 
   record ScottErshovComputationalDomain (D : Set) : Set₁ where
     constructor scottErshovComputationalDomain
     field
       scottErshovBottom : D
-      scottErshovApproximation : D → Nat → D
       scottErshovApproximationStep : D → D → D
-      scottErshovApproximationAtZero :
-        (x : D) →
-        scottErshovApproximation x zero ≡ scottErshovBottom
-      scottErshovApproximationAtSuccessor :
-        (x : D) (n : Nat) →
-        scottErshovApproximation x (suc n) ≡
-          scottErshovApproximationStep x (scottErshovApproximation x n)
 
   open ScottErshovComputationalDomain public
+
+  postulate
+    scottErshovApproximation :
+      {D : Set} → ScottErshovComputationalDomain D → D → Nat → D
+
+    scottErshovApproximationAtZero :
+      {D : Set} (domain : ScottErshovComputationalDomain D) (x : D) →
+      scottErshovApproximation domain x zero ≡ scottErshovBottom domain
+
+    scottErshovApproximationAtSuccessor :
+      {D : Set} (domain : ScottErshovComputationalDomain D)
+      (x : D) (n : Nat) →
+      scottErshovApproximation domain x (suc n) ≡
+        scottErshovApproximationStep domain x
+          (scottErshovApproximation domain x n)
 
   {-# REWRITE scottErshovApproximationAtZero scottErshovApproximationAtSuccessor #-}
 
