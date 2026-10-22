@@ -193,22 +193,19 @@ trimWhitespace source =
   dropTrailingSpaces
     (dropLeadingSpaces source)
 
--- Source-level whitespace tokenization. The standard Haskell.Prim.String
--- words implementation calls the JS Char primitive primIsSpace, which is
--- absent in Agda 2.8's emitted Char module on this target. Keep the tokenizer
--- on the same literal-pattern path as the other parser primitives.
-splitWordChars : CharList -> CharList × CharList
-splitWordChars [] = [] , []
-splitWordChars (c ∷ rest) with isSpace c
-... | True = [] , c ∷ rest
-... | False with splitWordChars rest
-...   | word , suffix = c ∷ word , suffix
+-- Source-level whitespace tokenization. Recurse directly on the remaining
+-- input list so Agda can see structural decrease; do not recurse on a suffix
+-- returned by a separate splitter. The current token is accumulated reversed.
+wordsStringAcc : CharList -> CharList -> List String
+wordsStringAcc [] [] = []
+wordsStringAcc [] current = reverse current ∷ []
+wordsStringAcc (c ∷ rest) current with isSpace c | current
+... | True | [] = wordsStringAcc rest []
+... | True | _ = reverse current ∷ wordsStringAcc rest []
+... | False | _ = wordsStringAcc rest (c ∷ current)
 
 wordsString : String -> List String
-wordsString source with dropLeadingSpaces source
-... | [] = []
-... | trimmed with splitWordChars trimmed
-...   | word , rest = word ∷ wordsString rest
+wordsString source = wordsStringAcc source []
 
 firstWord : String -> Maybe String
 firstWord source =
