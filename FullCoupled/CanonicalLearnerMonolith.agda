@@ -2163,29 +2163,33 @@ updateLCBCount {A} a (lcbCountState counts total) =
   lcbCountState (incAt {A = A} counts a) (suc total)
 
 ------------------------------------------------------------------------
--- TypeTopology Rationals supplies the canonical exact rational carrier.
--- The legacy Dyadic helper names remain stable for theorem/registry
--- surfaces, but their carrier is now TypeTopology's rational type.
+-- Local executable fraction encoding.
+--
+-- Store signed numerator and denominator-minus-one explicitly. This keeps
+-- the canonical learner within its declared Nix import closure. This is a
+-- fraction code, not a normalized quotient-type rational; equality between
+-- different codes would require an explicit normalization theorem. The
+-- established Dyadic helper names remain stable for the learner surface.
 ------------------------------------------------------------------------
 
 Dyadic : Set
-Dyadic = ℚ
+Dyadic = Int × ℕ
 
 fromNatDyadic : ℕ → ℕ → Dyadic
-fromNatDyadic n exponent =
-  toℚ (pos n , exponent)
+fromNatDyadic n denominatorMinusOne =
+  pos n , denominatorMinusOne
 
 dyadicNumerator : Dyadic → ℕ
-dyadicNumerator ((pos n , d) , _) = n
-dyadicNumerator ((negsuc n , d) , _) = zero
+dyadicNumerator (pos n , _) = n
+dyadicNumerator (negsuc _ , _) = zero
 
 dyadicDenominator : Dyadic → ℕ
-dyadicDenominator ((z , d) , _) =
-  suc d
+dyadicDenominator (_ , denominatorMinusOne) =
+  suc denominatorMinusOne
 
 dyadicDivide : ℕ → Dyadic → ℕ
-dyadicDivide n ((z , d) , _) =
-  pr₁ (division n d)
+dyadicDivide n (_ , denominatorMinusOne) =
+  pr₁ (division n denominatorMinusOne)
 
 qLog8 : IntCode → Dyadic
 qLog8 x with intCodeMagnitude x
@@ -2935,17 +2939,22 @@ canonicalCReLU8 x =
 -- keeping the paired positive/negative CReLU representation.
 ------------------------------------------------------------------------
 
-canonicalSignReLU' : ℚ → ℚ
-canonicalSignReLU' (((negsuc n , a) , _)) =
-  toℚ (negsuc n , a + suc n)
+canonicalSignReLU' : Dyadic → Dyadic
+canonicalSignReLU' (negsuc n , denominatorMinusOne) =
+  negsuc n , denominatorMinusOne + suc n
 canonicalSignReLU' q = q
 
-CanonicalCReLUPrimePair : Set
-CanonicalCReLUPrimePair = ℚ × ℚ
+dyadicNegate : Dyadic → Dyadic
+dyadicNegate (numerator , denominatorMinusOne) =
+  intNeg numerator , denominatorMinusOne
 
-canonicalCReLU' : ℚ → CanonicalCReLUPrimePair
+CanonicalCReLUPrimePair : Set
+CanonicalCReLUPrimePair = Dyadic × Dyadic
+
+canonicalCReLU' : Dyadic → CanonicalCReLUPrimePair
 canonicalCReLU' x =
-  canonicalSignReLU' x , canonicalSignReLU' (- x)
+  canonicalSignReLU' x , canonicalSignReLU' (dyadicNegate x)
+
 
 canonicalHaarFeature : IntCode → CanonicalHaarPair
 canonicalHaarFeature x =
