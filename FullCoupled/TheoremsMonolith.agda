@@ -2476,7 +2476,7 @@ integerLayerNorm-raw-centered-edge epsilon xs =
       []
       semanticProved
       kernelProof
-      true)
+      True)
     (path-step refl (path-refl
       (centeredIntegerLayerNorm epsilon xs)))
 
@@ -2495,7 +2495,7 @@ integerLayerNorm-centered-radicand-edge epsilon xs =
       []
       semanticProved
       kernelProof
-      true)
+      True)
     (path-step refl (path-refl
       (radicandIntegerLayerNorm epsilon xs)))
 
@@ -4178,7 +4178,7 @@ naive-limit-injectivity-impossible :
 naive-limit-injectivity-impossible derive =
   false-not-true
     (derive constant-limit trivial-convergence
-      {s = false} {t = true} refl)
+      {s = False} {t = True} refl)
 
 ------------------------------------------------------------------------
 -- Interpretation:
@@ -7713,7 +7713,7 @@ kla-affine-canonical-edge a =
       []
       semanticProved
       kernelProof
-      true)
+      True)
     (path-step refl (path-refl (canonicalMean a)))
 
 kla-affine-composition :
