@@ -2132,11 +2132,11 @@ record SparseWeight : Set where
 open SparseWeight public
 
 sparsemaxWeight : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
-sparsemaxWeight {A} K q c a = sparseWeight (((supportK *ℕ intCodeMagnitude (scoreA {A = A} q c a)) +ℕ sparsemaxTemperature) ∸ s) (supportK *ℕ sparsemaxTemperature)
+sparsemaxWeight {A} K q c a = sparseWeight (((supportK *ℕ intCodeMagnitude (scoreA {A = A} q c a)) +ℕ sparsemaxTemperature) ∸ scoreSum) (supportK *ℕ sparsemaxTemperature)
   where
     scoreEntries = sortScores (scoreList K q c)
     supportK = supportSize K q c
-    s = sumList (topCodes supportK scoreEntries)
+    scoreSum = sumList (topCodes supportK scoreEntries)
 
 weightPositive : SparseWeight → BoolLike
 weightPositive (sparseWeight n d) with natEq n zero
