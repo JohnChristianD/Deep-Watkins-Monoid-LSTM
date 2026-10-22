@@ -48,3 +48,8 @@ https://popl21.sigplan.org/details/POPL-2021-research-papers/60/The-Taming-of-th
 
 Haskell Wikibooks, denotational semantics:
 https://en.wikibooks.org/wiki/Haskell/Denotational_semantics
+
+
+Finite register-machine execution note
+
+The canonical learner now defines runMachineFuel and runMachineWithFuel. Both are structurally recursive on a fuel bound. MachineRunResult distinguishes machineRunHalted from machineRunFuelExhausted. The refl regressions cover an immediate halt and a looping instruction whose fuel runs out. A halted evaluator result is still distinct from a ComputationTrace proof; ECT0's program witness must carry that trace and relation evidence.
