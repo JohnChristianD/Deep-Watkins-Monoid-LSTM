@@ -1222,7 +1222,7 @@ graphAStarTieBreakRegression =
   case graphAStarInsert laws incoming (existing ∷ []) of λ where
     (MkGraphAStarNode (firstName ∷ []) _ ∷
      MkGraphAStarNode (secondName ∷ []) _ ∷ []) ->
-      firstName == "B" && secondName == "A"
+      Extractor.stringEqual firstName "B" && Extractor.stringEqual secondName "A"
     _ -> False
 
 graphAStarTieBreakRegressionChecked :
