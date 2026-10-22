@@ -82,11 +82,11 @@ isAsciiDigit '8' = True
 isAsciiDigit '9' = True
 isAsciiDigit _ = False
 isSourceSpace : Char → Bool
-isSourceSpace c =
-  if c == ' ' then True
-  else if c == '\n' then True
-  else if c == '\r' then True
-  else c == '\t'
+isSourceSpace ' ' = True
+isSourceSpace '\n' = True
+isSourceSpace '\r' = True
+isSourceSpace '\t' = True
+isSourceSpace _ = False
 
 data SemanticKind : Type where
   SemanticTopLevel : SemanticKind
@@ -136,16 +136,10 @@ data RecordFieldScanState : Type where
   FieldCollecting :
     String -> String -> List String -> RecordFieldScanState
 
-isIdentifierChar : Char -> Bool
-isIdentifierChar c =
-  if isAsciiAlpha c then
-    True
-  else if isAsciiDigit c then
-    True
-  else if c == '_' then
-    True
-  else
-    c == '-'
+isIdentifierChar : Char → Bool
+isIdentifierChar '_' = True
+isIdentifierChar '-' = True
+isIdentifierChar c = isAsciiAlpha c || isAsciiDigit c
 
 isSpace : Char -> Bool
 isSpace = isSourceSpace
@@ -186,40 +180,48 @@ secondWord source =
     (_ ∷ word ∷ _) -> Just word
     _ -> Nothing
 
-containsChar : Char -> CharList -> Bool
-containsChar _ [] = False
-containsChar target (c ∷ rest) =
-  if target == c then
-    True
-  else
-    containsChar target rest
+-- Only ASCII delimiters are searched by the source reader. Keep the
+-- delimiter in the function's pattern so generated JavaScript does not need
+-- the unavailable generic Char equality primitive from Haskell.Prim.Char.
+containsColon : CharList → Bool
+containsColon [] = False
+containsColon (':' ∷ _) = True
+containsColon (_ ∷ rest) = containsColon rest
 
-lineContainsChar : Char -> String -> Bool
-lineContainsChar target source =
-  containsChar target source
+containsEquals : CharList → Bool
+containsEquals [] = False
+containsEquals ('=' ∷ _) = True
+containsEquals (_ ∷ rest) = containsEquals rest
 
-splitFirstChar :
-  Char ->
-  CharList ->
-  CharList × CharList
-splitFirstChar target [] = [] , []
-splitFirstChar target (c ∷ rest) =
-  if target == c then
-    [] , rest
-  else
-    let (before , after) = splitFirstChar target rest
-    in c ∷ before , after
+lineContainsColon : String → Bool
+lineContainsColon source = containsColon source
 
-splitFirstCharString :
-  Char ->
-  String ->
-  String × String
-splitFirstCharString target source =
-  let (before , after) =
-        splitFirstChar target source
-  in
-  before ,
-  after
+lineContainsEquals : String → Bool
+lineContainsEquals source = containsEquals source
+
+splitFirstColon : CharList → CharList × CharList
+splitFirstColon [] = [] , []
+splitFirstColon (':' ∷ rest) = [] , rest
+splitFirstColon (c ∷ rest) =
+  let (before , after) = splitFirstColon rest
+  in c ∷ before , after
+
+splitFirstEquals : CharList → CharList × CharList
+splitFirstEquals [] = [] , []
+splitFirstEquals ('=' ∷ rest) = [] , rest
+splitFirstEquals (c ∷ rest) =
+  let (before , after) = splitFirstEquals rest
+  in c ∷ before , after
+
+splitFirstColonString : String → String × String
+splitFirstColonString source =
+  let (before , after) = splitFirstColon source
+  in before , after
+
+splitFirstEqualsString : String → String × String
+splitFirstEqualsString source =
+  let (before , after) = splitFirstEquals source
+  in before , after
 
 planContains : String -> List String -> Bool
 planContains _ [] = False
@@ -278,10 +280,10 @@ topLevelHeader line =
           case syntaxHead headerName || headerName == "--" of λ where
             True -> Nothing
             False ->
-              case lineContainsChar ':' line of λ where
+              case lineContainsColon line of λ where
                 False -> Nothing
                 True ->
-                  let (_ , fragment) = splitFirstCharString ':' line
+                  let (_ , fragment) = splitFirstColonString line
                   in Just (headerName , trimWhitespace fragment)
 
 topLevelRecordHeaderType :
@@ -289,10 +291,10 @@ topLevelRecordHeaderType :
   String ->
   Maybe (String × String)
 topLevelRecordHeaderType name line =
-  case lineContainsChar ':' line of λ where
+  case lineContainsColon line of λ where
     False -> Nothing
     True ->
-      case splitFirstCharString ':' line of λ where
+      case splitFirstColonString line of λ where
         (_ , fragment) -> Just (name , trimWhitespace fragment)
 
 topLevelRecordHeaderName :
@@ -366,10 +368,10 @@ bodyClause name line =
           case lineName == name of λ where
             False -> Nothing
             True ->
-              case lineContainsChar '=' line of λ where
+              case lineContainsEquals line of λ where
                 False -> Nothing
                 True ->
-                  case splitFirstCharString '=' line of λ where
+                  case splitFirstEqualsString line of λ where
                     (_ , rhs) -> Just (trimWhitespace rhs)
 
 bodyClauseRegression : Bool
@@ -616,10 +618,10 @@ recordFieldHeader line =
           case candidate == "field" || syntaxHead candidate of λ where
             True -> Nothing
             False ->
-              case lineContainsChar ':' line of λ where
+              case lineContainsColon line of λ where
                 False -> Nothing
                 True ->
-                  case splitFirstCharString ':' line of λ where
+                  case splitFirstColonString line of λ where
                     (before , after) ->
                       Just (trimWhitespace before , trimWhitespace after)
 
@@ -1136,10 +1138,14 @@ semanticLawContainer = lawContainer
 {-# COMPILE AGDA2HS trimWhitespace #-}
 {-# COMPILE AGDA2HS firstWord #-}
 {-# COMPILE AGDA2HS secondWord #-}
-{-# COMPILE AGDA2HS containsChar #-}
-{-# COMPILE AGDA2HS lineContainsChar #-}
-{-# COMPILE AGDA2HS splitFirstChar #-}
-{-# COMPILE AGDA2HS splitFirstCharString #-}
+{-# COMPILE AGDA2HS containsColon #-}
+{-# COMPILE AGDA2HS containsEquals #-}
+{-# COMPILE AGDA2HS lineContainsColon #-}
+{-# COMPILE AGDA2HS lineContainsEquals #-}
+{-# COMPILE AGDA2HS splitFirstColon #-}
+{-# COMPILE AGDA2HS splitFirstEquals #-}
+{-# COMPILE AGDA2HS splitFirstColonString #-}
+{-# COMPILE AGDA2HS splitFirstEqualsString #-}
 {-# COMPILE AGDA2HS topLevelLine #-}
 {-# COMPILE AGDA2HS syntaxHead #-}
 {-# COMPILE AGDA2HS topLevelHeader #-}
