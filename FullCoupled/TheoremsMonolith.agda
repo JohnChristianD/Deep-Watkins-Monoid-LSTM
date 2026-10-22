@@ -328,6 +328,7 @@ open ConstructiveComputabilityPostulates public using
   ; SigmaWitness
   ; sigma-witness
   ; sigmaValue
+  ; sigmaEvidence
   ; PropExists
   ; RecursiveProgram
   ; ComputesRelation
