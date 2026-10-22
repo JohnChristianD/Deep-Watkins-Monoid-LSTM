@@ -176,7 +176,6 @@
       ".ci/presentation-contract.dhall"
       ".ci/fennel/monolith_catalog.fnl"
       ".ci/fennel/palette_css.fnl"
-      ".ci/presentation-smoke.cjs"
       "site/app.mjs"
       "site/render.mjs"
       "site/page-model.mjs"
@@ -223,11 +222,18 @@
       "generate immutable monolith catalogue")
     (verify-catalog catalog)
     (must-run
+      (lambda () (run (node "--check" "site/render.mjs")))
+      "pure renderer JavaScript syntax")
+    (must-run
+      (lambda () (run (node "--check" "site/app.mjs")))
+      "filesystem adapter JavaScript syntax")
+    (must-run
       (lambda () (run (node "site/app.mjs" ,catalog "index.html" ,html)))
       "render static page through pure renderer")
-    (must-run
-      (lambda () (run (node ".ci/presentation-smoke.cjs" ,html)))
-      "verify static output contract")
+    (require-text html "Russian constructivism (RUSS)")
+    (for-each
+      (lambda (needle) (forbid-text html needle))
+      '("<script" "<input" "<button" "filter-row" "siteSearchMatches"))
     (require-text css "--palette-ink:")
     (require-text css "--palette-ink-on-accent:")
     (write-file (string-append output-dir "/.nojekyll") "")
