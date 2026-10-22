@@ -583,6 +583,54 @@ module RUSSProofTheory where
   ...   | yes found = sigma-witness (suc fuel) found
   ...   | no absent = russEliminateFalse (absent evidence)
 
+  ----------------------------------------------------------------------
+  -- Executable interpretation boundary for the selected RUSS principles.
+  --
+  -- Markov search reduces at finite fuel. ECT0 returns a program carrying
+  -- finite-trace evidence via the named basis projection; it is not a
+  -- definitional compiler for arbitrary relations. Prop-valued countable
+  -- choice remains an opaque proof-level selector. Data-valued choice is
+  -- constructive and computational.
+  ----------------------------------------------------------------------
+
+  russMarkovOperationalPrefix :
+    (P : Nat → Set) →
+    (fuel : Nat) →
+    ((n : Nat) → Decidable (P n)) →
+    RUSSBoundedSearchResult P
+  russMarkovOperationalPrefix = russSearchBounded
+
+  russECT0CertifiedProgram :
+    (basis : RussianRecursiveMathematicsBasis) →
+    (relation : Nat → Nat → Set) →
+    ((input output : Nat) → Decidable (relation input output)) →
+    ((input : Nat) → SigmaWitness Nat (relation input)) →
+    SigmaWitness RecursiveProgram
+      (λ program → ComputesRelation program relation)
+  russECT0CertifiedProgram basis relation decide pointwiseWitness =
+    RussianRecursiveMathematicsBasis.russECT0
+      basis relation decide pointwiseWitness
+
+  russPropCountableSelector :
+    (basis : RussianRecursiveMathematicsBasis) →
+    (A : Nat → Set) →
+    (P : (n : Nat) → A n → Prop) →
+    ((n : Nat) → PropExists (P n)) →
+    PropExists {A = (n : Nat) → A n}
+      (λ choose → (n : Nat) → P n (choose n))
+  russPropCountableSelector basis A P pointwise =
+    RussianRecursiveMathematicsBasis.russCountableChoice
+      basis A P pointwise
+
+  russDataCountableSelector :
+    (A : Nat → Set) →
+    (P : (n : Nat) → A n → Set) →
+    ((n : Nat) → SigmaWitness (A n) (P n)) →
+    SigmaWitness
+      ((n : Nat) → A n)
+      (λ choose → (n : Nat) → P n (choose n))
+  russDataCountableSelector = constructiveCountableChoice
+
   -- XDS-style definitional regression: the bounded search computes the
   -- least witness in this concrete decidable example without a new rewrite.
   data RUSSSearchRegressionPredicate : Nat → Set where
