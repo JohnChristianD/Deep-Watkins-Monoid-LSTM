@@ -49,14 +49,14 @@
       "<tr><td><code>%s</code></td><td><code>%s</code></td><td><code>%s</code></td></tr>"
       (escape-html path)
       (escape-html clean-name)
-      (escape-html (if (= clean-signature "") "(signature continues)" clean-signature)))))
+      (escape-html (if (= clean-signature "") "(signature continues)" clean-signature))))))
 
 (local declaration-rows (fn [path source]
   (fun.totable
     (fun.map
       (fn [line] (declaration-row path line))
       (fun.filter is-declaration-line
-        (string.gmatch (.. source "\n") "(.-)\n")))))
+        (string.gmatch (.. source "\n") "(.-)\n"))))))
 (local render-section (fn [path title]
   (local rows (declaration-rows path (read-file path)))
   (string.format
