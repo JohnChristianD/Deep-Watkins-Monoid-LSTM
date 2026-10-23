@@ -37,10 +37,6 @@ module FullCoupled.TheoremsMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude hiding (String; Char; Type; ⊤; tt)
 
--- Define the theorem module's integer shorthand from the official
--- Prelude before importing the learner module later in this file. Do not
--- refer forward to the learner's private compatibility notation.
-
 -- Compiler-facing subset of the Agda 2.8.0.2 Reflection ABI used below.
 -- Primitive signatures, builtin tags, and reflected syntax constructors
 -- mirror Agda.Builtin.Reflection; only the operations actually consumed by
@@ -2239,8 +2235,7 @@ canonicalZeroInt-not-oneInt ()
 canonicalZero8-not-oneIntCode :
   C.zeroIntCode ≢ C.oneIntCode
 canonicalZero8-not-oneIntCode eq =
-  canonicalZeroInt-not-oneInt
-    (C.intCode-code-injective eq)
+  canonicalZeroInt-not-oneInt eq
 
 canonicalPermutation-results-distinct :
   C.runMonoidLSTMCell
