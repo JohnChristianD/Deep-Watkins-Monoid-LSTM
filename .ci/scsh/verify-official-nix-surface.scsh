@@ -37,9 +37,9 @@
 (for-each (lambda (token) (forbid-text "FullCoupled/TheoremsMonolith.agda" token))
   '("module ReflectionCompat where" "open import MLTT.Plus"
     "open import Ordinals.Notions" "Naturals.Multiplication" "TypeTopology"))
-  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--flat-split")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--cohesion")
   (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--exact-split")
-  (require-text "FullCoupled/TheoremsMonolith.agda" "--flat-split")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "--cohesion")
   (require-text "FullCoupled/TheoremsMonolith.agda" "--exact-split")
   (require-text "flake.nix" "gforth = pkgs.gforth;")
 (for-each (lambda (p)

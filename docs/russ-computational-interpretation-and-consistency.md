@@ -69,7 +69,7 @@ subject reduction deserve explicit treatment. No classical logic is inferred.
 
 ## Flat modality and exact splitting
 
-Both canonical monoliths and the shared Agda invocation now enable `--flat-split`
+Both canonical monoliths and the shared Agda invocation enable `--cohesion`
 and `--exact-split`. Agda's flat modality is cohesion-aware and comonadic: the
 proof monolith defines a crisp `Flat` carrier, extract, duplicate, map, and extend,
 then proves map identity/composition, naturality, the two counit laws, and
@@ -77,6 +77,12 @@ coassociativity by reduction. These are constructive definitional laws; they do 
 add a RUSS axiom or a classical principle. Exact-split strengthens the requirement
 on pattern clauses, so the CI type-check of both monoliths remains the deciding
 verification rather than the presence of the option alone.
+
+The stronger `--flat-split` option is deliberately not enabled globally. CI showed
+that it conflicts with the `--safe` option on Agda's builtin Integer interface imported
+by Agda2HS (`Agda.Builtin.Int`). The present comonad only pattern-matches ordinary
+`Flat A` values and does not split on arguments themselves marked `@♭`, so
+`--cohesion` provides the needed flat modality without that incompatibility.
 
 ## Pruned proof dependencies and reflection trust boundary
 
