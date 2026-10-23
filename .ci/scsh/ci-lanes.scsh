@@ -101,7 +101,7 @@
       "Naturals.Multiplication"
       "TypeTopology"))
   (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--cohesion")
-  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--exact-split")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--flat-split")
   (require-text "FullCoupled/TheoremsMonolith.agda" "--cohesion")
   (require-text "FullCoupled/TheoremsMonolith.agda" "--exact-split")
   (require-text "flake.nix" "gforth = pkgs.gforth;")
