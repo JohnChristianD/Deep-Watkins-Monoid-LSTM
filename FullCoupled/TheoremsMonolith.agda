@@ -21,11 +21,15 @@
 -- Canonical theorem semantics and emergence layer.
 -- Baseline reconstruction: current imports/options over the last green body.
 --
--- CONSISTENCY STATUS: a successful Agda kernel check of this module would
--- establish well-typedness only relative to the imported theory, postulates,
--- compiler primitives, and rewrite configuration. It would not prove that
--- this combined theory is consistent. The repository's RUSS inventory is not
--- a substitute for a model or relative-consistency argument.
+-- CONSISTENCY STATUS: this file does not certify consistency of the combined theory.
+-- The small RUSSProofTheory below has a conditional soundness/consistency theorem for
+-- its object calculus. russCurrentBasisRelativeConsistency instantiates that theorem
+-- with russianRecursiveMathematicsAssumptions; it does not construct a model of that
+-- assumption. In particular, it does not certify the learner + theorem monoliths,
+-- the manually declared Reflection/TC ABI, rewrite rules, or transitive imports.
+-- A successful kernel check proves only typing relative to that trust surface. An
+-- independent result must interpret this exact combined signature in a separately
+-- justified model or give a relative-consistency reduction to a certified metatheory.
 ------------------------------------------------------------------------
 
 module FullCoupled.TheoremsMonolith where
@@ -516,6 +520,8 @@ module RUSSProofTheory where
     russEliminateFalse
       (russSoundness basis derivation (λ ()))
 
+  -- CONDITIONAL ONLY: this applies the calculus theorem to the postulated basis.
+  -- It neither supplies an inhabitant of the basis nor proves the basis consistent.
   russCurrentBasisRelativeConsistency :
     Neg (RUSSDerivation [] russFalsehood)
   russCurrentBasisRelativeConsistency =

@@ -20,6 +20,12 @@
 ------------------------------------------------------------------------
 -- Canonical learner semantics.
 --
+-- RUSS assurance boundary: the computational functions below give explicit
+-- finite operational interpretations where stated; they do not turn the postulated
+-- Markov/ECT0/Prop-choice basis into a derived theorem. The independent consistency
+-- of this basis together with the theorem monolith, Reflection/TC primitives, rewrite
+-- system, and full imports remains unproved. See docs/russ-computational-interpretation-and-consistency.md.
+--
 -- This module is the executable/type-level source of the coupled learner:
 -- recurrent monoid-LSTM state, Watkins state, custom q-projected sign-IDBD w/ coupled L2 optimizer state,
 -- LCB counts, sparse policy readout, q-log state, the persistent learner channels, and the

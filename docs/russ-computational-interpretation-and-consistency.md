@@ -10,6 +10,12 @@ lanes are removed. Static Pages are rendered by Fennel at build time; published 
 HTML and CSS without browser JavaScript.
 
 **Global RUSS consistency is not certified.** The static Pages contract checks this statement.
+This is a mathematical limitation, not a missing CI badge: the repository postulates the
+combined RUSS basis, so a proof that merely assumes that basis cannot independently establish
+that the basis is inhabited or consistent. A model must be constructed outside that assumption
+or a precise relative-consistency theorem must reduce the combined theory to an already-certified
+metatheory. No such model/reduction has been established here. Do not label this branch
+“certified consistent” merely because Agda accepts its terms.
 
 ## Computational interpretation
 
@@ -32,14 +38,20 @@ classical excluded-middle principles.
 The natural-deduction calculus in RUSSProofTheory has a formula language, derivation constructors,
 an interpretation in the supplied basis, and a structural soundness theorem. russCoreConsistency
 proves that the small object calculus cannot derive its false formula, conditional on an inhabitant
-of that basis. russCurrentBasisRelativeConsistency instantiates the claim using the repository's
-postulated basis. This is not an independent model of the basis and does not certify consistency
-of the combined theory.
+of that basis. russCurrentBasisRelativeConsistency instantiates the theorem with the repository's
+postulated basis; it does not construct such an inhabitant. The name “CurrentBasisRelative” means
+only that the conditional theorem is instantiated at the declared assumption. It is not an
+independent model, and is not a consistency proof for the canonical learner, full theorem monolith,
+Reflection/TC interface, rewrite system, or their combined transitive imports.
 
 ## Metatheoretic obligation
 
 An independent consistency certification needs a model or relative-consistency proof for this
-exact combined dependent theory and transitive dependencies. It must cover the Markov encoding;
+exact combined dependent theory and transitive dependencies. This request cannot honestly be
+completed by adding a theorem that takes russianRecursiveMathematicsAssumptions as a premise:
+that would restate the conditional result, not prove the premise. The independent metatheory must
+formalize the source theory and the exact encodings, then prove interpretation/soundness without
+assuming the consistency of the very signature under audit. It must cover the Markov encoding;
 ECT0's register-machine relation and the arithmetic bridge to computation traces; Prop-valued
 countable choice; imported theories; Reflection/TC primitive signatures and compiler ABI;
 substitution, conversion, rewrite-rule subject reduction and confluence; and the trusted Agda
