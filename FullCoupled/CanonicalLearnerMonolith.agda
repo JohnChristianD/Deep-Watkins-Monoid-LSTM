@@ -14,6 +14,8 @@
 --no-forced-argument-recursion
 --with-K
 --no-guardedness
+--flat-split
+--exact-split
 --injective-type-constructors
 #-}
 
@@ -3826,6 +3828,10 @@ learnerStreamAt (suc n) trace =
   learnerStreamAt n (learnerStreamTail trace)
 
 
+iterateCanonical : ∀ {A} → FullLearnerKernel A → ℕ → FullLearnerState A → FullLearnerState A
+iterateCanonical K zero s = s
+iterateCanonical K (suc n) s = canonicalFullStep K (iterateCanonical K n s)
+
 iterateCanonical-step-shift :
   ∀ {A}
   (K : FullLearnerKernel A)
@@ -3894,9 +3900,6 @@ canonicalNoFixedPoint K s eq =
         (trans (sym (canonicalTotalCountStep K s))
           (cong (λ t → totalCount (lcbCounts t)) eq))))
 
-iterateCanonical : ∀ {A} → FullLearnerKernel A → ℕ → FullLearnerState A → FullLearnerState A
-iterateCanonical K zero s = s
-iterateCanonical K (suc n) s = canonicalFullStep K (iterateCanonical K n s)
 
 canonicalTotalCountAfter :
   ∀ {A} (K : FullLearnerKernel A) (n : ℕ) (s : FullLearnerState A) →

@@ -37,6 +37,11 @@
 (for-each (lambda (token) (forbid-text "FullCoupled/TheoremsMonolith.agda" token))
   '("module ReflectionCompat where" "open import MLTT.Plus"
     "open import Ordinals.Notions" "Naturals.Multiplication" "TypeTopology"))
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--flat-split")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--exact-split")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "--flat-split")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "--exact-split")
+  (require-text "flake.nix" "gforth = pkgs.gforth;")
 (for-each (lambda (p)
   (require-text p "--with-K")
   (require-text p "--no-guardedness")
@@ -48,8 +53,10 @@
   (for-each (lambda (token) (forbid-text p token))
     '("AStarCostModel" "EGraphCongruence" "graphAStar"
       "agda2hs-graph-search" "agda2hs-semantic-search"
-      "ccforth" "gforth" "agda2forth" "liquidhaskell" "elmPackages" "pkgs.guile")))
+      "ccforth" "agda2forth" "liquidhaskell" "elmPackages" "pkgs.guile")))
   '("flake.nix" ".github/workflows/nix-composition.yml"
     ".github/workflows/github-pages.yml"))
+(forbid-text "flake.nix" "ccforth")
+(forbid-text "flake.nix" "pkgs.guile")
 (display "official-nix-surface=pass\n")
 (exit 0)

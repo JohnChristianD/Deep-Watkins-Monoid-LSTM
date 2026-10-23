@@ -14,6 +14,8 @@
 --no-forced-argument-recursion
 --with-K
 --no-guardedness
+--flat-split
+--exact-split
 --injective-type-constructors
 #-}
 
@@ -118,6 +120,89 @@ open ConstructiveComputabilityPostulates public using
 module MLS = C.MonoidLSTMStreams
 open import Agda.Primitive using (Level)
 open MLS using (Size; Size<_; ∞)
+
+------------------------------------------------------------------------
+-- Flat modality as a comonad.
+--
+-- This is Agda's native crisp/flat modality, not an axiom added to RUSS.
+-- The coherence and splitting options are enabled in both monoliths and in
+-- the shared CI option list. All laws below reduce by pattern matching and
+-- refl; no function extensionality, excluded middle, or postulated law is used.
+------------------------------------------------------------------------
+module FlatComonad where
+
+  data Flat {@♭ ℓ : Level} (@♭ A : Set ℓ) : Set ℓ where
+    flat : (@♭ value : A) → Flat A
+
+  flatExtract : {@♭ ℓ : Level} {@♭ A : Set ℓ} → Flat A → A
+  flatExtract (flat value) = value
+
+  flatDuplicate :
+    {@♭ ℓ : Level} {@♭ A : Set ℓ} →
+    Flat A → Flat (Flat A)
+  flatDuplicate (flat value) = flat (flat value)
+
+  flatMap :
+    {@♭ ℓA : Level} {@♭ ℓB : Level}
+    {@♭ A : Set ℓA} {@♭ B : Set ℓB} →
+    (@♭ f : A → B) → Flat A → Flat B
+  flatMap f (flat value) = flat (f value)
+
+  flatExtend :
+    {@♭ ℓA : Level} {@♭ ℓB : Level}
+    {@♭ A : Set ℓA} {@♭ B : Set ℓB} →
+    (@♭ f : Flat A → B) → Flat A → Flat B
+  flatExtend f (flat value) = flat (f (flat value))
+
+  flatMapIdentity :
+    {@♭ ℓ : Level} {@♭ A : Set ℓ} →
+    (x : Flat A) → flatMap (λ value → value) x ≡ x
+  flatMapIdentity (flat value) = refl
+
+  flatMapComposition :
+    {@♭ ℓA : Level} {@♭ ℓB : Level} {@♭ ℓC : Level}
+    {@♭ A : Set ℓA} {@♭ B : Set ℓB} {@♭ C : Set ℓC} →
+    (@♭ g : B → C) → (@♭ f : A → B) → (x : Flat A) →
+    flatMap (g ∘ f) x ≡ flatMap g (flatMap f x)
+  flatMapComposition g f (flat value) = refl
+
+  flatExtractMap :
+    {@♭ ℓA : Level} {@♭ ℓB : Level}
+    {@♭ A : Set ℓA} {@♭ B : Set ℓB} →
+    (@♭ f : A → B) → (x : Flat A) →
+    flatExtract (flatMap f x) ≡ f (flatExtract x)
+  flatExtractMap f (flat value) = refl
+
+  flatExtractDuplicate :
+    {@♭ ℓ : Level} {@♭ A : Set ℓ} →
+    (x : Flat A) → flatExtract (flatDuplicate x) ≡ x
+  flatExtractDuplicate (flat value) = refl
+
+  flatMapExtractDuplicate :
+    {@♭ ℓ : Level} {@♭ A : Set ℓ} →
+    (x : Flat A) →
+    flatMap flatExtract (flatDuplicate x) ≡ x
+  flatMapExtractDuplicate (flat value) = refl
+
+  flatDuplicateCoassociative :
+    {@♭ ℓ : Level} {@♭ A : Set ℓ} →
+    (x : Flat A) →
+    flatDuplicate (flatDuplicate x) ≡
+      flatMap flatDuplicate (flatDuplicate x)
+  flatDuplicateCoassociative (flat value) = refl
+
+  flatExtendExtract :
+    {@♭ ℓ : Level} {@♭ A : Set ℓ} →
+    (x : Flat A) → flatExtend flatExtract x ≡ x
+  flatExtendExtract (flat value) = refl
+
+  flatExtractExtend :
+    {@♭ ℓA : Level} {@♭ ℓB : Level}
+    {@♭ A : Set ℓA} {@♭ B : Set ℓB} →
+    (@♭ f : Flat A → B) → (x : Flat A) →
+    flatExtract (flatExtend f x) ≡ f x
+  flatExtractExtend f (flat value) = refl
+
 -- END THEOREM-SPECIFIC IMPORTS
 
 module RUSSProofTheory where

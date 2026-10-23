@@ -79,13 +79,15 @@
       ".ci/scsh/forth-scheme-smoke.scsh"))
   (require-text "flake.nix" "github:NixOS/nixpkgs/")
   (require-text "flake.nix" "github:luafun/luafun/")
+  (forbid-text "flake.nix" "ccforth")
+  (forbid-text "flake.nix" "pkgs.guile")
   (for-each
     (lambda (path)
       (for-each
         (lambda (needle) (forbid-text path needle))
         '("PreludeInt" "agda2hs-graph-search" "agda2hs-semantic-search"
           "streamly-tools-check" "monoid-lstm-stream-check"
-          "scott-strachey-domain-check" "ccforth" "gforth" "agda2forth"
+          "scott-strachey-domain-check" "ccforth" "agda2forth"
           "liquid-haskell" "liquidhaskell" "elmPackages" "pkgs.guile")))
     '("flake.nix" ".github/workflows/nix-composition.yml"
       ".github/workflows/github-pages.yml"))
@@ -98,6 +100,11 @@
       "open import Ordinals.Notions"
       "Naturals.Multiplication"
       "TypeTopology"))
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--flat-split")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--exact-split")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "--flat-split")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "--exact-split")
+  (require-text "flake.nix" "gforth = pkgs.gforth;")
   (for-each
     (lambda (path)
       (require-text path "--with-K")

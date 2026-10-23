@@ -67,6 +67,17 @@ consistency of this repository's precise MP + ECT0 + Prop-choice signature or it
 imported/primitive closure. Cockx, Tabareau, and Winterhalter explain why rewrite confluence and
 subject reduction deserve explicit treatment. No classical logic is inferred.
 
+## Flat modality and exact splitting
+
+Both canonical monoliths and the shared Agda invocation now enable `--flat-split`
+and `--exact-split`. Agda's flat modality is cohesion-aware and comonadic: the
+proof monolith defines a crisp `Flat` carrier, extract, duplicate, map, and extend,
+then proves map identity/composition, naturality, the two counit laws, and
+coassociativity by reduction. These are constructive definitional laws; they do not
+add a RUSS axiom or a classical principle. Exact-split strengthens the requirement
+on pattern clauses, so the CI type-check of both monoliths remains the deciding
+verification rather than the presence of the option alone.
+
 ## Pruned proof dependencies and reflection trust boundary
 
 The theorem source uses `Agda.Builtin.Reflection` rather than postulating duplicate carriers,
@@ -78,6 +89,15 @@ The dependent-pair type comes directly from `Agda.Builtin.Sigma`. Constructive n
 function into the Prelude empty type; it adds no excluded middle or double-negation elimination.
 The former ordinal, sum, and natural-multiplication imports were replaced by Agda2HS Prelude
 `Either` and numeral-law interfaces.
+
+## Forth and Scheme runtime inventory
+
+The PR does not use Guile as a runtime or build tool. The `pkgs.guile` spelling
+is only a negative policy check, retained to prevent accidental reintroduction;
+the workflow uses Scsh and Fennel via LuaJIT. The CCForth compiler is not part of
+the Nix toolchain and remains explicitly forbidden by the surface checks. Gforth
+is exposed as an optional Nix package (`nix build .#gforth`) but is not included
+in the Agda CI shell and has no Forth/Factor stack-duplication tests or smoke lane.
 
 ## Agda2HS types and rational-code boundary
 

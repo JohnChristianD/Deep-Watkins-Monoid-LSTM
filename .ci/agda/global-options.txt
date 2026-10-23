@@ -7,5 +7,7 @@
 --no-forced-argument-recursion
 --lossy-unification
 --polarity
+--flat-split
+--exact-split
 --no-postfix-projections
 --experimental-lazy-instances
