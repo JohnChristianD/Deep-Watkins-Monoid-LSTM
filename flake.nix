@@ -285,6 +285,8 @@ PY
                 runtimeInputs = [
                   (agdaCommand system)
                   (fennelRuntime system)
+                  # Nixpkgs scsh is built against Scheme48, matching upstream scsh.
+                  # Keep this runtime explicit; Guile is not a scsh substitute here.
                   pkgs.scsh
                   pkgs.lessc
                   pkgs.coreutils

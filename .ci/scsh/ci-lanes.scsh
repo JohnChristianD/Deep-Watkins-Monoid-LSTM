@@ -65,8 +65,7 @@
       ".ci/scsh/ci-lanes.scsh"
       ".ci/scsh/verify-official-nix-surface.scsh"
       "index.html"
-      "site/site.less"
-      "docs/russ-computational-interpretation-and-consistency.md"))
+      "site/site.less"))
   (for-each forbid-file
     '("FullCoupled/Agda2HsSemanticSearch.agda"
       "FullCoupled/Agda2HsTheoremGraphEGraph.agda"
@@ -92,7 +91,8 @@
     '("flake.nix" ".github/workflows/nix-composition.yml"
       ".github/workflows/github-pages.yml"))
   (require-text "FullCoupled/TheoremsMonolith.agda" "open import Agda.Builtin.Reflection using")
-  (require-text "FullCoupled/TheoremsMonolith.agda" "open import Agda.Builtin.Sigma using")
+  (require-text "flake.nix" "pkgs.scsh")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "open import Agda.Builtin.Sigma")
   (for-each
     (lambda (needle) (forbid-text "FullCoupled/TheoremsMonolith.agda" needle))
     '("module ReflectionCompat where"

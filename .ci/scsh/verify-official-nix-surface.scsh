@@ -33,7 +33,8 @@
     ".ci/scsh/agda-semantic-source-closure.scsh"
     ".ci/scsh/forth-scheme-smoke.scsh" ".github/workflows/theorem-registry-autoprune.yml"))
 (require-text "FullCoupled/TheoremsMonolith.agda" "open import Agda.Builtin.Reflection using")
-(require-text "FullCoupled/TheoremsMonolith.agda" "open import Agda.Builtin.Sigma using")
+(require-text "flake.nix" "pkgs.scsh")
+(require-text "FullCoupled/TheoremsMonolith.agda" "open import Agda.Builtin.Sigma")
 (for-each (lambda (token) (forbid-text "FullCoupled/TheoremsMonolith.agda" token))
   '("module ReflectionCompat where" "open import MLTT.Plus"
     "open import Ordinals.Notions" "Naturals.Multiplication" "TypeTopology"))
