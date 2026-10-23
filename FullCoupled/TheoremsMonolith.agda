@@ -6573,7 +6573,7 @@ nat-plus-right-mono {a} {b} {c} p = helper a b p c
   base n k =
     transport
       (λ x → x ≤ n + k)
-      (zero-left-neutral k ⁻¹)
+      (sym (zero-left-neutral k))
       (≤-+' n k)
 
   nat-plus-right-mono-succ :
@@ -6583,10 +6583,10 @@ nat-plus-right-mono {a} {b} {c} p = helper a b p c
   nat-plus-right-mono-succ m n q ih k =
     transport
       (λ y → succ m + k ≤ y)
-      (succ-left n k ⁻¹)
+      (sym (succ-left n k))
       (transport
         (λ x → x ≤ succ (n + k))
-        (succ-left m k ⁻¹)
+        (sym (succ-left m k))
         (succ-monotone (m + k) (n + k) (ih k)))
 
   helper : (m n : ℕ) (q : m ≤ n) → P m n q
