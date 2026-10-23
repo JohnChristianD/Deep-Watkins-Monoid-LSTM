@@ -68,22 +68,11 @@ subject reduction deserve explicit treatment. No classical logic is inferred.
 
 ## Agda2HS types and rational-code boundary
 
-The public Agda2HS Prelude lists Integer but explicitly lists Rational as missing. PreludeInt is
-not an appropriate replacement for the established Integer name. Local integer operator aliases
-refer to imported arithmetic; no duplicate integer carrier is introduced. Genuine name clashes
-should be resolved through public names and narrow import hiding, not a second numeric type.
-The canonical sources use Haskell.Prelude and do not import non-reflection Agda.Builtin modules.
+The public Agda2HS Prelude provides `Integer`, but does not provide a complete Agda-side `Rational` or `Real` theory. The current refactor removes the redundant `IntCode` record and uses the official unbounded `Integer` carrier directly across learner state and theorem signatures. Token encoding and decoding are identities; the integer arithmetic laws remain explicit proofs over the imported carrier, rather than a second integer datatype. Local `_+Int_` and `_*Int_` aliases were removed in favor of the Prelude operators.
 
-RationalCode is an executable encoding in the shared Agda2HS-compatible fragment: signed
-Integer numerator and natural denominator-minus-one. Its denominator is suc d, so zero
-denominator is not representable. rationalCodeCrossProductEqual states a cross-product comparison
-condition; rationalCodeRepresentationEqual is strict code equality. The encoding is not
-gcd-normalized and is not a quotient type. The cross-product condition has not yet been proved
-equivalent to equality in a chosen quotient construction. A legacy magnitude helper maps negative
-numerators to zero for the existing approximation; this is not general rational arithmetic.
-A proper rational field needs proved arithmetic and equivalence laws before it can be called a
-full implementation of the rationals. Exact reals require a constructive completion and convergence
-laws; no real-number implementation is claimed.
+`RationalCode` remains provisional: signed `Integer` numerator paired with natural denominator-minus-one. Its denominator is `suc d`, so zero denominator is not representable. `rationalCodeCrossProductEqual` states a cross-product comparison condition; `rationalCodeRepresentationEqual` is strict code equality. The encoding is not gcd-normalized and is not a quotient type. The cross-product condition has not yet been proved equivalent to equality in a quotient construction. A legacy magnitude helper maps negative numerators to zero for an existing approximation; this is not general rational arithmetic.
+
+The next rational layer should define arithmetic on positive-denominator pairs, make the representation equivalence/setoid boundary explicit, and prove that arithmetic respects the relation. Only after those Agda-side results should Agda2HS extraction rules map the representation to Haskell `Data.Ratio.Rational`; extraction mapping cannot prove normalization, equality, ordering, or arithmetic laws. Exact reals need a constructive Cauchy or signed-digit representation with a modulus plus proved convergence and arithmetic laws. Waugh Ambridge's 2024 Exact Real Search thesis is a methodological reference for exact real representations and constructive search, not a compatible drop-in module. No complete rational or real theory is claimed yet.
 
 ## Search verdict
 
