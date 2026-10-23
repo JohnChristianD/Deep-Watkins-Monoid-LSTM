@@ -123,325 +123,136 @@
 (define (require-symbols path symbols)
   (for-each (lambda (symbol) (require-text path symbol)) symbols))
 
-(define (check-graph-agda)
-  (for-each check-agda
-    '("FullCoupled/Agda2HsSurface.agda"
-      "FullCoupled/Agda2HsSemanticExtractor.agda"
-      "FullCoupled/Agda2HsTheoremGraphEGraph.agda"
-      "FullCoupled/Agda2HsSemanticSearch.agda"
-      "FullCoupled/Agda2HsGraphSearchCheck.agda")))
-
 (define (lane-agda-learner)
   (must-run (lambda () (run (,(agda-command) "--version"))) "Agda version")
-  (check-graph-agda)
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "open import Haskell.Prelude")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russMarkov")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russECT0")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russCountableChoice")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--with-K")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--no-guardedness")
+  (for-each
+    (lambda (needle)
+      (forbid-text "FullCoupled/CanonicalLearnerMonolith.agda" needle))
+    '("open import Cubical." "open import Cubical "
+      "import Cubical." "import Cubical "))
   (check-agda "FullCoupled/CanonicalLearnerMonolith.agda")
-  (display "canonical-learner-monolith=kernel-checked-relative-to-trusted-imports-and-postulates\n"))
+  (display "canonical-learner=kernel-checked-relative-to-imports-and-explicit-RUSS-basis\n"))
 
 (define (lane-agda-theorem)
-  (check-graph-agda)
-  (require-symbols "FullCoupled/Agda2HsSemanticSearch.agda"
-    '("graphDependencyOrderRegressionChecked = refl"
-      "graphTwoLeafBranchesRegressionChecked = refl"
-      "graphCycleIsRejectedRegressionChecked = refl"
-      "sourceOnlyLegacyBoundaryRegressionChecked = refl"))
+  (for-each require-file
+    '("FullCoupled/CanonicalLearnerMonolith.agda"
+      "FullCoupled/TheoremsMonolith.agda"))
   (require-text "FullCoupled/TheoremsMonolith.agda" "module RUSSProofTheory where")
   (require-text "FullCoupled/TheoremsMonolith.agda" "russSoundness")
   (require-text "FullCoupled/TheoremsMonolith.agda" "russCoreConsistency")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russCurrentBasisRelativeConsistency")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russMarkovOperationalPrefix")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russECT0CertifiedProgram")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russPropCountableSelector")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "russDataCountableSelector")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "--with-K")
+  (require-text "FullCoupled/TheoremsMonolith.agda" "--no-guardedness")
   (check-agda "FullCoupled/CanonicalLearnerMonolith.agda")
   (check-agda "FullCoupled/TheoremsMonolith.agda")
-  (display "canonical-learner-monolith=kernel-checked-relative-to-trusted-imports-and-postulates\n")
-  (display "theorems-monolith=kernel-checked-relative-to-trusted-imports-postulates-and-primitives\n"))
-
-(define (lane-agda-safe)
-  (must-run (lambda () (run (,(agda-command) "--version"))) "Agda version")
-  (check-agda "FullCoupled/Agda2HsSurface.agda")
-  (display "agda-safe=checked-pure-surface; legacy-monoliths=not-in-pure-kernel-target\n"))
-
-(define (lane-agda2hs)
-  (nix-app ".#agda-haskell-pipeline")
-  (require-file "build/agda-haskell/FullCoupled/Agda2HsSurface.hs")
-  (require-file "build/agda-haskell/agda2hs-manifest.tsv")
-  (display "agda2hs=pass\nagda2hs-plugins=none\n"))
+  (display "russ-computation=explicit-bounded-search-register-machine-and-choice-interfaces\n")
+  (display "russ-meta-result=relative-object-calculus-consistency-only\n")
+  (display "joint-repository-consistency=NOT-PROVED\n"))
 
 (define (verify-catalog path)
   (require-file path)
-  (must-run (lambda () (run (node "--check" ,path))) "immutable catalog syntax")
+  (must-run (lambda () (run (node "--check" ,path))) "catalog JavaScript syntax")
   (require-text path "export const MonolithContent = Object.freeze")
   (require-text path "sourceFiles: Object.freeze")
   (require-text path "entries: Object.freeze")
-  (require-text path "FullCoupled/TheoremsMonolith.agda")
-  (require-text path "FullCoupled/CanonicalLearnerMonolith.agda"))
-
-(define (compile-page-model-js js-dir)
-  (must-run (lambda () (run (mkdir "-p" ,js-dir)))
-            "create native Agda JavaScript output directory")
-  (must-run
-    (lambda ()
-      (run (,(agda-command) "--js" "--js-es6"
-            ,(string-append "--compile-dir=" js-dir)
-            "-i" "." "FullCoupled/Agda2HsSemanticExtractor.agda")))
-    "compile immutable static page model with Agda JavaScript backend")
-  (let ((module (string-append
-          js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs")))
-    (require-file module)
-    (must-run (lambda () (run (node "--check" ,module)))
-              "validate Agda ES module syntax")))
-
-(define (render-static-page catalog model template output)
-  (must-run
-    (lambda () (run (node "site/app.mjs" ,catalog ,model ,template ,output)))
-    "render static HTML from immutable Agda and Fennel models")
-  (must-run
-    (lambda () (run (node ".ci/presentation-smoke.cjs" ,output)))
-    "verify static HTML has no client-side runtime or search/filter UI"))
-
-(define (lane-fennel-presentation)
-  (for-each require-file
-    '(".ci/fennel/agda_graph.fnl" ".ci/fennel/ascii_surface.fnl"
-      ".ci/fennel/palette_css.fnl" ".ci/presentation-smoke.cjs"
-      "FullCoupled/Agda2HsSemanticExtractor.agda"
-      "site/app.mjs" "site/site.less" "index.html"))
-  (nix-app ".#fennel-ascii-surface")
-  (let* ((tmp (temporary-directory))
-         (palette (string-append tmp "/palette.css"))
-         (js-dir (string-append tmp "/agda-js"))
-         (js-module (string-append js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"))
-         (catalog (string-append tmp "/monolith-content.mjs"))
-         (html (string-append tmp "/index.html")))
-    (must-run (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
-              "build CAT02LMS palette CSS")
-    (if (not (= (count-substring (read-file palette) "--palette-") 6))
-        (fail "palette output did not contain exactly six semantic roles"))
-    (must-run (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
-              "generate immutable monolith catalog")
-    (verify-catalog catalog)
-    (compile-page-model-js js-dir)
-    (render-static-page catalog js-module "index.html" html)
-    (display "fennel-native-static-presentation=pass\n")
-    (must-run (lambda () (run (rm "-rf" ,tmp))) "remove presentation temporary directory")))
+  (require-text path "FullCoupled/CanonicalLearnerMonolith.agda")
+  (require-text path "FullCoupled/TheoremsMonolith.agda"))
 
 (define (lane-pages)
-  (nix-app ".#fennel-ascii-surface")
   (for-each require-file
     '("FullCoupled/CanonicalLearnerMonolith.agda"
       "FullCoupled/TheoremsMonolith.agda"
-      "FullCoupled/Agda2HsSemanticExtractor.agda"
-      ".ci/presentation-contract.dhall" ".ci/fennel/agda_graph.fnl"
-      ".ci/fennel/palette_css.fnl" ".ci/presentation-smoke.cjs"
-      "site/app.mjs" "site/site.less" "index.html"))
-  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
-  (must-run (lambda () (run (dhall "type" "--file" ".ci/presentation-contract.dhall")))
-            "type presentation contract")
-  (for-each (lambda (needle) (require-text ".ci/presentation-contract.dhall" needle))
-    '("monolithContentGenerator = \".ci/fennel/agda_graph.fnl\""
-      "generatedContentModule = \"monolith-content.mjs\""
-      "nativePageModel = \"FullCoupled.Agda2HsSemanticExtractor\""
-      "compiledPageModel = \"jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs\""
-      "buildRenderer = \"site/app.mjs\""
-      "siteEntry = \"index.html\""
-      "lessStylesheet = \"site/site.less\""
-      "compiledStylesheet = \"site.css\""
-      "paletteCssGenerator = \".ci/fennel/palette_css.fnl\""
-      "paletteRoleRegistry = \"site/site.less\""))
-  (for-each (lambda (needle) (forbid-text "flake.nix" needle))
-    '("elmPackages.elm" "elm.js" "site/Main.elm" "site-palette.wasm"
-      "palette-loader.js" "maximin_palette.c"))
-  (for-each (lambda (needle) (forbid-text "FullCoupled/Agda2HsSemanticExtractor.agda" needle))
-    '("siteSearchMatches" "siteSearchWithinScope" "siteSearchContains"
-      "siteSearchCaseAndTrimRegression" "siteSearchExactScopeRegression"))
-  (for-each (lambda (needle) (forbid-text "site/app.mjs" needle))
-    '("siteSearchMatches" "filterEntries" "addEventListener" "querySelector"
-      "input" "button" "scope" "toLowerCase" ".includes("))
-  (for-each (lambda (needle) (forbid-text "site/site.less" needle))
-    '(".filter-row" ".tools" ".entry-select" "input:" "button:"))
-  (for-each (lambda (needle) (forbid-text "index.html" needle))
+      ".ci/presentation-contract.dhall"
+      ".ci/fennel/monolith_catalog.fnl"
+      ".ci/fennel/palette_css.fnl"
+      "site/app.mjs"
+      "site/render.mjs"
+      "site/page-model.mjs"
+      "site/site.less"
+      "index.html"))
+  (must-run
+    (lambda () (run (dhall "type" "--file" ".ci/presentation-contract.dhall")))
+    "type presentation contract")
+  (for-each
+    (lambda (needle)
+      (forbid-text "site/render.mjs" needle))
+    '("node:fs" "process.argv" "writeFile" "readFile" "console."
+      "globalThis" "Date.now" "Math.random"
+      "addEventListener" "querySelector"))
+  (for-each
+    (lambda (needle)
+      (forbid-text "site/app.mjs" needle))
+    '("filterEntries" "addEventListener" "querySelector" "siteSearchMatches"))
+  (for-each
+    (lambda (needle)
+      (forbid-text "index.html" needle))
     '("<script" "<input" "<button" "search" "filter"))
   (require-text "site/site.less" "Atkinson Hyperlegible Mono")
   (require-text "site/site.less" "Iosevka")
   (require-text ".ci/fennel/palette_css.fnl" "0.7328")
   (require-text ".ci/fennel/palette_css.fnl" "0.4296")
   (require-text ".ci/fennel/palette_css.fnl" "0.9834")
-  (let* ((tmp (temporary-directory))
-         (out-dir (or (getenv "PAGES_OUTPUT_DIR") tmp))
-         (css (string-append out-dir "/site.css"))
-         (palette (string-append tmp "/palette.css"))
-         (js-dir (string-append tmp "/agda-js"))
-         (js-module (string-append js-dir "/jAgda.FullCoupled.Agda2HsSemanticExtractor.mjs"))
-         (catalog (string-append tmp "/monolith-content.mjs"))
-         (html (string-append out-dir "/index.html")))
-    (must-run (lambda () (run (mkdir "-p" ,out-dir))) "create Pages output")
-    (must-run (lambda () (run (lessc "site/site.less" ,css))) "compile Less")
-    (must-run (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
-              "generate CAT02LMS palette")
+  (let* ((temporary (temporary-directory))
+         (output-dir (or (getenv "PAGES_OUTPUT_DIR") "build/pages"))
+         (css (string-append output-dir "/site.css"))
+         (palette (string-append temporary "/palette.css"))
+         (catalog (string-append temporary "/monolith-content.mjs"))
+         (html (string-append output-dir "/index.html")))
+    (must-run (lambda () (run (mkdir "-p" ,output-dir))) "create Pages output directory")
+    (must-run (lambda () (run (lessc "site/site.less" ,css))) "compile Less stylesheet")
+    (must-run
+      (lambda () (run (nix run ".#fennel-palette-css" "--" ,palette)))
+      "generate CAT02LMS palette")
     (if (not (= (count-substring (read-file palette) "--palette-") 6))
-        (fail "palette output did not contain exactly six semantic roles"))
+        (fail "palette output must contain exactly six semantic roles"))
     (write-file css (string-append (read-file css) "\n" (read-file palette)))
-    (must-run (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
-              "generate immutable Pages catalog")
+    (must-run
+      (lambda () (run (nix run ".#fennel-monolith-content" "--" ,catalog)))
+      "generate immutable monolith catalogue")
     (verify-catalog catalog)
-    (compile-page-model-js js-dir)
-    (render-static-page catalog js-module "index.html" html)
+    (must-run
+      (lambda () (run (node "--check" "site/render.mjs")))
+      "pure renderer JavaScript syntax")
+    (must-run
+      (lambda () (run (node "--check" "site/app.mjs")))
+      "filesystem adapter JavaScript syntax")
+    (must-run
+      (lambda () (run (node "site/app.mjs" ,catalog "index.html" ,html)))
+      "render static page through pure renderer")
+    (require-text html "Russian constructivism (RUSS)")
+    (for-each
+      (lambda (needle) (forbid-text html needle))
+      '("<script" "<input" "<button" "filter-row" "siteSearchMatches"))
     (require-text css "--palette-ink:")
     (require-text css "--palette-ink-on-accent:")
-    (write-file (string-append out-dir "/.nojekyll") "")
-    (must-run (lambda () (run (rm "-rf" ,tmp))) "remove Pages temporary directory")
-    (display "pages-build=pass (Agda-native immutable model, Fennel catalog, Less CSS, static HTML; no browser JS/Elm/Wasm)\n")))
+    (write-file (string-append output-dir "/.nojekyll") "")
+    (must-run (lambda () (run (rm "-rf" ,temporary))) "remove Pages temporary files")
+    (display "pages=pass; frozen two-monolith catalogue; pure renderer; static HTML/CSS only\n")))
 
-(define (lane-discovery)
-  (nix-app ".#agda2hs-semantic-search")
-  (let ((report "build/agda2hs-semantic-search/report.txt")
-        (manifest "build/agda2hs-semantic-search/agda2hs-semantic-search-manifest.tsv"))
-    (require-file report)
-    (require-file manifest)
-    (for-each (lambda (pattern) (require-regex report pattern))
-      '("^theorem-graph-edges=[1-9][0-9]* autonomous-depth-first-chains=[1-9][0-9]*$"
-        "^agda2hs autonomous theorem-graph DFS: [1-9][0-9]* maximal dependency chains$"
-        "^semantic-laws=[1-9][0-9]* nonreflexive=[1-9][0-9]* composite=[1-9][0-9]*$"
-        "^required-plan-count=[1-9][0-9]* required-plan-total=[1-9][0-9]* required-plan-regression=True$"
-        "^agda2hs-semantic-port=heuristic-signature-scan-disabled; [1-9][0-9]*/[1-9][0-9]* required plans dependency-closed; bulk-plan-e-graph-saturation=skipped; learner-obligation-roots=[0-9]+; learner-static-graph=(True|False)$"))
-    (for-each (lambda (needle) (require-text report needle))
-      '("autonomous-regression=True" "graph-branch-regression=True"
-        "graph-two-leaf-paths=True" "graph-cycle-rejected=True"
-        "graph-path-count-dp=True" "egraph-regression=True egraph-associativity-regression=True"
-        "canonical-search-egraph-closed=True"
-        "haskell-minus-one-A*=2 proof-backed laws; legacy monolith excluded from pure build"
-        "proof-status=diagnostic-only-not-a-consistency-proof"))
-    (require-text manifest "proofKernel=Agda")
-    (require-text manifest "searchKernel=Agda2Hs")
-    (require-text manifest "legacyMonoliths=source-scan-only")
-    (nix-app ".#fennel-russ-certificate")
-    (must-run (lambda () (run (dhall "type" "--file" ".ci/discovery/russ-global-certificate.dhall")))
-              "type-check RUSS trust inventory")
-    (for-each (lambda (needle) (require-text ".ci/discovery/russ-global-certificate.dhall" needle))
-      '("status = \"DIRECT_SURFACE_INVENTORIED; TRANSITIVE_CONSISTENCY_NOT_PROVED\""
-        "directMonolithInventoryPassed = True"
-        "jointConsistencyProved = False"
-        "russConsistencyCertified = False"
-        "consistencyModelProvided = False"
-        "directImportClosureTraversed = False"
-        "transitiveImportedDependencyClosureCertified = False"
-        "sourceAnchorsPresent = True"
-        "consistencyTheorem = \"russCoreConsistency\""
-        "fullRUSSConsistencyCertified = False"
-        "globalOptionsSha256"
-        "rewriteRuleIdentifiers"
-        "importedModulesBySource"))
-    (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions"))
-  (nix-app ".#agda2hs-graph-search-check")
-  (nix-app ".#scott-strachey-domain-check")
-  (nix-app ".#monoid-lstm-stream-check")
-  (display "russ-trust-surface-inventory=pass (global consistency not claimed)\n")
-  (display "agda-semantic-discovery=pass\n"))
-
-(define (lane-strict-existence)
-  (require-text "FullCoupled/TheoremsMonolith.agda" "megaNoEquilibriumGeneralizedWalrasian")
-  (require-text "FullCoupled/TheoremsMonolith.agda" "noUnconditionalMegaGeneralizedWalrasianExistence")
-  (display "strict-existence-impossibility-graph=source-inventory-only\n"))
-
-(define (lane-isomorphism-transport)
-  (require-symbols "FullCoupled/TheoremsMonolith.agda"
-    '("isomorphismEqualityTransport" "isomorphismDisequalityTransport"
-      "isomorphismIterateConjugacy" "isomorphismNoFiniteCycleTransport"))
-  (display "isomorphism-transport-closure=source-inventory-only\n"))
-
-(define (lane-versions)
-  (must-run (lambda () (run (ghc "--numeric-version"))) "GHC version")
-  (must-run (lambda () (run (,(agda-command) "--version"))) "Agda version")
-  (nix-app ".#fennel-smoke")
-  (nix-app ".#agda-import-sync")
-  (must-run (lambda () (run (dhall "--version"))) "Dhall version")
-  (must-run (lambda () (run (z3 "--version"))) "Z3 version")
-  (must-run (lambda () (run (emacs "--version"))) "Emacs version")
-  (must-run (lambda () (run (emacs "--batch" "--eval" "(require (quote agda2-mode))")))
-            "Agda Emacs mode")
-  (display "versions=pass\n"))
-
-(define (lane-agda-backends)
-  (let* ((tmp (temporary-directory))
-         (forth-dir (string-append tmp "/forth"))
-         (source (string-append forth-dir "/BackendSmoke.agda"))
-         (generated (string-append forth-dir "/BackendSmoke.fth"))
-         (gforth-source (string-append forth-dir "/BackendSmoke-gforth.fth"))
-         (native (string-append forth-dir "/CcforthSubset-native")))
-    (must-run (lambda () (run (nix "build" "-L" ".#agda2forth" "--out-link"
-                                  ,(string-append tmp "/agda2forth"))))
-              "build Agda2Forth")
-    (must-run (lambda () (run (mkdir "-p" ,forth-dir))) "create Forth temp dir")
-    (write-file source
-      "module BackendSmoke where\ndata Nat : Set where\n  zero : Nat\n  suc : Nat → Nat\n{-# BUILTIN NATURAL Nat #-}\n\ninfixl 6 _+_\n_+_ : Nat → Nat → Nat\nzero + n = n\nsuc m + n = suc (m + n)\n{-# BUILTIN NATPLUS _+_ #-}\n\ndouble : Nat → Nat\ndouble n = n + n\n")
-    (must-run (lambda () (run (cp ,source ,forth-dir))) "copy backend Agda test")
-    (must-run
-      (lambda () (run (,(string-append tmp "/agda2forth/bin/agda2forth")
-                       ,(string-append forth-dir "/BackendSmoke.agda"))))
-      "translate Agda to Forth")
-    (require-file generated)
-    (write-file generated
-      (string-append (read-file generated) "\n: MAIN 21 double pass deepDethunk . cr ;\n"))
-    (must-run (lambda () (run (cp ,generated ,gforth-source))) "copy GForth test")
-    (write-file gforth-source (string-append (read-file gforth-source) "\nMAIN\nbye\n"))
-    (let ((value (trim (run/string (gforth ,gforth-source)))))
-      (if (not (string=? (strip-whitespace value) "42"))
-          (fail (string-append "GForth Agda2Forth output unexpected: " value))))
-    (must-run (lambda () (run (nix "build" "-L" ".#ccforth" "--out-link"
-                                  ,(string-append tmp "/ccforth"))))
-              "build CCForth")
-    (let ((subset (string-append forth-dir "/CcforthSubset.fth")))
-      (write-file subset ": double 2 * ;\n: MAIN 21 double . cr ;\n")
-      (must-run (lambda () (run (,(string-append tmp "/ccforth/bin/ccforth")
-                                  "-cc" "gcc" "-entry" "MAIN" "-o" ,native ,subset)))
-                "compile CCForth native subset")
-      (let ((value (trim (run/string (,native)))))
-        (if (not (string=? (strip-whitespace value) "42"))
-            (fail (string-append "CCForth GCC output unexpected: " value)))))
-    (must-run (lambda () (run (scsh "-c" "(begin (display \"scsh-child-ok\") (newline))")))
-              "Scsh child process")
-    (display "agda2forth-gforth=pass\nccforth-gcc-native-subset=pass\n")
-    (must-run (lambda () (run (rm "-rf" ,tmp))) "remove backend temp directory")))
-
-(define (lane-registry-autoprune)
-  (nix-app ".#agda2hs-semantic-search")
-  (nix-app ".#agda2hs-graph-search-check")
-  (let ((manifest "build/agda2hs-semantic-search/agda2hs-semantic-search-manifest.tsv"))
-    (require-file manifest)
-    (require-text manifest "legacyMonoliths=source-scan-only")
-    (require-text "build/agda2hs-graph-search-check/manifest.tsv" "theoremMonolith=not-loaded")
-    (require-text manifest "proofKernel=Agda")
-    (require-text manifest "searchKernel=Agda2Hs")
-    (require-text manifest "semanticCompletenessCheck=pass"))
-  (display "agda-semantic-registry=pass\n"))
-
-;; scsh -s passes the script pathname in command-line. Drop that one
-;; launcher argument before dispatch; otherwise every real lane is rejected
-;; as ".ci/scsh/ci-lanes.scsh" before its lane name is read.
+;; scsh -s may include the script path as the first command-line argument.
 (define (lane-arguments command-arguments)
   (if (and (pair? command-arguments)
            (contains? (car command-arguments) "ci-lanes.scsh"))
       (cdr command-arguments)
       command-arguments))
 
-;; This single dispatcher replaces the Bash scripts formerly embedded in
-;; actions_ci.dhall and the workflow run blocks.
 (let ((args (lane-arguments (command-line))))
-  (if (null? args) (fail "usage: ci-lanes.scsh LANE"))
+  (if (null? args)
+      (fail "usage: ci-lanes.scsh AgdaLearner|AgdaTheorem|Pages"))
   (let ((lane (car args)))
     (cond
       ((string=? lane "AgdaLearner") (lane-agda-learner))
       ((string=? lane "AgdaTheorem") (lane-agda-theorem))
-      ((string=? lane "AgdaSafe") (lane-agda-safe))
-      ((string=? lane "Agda2Hs") (lane-agda2hs))
-      ((string=? lane "FennelPresentation") (lane-fennel-presentation))
       ((string=? lane "Pages") (lane-pages))
-      ((string=? lane "Discovery") (lane-discovery))
-      ((string=? lane "StrictExistenceImpossibility") (lane-strict-existence))
-      ((string=? lane "IsomorphismTransport") (lane-isomorphism-transport))
-      ((string=? lane "Versions") (lane-versions))
-      ((string=? lane "Backends") (lane-agda-backends))
-      ((string=? lane "RegistryAutoprune") (lane-registry-autoprune))
-      ((string=? lane "All")
-       (lane-versions)
-       (lane-agda-learner)
-       (lane-agda-theorem)
-       (lane-discovery)
-       (lane-agda-backends))
-      (else (fail (string-append "unknown or not yet migrated lane: " lane)))))
-)
+      (else (fail (string-append "unknown lane: " lane))))))

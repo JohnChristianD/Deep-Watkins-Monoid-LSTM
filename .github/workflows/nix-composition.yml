@@ -1,12 +1,10 @@
-name: Nix connected composition verification
+name: Agda and static Pages verification
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: "17 * * * *"
   workflow_dispatch:
   workflow_call:
 
@@ -14,44 +12,24 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-semantic-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   policy:
-    name: Verify official Nix surface
+    name: Verify the pinned Agda / Fennel / Pages surface
     runs-on: ubuntu-22.04
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Verify official Nix surface
+      - name: Verify official dependencies and retired subsystems
         run: nix develop .#agda-ci -c scsh -s .ci/scsh/verify-official-nix-surface.scsh
 
-  versions:
-    name: Nix tool versions and Fennel source sanity
-    needs: policy
-    runs-on: ubuntu-22.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
-        with:
-          installer-version: '2.35.1'
-      - name: Run version lane
-        env:
-          CI_LANE: "Versions"
-        run: |
-          set -euo pipefail
-          nix develop .#agda-versions -c bash -e -c '
-            set -euo pipefail
-            printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "$CI_LANE" | dhall text | bash -e
-          '
-
   agda-learner:
-    name: Canonical learner monolith and graph kernel
+    name: Type-check canonical learner monolith
     needs: policy
     runs-on: ubuntu-22.04
     timeout-minutes: 35
@@ -60,17 +38,11 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Type-check AgdaLearner independently
-        timeout-minutes: 30
-        run: |
-          set -euo pipefail
-          nix develop .#agda-ci -c bash -e -c '
-            set -euo pipefail
-            printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "AgdaLearner" | dhall text | bash -e
-          '
+      - name: Type-check learner with unchanged source options
+        run: nix develop .#agda-ci -c scsh -s .ci/scsh/ci-lanes.scsh AgdaLearner
 
   agda-theorem:
-    name: Canonical theorem monolith
+    name: Type-check theorem monolith and RUSS relative result
     needs: policy
     runs-on: ubuntu-22.04
     timeout-minutes: 35
@@ -79,80 +51,13 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Type-check AgdaTheorem independently
-        timeout-minutes: 30
-        run: |
-          set -euo pipefail
-          nix develop .#agda-ci -c bash -e -c '
-            set -euo pipefail
-            printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "AgdaTheorem" | dhall text | bash -e
-          '
-  semantic:
-    name: Agda semantic/e-graph verification
-    needs: policy
-    runs-on: ubuntu-22.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
-        with:
-          installer-version: '2.35.1'
-      - name: Verify pure Agda2HS graph search
-        timeout-minutes: 15
-        run: nix run .#agda2hs-graph-search-check
-
-      - name: Check Scott–Strachey and guarded stream semantics
-        timeout-minutes: 15
-        run: |
-          nix run .#scott-strachey-domain-check
-          nix run .#monoid-lstm-stream-check
-
-      - name: Smoke-test Nix LuaJIT, Fennel, and Luafun
-        timeout-minutes: 10
-        run: nix run .#fennel-smoke
-
-      - name: Verify pinned Nix Streamly packages
-        timeout-minutes: 15
-        run: nix run .#streamly-tools-check
-
-      - name: Run semantic lanes in one Nix environment
-        timeout-minutes: 25
-        run: |
-          set -euo pipefail
-          nix develop .#agda-ci -c bash -e -c '
-            set -euo pipefail
-            run_lane() {
-              local lane="$1"
-              printf "let config = ./.ci/actions_ci.dhall in config.render (config.Lane.%s)\\n" "$lane" | dhall text | bash -e
-            }
-            run_lane Discovery
-            run_lane Agda2Hs
-            run_lane EconlibCrossrepo
-            run_lane EconlibEquilibriumSearch
-            run_lane StrictExistenceImpossibility
-            run_lane StationaryCycleImpossibility
-            run_lane IsomorphismTransport
-            run_lane SemanticContract
-            run_lane Surface
-          '
-      - name: Publish live theorem/economic graph artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: theorem-economic-closure-graph
-          if-no-files-found: ignore
-          path: |
-            .ci/discovery/theorem-monolith-egraph-sync.dhall
-            .ci/discovery/economic-closure-graph.dhall
-            .ci/discovery/russ-global-certificate.dhall
-            build/agda2hs-semantic-search/report.txt
-            build/agda-haskell/agda2hs-manifest.tsv
-            build/agda-haskell/malonzo-files.txt
+      - name: Type-check theorem monolith with unchanged source options
+        run: nix develop .#agda-ci -c scsh -s .ci/scsh/ci-lanes.scsh AgdaTheorem
 
   pages:
-    name: Pages build verification
+    name: Build and verify immutable static Pages
     if: github.event_name != 'push' || github.ref != 'refs/heads/main'
-    needs: policy
+    needs: [policy, agda-learner, agda-theorem]
     runs-on: ubuntu-22.04
     timeout-minutes: 25
     steps:
@@ -160,8 +65,7 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Build native Agda ES-module Pages surface through scsh
-        timeout-minutes: 20
+      - name: Build static Pages from the two monoliths
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
         run: |
@@ -170,101 +74,5 @@ jobs:
           test -s "${RUNNER_TEMP}/pages/index.html"
           test -s "${RUNNER_TEMP}/pages/site.css"
           ! test -e "${RUNNER_TEMP}/pages/app.mjs"
-          ! test -e "${RUNNER_TEMP}/pages/monolith-content.mjs"
-          ! find "${RUNNER_TEMP}/pages" -type f -name 'jAgda.*.mjs' -print -quit | grep -q .
+          ! test -e "${RUNNER_TEMP}/pages/render.mjs"
           ! grep -Eiq '<script|<input|<button|filter-row|siteSearchMatches' "${RUNNER_TEMP}/pages/index.html"
-
-  backends:
-    name: Build Agda2Forth and CCForth native subset
-    needs: policy
-    runs-on: ubuntu-22.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
-        with:
-          installer-version: '2.35.1'
-      - name: Smoke-test Agda2Forth/Gforth and CCForth native subset
-        timeout-minutes: 15
-        run: |
-          set -euo pipefail
-          tmp="$(mktemp -d)"
-          trap 'rm -rf "$tmp"' EXIT
-          nix build -L .#agda2forth --out-link "$tmp/agda2forth"
-          test -x "$tmp/agda2forth/bin/agda2forth"
-
-          cat > "$tmp/BackendSmoke.agda" <<'AGDA'
-          module BackendSmoke where
-          data Nat : Set where
-            zero : Nat
-            suc : Nat → Nat
-          {-# BUILTIN NATURAL Nat #-}
-
-          infixl 6 _+_
-          _+_ : Nat → Nat → Nat
-          zero + n = n
-          suc m + n = suc (m + n)
-          {-# BUILTIN NATPLUS _+_ #-}
-
-          double : Nat → Nat
-          double n = n + n
-          AGDA
-          mkdir "$tmp/forth"
-          cp "$tmp/BackendSmoke.agda" "$tmp/forth/BackendSmoke.agda"
-          (
-            cd "$tmp/forth"
-            "$tmp/agda2forth/bin/agda2forth" BackendSmoke.agda
-          )
-          test -s "$tmp/forth/BackendSmoke.fth"
-
-          # GForth executes the actual Agda2Forth output. CCForth does not yet
-          # support the runtime metacompilation used by FLib.fth (notably
-          # :NONAME inside curry), so its native smoke is a separate static
-          # Forth subset. Do not label this as end-to-end CCForth support.
-          printf '\n: MAIN 21 double pass deepDethunk . cr ;\n' >> "$tmp/forth/BackendSmoke.fth"
-          cp "$tmp/forth/BackendSmoke.fth" "$tmp/forth/BackendSmoke-gforth.fth"
-          printf '\nMAIN\nbye\n' >> "$tmp/forth/BackendSmoke-gforth.fth"
-          gforth_output="$(nix develop .#forth -c gforth "$tmp/forth/BackendSmoke-gforth.fth" | tr -d '\r\n ')"
-          test "$gforth_output" = "42" || {
-            echo "GForth Agda2Forth smoke returned '$gforth_output', expected 42" >&2
-            exit 1
-          }
-
-          nix build -L .#ccforth --out-link "$tmp/ccforth"
-          test -x "$tmp/ccforth/bin/ccforth"
-          cat > "$tmp/forth/CcforthSubset.fth" <<'FORTH'
-          : double 2 * ;
-          : MAIN 21 double . cr ;
-          FORTH
-          nix develop .#forth -c "$tmp/ccforth/bin/ccforth" -cc gcc -entry MAIN -o "$tmp/forth/CcforthSubset-native" "$tmp/forth/CcforthSubset.fth"
-          test -x "$tmp/forth/CcforthSubset-native"
-          ccforth_output="$("$tmp/forth/CcforthSubset-native" | tr -d '\r\n ')"
-          test "$ccforth_output" = "42" || {
-            echo "ccforth native-subset smoke returned '$ccforth_output', expected 42" >&2
-            exit 1
-          }
-
-          nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh
-  auto-merge:
-    name: Enable auto-merge only after explicit approval
-    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
-    needs: [policy, versions, agda-learner, agda-theorem, semantic, pages, backends]
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Enable auto-merge only after explicit approval
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -euo pipefail
-          label_present="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels | any(.[]; .name == "auto-merge-approved")')"
-          if [[ "$label_present" != "true" ]]; then
-            echo "auto-merge=skipped (requires the explicit auto-merge-approved label)"
-            exit 0
-          fi
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --rebase
-
