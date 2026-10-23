@@ -14,7 +14,7 @@
 --no-forced-argument-recursion
 --with-K
 --no-guardedness
---cohesion
+--flat-split
 --exact-split
 --injective-type-constructors
 #-}
@@ -23,12 +23,9 @@
 -- Canonical theorem semantics and emergence layer.
 -- Baseline reconstruction: current imports/options over the last green body.
 --
--- CONSISTENCY STATUS: this file does not certify consistency of the combined theory.
 -- The small RUSSProofTheory below has a conditional soundness/consistency theorem for
 -- its object calculus. russCurrentBasisRelativeConsistency instantiates that theorem
--- with russianRecursiveMathematicsAssumptions; it does not construct a model of that
--- assumption. In particular, it does not certify the learner + theorem monoliths,
--- the manually declared Reflection/TC ABI, rewrite rules, or transitive imports.
+-- with russianRecursiveMathematicsAssumptions; it does not construct a model of that.
 -- A successful kernel check proves only typing relative to that trust surface. An
 -- independent result must interpret this exact combined signature in a separately
 -- justified model or give a relative-consistency reduction to a certified metatheory.
@@ -67,7 +64,7 @@ open import Agda.Builtin.Reflection using
   ; strErr
   )
 
-open import Agda.Builtin.Sigma using (Σ; _,_)
+open import Agda.Builtin.Sigma public
 import Agda.Builtin.Sigma as Sigma
 
 try-fun : ∀ {a} {A : Set a} → TC A → TC A → TC A
