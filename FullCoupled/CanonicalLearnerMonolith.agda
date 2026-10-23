@@ -60,6 +60,8 @@ open import Haskell.Law.Equality public
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
+open import Haskell.Law.Num.Nat public using (addNat-idʳ; addNat-suc)
+{-# REWRITE addNat-idʳ addNat-suc #-}
 open import Haskell.Law.Monad.List public
 open import Haskell.Law.Monoid.List public
 open import Haskell.Prim.Absurd public
@@ -1220,15 +1222,6 @@ zero+ = refl
 suc+ : (suc mNat) + n ≡ suc (mNat + n)
 suc+ = refl
 
-+zero : mNat + zero ≡ mNat
-+zero {mNat = zero}  = refl
-+zero {mNat = suc m} = cong suc +zero
-
-+suc : mNat + (suc n) ≡ suc (mNat + n)
-+suc {mNat = zero}  = refl
-+suc {mNat = suc m} = cong suc +suc
-
-{-# REWRITE +zero +suc #-}
 
 canonical-map-identity : map (λ x → x) xs ≡ xs
 canonical-map-identity {xs = []}     = refl
