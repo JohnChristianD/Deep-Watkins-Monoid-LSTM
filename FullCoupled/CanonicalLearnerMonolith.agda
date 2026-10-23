@@ -1663,13 +1663,6 @@ not-less-than-itself (suc n) (natLtStep smaller) =
   not-less-than-itself n smaller
 
 
-infixl 31 _+Int_
-_+Int_ : Integer → Integer → Integer
-_+Int_ = _+_
-
-infixl 31 _*Int_
-_*Int_ : Integer → Integer → Integer
-_*Int_ = _*_
 
 infixl 31 _ℤ+_
 _ℤ+_ : ℤ → ℤ → ℤ
@@ -1719,73 +1712,62 @@ trans refl q = q
 
 
 
-record IntCode : Set where
-  constructor intCode
-  field intCodeValue : Integer
-open IntCode public
+zeroIntCode : Integer
+zeroIntCode = pos 0
 
-intCodeStateSpace : Set
-intCodeStateSpace = Integer
+oneIntCode : Integer
+oneIntCode = pos 1
 
-zeroIntCode : IntCode
-zeroIntCode = intCode (pos 0)
+intCodeOfNat : ℕ → Integer
+intCodeOfNat n = pos n
 
-oneIntCode : IntCode
-oneIntCode = intCode (pos 1)
+intCodeAdd : Integer → Integer → Integer
+intCodeAdd x y = x +Integer y
 
-intCodeOfNat : ℕ → IntCode
-intCodeOfNat n = intCode (pos n)
-
-intCodeAdd : IntCode → IntCode → IntCode
-intCodeAdd x y = intCode (intCodeValue x +Integer intCodeValue y)
-
-intCodeMul : IntCode → IntCode → IntCode
-intCodeMul x y = intCode (intCodeValue x *Integer intCodeValue y)
+intCodeMul : Integer → Integer → Integer
+intCodeMul x y = x *Integer y
 
 intNeg : Integer → Integer
 intNeg (pos zero) = pos zero
 intNeg (pos (suc n)) = negsuc n
 intNeg (negsuc n) = pos (suc n)
 
-intCodeNeg : IntCode → IntCode
-intCodeNeg x = intCode (intNeg (intCodeValue x))
+intCodeNeg : Integer → Integer
+intCodeNeg x = intNeg x
 
-intCodeSub : IntCode → IntCode → IntCode
-intCodeSub x y = intCode (intCodeValue x +Integer intCodeValue (intCodeNeg y))
+intCodeSub : Integer → Integer → Integer
+intCodeSub x y = x +Integer intCodeNeg y
 
 intCode+-assoc : ∀ a b c → intCodeAdd (intCodeAdd a b) c ＝ intCodeAdd a (intCodeAdd b c)
-intCode+-assoc a b c = cong intCode (ℤ+-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
+intCode+-assoc a b c = (ℤ+-assoc (a) (b) (c))
 
 intCode*-assoc : ∀ a b c → intCodeMul (intCodeMul a b) c ＝ intCodeMul a (intCodeMul b c)
-intCode*-assoc a b c = cong intCode (ℤ*-assoc (intCodeValue a) (intCodeValue b) (intCodeValue c))
+intCode*-assoc a b c = (ℤ*-assoc (a) (b) (c))
 
 sym : ∀ {A : Set} {x y : A} → x ＝ y → y ＝ x
 sym refl = refl
 
 intCode*-distribˡ : ∀ a b c → intCodeMul a (intCodeAdd b c) ＝ intCodeAdd (intCodeMul a b) (intCodeMul a c)
 intCode*-distribˡ a b c =
-  cong intCode (distributivity-mult-over-ℤ' (intCodeValue b) (intCodeValue c) (intCodeValue a))
+  (distributivity-mult-over-ℤ' (b) (c) (a))
 
 intCode*-idˡ : ∀ a → intCodeMul oneIntCode a ＝ a
-intCode*-idˡ a = cong intCode (ℤ-mult-left-id (intCodeValue a))
+intCode*-idˡ a = (ℤ-mult-left-id (a))
 
 intCode*-idʳ : ∀ a → intCodeMul a oneIntCode ＝ a
-intCode*-idʳ a = cong intCode (ℤ-mult-right-id (intCodeValue a))
+intCode*-idʳ a = (ℤ-mult-right-id (a))
 
 intCode*-zeroʳ : ∀ a → intCodeMul a zeroIntCode ＝ zeroIntCode
-intCode*-zeroʳ a = cong intCode (ℤ-zero-right-is-zero (intCodeValue a))
+intCode*-zeroʳ a = (ℤ-zero-right-is-zero (a))
 
 intCode*-zeroˡ : ∀ a → intCodeMul zeroIntCode a ＝ zeroIntCode
-intCode*-zeroˡ a = cong intCode (ℤ-zero-left-base (intCodeValue a))
+intCode*-zeroˡ a = (ℤ-zero-left-base (a))
 
 intCode+-idˡ : ∀ a → intCodeAdd zeroIntCode a ＝ a
-intCode+-idˡ a = cong intCode (ℤ-zero-left-neutral (intCodeValue a))
+intCode+-idˡ a = (ℤ-zero-left-neutral (a))
 
 intCode+-idʳ : ∀ a → intCodeAdd a zeroIntCode ＝ a
-intCode+-idʳ a = cong intCode (ℤ-zero-right-neutral (intCodeValue a))
-
-intCodeRoundtrip : ∀ n → intCodeValue (intCodeOfNat n) ＝ pos n
-intCodeRoundtrip n = refl
+intCode+-idʳ a = (ℤ-zero-right-neutral (a))
 
 
 
@@ -1826,10 +1808,10 @@ data Signed : Set where
   signedZer : Signed
   signedPos : ℕ → Signed
 
-signedCode : IntCode → Signed
-signedCode (intCode (pos 0)) = signedZer
-signedCode (intCode (pos (suc n))) = signedPos (suc n)
-signedCode (intCode (negsuc n)) = signedNeg (suc n)
+signedCode : Integer → Signed
+signedCode (pos 0) = signedZer
+signedCode (pos (suc n)) = signedPos (suc n)
+signedCode (negsuc n) = signedNeg (suc n)
 
 data BoolLike : Set where
   enabled disabled : BoolLike
@@ -1842,7 +1824,7 @@ record ActionSpace (A : Set) : Set where
 open ActionSpace public
 
 QFunction : ∀ {A : Set} → Set
-QFunction {A} = ℕ → IntCode
+QFunction {A} = ℕ → Integer
 
 CountFunction : ∀ {A : Set} → Set
 CountFunction {A} = ℕ → ℕ
@@ -1875,7 +1857,7 @@ maxNat zero n = n
 maxNat (suc m) zero = suc m
 maxNat (suc m) (suc n) = suc (maxNat m n)
 
-updateAt : ∀ {A : Set} → QFunction {A} → ℕ → IntCode → QFunction {A}
+updateAt : ∀ {A : Set} → QFunction {A} → ℕ → Integer → QFunction {A}
 updateAt q a r i with natEq i a
 ... | enabled = intCodeAdd (q i) r
 ... | disabled = q i
@@ -1893,15 +1875,15 @@ open CriticState public
 record WatkinsKernel (A : Set) : Set₁ where
   constructor mkWatkinsKernel
   field
-    updateCritic : CriticState A → IntCode → CriticState A
-    greedy : CriticState A → IntCode → BoolLike
+    updateCritic : CriticState A → Integer → CriticState A
+    greedy : CriticState A → Integer → BoolLike
     traceUpdate : BoolLike → BoolLike → BoolLike
 open WatkinsKernel public
 
 record WatkinsState (A : Set) : Set where
   constructor watkinsState
   field critic : CriticState A
-        signal : IntCode
+        signal : Integer
         trace : BoolLike
 open WatkinsState public
 
@@ -1919,10 +1901,10 @@ open LCBCountState public
 
 record LCBCountKernel : Set₁ where
   constructor lcbCountKernel
-  field bonus : ℕ → IntCode
+  field bonus : ℕ → Integer
 open LCBCountKernel public
 
-finiteLCBBonus8 : ℕ → IntCode
+finiteLCBBonus8 : ℕ → Integer
 finiteLCBBonus8 zero = intCodeOfNat 127
 finiteLCBBonus8 (suc zero) = intCodeOfNat 63
 finiteLCBBonus8 (suc (suc zero)) = intCodeOfNat 31
@@ -1932,10 +1914,10 @@ finiteLCBBonus8 (suc (suc (suc (suc (suc zero))))) = intCodeOfNat 3
 finiteLCBBonus8 (suc (suc (suc (suc (suc (suc zero)))))) = intCodeOfNat 1
 finiteLCBBonus8 _ = zeroIntCode
 
-lcbNegate : IntCode → IntCode
+lcbNegate : Integer → Integer
 lcbNegate x = intCodeNeg x
 
-scoreA : ∀ {A : Set} → QFunction {A} → CountFunction {A} → ℕ → IntCode
+scoreA : ∀ {A : Set} → QFunction {A} → CountFunction {A} → ℕ → Integer
 scoreA q c a = intCodeAdd (q a) (lcbNegate (finiteLCBBonus8 (c a)))
 
 lcbScore : ∀ {A : Set} → LCBCountKernel → LCBCountState A → CriticState A → QFunction {A}
@@ -1945,10 +1927,7 @@ sparsemaxTemperature : ℕ
 sparsemaxTemperature = 16
 
 ScoreEntry : Set
-ScoreEntry = IntCode × ℕ
-
-intCodeValueInjective : ∀ {x y : IntCode} → intCodeValue x ＝ intCodeValue y → x ＝ y
-intCodeValueInjective refl = refl
+ScoreEntry = Integer × ℕ
 
 scoreList : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → List ScoreEntry
 scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (candidates K)
@@ -1956,8 +1935,8 @@ scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (candidates K)
 data ComparisonResult : Set where
   less equal greater : ComparisonResult
 
-compareInt8 : IntCode → IntCode → ComparisonResult
-compareInt8 x y with compare (intCodeValue x) (intCodeValue y)
+compareInt8 : Integer → Integer → ComparisonResult
+compareInt8 x y with compare (x) (y)
 ... | LT = less
 ... | EQ = equal
 ... | GT = greater
@@ -1999,28 +1978,28 @@ sumList (x ∷ xs) = x + sumList xs
 ------------------------------------------------------------------------
 -- Integer LayerNorm kernel.
 --
--- IntCode wraps an unbounded mathematical integer; it is not a machine byte.  The normalization arithmetic therefore
+-- This kernel operates directly on Agda2HS Prelude Integer, not a machine byte.  The normalization arithmetic therefore
 -- remains integral and the normalized output is represented as an exact
 -- integer ratio.  A certificate supplies the non-zero square root of
 -- the integer radicand; no floating-point approximation enters the
 -- proof surface.
 ------------------------------------------------------------------------
 
-integerCodeSum : List IntCode → Integer
+integerCodeSum : List Integer → Integer
 integerCodeSum [] = pos 0
-integerCodeSum (x ∷ xs) = intCodeValue x +Integer integerCodeSum xs
+integerCodeSum (x ∷ xs) = x +Integer integerCodeSum xs
 
 integerCodeSumList : List Integer → Integer
 integerCodeSumList [] = pos 0
 integerCodeSumList (x ∷ xs) = x +Integer integerCodeSumList xs
 
 integerLayerNormCenteredNumerator :
-  List IntCode → IntCode → Integer
+  List Integer → Integer → Integer
 integerLayerNormCenteredNumerator xs x =
-  (pos (length xs)) *Integer intCodeValue x +Integer intNeg (integerCodeSum xs)
+  (pos (length xs)) *Integer x +Integer intNeg (integerCodeSum xs)
 
 integerLayerNormCenteredNumerators :
-  List IntCode → List Integer
+  List Integer → List Integer
 integerLayerNormCenteredNumerators xs =
   map
     (λ x → integerLayerNormCenteredNumerator xs x)
@@ -2030,7 +2009,7 @@ integerLayerNormSquare : Integer → Integer
 integerLayerNormSquare z = z *Integer z
 
 integerLayerNormVarianceNumerator :
-  List IntCode → Integer
+  List Integer → Integer
 integerLayerNormVarianceNumerator xs =
   integerCodeSumList
     (map
@@ -2038,15 +2017,14 @@ integerLayerNormVarianceNumerator xs =
       (integerLayerNormCenteredNumerators xs))
 
 integerLayerNormEpsilonContribution :
-  List IntCode → ℕ → Integer
+  List Integer → ℕ → Integer
 integerLayerNormEpsilonContribution xs epsilon =
-  intCodeValue
-    (intCodeMul
+  intCodeMul
       (intCodeOfNat epsilon)
-      (intCodeMul (intCodeOfNat (length xs)) (intCodeOfNat (length xs))))
+      (intCodeMul (intCodeOfNat (length xs)) (intCodeOfNat (length xs)))
 
 integerLayerNormRadicand :
-  List IntCode → ℕ → Integer
+  List Integer → ℕ → Integer
 integerLayerNormRadicand xs epsilon =
   integerLayerNormVarianceNumerator xs
   +Integer
@@ -2054,18 +2032,17 @@ integerLayerNormRadicand xs epsilon =
 
 record IntegerLayerNormConfig : Set where
   constructor integerLayerNormConfig
-  field fixedScale gamma beta : IntCode
+  field fixedScale gamma beta : Integer
 open IntegerLayerNormConfig public
 
 record IntegerLayerNormCertificate
-  (xs : List IntCode) : Set where
+  (xs : List Integer) : Set where
   constructor integerLayerNormCertificate
   field
     epsilon : ℕ
     root : ℕ
     rootSquared :
-      intCodeValue
-        (intCodeMul (intCodeOfNat root) (intCodeOfNat root)) ＝
+      intCodeMul (intCodeOfNat root) (intCodeOfNat root) ＝
       integerLayerNormRadicand xs epsilon
     rootNonZero : root ≠ zero
 open IntegerLayerNormCertificate public
@@ -2079,25 +2056,25 @@ record IntegerLayerNormValue : Set where
 open IntegerLayerNormValue public
 
 integerLayerNormValue :
-  ∀ {xs : List IntCode} →
+  ∀ {xs : List Integer} →
   IntegerLayerNormConfig →
   IntegerLayerNormCertificate xs →
-  IntCode →
+  Integer →
   IntegerLayerNormValue
 integerLayerNormValue {xs} config certificate x =
   mkIntegerLayerNormValue
-    (intCodeValue (gamma config) *Integer
-      (intCodeValue (fixedScale config) *Integer
+    (gamma config *Integer
+      (fixedScale config *Integer
         integerLayerNormCenteredNumerator xs x)
      +Integer
-     (intCodeValue (beta config) *Integer (pos (root certificate))))
+     (beta config *Integer (pos (root certificate))))
     (root certificate)
     (rootNonZero certificate)
 
 
-intCodeMagnitude : IntCode → ℕ
-intCodeMagnitude (intCode (pos n)) = n
-intCodeMagnitude (intCode (negsuc n)) = suc n
+intCodeMagnitude : Integer → ℕ
+intCodeMagnitude (pos n) = n
+intCodeMagnitude (negsuc n) = suc n
 
 infixl 6 _∸_
 _∸_ : ℕ → ℕ → ℕ
@@ -2220,7 +2197,7 @@ rationalCodeDivideMagnitude : ℕ → RationalCode → ℕ
 rationalCodeDivideMagnitude n (_ , denominatorMinusOne) =
   pr₁ (fractionDivision n (suc denominatorMinusOne))
 
-qLog8 : IntCode → RationalCode
+qLog8 : Integer → RationalCode
 qLog8 x with intCodeMagnitude x
 ... | zero = fromNatRationalCode 1 zero
 ... | suc n = fromNatRationalCode (128 ∸ suc n) (suc n)
@@ -2228,7 +2205,7 @@ qLog8 x with intCodeMagnitude x
 munchausenScale8 : ℕ
 munchausenScale8 = 16
 
-signedRationalCodeBias8 : RationalCode → IntCode
+signedRationalCodeBias8 : RationalCode → Integer
 signedRationalCodeBias8 q with rationalCodeNumeratorMagnitude q
 ... | zero = zeroIntCode
 ... | suc n = intCodeNeg
@@ -2237,54 +2214,54 @@ signedRationalCodeBias8 q with rationalCodeNumeratorMagnitude q
       (munchausenScale8 *ℕ suc n)
       q))
 
-qLog2Bias8 : IntCode → IntCode
+qLog2Bias8 : Integer → Integer
 qLog2Bias8 x =
   signedRationalCodeBias8 (qLog8 x)
 
-negativeAlpha8 : IntCode
+negativeAlpha8 : Integer
 negativeAlpha8 = intCodeOfNat 255
 
 record SignedQLogControl : Set where
   constructor signedQLogControl
-  field mode coefficient : IntCode
+  field mode coefficient : Integer
 open SignedQLogControl public
 
 canonicalQLogControl : SignedQLogControl
 canonicalQLogControl =
   signedQLogControl negativeAlpha8 negativeAlpha8
 
-qLogSignal : SignedQLogControl → IntCode → IntCode
+qLogSignal : SignedQLogControl → Integer → Integer
 qLogSignal c x = intCodeAdd x (coefficient c)
 
 data HardSign : Set where
   negativeSign zeroSign positiveSign : HardSign
 
-hardSignNonnegative : IntCode → HardSign
-hardSignNonnegative (intCode (pos 0)) = zeroSign
-hardSignNonnegative (intCode (pos (suc n))) = positiveSign
-hardSignNonnegative (intCode (negsuc n)) = negativeSign
+hardSignNonnegative : Integer → HardSign
+hardSignNonnegative (pos 0) = zeroSign
+hardSignNonnegative (pos (suc n)) = positiveSign
+hardSignNonnegative (negsuc n) = negativeSign
 
-hardSign : IntCode → HardSign
-hardSign (intCode (pos 0)) = zeroSign
-hardSign (intCode (pos (suc n))) = positiveSign
-hardSign (intCode (negsuc n)) = negativeSign
+hardSign : Integer → HardSign
+hardSign (pos 0) = zeroSign
+hardSign (pos (suc n)) = positiveSign
+hardSign (negsuc n) = negativeSign
 
-hardSignGate : IntCode → IntCode
+hardSignGate : Integer → Integer
 hardSignGate x with hardSign x
 ... | negativeSign = intCodeOfNat 255
 ... | zeroSign = zeroIntCode
 ... | positive = oneIntCode
 
-two8 : IntCode
+two8 : Integer
 two8 = intCodeAdd oneIntCode oneIntCode
 
-relu8 : IntCode → IntCode
+relu8 : Integer → Integer
 relu8 x with hardSign x
 ... | negativeSign = zeroIntCode
 ... | zeroSign = zeroIntCode
 ... | positive = x
 
-leaky2 : IntCode → IntCode
+leaky2 : Integer → Integer
 leaky2 x with hardSign x
 ... | negativeSign = intCodeMul two8 x
 ... | zeroSign = zeroIntCode
@@ -2303,22 +2280,22 @@ leaky2 x with hardSign x
 
 record MonoidLSTMMatrices : Set where
   constructor monoidLSTMMatrices
-  field matrixZ matrixR matrixH : IntCode
+  field matrixZ matrixR matrixH : Integer
 open MonoidLSTMMatrices public
 
 record MonoidLSTMNoise : Set where
   constructor monoidLSTMNoise
-  field noiseZ noiseR noiseH : IntCode
+  field noiseZ noiseR noiseH : Integer
 open MonoidLSTMNoise public
 
 record MonoidLSTMControl : Set where
   constructor monoidLSTMControl
-  field optimizerToken l2Token : IntCode
+  field optimizerToken l2Token : Integer
 open MonoidLSTMControl public
 
 record MonoidAffine : Set where
   constructor monoidAffine
-  field slope offset : IntCode
+  field slope offset : Integer
 open MonoidAffine public
 
 _∘ₘ_ : MonoidAffine → MonoidAffine → MonoidAffine
@@ -2366,25 +2343,25 @@ monoidAffine-idʳ (monoidAffine a b) =
       (cong (λ z → intCodeAdd z b) (intCode*-zeroʳ a))
       (intCode+-idˡ b))
 
-applyMonoidAffine : MonoidAffine → IntCode → IntCode
+applyMonoidAffine : MonoidAffine → Integer → Integer
 applyMonoidAffine (monoidAffine a b) c =
   intCodeAdd (intCodeMul a c) b
 
 data MonoidLSTMGate : Set where
   monoidHold monoidWrite monoidReset monoidAccum : MonoidLSTMGate
 
-monoidLSTMGateOf : IntCode → MonoidLSTMGate
-monoidLSTMGateOf (intCode (pos 0)) = monoidHold
-monoidLSTMGateOf (intCode (pos (suc n))) = monoidAccum
-monoidLSTMGateOf (intCode (negsuc n)) = monoidReset
+monoidLSTMGateOf : Integer → MonoidLSTMGate
+monoidLSTMGateOf (pos 0) = monoidHold
+monoidLSTMGateOf (pos (suc n)) = monoidAccum
+monoidLSTMGateOf (negsuc n) = monoidReset
 
-monoidLSTMCellStep : MonoidLSTMGate → IntCode → IntCode → IntCode
+monoidLSTMCellStep : MonoidLSTMGate → Integer → Integer → Integer
 monoidLSTMCellStep monoidHold c x = c
 monoidLSTMCellStep monoidWrite c x = leaky2 x
 monoidLSTMCellStep monoidReset c x = zeroIntCode
 monoidLSTMCellStep monoidAccum c x = intCodeAdd c (leaky2 x)
 
-monoidLSTMAffineOf : MonoidLSTMGate → IntCode → MonoidAffine
+monoidLSTMAffineOf : MonoidLSTMGate → Integer → MonoidAffine
 monoidLSTMAffineOf monoidHold x = monoidAffine oneIntCode zeroIntCode
 monoidLSTMAffineOf monoidWrite x = monoidAffine zeroIntCode (leaky2 x)
 monoidLSTMAffineOf monoidReset x = monoidAffine zeroIntCode zeroIntCode
@@ -2413,7 +2390,7 @@ monoidLSTMCellStep-is-affine monoidReset c x =
 monoidLSTMCellStep-is-affine monoidAccum c x =
   cong (λ z → intCodeAdd z (leaky2 x)) (sym (intCode*-idˡ c))
 
-scanMonoidAffine : List IntCode → MonoidAffine
+scanMonoidAffine : List Integer → MonoidAffine
 scanMonoidAffine [] = monoidAffine-id
 scanMonoidAffine (x ∷ xs) =
   scanMonoidAffine xs ∘ₘ monoidLSTMAffineOf (monoidLSTMGateOf x) x
@@ -2424,15 +2401,15 @@ scanMonoidAffine-cons :
   scanMonoidAffine xs ∘ₘ monoidLSTMAffineOf (monoidLSTMGateOf x) x
 scanMonoidAffine-cons x xs = refl
 
-runMonoidLSTMCell : List IntCode → IntCode → IntCode
+runMonoidLSTMCell : List Integer → Integer → Integer
 runMonoidLSTMCell xs c₀ =
   applyMonoidAffine (scanMonoidAffine xs) c₀
 
 record MonoidLSTMState : Set where
   constructor monoidLSTMState
   field
-    hiddenState : IntCode
-    cellState : IntCode
+    hiddenState : Integer
+    cellState : Integer
     matrixState : MonoidLSTMMatrices
     noiseState : MonoidLSTMNoise
     controlState : MonoidLSTMControl
@@ -2447,11 +2424,11 @@ zeroMonoidLSTMNoise = monoidLSTMNoise zeroIntCode zeroIntCode zeroIntCode
 zeroMonoidLSTMControl : MonoidLSTMControl
 zeroMonoidLSTMControl = monoidLSTMControl zeroIntCode zeroIntCode
 
-monoidLSTMHiddenStep : IntCode → IntCode → IntCode → IntCode
+monoidLSTMHiddenStep : Integer → Integer → Integer → Integer
 monoidLSTMHiddenStep h c x =
   intCodeAdd c (leaky2 (intCodeAdd h x))
 
-monoidLSTMStep : MonoidLSTMState → IntCode → MonoidLSTMState
+monoidLSTMStep : MonoidLSTMState → Integer → MonoidLSTMState
 monoidLSTMStep
   (monoidLSTMState h c m n g)
   x =
@@ -2465,14 +2442,14 @@ persistentMonoidLSTM :
 persistentMonoidLSTM (monoidLSTMState h c m n g) = m , (n , g)
 
 persistentMonoidLSTM-preservation :
-  ∀ (s : MonoidLSTMState) (x : IntCode) →
+  ∀ (s : MonoidLSTMState) (x : Integer) →
   persistentMonoidLSTM (monoidLSTMStep s x) ＝
   persistentMonoidLSTM s
 persistentMonoidLSTM-preservation
   (monoidLSTMState h c m n g) x = refl
 
 monoidLSTMParameterPersistence :
-  ∀ (s : MonoidLSTMState) (x : IntCode) →
+  ∀ (s : MonoidLSTMState) (x : Integer) →
   (matrixState (monoidLSTMStep s x) ＝ matrixState s) ×
   ((noiseState (monoidLSTMStep s x) ＝ noiseState s) ×
    (controlState (monoidLSTMStep s x) ＝ controlState s))
@@ -2485,7 +2462,7 @@ MonoidLSTMEquivalent s t =
   persistentMonoidLSTM s ＝ persistentMonoidLSTM t
 
 monoidLSTMStep-respects-equivalence :
-  ∀ (s t : MonoidLSTMState) (x : IntCode) →
+  ∀ (s t : MonoidLSTMState) (x : Integer) →
   MonoidLSTMEquivalent s t →
   MonoidLSTMEquivalent (monoidLSTMStep s x) (monoidLSTMStep t x)
 monoidLSTMStep-respects-equivalence s t x eq =
@@ -2510,18 +2487,18 @@ GlobalControl = MonoidLSTMControl
 GRUState : Set
 GRUState = MonoidLSTMState
 
-gruMatrices : IntCode → IntCode → IntCode → GRUMatrices
+gruMatrices : Integer → Integer → Integer → GRUMatrices
 gruMatrices a b c = monoidLSTMMatrices a b c
 
-gruNoise : IntCode → IntCode → IntCode → GRUNoise
+gruNoise : Integer → Integer → Integer → GRUNoise
 gruNoise a b c = monoidLSTMNoise a b c
 
-mkGlobalControl : IntCode → IntCode → GlobalControl
+mkGlobalControl : Integer → Integer → GlobalControl
 mkGlobalControl a b = monoidLSTMControl a b
 
 gruState :
-  IntCode →
-  IntCode →
+  Integer →
+  Integer →
   MonoidLSTMMatrices →
   MonoidLSTMNoise →
   MonoidLSTMControl →
@@ -2537,10 +2514,10 @@ zeroGRUNoise = zeroMonoidLSTMNoise
 zeroGlobalControl : GlobalControl
 zeroGlobalControl = zeroMonoidLSTMControl
 
-rationalCodeCode : RationalCode → IntCode
+rationalCodeCode : RationalCode → Integer
 rationalCodeCode q = intCodeOfNat (rationalCodeNumeratorMagnitude q)
 
-identityActivation8 : IntCode → IntCode
+identityActivation8 : Integer → Integer
 identityActivation8 x = x
 
 identityActivation8-law : ∀ x → identityActivation8 x ＝ x
@@ -2549,30 +2526,30 @@ identityActivation8-law x = refl
 identityActivation8-zero : identityActivation8 zeroIntCode ＝ zeroIntCode
 identityActivation8-zero = refl
 
-gruCandidate8 : IntCode → IntCode → IntCode
+gruCandidate8 : Integer → Integer → Integer
 gruCandidate8 h x = intCodeAdd h x
 
-complement128 : IntCode → IntCode
+complement128 : Integer → Integer
 complement128 g = intCodeSub oneIntCode g
 
-mix8 : IntCode → IntCode → IntCode → IntCode
+mix8 : Integer → Integer → Integer → Integer
 mix8 g old new =
   intCodeAdd
     (intCodeMul (complement128 g) old)
     (intCodeMul g new)
 
-gateCode : Signed → IntCode
+gateCode : Signed → Integer
 gateCode (signedNeg n) = zeroIntCode
 gateCode signedZer = zeroIntCode
 gateCode (signedPos n) = oneIntCode
 
-gateFromInput : IntCode → IntCode
+gateFromInput : Integer → Integer
 gateFromInput x = gateCode (signedCode x)
 
-monoidLSTMRecurrentStep : MonoidLSTMState → IntCode → MonoidLSTMState
+monoidLSTMRecurrentStep : MonoidLSTMState → Integer → MonoidLSTMState
 monoidLSTMRecurrentStep = monoidLSTMStep
 
-gruStep : GRUState → IntCode → GRUState
+gruStep : GRUState → Integer → GRUState
 gruStep = monoidLSTMStep
 
 persistentGRU :
@@ -2581,13 +2558,13 @@ persistentGRU :
 persistentGRU = persistentMonoidLSTM
 
 persistent-preservation :
-  ∀ (s : GRUState) (x : IntCode) →
+  ∀ (s : GRUState) (x : Integer) →
   persistentGRU (gruStep s x) ＝ persistentGRU s
 persistent-preservation s x =
   persistentMonoidLSTM-preservation s x
 
 gruParameterPersistence :
-  ∀ (s : GRUState) (x : IntCode) →
+  ∀ (s : GRUState) (x : Integer) →
   (matrixState (gruStep s x) ＝ matrixState s) ×
   ((noiseState (gruStep s x) ＝ noiseState s) ×
    (controlState (gruStep s x) ＝ controlState s))
@@ -2604,7 +2581,7 @@ gruEquivalent-refl = monoidLSTMEquivalent-refl
     monoidLSTMEquivalent-refl s = refl
 
 gruStep-respects-equivalence :
-  ∀ (s t : GRUState) (x : IntCode) →
+  ∀ (s t : GRUState) (x : Integer) →
   GRUEquivalent s t →
   GRUEquivalent (gruStep s x) (gruStep t x)
 gruStep-respects-equivalence =
@@ -2629,7 +2606,7 @@ gruActionAssociativity : ∀ f g h s →
     (composeGRUAction f (composeGRUAction g h)) s
 gruActionAssociativity f g h s = refl
 
-inputGRUAction : IntCode → GRUAction
+inputGRUAction : Integer → GRUAction
 inputGRUAction x = gruAction (λ s → monoidLSTMStep s x)
 
 record RecurrentNetwork (State Input : Set) : Set₁ where
@@ -2639,22 +2616,22 @@ record RecurrentNetwork (State Input : Set) : Set₁ where
 open RecurrentNetwork public
 
 canonicalMonoidLSTMRecurrentNetwork :
-  RecurrentNetwork MonoidLSTMState IntCode
+  RecurrentNetwork MonoidLSTMState Integer
 canonicalMonoidLSTMRecurrentNetwork =
   recurrentNetwork monoidLSTMStep
 
 canonicalMonoidLSTMNetwork-law :
-  ∀ (s : MonoidLSTMState) (x : IntCode) →
+  ∀ (s : MonoidLSTMState) (x : Integer) →
   runNetwork canonicalMonoidLSTMRecurrentNetwork s x ＝
   monoidLSTMStep s x
 canonicalMonoidLSTMNetwork-law s x = refl
 
-canonicalGRURecurrentNetwork : RecurrentNetwork GRUState IntCode
+canonicalGRURecurrentNetwork : RecurrentNetwork GRUState Integer
 canonicalGRURecurrentNetwork =
   recurrentNetwork gruStep
 
 canonicalGRUNetwork-law :
-  ∀ (s : GRUState) (x : IntCode) →
+  ∀ (s : GRUState) (x : Integer) →
   runNetwork canonicalGRURecurrentNetwork s x ＝
   monoidLSTMStep s x
 canonicalGRUNetwork-law s x = refl
@@ -2780,7 +2757,7 @@ recurrentPrefix-split R xs m (suc n) s =
       (recurrentPrefix-split R xs m n s))
 
 canonicalMonoidLSTM-recurrent-prefix-correct :
-  ∀ (xs : ℕ → IntCode) (n : ℕ) (s : MonoidLSTMState) →
+  ∀ (xs : ℕ → Integer) (n : ℕ) (s : MonoidLSTMState) →
   applyEndomorphism
     (recurrentPrefixEndomorphism
       canonicalMonoidLSTMRecurrentNetwork
@@ -2797,7 +2774,7 @@ canonicalMonoidLSTM-recurrent-prefix-correct =
   recurrentPrefix-correct canonicalMonoidLSTMRecurrentNetwork
 
 canonicalMonoidLSTM-recurrent-prefix-split :
-  ∀ (xs : ℕ → IntCode) (m n : ℕ) (s : MonoidLSTMState) →
+  ∀ (xs : ℕ → Integer) (m n : ℕ) (s : MonoidLSTMState) →
   recurrentPrefixState
     canonicalMonoidLSTMRecurrentNetwork
     xs
@@ -2817,7 +2794,7 @@ canonicalMonoidLSTM-recurrent-prefix-split =
   recurrentPrefix-split canonicalMonoidLSTMRecurrentNetwork
 
 canonicalGRU-recurrent-prefix-correct :
-  ∀ (xs : ℕ → IntCode) (n : ℕ) (s : GRUState) →
+  ∀ (xs : ℕ → Integer) (n : ℕ) (s : GRUState) →
   applyEndomorphism
     (recurrentPrefixEndomorphism
       canonicalGRURecurrentNetwork
@@ -2834,7 +2811,7 @@ canonicalGRU-recurrent-prefix-correct =
   recurrentPrefix-correct canonicalGRURecurrentNetwork
 
 canonicalGRU-recurrent-prefix-split :
-  ∀ (xs : ℕ → IntCode) (m n : ℕ) (s : GRUState) →
+  ∀ (xs : ℕ → Integer) (m n : ℕ) (s : GRUState) →
   recurrentPrefixState
     canonicalGRURecurrentNetwork
     xs
@@ -2890,36 +2867,36 @@ fullLearnerInt8CoordinateCount-law = refl
 
 record F4IntUState : Set where
   constructor f4IntUState
-  field thetaQ rTheta eQ rE rL : IntCode
+  field thetaQ rTheta eQ rE rL : Integer
 open F4IntUState public
 
 record F4IntUKernel : Set₁ where
   constructor f4IntUKernel
-  field globalL2 : IntCode
+  field globalL2 : Integer
 open F4IntUKernel public
 
-f4ThetaFull : F4IntUState → IntCode
+f4ThetaFull : F4IntUState → Integer
 f4ThetaFull s = thetaQ s
 
 f4ThetaFull-law : ∀ s → f4ThetaFull s ＝ thetaQ s
 f4ThetaFull-law s = refl
 
-l2Correction : IntCode → IntCode
+l2Correction : Integer → Integer
 l2Correction x = lcbNegate x
 
-f4ThetaStep : F4IntUKernel → F4IntUState → IntCode → F4IntUState
+f4ThetaStep : F4IntUKernel → F4IntUState → Integer → F4IntUState
 f4ThetaStep K s g =
   f4IntUState
     (intCodeAdd (intCodeAdd (thetaQ s) g) (l2Correction (globalL2 K)))
     zeroIntCode (eQ s) (rE s) (rL s)
 
-f4ParameterInvariant : ∀ (K : F4IntUKernel) (s : F4IntUState) (g : IntCode) →
+f4ParameterInvariant : ∀ (K : F4IntUKernel) (s : F4IntUState) (g : Integer) →
   thetaQ (f4ThetaStep K s g) ＝
   intCodeAdd (intCodeAdd (thetaQ s) g) (l2Correction (globalL2 K))
 f4ParameterInvariant K s g = refl
 
 HaarAccumulator : Set
-HaarAccumulator = IntCode × IntCode
+HaarAccumulator = Integer × Integer
 
 
 ------------------------------------------------------------------------
@@ -2932,9 +2909,9 @@ HaarAccumulator = IntCode × IntCode
 ------------------------------------------------------------------------
 
 CanonicalHaarPair : Set
-CanonicalHaarPair = IntCode × IntCode
+CanonicalHaarPair = Integer × Integer
 
-canonicalHaarMix : IntCode → IntCode → CanonicalHaarPair
+canonicalHaarMix : Integer → Integer → CanonicalHaarPair
 canonicalHaarMix x y =
   intCodeAdd x y , intCodeSub x y
 
@@ -2952,13 +2929,13 @@ canonicalHaarMix-linear-form :
   (intCodeAdd x y , intCodeSub x y)
 canonicalHaarMix-linear-form x y = refl
 
-canonicalReLU8 : IntCode → IntCode
+canonicalReLU8 : Integer → Integer
 canonicalReLU8 x with hardSign x
 ... | negativeSign = zeroIntCode
 ... | zeroSign = zeroIntCode
 ... | positiveSign = x
 
-canonicalCReLU8 : IntCode → CanonicalHaarPair
+canonicalCReLU8 : Integer → CanonicalHaarPair
 canonicalCReLU8 x =
   canonicalReLU8 x , canonicalReLU8 (intCodeNeg x)
 
@@ -2985,7 +2962,7 @@ canonicalCReLU' x =
   canonicalSignReLU' x , canonicalSignReLU' (rationalCodeNegate x)
 
 
-canonicalHaarFeature : IntCode → CanonicalHaarPair
+canonicalHaarFeature : Integer → CanonicalHaarPair
 canonicalHaarFeature x =
   canonicalHaarMix
     (pr₁ (canonicalCReLU8 x))
@@ -3018,11 +2995,11 @@ canonicalHaarFeatureReconstruct :
       n = pr₂ (canonicalCReLU8 x)
   in intCodeSub p n ＝ x
 canonicalHaarFeatureReconstruct
-  (intCode (pos 0)) = refl
+  (pos 0) = refl
 canonicalHaarFeatureReconstruct
-  (intCode (pos (suc n))) = refl
+  (pos (suc n)) = refl
 canonicalHaarFeatureReconstruct
-  (intCode (negsuc n)) = intCode+-idˡ (intCode (negsuc n))
+  (negsuc n) = intCode+-idˡ (negsuc n)
 
 canonicalHaarFeatureInjective :
   ∀ {x y} →
@@ -3041,7 +3018,7 @@ canonicalHaarFeatureInjective {x} {y} eq =
 record HaarFeaturedLinearTransformer : Set where
   constructor haarFeaturedLinearTransformer
   field
-    qProjection kProjection vProjection : IntCode → IntCode
+    qProjection kProjection vProjection : Integer → Integer
 open HaarFeaturedLinearTransformer public
 
 haarAccumulator-id : HaarAccumulator
@@ -3087,7 +3064,7 @@ haarAccumulator-op-idʳ (a , b) =
 
 haarKeyValueContribution :
   HaarFeaturedLinearTransformer →
-  IntCode →
+  Integer →
   HaarAccumulator
 haarKeyValueContribution T x =
   let (kp , kn) =
@@ -3099,7 +3076,7 @@ haarKeyValueContribution T x =
 haarAccumulatorStep :
   HaarFeaturedLinearTransformer →
   HaarAccumulator →
-  IntCode →
+  Integer →
   HaarAccumulator
 haarAccumulatorStep T s x =
   haarAccumulator-op s
@@ -3108,8 +3085,8 @@ haarAccumulatorStep T s x =
 haarQueryRead :
   HaarFeaturedLinearTransformer →
   HaarAccumulator →
-  IntCode →
-  IntCode
+  Integer →
+  Integer
 haarQueryRead T (sp , sn) x =
   let (qp , qn) =
         canonicalHaarFeature
@@ -3121,8 +3098,8 @@ haarQueryRead T (sp , sn) x =
 haarLinearTransform :
   HaarFeaturedLinearTransformer →
   HaarAccumulator →
-  List IntCode →
-  List IntCode
+  List Integer →
+  List Integer
 haarLinearTransform T s₀ [] = []
 haarLinearTransform T s₀ (x ∷ xs) =
   let s₁ = haarAccumulatorStep T s₀ x
@@ -3157,8 +3134,8 @@ canonicalHaarFeaturedTransformer =
 
 canonicalHaarFeaturedLinearScan :
   HaarAccumulator →
-  List IntCode →
-  List IntCode
+  List Integer →
+  List Integer
 canonicalHaarFeaturedLinearScan =
   haarLinearTransform canonicalHaarFeaturedTransformer
 
@@ -3196,7 +3173,7 @@ canonicalPolicy K s = sparsemaxPolicy (actionSpaceK K) (lcbScore (lcbKernel K) (
 canonicalPolicyWeight : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → SparseWeight
 canonicalPolicyWeight K s = sparsemaxWeight (actionSpaceK K) (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s))) (valuesCount (lcbCounts s)) (canonicalPolicy K s)
 
-canonicalPolicyWeightCode : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → IntCode
+canonicalPolicyWeightCode : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → Integer
 
 BehaviorPolicy : Set
 BehaviorPolicy = ℕ → SparseWeight
@@ -3283,41 +3260,41 @@ canonicalPolicy-optimizer-invariant :
   canonicalPolicy K (replaceOptimizer s o) ＝ canonicalPolicy K s
 canonicalPolicy-optimizer-invariant K s o = refl
 
-maxCriticValueList : List IntCode → IntCode
+maxCriticValueList : List Integer → Integer
 maxCriticValueList [] = zeroIntCode
 maxCriticValueList (x ∷ xs) with compareInt8 x (maxCriticValueList xs)
 ... | less = maxCriticValueList xs
 ... | equal = maxCriticValueList xs
 ... | greater = x
 
-maxCriticValue8 : ∀ {A : Set} → ActionSpace A → CriticState A → IntCode
+maxCriticValue8 : ∀ {A : Set} → ActionSpace A → CriticState A → Integer
 maxCriticValue8 K q = maxCriticValueList (map (λ a → values q a) (candidates K))
 
-canonicalQLogBias : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
+canonicalQLogBias : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
 canonicalQLogBias K s = qLog2Bias8 (canonicalPolicyWeightCode K s)
 
-canonicalReward8 : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
+canonicalReward8 : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
 canonicalReward8 K s = canonicalPolicyWeightCode K s
 
-canonicalDiscount8 : IntCode
+canonicalDiscount8 : Integer
 canonicalDiscount8 = oneIntCode
 
-canonicalGRUFeedback : ∀ {A} → FullLearnerState A → IntCode
+canonicalGRUFeedback : ∀ {A} → FullLearnerState A → Integer
 canonicalGRUFeedback s = hiddenState (gru s)
 
-canonicalF4L2Feedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
+canonicalF4L2Feedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
 canonicalF4L2Feedback K s =
   intCodeAdd
     (f4ThetaFull (optimizer s))
     (l2Correction (globalL2 (optimizerKernel K)))
 
-canonicalQLogControlFeedback : ∀ {A} → FullLearnerState A → IntCode
+canonicalQLogControlFeedback : ∀ {A} → FullLearnerState A → Integer
 canonicalQLogControlFeedback s = coefficient (qLogControl s)
 
-canonicalQLogValueFeedback : ∀ {A} → FullLearnerState A → IntCode
+canonicalQLogValueFeedback : ∀ {A} → FullLearnerState A → Integer
 canonicalQLogValueFeedback s = rationalCodeCode (qLogValue s)
 
-canonicalEndogenousFeedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
+canonicalEndogenousFeedback : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
 canonicalEndogenousFeedback K s =
   intCodeAdd
     (canonicalGRUFeedback s)
@@ -3327,7 +3304,7 @@ canonicalEndogenousFeedback K s =
           (canonicalQLogControlFeedback s)
           (canonicalQLogValueFeedback s)))
 
-canonicalWatkinsTarget : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
+canonicalWatkinsTarget : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
 canonicalWatkinsTarget K s =
   intCodeAdd
     (intCodeAdd
@@ -3348,7 +3325,7 @@ canonicalQLogControlStep : ∀ {A} → FullLearnerKernel A → FullLearnerState 
 canonicalQLogControlStep K s =
   signedQLogControl negativeAlpha8 (canonicalQLogBias K s)
 
-canonicalSignal : ∀ {A} → FullLearnerKernel A → FullLearnerState A → IntCode
+canonicalSignal : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
 canonicalSignal = canonicalWatkinsTarget
 
 canonicalSignal-watkins-target : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
@@ -3375,7 +3352,7 @@ canonicalHaarRecurrentInput :
   ∀ {A} →
   FullLearnerKernel A →
   FullLearnerState A →
-  IntCode
+  Integer
 canonicalHaarRecurrentInput K s =
   haarQueryRead
     canonicalHaarFeaturedTransformer
@@ -4043,7 +4020,7 @@ canonicalNoCountedTwoCycle K s cyc = succ-succ-not-self (totalCount (lcbCounts s
 temperatureCodeLaw : sparsemaxTemperature ＝ 16
 temperatureCodeLaw = refl
 
-pessimisticInit : IntCode
+pessimisticInit : Integer
 pessimisticInit = intCodeOfNat 128
 
 pessimisticCritic : ∀ {A} → CriticState A
@@ -4061,14 +4038,13 @@ CanonicalToken = Integer
 CanonicalTokenSequence : Set
 CanonicalTokenSequence = List CanonicalToken
 
-canonicalTokenEncode : CanonicalToken → IntCode
-canonicalTokenEncode = intCode
+canonicalTokenEncode : CanonicalToken → Integer
+canonicalTokenEncode = λ token → token
 
--- IntCode is an exact wrapper around the repository's unbounded mathematical Integer. Its intCodeValue
--- projection is a left inverse, hence the token transport is globally
--- injective (this is not a bounded machine-byte encoding).
+-- Tokens use the official Agda2HS Prelude Integer carrier directly. The identity
+-- encoding/decoding gives a total left inverse and global injectivity.
 canonicalTokenEncodeLeftInverse :
-  ∀ token → intCodeValue (canonicalTokenEncode token) ＝ token
+  ∀ token → canonicalTokenEncode token ＝ token
 canonicalTokenEncodeLeftInverse token = refl
 
 canonicalTokenEncodeInjective :
@@ -4079,7 +4055,7 @@ canonicalTokenEncodeInjective {left} {right} encodedEquality =
   trans
     (sym (canonicalTokenEncodeLeftInverse left))
     (trans
-      (cong intCodeValue encodedEquality)
+      (cong (λ x → x) encodedEquality)
       (canonicalTokenEncodeLeftInverse right))
 
 -- Any representation with an exact left inverse is globally injective.
@@ -4098,11 +4074,11 @@ leftInverseImpliesInjective observe inverse leftInverse {left} {right} observati
       (cong inverse observationEquality)
       (leftInverse right))
 
-canonicalTokenEncodeList : CanonicalTokenSequence → List IntCode
+canonicalTokenEncodeList : CanonicalTokenSequence → List Integer
 canonicalTokenEncodeList = map canonicalTokenEncode
 
 canonicalTokenEncodeListLeftInverse :
-  ∀ tokens → map intCodeValue (canonicalTokenEncodeList tokens) ＝ tokens
+  ∀ tokens → map (λ x → x) (canonicalTokenEncodeList tokens) ＝ tokens
 canonicalTokenEncodeListLeftInverse [] = refl
 canonicalTokenEncodeListLeftInverse (token ∷ tokens) =
   cong (_∷_ token) (canonicalTokenEncodeListLeftInverse tokens)
@@ -4115,7 +4091,7 @@ canonicalTokenEncodeListInjective {left} {right} encodedEquality =
   trans
     (sym (canonicalTokenEncodeListLeftInverse left))
     (trans
-      (cong (map intCodeValue) encodedEquality)
+      (cong (map (λ x → x)) encodedEquality)
       (canonicalTokenEncodeListLeftInverse right))
 
 canonicalTokenStep : GRUState → CanonicalToken → GRUState
@@ -4145,7 +4121,7 @@ canonicalTokenListState (t ∷ ts) s =
   canonicalTokenListState ts (canonicalTokenStep s t)
 
 CanonicalTokenLogitVector : Set
-CanonicalTokenLogitVector = CanonicalToken → IntCode
+CanonicalTokenLogitVector = CanonicalToken → Integer
 
 record CanonicalTokenLanguageModelKernel : Set₁ where
   constructor canonicalTokenLanguageModelKernel
