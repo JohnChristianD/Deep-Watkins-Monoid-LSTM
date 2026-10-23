@@ -1,0 +1,58 @@
+name: Verify Agda semantic registry
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '47 3 * * 1'
+      timezone: "Asia/Manila"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agda-sync-main
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify Agda semantic registry
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
+        with:
+          installer-version: '2.35.1'
+
+      - name: Verify pure Agda2HS semantic registry
+        run: |
+          set -euo pipefail
+          nix run .#agda2hs-semantic-search
+          nix run .#agda2hs-graph-search-check
+
+      - name: Verify legacy monolith boundary
+        run: |
+          set -euo pipefail
+          grep -Fq 'legacyMonoliths=source-scan-only' build/agda2hs-semantic-search/agda2hs-semantic-search-manifest.tsv
+          grep -Fq 'theoremMonolith=not-loaded' build/agda2hs-graph-search-check/manifest.tsv
+
+      - name: Verify semantic manifest
+        run: |
+          set -euo pipefail
+          manifest=build/agda2hs-semantic-search/agda2hs-semantic-search-manifest.tsv
+          test -s "$manifest"
+          grep -Eq '^compiler=ghc-[0-9]+\.[0-9]+\.[0-9]+$' "$manifest"
+          grep -Fq 'plugins=none' "$manifest"
+          grep -Fq 'proofKernel=Agda' "$manifest"
+          grep -Fq 'searchKernel=Agda2Hs' "$manifest"
+          grep -Fq 'semanticCompletenessCheck=pass' "$manifest"
+          echo 'agda-semantic-registry=pass'

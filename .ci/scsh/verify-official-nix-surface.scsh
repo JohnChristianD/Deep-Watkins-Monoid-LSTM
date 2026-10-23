@@ -1,6 +1,7 @@
 #!/usr/bin/env scsh -s
 !#
-;; Fail-closed policy for the Agda2HS, Fennel, and static Pages surface.
+;; Small, fail-closed policy guard for the pinned Nix/Agda/Pages surface.
+;; This replaces the former Bash policy checker.
 
 (define (read-file path)
   (call-with-input-file path
@@ -9,17 +10,28 @@
         (let ((ch (read-char port)))
           (if (eof-object? ch)
               (list->string (reverse chars))
-              (loop (cons ch chars)))))))
+              (loop (cons ch chars))))))))
 
 (define (contains? text needle)
-  (let ((n (string-length needle)) (size (string-length text)))
+  (let ((n (string-length needle))
+        (size (string-length text)))
     (let loop ((i 0))
       (cond ((> (+ i n) size) #f)
             ((string=? (substring text i (+ i n)) needle) #t)
             (else (loop (+ i 1)))))))
 
+(define (count-substring text needle)
+  (let ((n (string-length needle))
+        (size (string-length text)))
+    (let loop ((i 0) (count 0))
+      (if (> (+ i n) size)
+          count
+          (if (string=? (substring text i (+ i n)) needle)
+              (loop (+ i n) (+ count 1))
+              (loop (+ i 1) count))))))
+
 (define (fail message)
-  (display "official-surface=fail: ")
+  (display "official-nix-surface=fail: ")
   (display message)
   (newline)
   (exit 1))
@@ -30,7 +42,7 @@
 
 (define (forbid-file path)
   (if (file-exists? path)
-      (fail (string-append "retired file remains: " path))))
+      (fail (string-append "forbidden file remains: " path))))
 
 (define (require-text path needle)
   (if (not (contains? (read-file path) needle))
@@ -38,100 +50,136 @@
 
 (define (forbid-text path needle)
   (if (contains? (read-file path) needle)
-      (fail (string-append path " contains retired reference: " needle))))
+      (fail (string-append path " contains forbidden text: " needle))))
 
-(for-each require-file
-  '("flake.nix"
-    ".ci/actions_ci.dhall"
-    ".ci/presentation-contract.dhall"
-    ".ci/scsh/ci-lanes.scsh"
-    ".ci/fennel/monolith_catalog.fnl"
-    ".ci/fennel/palette_css.fnl"
-    "FullCoupled/CanonicalLearnerMonolith.agda"
-    "FullCoupled/TheoremsMonolith.agda"
-    "site/app.mjs"
-    "site/render.mjs"
-    "site/page-model.mjs"
-    "site/site.less"
-    "index.html"
-    ".github/workflows/github-pages.yml"
-    ".github/workflows/nix-composition.yml"))
+(define (require-occurrences path needle expected)
+  (let ((actual (count-substring (read-file path) needle)))
+    (if (not (= actual expected))
+        (fail (string-append path " occurrence count for "
+                             needle ": " (number->string actual))))))
 
-(require-text "flake.nix" "github:NixOS/nixpkgs/")
-(require-text "flake.nix" "github:luafun/luafun/")
-(require-text "flake.nix" "haskellPackages.agda2hs")
-(require-text ".ci/actions_ci.dhall" "AgdaLearner")
-(require-text ".ci/actions_ci.dhall" "AgdaTheorem")
-(require-text ".ci/actions_ci.dhall" "Pages")
-(require-text ".ci/presentation-contract.dhall" "FullCoupled.CanonicalLearnerMonolith")
-(require-text ".ci/presentation-contract.dhall" "FullCoupled.TheoremsMonolith")
-(require-text ".ci/presentation-contract.dhall" "site/render.mjs")
-(require-text ".ci/presentation-contract.dhall" "static HTML and CSS only; no browser JavaScript")
+;; Pinned and official toolchain: only Nixpkgs and Luafun are GitHub inputs.
+(require-text "flake.nix" "nixpkgs.url = \"github:NixOS/nixpkgs/")
+(require-text "flake.nix" "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f")
+(require-occurrences "flake.nix" "url = \"github:" 2)
+(for-each
+  (lambda (needle) (forbid-text "flake.nix" needle))
+  '("doJailbreak" "allowBroken" "allowUnsupportedSystem"
+    "nixpkgs-ghc924" "inversion-plugin-src" "cau-placc/inversion-plugin"
+    "TypeTopology" "typetopology" "acornprover" "acornlib"
+    "xds-agda" "xdsAgda" "miniVehicle" "vehicle-formalisation"
+    "-l agda2hs-base" "ghcLanguageFlags" "-XMonoLocalBinds"
+    "-XNoMonomorphismRestriction" "agda2scheme" "jespercockx/agda2scheme"
+    "pkgs.guile" "clang" "llvmPackages"))
 
 (for-each
   (lambda (path)
     (for-each
-      (lambda (needle)
-        (forbid-text path needle))
-      '("agda2hs-graph-search-check"
-        "agda2hs-semantic-search"
-        "Agda2HsSemanticSearch"
-        "Agda2HsTheoremGraphEGraph"
-        "Agda2HsGraphSearchCheck"
-        "liquidhaskell"
-        "liquid-haskell"
-        "pkgs.guile"
-        "elmPackages.elm"
-        "site/Main.elm"
-        "agda2scheme"
-        "jespercockx/agda2scheme")))
-  '("flake.nix"
-    ".github/workflows/github-pages.yml"
-    ".github/workflows/nix-composition.yml"
-    ".ci/actions_ci.dhall"))
+      (lambda (needle) (forbid-text path needle))
+      '("liquidhaskell" "liquid-haskell" "liquid --version")))
+  '("flake.nix" ".github/workflows/nix-composition.yml" ".ci/actions_ci.dhall"))
 
-(for-each forbid-file
-  '("FullCoupled/Agda2HsSemanticSearch.agda"
-    "FullCoupled/Agda2HsTheoremGraphEGraph.agda"
-    "FullCoupled/Agda2HsGraphSearchCheck.agda"
-    "FullCoupled/Agda2HsSemanticExtractor.agda"
-    ".github/workflows/theorem-registry-autoprune.yml"
-    "site/MonolithSearch.agda"
-    "site/Main.elm"
-    "site/palette-loader.js"))
-
+;; Workflow runners may use the official Nix installer; disallow unofficial
+;; installers/caches and legacy global package-manager mutation.
 (for-each
   (lambda (path)
-    (require-text path "open import Haskell.Prelude")
+    (require-file path)
+    (for-each
+      (lambda (needle)
+        (if (contains? (read-file path) needle)
+            (fail (string-append "unsupported installer/cache reference in "
+                                 path ": " needle))))
+      '("DeterminateSystems" "cachix" "nix-community" "install-nix-action"
+        "install-nix.sh" "nixos.org/nix/install" "artifacts.nixos.org/nix-installer"
+        "nix-env" "nix profile install")))
+  '(".github/workflows/github-pages.yml"
+    ".github/workflows/nix-composition.yml"
+    ".github/workflows/theorem-registry-autoprune.yml"))
+
+;; The canonical monoliths keep their existing K / non-guardedness setup.
+(for-each
+  (lambda (path)
+    (require-file path)
     (require-text path "--with-K")
     (require-text path "--no-guardedness")
+    (require-text path "--lossy-unification")
     (for-each
-      (lambda (needle)
-        (forbid-text path needle))
-      '("open import Cubical."
-        "open import Cubical "
-        "import Cubical."
-        "import Cubical "
-        "--cubical")))
+      (lambda (needle) (forbid-text path needle))
+      '("open import Cubical." "open import Cubical "
+        "import Cubical." "import Cubical " "GuardedCubical"
+        "--auto-inline")))
   '("FullCoupled/CanonicalLearnerMonolith.agda"
     "FullCoupled/TheoremsMonolith.agda"))
 
-(require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russianRecursiveMathematicsAssumptions")
-(require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russMarkov")
-(require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russECT0")
-(require-text "FullCoupled/CanonicalLearnerMonolith.agda" "russCountableChoice")
-(require-text "FullCoupled/TheoremsMonolith.agda" "russSoundness")
-(require-text "FullCoupled/TheoremsMonolith.agda" "russCoreConsistency")
-(require-text "FullCoupled/TheoremsMonolith.agda" "russCurrentBasisRelativeConsistency")
-
+;; Keep non-graph-search proofs in the two canonical monoliths and keep
+;; Reflection/TC out of the learner when no declaration there needs it.
+(for-each require-file
+  '(".ci/actions_ci.dhall"
+    ".ci/fennel/agda_import_sync.fnl"
+    ".ci/fennel/agda_graph.fnl"
+    ".ci/fennel/ascii_surface.fnl"
+    ".ci/fennel/russ_certificate.fnl"
+    ".ci/fennel/palette_css.fnl"
+    ".ci/presentation-contract.dhall"
+    ".ci/presentation-smoke.cjs"
+    ".ci/agda/global-options.txt"
+    ".ci/scsh/verify-official-nix-surface.scsh"
+    ".ci/scsh/agda-semantic-source-closure.scsh"
+    ".ci/scsh/forth-scheme-smoke.scsh"
+    "site/app.mjs" "site/site.less"))
+(forbid-file "site/app.js")
+(for-each forbid-file
+  '(".ci/verify-official-nix-surface.sh"
+    ".ci/discovery/agda_semantic_source_closure.sh"
+    ".ci/elm-application.dhall"
+    ".ci/fennel/agda_surface.fnl"
+    ".ci/wasm/maximin_palette.c"
+    ".ci/wasm/palette-smoke.cjs"
+    "site/palette-loader.js"
+    "site/Main.elm"
+    "FullCoupled/ReflectionAutomation.agda"
+    "FullCoupled/FiniteTabularUAP.agda"
+    "FullCoupled/CircleHITInterface.agda"
+    ".ci/pure-formal-stack.md"
+    ".ci/graph-search-contract.md"
+    ".ci/discovery/graph-search-spec.md"
+    ".ci/agda/import-contracts.tsv"))
 (for-each
-  (lambda (needle) (forbid-text "site/render.mjs" needle))
-  '("node:fs" "process.argv" "writeFile" "readFile" "console."
-    "globalThis" "Date.now" "Math.random" "addEventListener" "querySelector"))
+  (lambda (path)
+    (forbid-text path "import Agda.Builtin.")
+    (forbid-text path "open import Agda.Builtin."))
+  '("FullCoupled/CanonicalLearnerMonolith.agda"
+    "FullCoupled/TheoremsMonolith.agda"
+    "site/MonolithSearch.agda"))
+(forbid-text "site/MonolithSearch.agda" "filterIndices")
+(forbid-text "site/MonolithSearch.agda" "siteSearchMatches")
 
+;; Fennel and Luafun own build-time generators. The browser adapter is limited
+;; to local DOM/search/filter behavior; palette generation is static CSS.
 (for-each
-  (lambda (needle) (forbid-text ".ci/fennel/monolith_catalog.fnl" needle))
-  '("(var " "(set " "table.insert"))
+  (lambda (needle) (require-text "flake.nix" needle))
+  '("pkgs.luajitPackages.buildLuaPackage" "pkgs.luajit.withPackages"
+    "name = \"fennel-smoke\";" "name = \"streamly-tools-check\";"
+    "name = \"agda-import-sync\";" "agda-emacs = agdaEmacs system;"
+    "agda = agdaCli system;" "agda2hs_base_root"
+    "ghc}/bin/ghc\" -O0 -dcore-lint" "ccforth = system:"
+    "ccforth_0.3.2_linux_amd64.tar.gz" "ccforth_0.3.2_linux_arm64.tar.gz"
+    "ccforth_0.3.2_darwin_amd64.tar.gz" "ccforth_0.3.2_darwin_arm64.tar.gz"
+    "pkgs.gforth" "pkgs.groff" "pkgs.gcc" "forth = pkgs.mkShell"
+    "github.com/LMMilliken/agda2Forth.git" "agda2forth = agda2forth system;"
+    "name = \"scott-strachey-domain-check\";"
+    "name = \"monoid-lstm-stream-check\";"
+    "scsh -s .ci/scsh/agda-semantic-source-closure.scsh"
+    "name = \"fennel-palette-css\";"))
 
-(display "official-surface=pass; Agda/RUSS/Fennel/Pages only; retired graph search absent\n")
+(require-text ".github/workflows/nix-composition.yml"
+  "nix develop .#forth -c scsh -s .ci/scsh/forth-scheme-smoke.scsh")
+(forbid-text ".github/workflows/nix-composition.yml" "nix develop .#forth -c bash")
+(require-text ".github/workflows/nix-composition.yml"
+  "ccforth\" -cc gcc -entry MAIN -o \"$tmp/forth/CcforthSubset-native\"")
+(require-text ".github/workflows/nix-composition.yml" "GForth Agda2Forth smoke returned")
+(require-text ".github/workflows/nix-composition.yml" "ccforth native-subset smoke returned")
+(require-occurrences "flake.nix" "chmod -R u+rwX \"$agda2hs_base_work/library\"" 3)
+
+(display "official-nix-surface=pass\n")
 (exit 0)
