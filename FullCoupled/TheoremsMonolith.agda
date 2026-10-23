@@ -4595,7 +4595,7 @@ gruInjectiveTailStability-tailFixedPoint
               encode
               (stepConjugacy W)
               n
-              s)))))
+              s))))))
 
 gruInjectiveTailStability-eventualStationarity :
   ∀ {State Feature : Set}
@@ -4634,7 +4634,7 @@ gruInjectiveTailStability-eventualStationarity
       (iterateStep-fixed
         stateStep
         fixed
-        k)
+        k))
 
 gruInjectiveTailStability-identifiability :
   ∀ {State Feature : Set}
@@ -6250,7 +6250,7 @@ finiteMixedNash-from-GRU-tail
             s)))
       (cong
         encode
-        fixed))
+        fixed)))
 
 
 record CanonicalOperatorCompositionTheorem : Set₁ where
