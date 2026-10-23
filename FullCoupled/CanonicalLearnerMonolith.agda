@@ -16,7 +16,6 @@
 --no-guardedness
 --cohesion
 --flat-split
---exact-split
 --injective-type-constructors
 #-}
 
@@ -68,7 +67,6 @@ open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Primitive public
 open import Agda.Builtin.Sigma public
-open import Agda.Builtin.Reflection public
 open import Agda.Builtin.Size public
 open import Agda.Builtin.Coinduction public
 
