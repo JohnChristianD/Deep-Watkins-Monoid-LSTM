@@ -112,7 +112,7 @@
       (require-text path "--rewriting")
       (for-each (lambda (needle) (forbid-text path needle))
         '("open import Cubical." "open import Cubical "
-          "lawOfExcludedMiddle" "ExcludedMiddle" "classicalAxiom")))
+          "open import Agda.Builtin.Coinduction" "lawOfExcludedMiddle" "ExcludedMiddle" "classicalAxiom")))
     '("FullCoupled/CanonicalLearnerMonolith.agda"
       "FullCoupled/TheoremsMonolith.agda"))
   (display "official-nix-surface=pass\n"))
