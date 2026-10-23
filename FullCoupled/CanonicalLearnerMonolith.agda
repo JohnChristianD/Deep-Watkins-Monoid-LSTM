@@ -14,7 +14,7 @@
 --no-forced-argument-recursion
 --with-K
 --no-guardedness
---cohesion
+--flat-split
 --exact-split
 --injective-type-constructors
 #-}
