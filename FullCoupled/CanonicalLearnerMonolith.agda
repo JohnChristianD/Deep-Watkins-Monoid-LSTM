@@ -54,7 +54,7 @@ open import Haskell.Law.Equality public
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
-open import Haskell.Law.Num.Nat public using (addNat-idʳ; addNat-suc)
+open import Haskell.Law.Num.Nat public using (addNat-idʳ; addNat-suc; addNat-comm)
 open import Agda.Builtin.Equality.Rewrite
 {-# REWRITE addNat-idʳ addNat-suc #-}
 open import Haskell.Law.Monad.List public
@@ -1212,8 +1212,7 @@ transport : (P : A → Set ℓ) → x ≡ y → P x → P y
 transport P refl p = p
 
 +comm : mNat + n ≡ n + mNat
-+comm {mNat = zero}  = refl
-+comm {mNat = suc m} = cong suc (+comm {mNat = m})
++comm = addNat-comm mNat n
 
 zero+ : zero + n ≡ n
 zero+ = refl
