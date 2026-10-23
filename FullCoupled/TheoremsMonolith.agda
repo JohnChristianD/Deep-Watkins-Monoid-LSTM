@@ -35,226 +35,14 @@
 module FullCoupled.TheoremsMonolith where
 
 -- Merged external import surface; internal FullCoupled imports remain module-local.
-open import Haskell.Prelude hiding (String; Char; Type; ⊤; tt)
+open import Haskell.Prelude hiding (String)
 
--- Compiler-facing subset of the Agda 2.8.0.2 Reflection ABI used below.
--- Primitive signatures, builtin tags, and reflected syntax constructors
--- mirror Agda.Builtin.Reflection; only the operations actually consumed by
--- the theorem macros are declared here, avoiding duplicate builtin owners
--- from importing that module into the existing Haskell.Prelude/TypeTopology
--- closure. This is compile-time metaprogramming, not Agda2HS runtime code:
--- the legacy theorem monolith is deliberately not sent through Agda2HS.
---
--- TRUST BOUNDARY: the postulated builtin carriers and TC operations, plus the
--- primitive declarations below, rely on the Agda compiler's implementation
--- and ABI. This file does not implement or prove their operational semantics.
--- A kernel check may reject malformed uses, but cannot validate these
--- primitive implementations or establish consistency of the whole import
--- closure. Any certification must list these as trusted assumptions.
-postulate String : Set
-{-# BUILTIN STRING String #-}
-
-postulate Char : Set
-{-# BUILTIN CHAR Char #-}
-
-postulate Word64 : Set
-{-# BUILTIN WORD64 Word64 #-}
-
-postulate Float : Set
-{-# BUILTIN FLOAT Float #-}
-
-{-# BUILTIN UNIT 𝟙 #-}
-{-# BUILTIN SIGMA Σ #-}
-
-⊤ : Set
-⊤ = 𝟙
-
-tt : ⊤
-tt = ⋆
-
-module ReflectionCompat where
-
-  postulate Name : Set
-  {-# BUILTIN QNAME Name #-}
-
-  primitive
-    primQNameEquality : Name → Name → Bool
-    primQNameLess : Name → Name → Bool
-    primShowQName : Name → String
-
-  postulate Meta : Set
-  {-# BUILTIN AGDAMETA Meta #-}
-
-  primitive
-    primMetaEquality : Meta → Meta → Bool
-    primMetaLess : Meta → Meta → Bool
-    primShowMeta : Meta → String
-    primMetaToNat : Meta → ℕ
-
-  data Visibility : Set where
-    visible hidden instance′ : Visibility
-
-  data Relevance : Set where
-    relevant irrelevant : Relevance
-
-  data Quantity : Set where
-    quantity-0 quantity-ω : Quantity
-
-  data Modality : Set where
-    modality : Relevance → Quantity → Modality
-
-  data ArgInfo : Set where
-    arg-info : Visibility → Modality → ArgInfo
-
-  data Arg {a} (A : Set a) : Set a where
-    arg : ArgInfo → A → Arg A
-
-  {-# BUILTIN HIDING   Visibility #-}
-  {-# BUILTIN VISIBLE  visible #-}
-  {-# BUILTIN HIDDEN   hidden #-}
-  {-# BUILTIN INSTANCE instance′ #-}
-  {-# BUILTIN RELEVANCE Relevance #-}
-  {-# BUILTIN RELEVANT relevant #-}
-  {-# BUILTIN IRRELEVANT irrelevant #-}
-  {-# BUILTIN QUANTITY Quantity #-}
-  {-# BUILTIN QUANTITY-0 quantity-0 #-}
-  {-# BUILTIN QUANTITY-ω quantity-ω #-}
-  {-# BUILTIN MODALITY Modality #-}
-  {-# BUILTIN MODALITY-CONSTRUCTOR modality #-}
-  {-# BUILTIN ARGINFO ArgInfo #-}
-  {-# BUILTIN ARGARGINFO arg-info #-}
-  {-# BUILTIN ARG Arg #-}
-  {-# BUILTIN ARGARG arg #-}
-
-  data Abs {a} (A : Set a) : Set a where
-    abs : String → A → Abs A
-
-  {-# BUILTIN ABS Abs #-}
-  {-# BUILTIN ABSABS abs #-}
-
-  data Literal : Set where
-    nat : ℕ → Literal
-    word64 : Word64 → Literal
-    float : Float → Literal
-    char : Char → Literal
-    string : String → Literal
-    name : Name → Literal
-    meta : Meta → Literal
-
-  {-# BUILTIN AGDALITERAL Literal #-}
-  {-# BUILTIN AGDALITNAT nat #-}
-  {-# BUILTIN AGDALITWORD64 word64 #-}
-  {-# BUILTIN AGDALITFLOAT float #-}
-  {-# BUILTIN AGDALITCHAR char #-}
-  {-# BUILTIN AGDALITSTRING string #-}
-  {-# BUILTIN AGDALITQNAME name #-}
-  {-# BUILTIN AGDALITMETA meta #-}
-
-  data Term : Set
-  data Sort : Set
-  data Pattern : Set
-  data Clause : Set
-
-  -- As in Agda.Builtin.Reflection, Type is an alias for the reflected Term.
-  Type = Term
-  Telescope = List (Σ String (λ _ → Arg Type))
-
-  data Term where
-    var : ℕ → List (Arg Term) → Term
-    con : Name → List (Arg Term) → Term
-    def : Name → List (Arg Term) → Term
-    lam : Visibility → Abs Term → Term
-    pat-lam : List Clause → List (Arg Term) → Term
-    pi : Arg Type → Abs Type → Term
-    agda-sort : Sort → Term
-    lit : Literal → Term
-    meta : Meta → List (Arg Term) → Term
-    unknown : Term
-
-  data Sort where
-    set : Term → Sort
-    lit : ℕ → Sort
-    prop : Term → Sort
-    propLit : ℕ → Sort
-    inf : ℕ → Sort
-    unknown : Sort
-
-  data Pattern where
-    con : Name → List (Arg Pattern) → Pattern
-    dot : Term → Pattern
-    var : ℕ → Pattern
-    lit : Literal → Pattern
-    proj : Name → Pattern
-    absurd : ℕ → Pattern
-
-  data Clause where
-    clause : Telescope → List (Arg Pattern) → Term → Clause
-    absurd-clause : Telescope → List (Arg Pattern) → Clause
-
-  {-# BUILTIN AGDATERM Term #-}
-  {-# BUILTIN AGDASORT Sort #-}
-  {-# BUILTIN AGDAPATTERN Pattern #-}
-  {-# BUILTIN AGDACLAUSE Clause #-}
-  {-# BUILTIN AGDATERMVAR var #-}
-  {-# BUILTIN AGDATERMCON con #-}
-  {-# BUILTIN AGDATERMDEF def #-}
-  {-# BUILTIN AGDATERMMETA meta #-}
-  {-# BUILTIN AGDATERMLAM lam #-}
-  {-# BUILTIN AGDATERMEXTLAM pat-lam #-}
-  {-# BUILTIN AGDATERMPI pi #-}
-  {-# BUILTIN AGDATERMSORT agda-sort #-}
-  {-# BUILTIN AGDATERMLIT lit #-}
-  {-# BUILTIN AGDATERMUNSUPPORTED unknown #-}
-  {-# BUILTIN AGDASORTSET set #-}
-  {-# BUILTIN AGDASORTLIT lit #-}
-  {-# BUILTIN AGDASORTPROP prop #-}
-  {-# BUILTIN AGDASORTPROPLIT propLit #-}
-  {-# BUILTIN AGDASORTINF inf #-}
-  {-# BUILTIN AGDASORTUNSUPPORTED unknown #-}
-  {-# BUILTIN AGDAPATCON con #-}
-  {-# BUILTIN AGDAPATDOT dot #-}
-  {-# BUILTIN AGDAPATVAR var #-}
-  {-# BUILTIN AGDAPATLIT lit #-}
-  {-# BUILTIN AGDAPATPROJ proj #-}
-  {-# BUILTIN AGDAPATABSURD absurd #-}
-  {-# BUILTIN AGDACLAUSECLAUSE clause #-}
-  {-# BUILTIN AGDACLAUSEABSURD absurd-clause #-}
-
-  data ErrorPart : Set where
-    strErr : String → ErrorPart
-    termErr : Term → ErrorPart
-    pattErr : Pattern → ErrorPart
-    nameErr : Name → ErrorPart
-
-  {-# BUILTIN AGDAERRORPART ErrorPart #-}
-  {-# BUILTIN AGDAERRORPARTSTRING strErr #-}
-  {-# BUILTIN AGDAERRORPARTTERM termErr #-}
-  {-# BUILTIN AGDAERRORPARTPATT pattErr #-}
-  {-# BUILTIN AGDAERRORPARTNAME nameErr #-}
-
-  postulate
-    TC : ∀ {a} → Set a → Set a
-    returnTC : ∀ {a} {A : Set a} → A → TC A
-    bindTC : ∀ {a b} {A : Set a} {B : Set b} → TC A → (A → TC B) → TC B
-    unify : Term → Term → TC ⊤
-    typeError : ∀ {a} {A : Set a} → List ErrorPart → TC A
-    inferType : Term → TC Term
-    catchTC : ∀ {a} {A : Set a} → TC A → TC A → TC A
-    quoteTC : ∀ {a} {A : Set a} → A → TC Term
-
-  {-# BUILTIN AGDATCM TC #-}
-  {-# BUILTIN AGDATCMRETURN returnTC #-}
-  {-# BUILTIN AGDATCMBIND bindTC #-}
-  {-# BUILTIN AGDATCMUNIFY unify #-}
-  {-# BUILTIN AGDATCMTYPEERROR typeError #-}
-  {-# BUILTIN AGDATCMINFERTYPE inferType #-}
-  {-# BUILTIN AGDATCMCATCHERROR catchTC #-}
-  {-# BUILTIN AGDATCMQUOTETERM quoteTC #-}
-
-open ReflectionCompat using
-  ( Name
-  ; Meta
-  ; Visibility
+-- Use compiler-owned builtin strings and the version-matched Reflection API.
+-- This removes a second declaration of the Reflection/TC ABI. Reflection's
+-- operational implementation remains part of the trusted compiler boundary.
+open import Agda.Builtin.String using (String)
+open import Agda.Builtin.Reflection using
+  ( Visibility
   ; visible
   ; Relevance
   ; relevant
@@ -277,6 +65,9 @@ open ReflectionCompat using
   ; strErr
   )
 
+open import Agda.Builtin.Sigma using (Σ; _,_)
+import Agda.Builtin.Sigma as Sigma
+
 try-fun : ∀ {a} {A : Set a} → TC A → TC A → TC A
 try-fun = catchTC
 
@@ -285,16 +76,13 @@ syntax try-fun t f = try t or-else f
 
 
 
--- BEGIN THEOREM-SPECIFIC IMPORTS
-------------------------------------------------------------------------
--- Theorem-specific imports: vendored Formal Methods in Agda.
--- Imported qualified; theorem names remain isolated from this monolith.
-------------------------------------------------------------------------
-
--- Keep the TypeTopology sum algebra local: the synchronized imports hide
--- `_+_` to disambiguate natural/integer/rational addition.
-open import MLTT.Plus renaming (_+_ to _⊎_; inl to inj₁; inr to inj₂)
-open import Ordinals.Notions _<_ renaming (is-accessible to RankAccessible; acc to rankAcc)
+-- Use Agda2HS Prelude algebra and Agda's builtin dependent-pair type.
+-- No vendored ordinal or external sum-theory library is required.
+open import Haskell.Law.Num.Nat using
+  ( mulNat-comm
+  ; mulNat-distributeˡ-addNat
+  ; mulNat-assoc
+  )
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (gruStep)
 
 ------------------------------------------------------------------------
@@ -881,13 +669,11 @@ canonicalLearnerTraceScan K initial .learnerStreamHeadsAgree = refl
 canonicalLearnerTraceScan K initial .learnerStreamTailsBisimilar {j} =
   canonicalLearnerTraceScan K (C.canonicalFullStep K initial)
 
--- TypeTopology's falsity is 𝟘. Keep familiar theorem notation local;
--- do not import the Agda standard library or alter builtin ownership.
-⊥ : Set
-⊥ = 𝟘
-
-⊥-elim : ∀ {A : Set} → ⊥ → A
-⊥-elim = 𝟘-elim
+-- Intuitionistic negation is implication into the Prelude empty type.
+-- No excluded-middle or double-negation elimination principle is introduced.
+infix 3 ¬_
+¬_ : ∀ {ℓ : Level} → Set ℓ → Set ℓ
+¬ A = A → ⊥
 
 ------------------------------------------------------------------------
 -- Scott–Strachey lifted Nat semantics, owned by the theorem monolith.
@@ -1159,320 +945,9 @@ module LawvereDiagonal where
 ------------------------------------------------------------------------
 module BetaOptimalityBoundary = C.BetaOptimalityBoundary
 
--- Keep natural multiplication explicit: the synchronized import surface also
--- contains rational multiplication, so theorem algebra names TypeTopology's
--- natural operation through this local alias.
-module NatMult = Naturals.Multiplication
-
-infixl 32 _ℕ*_
-_ℕ*_ : ℕ → ℕ → ℕ
-_ℕ*_ = NatMult._*_
-
-
-------------------------------------------------------------------------
--- Reflection compression for repeated equality transport.
--- The target equality determines the congruence function.
-------------------------------------------------------------------------
-
-𝓋𝓇𝒶 : {A : Set} → A → Arg A
-𝓋𝓇𝒶 = arg (arg-info visible relevant)
-
-＝-type-info : Term → TC (Arg Term × Arg Term × Term × Term)
-＝-type-info (def (quote _＝_) (𝓁 ∷ 𝒯 ∷ arg _ l ∷ arg _ r ∷ [])) = returnTC (𝓁 , 𝒯 , l , r)
-＝-type-info _ = typeError [ strErr "Term is not a ＝-type." ]
-
-$-head : Term → Term
-$-head (var v args) = var v []
-$-head (con c args) = con c []
-$-head (def f args) = def f []
-$-head (pat-lam cs args) = pat-lam cs []
-$-head t = t
-
-macro
-  apply-cong : Term → Term → TC ⊤
-  apply-cong p goal =
-    try
-      (bindTC (inferType goal) λ τ →
-        bindTC (＝-type-info τ) λ where
-          (_ , _ , l , _) →
-            unify goal
-              (def (quote cong)
-                (𝓋𝓇𝒶 ($-head l) ∷ 𝓋𝓇𝒶 p ∷ [])))
-      or-else unify goal p
-
-
-------------------------------------------------------------------------
--- Constructive inversion/search bridge.
---
--- The Haskell-minus-one line gives inverse computation as a
--- preimage search with an explicit correctness condition.
--- TWA's exact-real-search framework makes the search constructive by
--- requiring searchable domains and explicit uniform-continuity moduli.
---
--- This theorem layer combines those ideas without putting search,
--- inversion, or proof-discovery machinery into the learner semantics.
-------------------------------------------------------------------------
-
-module ExactSearchInversion (fe : FunExt) where
-
-  open import TWA.Thesis.Chapter3.ClosenessSpaces fe hiding (decidable-uc-predicate)
-  open import TWA.Thesis.Chapter3.SearchableTypes fe
-
-  record SearchableEquivalence
-    (X Y : ClosenessSpace 𝓤₀) : Set₁ where
-    constructor searchableEquivalence
-    field
-      forward : ⟨ X ⟩ → ⟨ Y ⟩
-      inverse : ⟨ Y ⟩ → ⟨ X ⟩
-      forward-ucontinuous :
-        f-ucontinuous X Y forward
-      inverse-ucontinuous :
-        f-ucontinuous Y X inverse
-      forward-inverse :
-        ∀ y → forward (inverse y) ＝ y
-      inverse-forward :
-        ∀ x → inverse (forward x) ＝ x
-      searchable-domain :
-        csearchable 𝓤₀ X
-
-  open SearchableEquivalence public
-
-  inverse-selects-preimage :
-    ∀ {X Y : ClosenessSpace 𝓤₀}
-    (E : SearchableEquivalence X Y)
-    (y : ⟨ Y ⟩)
-    (x : ⟨ X ⟩) →
-    forward E x ＝ y →
-    inverse E y ＝ x
-  inverse-selects-preimage E y x h =
-    trans
-      (cong (inverse E) (sym h))
-      (inverse-forward E x)
-
-  forward-is-equiv :
-    ∀ {X Y : ClosenessSpace 𝓤₀}
-    (E : SearchableEquivalence X Y) →
-    is-equiv (forward E)
-  forward-is-equiv E =
-    section-retraction-equiv
-      (forward E)
-      (inverse E , (λ y → forward-inverse E y))
-      (inverse E , (λ x → inverse-forward E x))
-
-  pullback-decidable-uc-predicate :
-    ∀ {X Y : ClosenessSpace 𝓤₀}
-    (E : SearchableEquivalence X Y) →
-    decidable-uc-predicate 𝓤₀ Y →
-    decidable-uc-predicate 𝓤₀ X
-  pullback-decidable-uc-predicate E ((p , d) , ϕ) =
-    ((p ∘ forward E , d ∘ forward E)
-    , p-ucontinuous-comp
-        _ _
-        (forward E)
-        (forward-ucontinuous E)
-        p ϕ)
-
-  inverse-preserves-csearchability :
-    ∀ {X Y : ClosenessSpace 𝓤₀}
-    (E : SearchableEquivalence X Y) →
-    csearchable 𝓤₀ Y
-  inverse-preserves-csearchability {X = X} {Y = Y} E ((p , d) , ϕ) =
-    y₀ , γ
-    where
-      pulled : decidable-uc-predicate 𝓤₀ X
-      pulled = pullback-decidable-uc-predicate E ((p , d) , ϕ)
-
-      x₀ : ⟨ X ⟩
-      x₀ = pr₁ (searchable-domain E pulled)
-
-      γx :
-        (Σ x ꞉ ⟨ X ⟩ , (p (forward E x)) holds) →
-        p (forward E x₀) holds
-      γx = pr₂ (searchable-domain E pulled)
-
-      y₀ : ⟨ Y ⟩
-      y₀ = forward E x₀
-
-      γ :
-        (Σ y ꞉ ⟨ Y ⟩ , (p y) holds) →
-        p y₀ holds
-      γ (y , py) =
-        γx
-          ( inverse E y
-          , transport
-              (λ z → (p z) holds)
-              (forward-inverse E y ⁻¹)
-              py
-          )
-
-  inverse-correct :
-    ∀ {X Y : ClosenessSpace 𝓤₀}
-    (E : SearchableEquivalence X Y)
-    (y : ⟨ Y ⟩)
-    (x : ⟨ X ⟩) →
-    forward E x ＝ y →
-    inverse E y ＝ x
-  inverse-correct =
-    inverse-selects-preimage
-
-  inverse-csearchable :
-    ∀ {X Y : ClosenessSpace 𝓤₀}
-    (E : SearchableEquivalence X Y) →
-    csearchable 𝓤₀ Y
-  inverse-csearchable =
-    inverse-preserves-csearchability
-
-------------------------------------------------------------------------
-record NatRingSolverNormalizationTheorem : Set₁ where
-  constructor natRingSolverNormalizationTheorem
-  field
-    normalization :
-      ∀ (epsilon scale : ℕ) →
-      (epsilon + succ zero) * scale ＝
-      (epsilon * scale) + scale
-
-nat-ring-solver-layernorm-step :
-  ∀ (epsilon scale : ℕ) →
-  (epsilon + succ zero) * scale ＝
-  (epsilon * scale) + scale
-nat-ring-solver-layernorm-step epsilon scale =
-  trans
-    (distributivity-mult-over-addition' epsilon 1 scale)
-    (cong (λ x → epsilon * scale + x)
-      (trans (mult-commutativity 1 scale) (mult-right-id scale)))
-
-nat-ring-solver-normalization-theorem :
-  NatRingSolverNormalizationTheorem
-nat-ring-solver-normalization-theorem =
-  natRingSolverNormalizationTheorem nat-ring-solver-layernorm-step
-
-record IntegerRingSolverNormalizationTheorem : Set₁ where
-  constructor integerRingSolverNormalizationTheorem
-  field
-    normalization :
-      ∀ (i j k : ℤ) →
-      i ℤ+ (j ℤ+ k) ＝ (i ℤ+ j) ℤ+ k
-
-integer-ring-solver-assoc :
-  ∀ (i j k : ℤ) →
-  i ℤ+ (j ℤ+ k) ＝ (i ℤ+ j) ℤ+ k
-integer-ring-solver-assoc i j k =
-  sym (ℤ+-assoc i j k)
-
-integer-ring-solver-normalization-theorem :
-  IntegerRingSolverNormalizationTheorem
-integer-ring-solver-normalization-theorem =
-  integerRingSolverNormalizationTheorem integer-ring-solver-assoc
-
-record ListMonoidSolverNormalizationTheorem : Set₁ where
-  constructor listMonoidSolverNormalizationTheorem
-  field
-    normalization :
-      ∀ (xs ys zs : List Integer) →
-      xs ++ (ys ++ zs) ＝ (xs ++ ys) ++ zs
-
-list-monoid-solver-append-assoc :
-  ∀ (xs ys zs : List Integer) →
-  xs ++ (ys ++ zs) ＝ (xs ++ ys) ++ zs
-list-monoid-solver-append-assoc xs ys zs =
-  sym (++-assoc xs ys zs)
-
-list-monoid-solver-normalization-theorem :
-  ListMonoidSolverNormalizationTheorem
-list-monoid-solver-normalization-theorem =
-  listMonoidSolverNormalizationTheorem list-monoid-solver-append-assoc
-
-record CanonicalAlgebraicTacticBackendTheorem : Set₁ where
-  constructor canonicalAlgebraicTacticBackendTheorem
-  field
-    natSemiringNormalization :
-      NatRingSolverNormalizationTheorem
-    integerRingNormalization :
-      IntegerRingSolverNormalizationTheorem
-    listMonoidNormalization :
-      ListMonoidSolverNormalizationTheorem
-
-canonical-algebraic-tactic-backend-theorem :
-  CanonicalAlgebraicTacticBackendTheorem
-canonical-algebraic-tactic-backend-theorem =
-  canonicalAlgebraicTacticBackendTheorem
-    nat-ring-solver-normalization-theorem
-    integer-ring-solver-normalization-theorem
-    list-monoid-solver-normalization-theorem
-
-record CanonicalSafeTacticNormalizationTheorem : Set₁ where
-  constructor canonicalSafeTacticNormalizationTheorem
-  field
-    algebraicBackend :
-      CanonicalAlgebraicTacticBackendTheorem
-    natSemiringNormalization :
-      ∀ (epsilon scale : ℕ) →
-      (epsilon + succ zero) * scale ＝
-      (epsilon * scale) + scale
-    integerRingNormalization :
-      ∀ (i j k : Integer) →
-      i + (j + k) ＝ (i + j) + k
-    listMonoidNormalization :
-      ∀ (xs ys zs : List Integer) →
-      xs ++ (ys ++ zs) ＝ (xs ++ ys) ++ zs
-
-canonical-safe-tactic-normalization-theorem :
-  CanonicalSafeTacticNormalizationTheorem
-canonical-safe-tactic-normalization-theorem =
-  canonicalSafeTacticNormalizationTheorem
-    canonical-algebraic-tactic-backend-theorem
-    nat-ring-solver-layernorm-step
-    integer-ring-solver-assoc
-    list-monoid-solver-append-assoc
-
-------------------------------------------------------------------------
-------------------------------------------------------------------------
--- Carrier-polymorphic statistical representation kernel.
---
--- This arithmetic-free kernel remains because later ZPF representation
--- theorems depend on its left-inverse and injectivity facts.
---
--- The representation theorem is structural. External statistical
--- literature motivates possible instantiations; it is not imported as an
--- Agda proof source.
-------------------------------------------------------------------------
-
-
-record CarrierPolymorphicStatisticalRepresentation
-  (State Observation : Set) : Set₁ where
-  constructor carrierPolymorphicStatisticalRepresentation
-  field
-    encode : State → Observation
-    decode : Observation → State
-    decodeEncode : ∀ s → decode (encode s) ＝ s
-
-open CarrierPolymorphicStatisticalRepresentation public
-
-statisticalEncodeInjective :
-  ∀ {State Observation : Set}
-  (R : CarrierPolymorphicStatisticalRepresentation State Observation)
-  {s t : State} →
-  encode R s ＝ encode R t →
-  s ＝ t
-statisticalEncodeInjective R eq = cong (decode R) eq
-
-statisticalEncodeDistinguishes :
-  ∀ {State Observation : Set}
-  (R : CarrierPolymorphicStatisticalRepresentation State Observation)
-  {s t : State} →
-  s ≠ t →
-  encode R s ≠ encode R t
-statisticalEncodeDistinguishes R distinct collision =
-  distinct (statisticalEncodeInjective R collision)
-
-------------------------------------------------------------------------
--- Canonical theorem section: GRU statistical representation and injectivity.
-------------------------------------------------------------------------
-
 module GRUStatisticalInjectivity where
--- TypeTopology's pinned Spartan surface has equality and negation but does not
--- export inequality notation. Derive it locally to avoid widening the synchronized
--- import block and introducing another import-closure conflict.
+-- Constructive inequality is negated propositional equality; this is notation,
+-- not a classical principle.
 infix 4 _≢_
 _≢_ : ∀ {A : Set} → A → A → Set
 x ≢ y = ¬ (x ＝ y)
@@ -1482,7 +957,7 @@ CanonicalGRUStatisticalObservation = C.GRUState × (C.CanonicalToken → Integer
 canonicalGRUStatisticalEncode : C.GRUState → CanonicalGRUStatisticalObservation
 canonicalGRUStatisticalEncode s = s , (λ _ → C.hiddenState s)
 canonicalGRUStatisticalDecode : CanonicalGRUStatisticalObservation → C.GRUState
-canonicalGRUStatisticalDecode observation = pr₁ observation
+canonicalGRUStatisticalDecode observation = fst observation
 canonicalGRUStatisticalDecodeEncode : ∀ s → canonicalGRUStatisticalDecode (canonicalGRUStatisticalEncode s) ＝ s
 canonicalGRUStatisticalDecodeEncode s = refl
 leftInverse-implies-injective :
@@ -1856,25 +1331,25 @@ integerLayerNorm-absurd ()
 
 nat-ring-solver-layernorm-contribution :
   ∀ (xs : List Integer) (epsilon : ℕ) →
-  (succ epsilon ℕ* length xs ℕ* length xs)
+  (succ epsilon * length xs * length xs)
   ＝
-  (epsilon ℕ* length xs ℕ* length xs)
-  + (length xs ℕ* length xs)
+  (epsilon * length xs * length xs)
+  + (length xs * length xs)
 nat-ring-solver-layernorm-contribution xs epsilon =
   let n = length xs in
-  (succ epsilon ℕ* n) ℕ* n
-    ＝⟨ cong (_ℕ* n) (NatMult.mult-commutativity (succ epsilon) n) ⟩
-  (n ℕ* succ epsilon) ℕ* n
+  (succ epsilon * n) * n
+    ＝⟨ cong (_* n) (mulNat-comm (succ epsilon) n) ⟩
+  (n * succ epsilon) * n
     ＝⟨ refl ⟩
-  (n + n ℕ* epsilon) ℕ* n
-    ＝⟨ NatMult.distributivity-mult-over-addition' n (n ℕ* epsilon) n ⟩
-  (n ℕ* n) + (n ℕ* epsilon) ℕ* n
-    ＝⟨ cong ((n ℕ* n) +_) (NatMult.mult-associativity n epsilon n) ⟩
-  (n ℕ* n) + n ℕ* (epsilon ℕ* n)
-    ＝⟨ cong ((n ℕ* n) +_) (NatMult.mult-commutativity n (epsilon ℕ* n)) ⟩
-  (n ℕ* n) + (epsilon ℕ* n) ℕ* n
-    ＝⟨ addition-commutativity (n ℕ* n) ((epsilon ℕ* n) ℕ* n) ⟩
-  (epsilon ℕ* n) ℕ* n + (n ℕ* n) ∎
+  (n + n * epsilon) * n
+    ＝⟨ mulNat-distributeˡ-addNat n (n * epsilon) n ⟩
+  (n * n) + (n * epsilon) * n
+    ＝⟨ cong ((n * n) +_) (mulNat-assoc n epsilon n) ⟩
+  (n * n) + n * (epsilon * n)
+    ＝⟨ cong ((n * n) +_) (mulNat-comm n (epsilon * n)) ⟩
+  (n * n) + (epsilon * n) * n
+    ＝⟨ addition-commutativity (n * n) ((epsilon * n) * n) ⟩
+  (epsilon * n) * n + (n * n) ∎
 
 integerLayerNorm-epsilon-contribution-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
@@ -1897,14 +1372,14 @@ integerLayerNorm-radicand-epsilon-succ :
   C.integerLayerNormRadicand xs (succ epsilon)
   ＝
   C.integerLayerNormRadicand xs epsilon
-  +Integer
+  +
   (pos (length xs * length xs))
 integerLayerNorm-radicand-epsilon-succ xs epsilon =
   trans
     (cong
       (λ n →
         C.integerLayerNormVarianceNumerator xs
-        +Integer
+        +
         (pos n))
       (integerLayerNorm-epsilon-contribution-succ xs epsilon))
     (sym
@@ -1942,13 +1417,13 @@ integerLayerNorm-radicand-epsilon-linear :
   C.integerLayerNormRadicand xs epsilon
   ＝
   C.integerLayerNormVarianceNumerator xs
-  +Integer
+  +
   (pos (epsilon * length xs * length xs))
 integerLayerNorm-radicand-epsilon-linear xs zero =
   trans
     (integerLayerNorm-radicand-epsilon-zero xs)
     (sym
-      (ℤ-zero-right-neutral
+      (addInteger-idʳ
         (C.integerLayerNormVarianceNumerator xs)))
 integerLayerNorm-radicand-epsilon-linear xs (succ epsilon) =
   trans
@@ -1959,14 +1434,14 @@ integerLayerNorm-radicand-epsilon-linear xs (succ epsilon) =
         refl)
       (trans
         (sym
-          (ℤ+-assoc
+          (addInteger-assoc
             (C.integerLayerNormVarianceNumerator xs)
             (pos (epsilon * length xs * length xs))
             (pos (length xs * length xs))))
         (cong
           (λ n →
             C.integerLayerNormVarianceNumerator xs
-            +Integer
+            +
             (pos n))
           (sym
             (integerLayerNorm-epsilon-contribution-succ
@@ -1979,12 +1454,12 @@ record CanonicalF4GlobalOptimizerStabilityTheorem : Set₁ where
     thetaTranslation :
       ∀ {A} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.thetaQ (C.canonicalOptimizerStep K s) ＝
-      C.intCodeAdd
-        (C.intCodeAdd (C.thetaQ (C.optimizer s)) (C.canonicalSignal K s))
+      (_+_)
+        ((_+_) (C.thetaQ (C.optimizer s)) (C.canonicalSignal K s))
         (C.l2Correction (C.globalL2 (C.optimizerKernel K)))
     stableNonThetaCoordinates :
       ∀ {A} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
-      (C.rTheta (C.canonicalOptimizerStep K s) ＝ C.zeroIntCode) ×
+      (C.rTheta (C.canonicalOptimizerStep K s) ＝ 0) ×
       (C.eQ (C.canonicalOptimizerStep K s) ＝ C.eQ (C.optimizer s)) ×
       (C.rE (C.canonicalOptimizerStep K s) ＝ C.rE (C.optimizer s)) ×
       (C.rL (C.canonicalOptimizerStep K s) ＝ C.rL (C.optimizer s))
@@ -2207,46 +1682,46 @@ canonicalNegativeOne8 = negsuc zero
 
 canonicalPermutation-swap :
   CanonicalListPermutation
-    (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
-    (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
+    (1 ∷ canonicalNegativeOne8 ∷ [])
+    (canonicalNegativeOne8 ∷ 1 ∷ [])
 canonicalPermutation-swap =
-  canonical-perm-swap C.oneIntCode canonicalNegativeOne8 []
+  canonical-perm-swap 1 canonicalNegativeOne8 []
 
 canonicalPermutation-left :
   C.runMonoidLSTMCell
-    (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
-    C.zeroIntCode
+    (1 ∷ canonicalNegativeOne8 ∷ [])
+    0
   ＝
-  C.zeroIntCode
+  0
 canonicalPermutation-left = refl
 
 canonicalPermutation-right :
   C.runMonoidLSTMCell
-    (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
-    C.zeroIntCode
+    (canonicalNegativeOne8 ∷ 1 ∷ [])
+    0
   ＝
-  C.oneIntCode
+  1
 canonicalPermutation-right = refl
 
 canonicalZeroInt-not-oneInt :
   ¬ ((pos 0) ＝ (pos 1))
 canonicalZeroInt-not-oneInt ()
 
-canonicalZero8-not-oneIntCode :
-  C.zeroIntCode ≢ C.oneIntCode
-canonicalZero8-not-oneIntCode eq =
+canonicalZero8-not-1 :
+  0 ≢ 1
+canonicalZero8-not-1 eq =
   canonicalZeroInt-not-oneInt eq
 
 canonicalPermutation-results-distinct :
   C.runMonoidLSTMCell
-    (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
-    C.zeroIntCode
+    (1 ∷ canonicalNegativeOne8 ∷ [])
+    0
   ≢
   C.runMonoidLSTMCell
-    (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
-    C.zeroIntCode
+    (canonicalNegativeOne8 ∷ 1 ∷ [])
+    0
 canonicalPermutation-results-distinct eq =
-  canonicalZero8-not-oneIntCode
+  canonicalZero8-not-1
     (trans
       (sym canonicalPermutation-left)
       (trans eq canonicalPermutation-right))
@@ -2256,26 +1731,26 @@ canonicalLearnerPermutationInvariant-impossible :
 canonicalLearnerPermutationInvariant-impossible invariant =
   canonicalPermutation-results-distinct
     (invariant
-      (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
-      (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
+      (1 ∷ canonicalNegativeOne8 ∷ [])
+      (canonicalNegativeOne8 ∷ 1 ∷ [])
       canonicalPermutation-swap
-      C.zeroIntCode)
+      0)
 
 record CanonicalLearnerPermutationCompositionImpossibilityTheorem : Set₁ where
   constructor canonicalLearnerPermutationCompositionImpossibilityTheorem
   field
     permutationWitness :
       CanonicalListPermutation
-        (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
-        (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
+        (1 ∷ canonicalNegativeOne8 ∷ [])
+        (canonicalNegativeOne8 ∷ 1 ∷ [])
     distinctResults :
       C.runMonoidLSTMCell
-        (C.oneIntCode ∷ canonicalNegativeOne8 ∷ [])
-        C.zeroIntCode
+        (1 ∷ canonicalNegativeOne8 ∷ [])
+        0
       ≢
       C.runMonoidLSTMCell
-        (canonicalNegativeOne8 ∷ C.oneIntCode ∷ [])
-        C.zeroIntCode
+        (canonicalNegativeOne8 ∷ 1 ∷ [])
+        0
     noGlobalPermutationInvariant :
       CanonicalLearnerPermutationInvariant → ⊥
 
@@ -2993,12 +2468,12 @@ record CanonicalAQLoopTheorem : Set₁ where
     watkinsEndogenousCoupling :
       ∀ K s →
       C.canonicalWatkinsTarget K s ＝
-      C.intCodeAdd
-        (C.intCodeAdd
-          (C.intCodeAdd
+      (_+_)
+        ((_+_)
+          ((_+_)
             (C.canonicalReward8 K s)
             (C.canonicalQLogBias K s))
-          (C.intCodeMul C.canonicalDiscount8
+          ((_*_) C.canonicalDiscount8
             (C.maxCriticValue8 (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
 
@@ -3345,8 +2820,8 @@ productEndomorphism :
 productEndomorphism f g =
   C.endomorphism
     (λ st →
-      (C.applyEndomorphism f (pr₁ st) ,
-       C.applyEndomorphism g (pr₂ st)))
+      (C.applyEndomorphism f (fst st) ,
+       C.applyEndomorphism g (snd st)))
 
 productEndomorphism-compose :
   ∀ {StateA StateB : Set}
@@ -3747,8 +3222,8 @@ productRecurrentNetwork :
 productRecurrentNetwork RA RB =
   C.recurrentNetwork
     (λ st x →
-      (C.runNetwork RA (pr₁ st) x ,
-       C.runNetwork RB (pr₂ st) x))
+      (C.runNetwork RA (fst st) x ,
+       C.runNetwork RB (snd st) x))
 
 productRecurrentPrefix-correct :
   ∀ {StateA StateB Input : Set}
@@ -3771,8 +3246,8 @@ productRecurrentPrefix-correct RA RB xs (succ n) s t =
     (λ a b →
       (C.runNetwork RA a (xs n) ,
        C.runNetwork RB b (xs n)))
-    (cong pr₁ (productRecurrentPrefix-correct RA RB xs n s t))
-    (cong pr₂ (productRecurrentPrefix-correct RA RB xs n s t))
+    (cong fst (productRecurrentPrefix-correct RA RB xs n s t))
+    (cong snd (productRecurrentPrefix-correct RA RB xs n s t))
 
 informationPreserving-symbolic-task-factorization :
   ∀ {State Feature Output : Set}
@@ -3809,7 +3284,7 @@ productObservation :
   (StateA × StateB) →
   (FeatureA × FeatureB)
 productObservation observeA observeB st =
-  (observeA (pr₁ st) , observeB (pr₂ st))
+  (observeA (fst st) , observeB (snd st))
 
 productInverse :
   ∀ {StateA StateB FeatureA FeatureB : Set} →
@@ -3818,7 +3293,7 @@ productInverse :
   (FeatureA × FeatureB) →
   (StateA × StateB)
 productInverse inverseA inverseB feature =
-  (inverseA (pr₁ feature) , inverseB (pr₂ feature))
+  (inverseA (fst feature) , inverseB (snd feature))
 
 productObservation-leftInverse :
   ∀ {StateA StateB FeatureA FeatureB : Set}
@@ -3896,8 +3371,8 @@ canonicalBiasedWatkinsNegativeQMunchausenL2Target =
 canonical-qLog2Bias8-law :
   ∀ x →
   C.qLog2Bias8 x ＝
-  C.intCodeNeg
-    (C.intCodeOfNat
+  negateInteger
+    (fromNat
       (C.rationalCodeDivideMagnitude
         (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
         (C.rationalCodeDenominator (C.qLog8 x))))
@@ -3912,8 +3387,8 @@ record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
     negativeQMunchausenBias :
       ∀ x →
       C.qLog2Bias8 x ＝
-      C.intCodeNeg
-        (C.intCodeOfNat
+      negateInteger
+        (fromNat
           (C.rationalCodeDivideMagnitude
             (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
             (C.rationalCodeDenominator (C.qLog8 x))))
@@ -3921,12 +3396,12 @@ record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
     targetDecomposition :
       ∀ K s →
       canonicalBiasedWatkinsNegativeQMunchausenL2Target K s ＝
-      C.intCodeAdd
-        (C.intCodeAdd
-          (C.intCodeAdd
+      (_+_)
+        ((_+_)
+          ((_+_)
             (C.canonicalReward8 K s)
             (C.canonicalQLogBias K s))
-          (C.intCodeMul
+          ((_*_)
             C.canonicalDiscount8
             (C.maxCriticValue8 (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
@@ -3956,15 +3431,15 @@ record CanonicalQMunchausenL2SharedNegationPolarityTheorem : Set₁ where
     qMunchausenBiasNegation :
       ∀ x →
       C.qLog2Bias8 x ＝
-      C.intCodeNeg
-        (C.intCodeOfNat
+      negateInteger
+        (fromNat
           (C.rationalCodeDivideMagnitude
             (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
             (C.rationalCodeDenominator (C.qLog8 x))))
 
     l2CorrectionNegation :
       ∀ x →
-      C.l2Correction x ＝ C.intCodeNeg x
+      C.l2Correction x ＝ negateInteger x
 
 open CanonicalQMunchausenL2SharedNegationPolarityTheorem public
 
@@ -3975,12 +3450,12 @@ canonicalWatkinsTarget-endogenous-leftInverse :
   (leftInverse : ∀ t → inverse (observe t) ＝ t) →
   ∀ s →
   C.canonicalWatkinsTarget K s ＝
-    C.intCodeAdd
-      (C.intCodeAdd
-        (C.intCodeAdd
+    (_+_)
+      ((_+_)
+        ((_+_)
           (C.canonicalReward8 K (inverse (observe s)))
           (C.canonicalQLogBias K (inverse (observe s))))
-        (C.intCodeMul
+        ((_*_)
           C.canonicalDiscount8
           (C.maxCriticValue8
             (C.critic
@@ -3992,12 +3467,12 @@ canonicalWatkinsTarget-endogenous-leftInverse K observe inverse leftInverse s =
     (C.canonicalWatkinsTarget-law K s)
     (cong
       (λ t →
-        C.intCodeAdd
-          (C.intCodeAdd
-            (C.intCodeAdd
+        (_+_)
+          ((_+_)
+            ((_+_)
               (C.canonicalReward8 K t)
               (C.canonicalQLogBias K t))
-            (C.intCodeMul
+            ((_*_)
               C.canonicalDiscount8
               (C.maxCriticValue8
                 (C.critic (C.watkins t)))))
@@ -4110,14 +3585,14 @@ collision-implies-no-leftInverse-via-injectivity :
   {s t : State} →
   observe s ＝ observe t →
   s ≢ t →
-  ¬ (Σ (λ inverse →
-      ∀ u → inverse (observe u) ＝ u))
+  ¬ (Σ (Feature → State)
+      (λ inverse → ∀ u → inverse (observe u) ＝ u))
 collision-implies-no-leftInverse-via-injectivity
   observe obsEq distinct =
   λ witness →
     distinct
       (discreteLeftInverse-observe-injective
-        (pr₂ witness)
+        (Sigma.snd witness)
         obsEq)
 
 canonicalWatkinsTargetSignalStream :
@@ -4332,12 +3807,12 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
       (leftInverse : ∀ t → inverse (observe t) ＝ t) →
       ∀ s →
       C.canonicalWatkinsTarget K s ＝
-      C.intCodeAdd
-        (C.intCodeAdd
-          (C.intCodeAdd
+      (_+_)
+        ((_+_)
+          ((_+_)
             (C.canonicalReward8 K (inverse (observe s)))
             (C.canonicalQLogBias K (inverse (observe s))))
-          (C.intCodeMul
+          ((_*_)
             C.canonicalDiscount8
             (C.maxCriticValue8
               (C.critic (C.watkins (inverse (observe s))))))
@@ -5103,7 +4578,7 @@ successor-never-globally-eventually-fixed-at-zero h =
   no-succ-zero
     (trans
       (sym (iterateUpdate-succ 1))
-      (pr₂ (h 1)))
+      (snd (h 1)))
   where
     iterateUpdate-succ :
       ∀ n → iterateUpdate succ n 1 ＝ succ n
@@ -5231,7 +4706,7 @@ generalTsallis2NearRationalCodeSparsity-zero :
 generalTsallis2NearRationalCodeSparsity-zero xs h
   with actionWeightSquareSum xs
 ... | zero = refl
-... | succ q = ⊥-elim (natZeroNotSuc h)
+... | succ q = magic (natZeroNotSuc h)
 
 generalTsallis2NearRationalCodeSparsity-definition :
   ∀ (xs : ActionWeights) →
@@ -5242,7 +4717,7 @@ generalTsallis2NearRationalCodeSparsity-definition :
       (generalTsallis2Denominator xs)
 generalTsallis2NearRationalCodeSparsity-definition xs h
   with actionWeightSquareSum xs
-... | zero = ⊥-elim (h refl)
+... | zero = magic (h refl)
 ... | succ q = refl
 
 rationalCodeRepresentationEqual :
@@ -5301,11 +4776,11 @@ record UniformSupportTsallisBoundary
 jaxIntegerSum : List Integer → Integer
 jaxIntegerSum [] = pos 0
 jaxIntegerSum (x ∷ xs) =
-  x +Integer jaxIntegerSum xs
+  x + jaxIntegerSum xs
 
 jaxAffine : Integer → Integer
 jaxAffine x =
-  (pos 2) *Integer x +Integer (pos 1)
+  (pos 2) * x + (pos 1)
 
 jaxVmapAffine : List Integer → List Integer
 jaxVmapAffine =
@@ -5314,13 +4789,13 @@ jaxVmapAffine =
 jaxVmapAffine-law :
   ∀ xs →
   jaxVmapAffine xs ＝
-  map (λ x → (pos 2) *Integer x +Integer (pos 1)) xs
+  map (λ x → (pos 2) * x + (pos 1)) xs
 jaxVmapAffine-law xs = refl
 
 jaxPrefixSum : Integer → List Integer → List Integer
 jaxPrefixSum carry [] = []
 jaxPrefixSum carry (x ∷ xs) =
-  let next = carry +Integer x in
+  let next = carry + x in
   next ∷ jaxPrefixSum next xs
 
 jaxAssociativePrefixSum : List Integer → List Integer
@@ -5331,7 +4806,7 @@ jaxAssociativePrefixSum (x ∷ xs) =
 jaxSequentialPrefixSum : Integer → List Integer → List Integer
 jaxSequentialPrefixSum carry [] = []
 jaxSequentialPrefixSum carry (x ∷ xs) =
-  let next = carry +Integer x in
+  let next = carry + x in
   next ∷ jaxSequentialPrefixSum next xs
 
 jaxSequentialPrefixSumFromZero : List Integer → List Integer
@@ -5367,9 +4842,9 @@ jaxRecurrentScan-step-law :
   (state : State)
   (x : Input)
   (xs : List Input) →
-  pr₁ (jaxRecurrentScan step state (x ∷ xs))
+  fst (jaxRecurrentScan step state (x ∷ xs))
   ＝
-  pr₁ (jaxRecurrentScan step (pr₁ (step state x)) xs)
+  fst (jaxRecurrentScan step (fst (step state x)) xs)
 jaxRecurrentScan-step-law step state x xs with step state x
 ... | state′ , output = refl
 
@@ -5377,12 +4852,12 @@ jaxLexicographicScoreOrder :
   List C.ScoreEntry →
   List ℕ
 jaxLexicographicScoreOrder xs =
-  map pr₂ (C.sortScores xs)
+  map snd (C.sortScores xs)
 
 jaxLexicographicScoreOrder-law :
   ∀ xs →
   jaxLexicographicScoreOrder xs ＝
-  map pr₂ (C.sortScores xs)
+  map snd (C.sortScores xs)
 jaxLexicographicScoreOrder-law xs = refl
 
 jaxSparseSupportSize :
@@ -5527,7 +5002,7 @@ jaxBatchedGRUHiddenStep :
   List Integer
 jaxBatchedGRUHiddenStep states xs =
   map
-    (λ stateX → jaxGRUHiddenStep (pr₁ stateX) (pr₂ stateX))
+    (λ stateX → jaxGRUHiddenStep (fst stateX) (snd stateX))
     (zipGRUStatesInts states xs)
 
 jaxBatchedGRUHiddenStep-law :
@@ -5537,8 +5012,8 @@ jaxBatchedGRUHiddenStep-law :
     (λ stateX →
       C.hiddenState
         (C.gruStep
-          (pr₁ stateX)
-          (pr₂ stateX)))
+          (fst stateX)
+          (snd stateX)))
     (zipGRUStatesInts states xs)
 jaxBatchedGRUHiddenStep-law states xs = refl
 jaxJittedScanSum :
@@ -5581,7 +5056,7 @@ record JAXExecutionMirrorReproof : Set₁ where
     vmapAffine :
       ∀ xs →
       jaxVmapAffine xs ＝
-      map (λ x → (pos 2) *Integer x +Integer (pos 1)) xs
+      map (λ x → (pos 2) * x + (pos 1)) xs
     associativePrefixSum :
       ∀ xs →
       jaxAssociativePrefixSum xs ＝
@@ -5592,13 +5067,13 @@ record JAXExecutionMirrorReproof : Set₁ where
       (state : State)
       (x : Input)
       (xs : List Input) →
-      pr₁ (jaxRecurrentScan step state (x ∷ xs))
+      fst (jaxRecurrentScan step state (x ∷ xs))
       ＝
-      pr₁ (jaxRecurrentScan step (pr₁ (step state x)) xs)
+      fst (jaxRecurrentScan step (fst (step state x)) xs)
     lexicographicScoreOrder :
       ∀ xs →
       jaxLexicographicScoreOrder xs ＝
-      map pr₂ (C.sortScores xs)
+      map snd (C.sortScores xs)
     sparseSupportSize :
       ∀ {A : Set}
       (K : C.ActionSpace A)
@@ -5645,8 +5120,8 @@ record JAXExecutionMirrorReproof : Set₁ where
         (λ stateX →
           C.hiddenState
             (C.gruStep
-              (pr₁ stateX)
-              (pr₂ stateX)))
+              (fst stateX)
+              (snd stateX)))
         (zipGRUStatesInts states xs)
     tsallis2NearSparsity :
       ∀ xs →
@@ -6137,20 +5612,20 @@ canonical-token-arbitrary-length-generation-theorem =
     canonicalToken-prefix-monoid-homomorphism
 
 canonicalIntegerHaarCross :
-  C.intCodeAdd C.oneIntCode (C.intCodeNeg C.oneIntCode) ＝ C.zeroIntCode
+  (_+_) 1 (negateInteger 1) ＝ 0
 canonicalIntegerHaarCross = refl
 
 canonicalIntegerHaarEnergy :
-  C.intCodeAdd C.oneIntCode C.oneIntCode ＝ C.intCodeOfNat 2
+  (_+_) 1 1 ＝ fromNat 2
 canonicalIntegerHaarEnergy = refl
 
 record CanonicalIntegerHaarScaledOrthogonalityTheorem : Set₁ where
   constructor canonicalIntegerHaarScaledOrthogonalityTheorem
   field
     crossOrthogonality :
-      C.intCodeAdd C.oneIntCode (C.intCodeNeg C.oneIntCode) ＝ C.zeroIntCode
+      (_+_) 1 (negateInteger 1) ＝ 0
     integerEnergy :
-      C.intCodeAdd C.oneIntCode C.oneIntCode ＝ C.intCodeOfNat 2
+      (_+_) 1 1 ＝ fromNat 2
 
 open CanonicalIntegerHaarScaledOrthogonalityTheorem public
 
@@ -6265,9 +5740,9 @@ canonicalHaarFeature-recurrent-step :
   ∀ (s : C.GRUState) (x : Integer) →
   C.gruStep
     s
-    (C.intCodeSub
-      (pr₁ (C.canonicalCReLU8 x))
-      (pr₂ (C.canonicalCReLU8 x)))
+    ((_-_)
+      (fst (C.canonicalCReLU8 x))
+      (snd (C.canonicalCReLU8 x)))
   ＝
   C.gruStep s x
 canonicalHaarFeature-recurrent-step s x =
@@ -6281,9 +5756,9 @@ canonicalHaarFeature-recurrent-prefix :
     C.canonicalGRURecurrentNetwork
     (map
       (λ x →
-        C.intCodeSub
-          (pr₁ (C.canonicalCReLU8 x))
-          (pr₂ (C.canonicalCReLU8 x)))
+        (_-_)
+          (fst (C.canonicalCReLU8 x))
+          (snd (C.canonicalCReLU8 x)))
       xs)
     s
   ＝
@@ -6299,9 +5774,9 @@ canonicalHaarFeature-recurrent-prefix (x ∷ xs) s =
       xs
       (C.gruStep
         s
-        (C.intCodeSub
-          (pr₁ (C.canonicalCReLU8 x))
-          (pr₂ (C.canonicalCReLU8 x)))))
+        ((_-_)
+          (fst (C.canonicalCReLU8 x))
+          (snd (C.canonicalCReLU8 x)))))
     (cong
       (C.recurrentListState
         C.canonicalGRURecurrentNetwork
@@ -6338,9 +5813,9 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
       ∀ (s : C.GRUState) (x : Integer) →
       C.gruStep
         s
-        (intCodeSub
-          (pr₁ (C.canonicalCReLU8 x))
-          (pr₂ (C.canonicalCReLU8 x)))
+        ((_-_)
+          (fst (C.canonicalCReLU8 x))
+          (snd (C.canonicalCReLU8 x)))
       ＝
       C.gruStep s x
     reconstructedPrefix :
@@ -6349,9 +5824,9 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
         C.canonicalGRURecurrentNetwork
         (map
           (λ x →
-            intCodeSub
-              (pr₁ (C.canonicalCReLU8 x))
-              (pr₂ (C.canonicalCReLU8 x)))
+            (_-_)
+              (fst (C.canonicalCReLU8 x))
+              (snd (C.canonicalCReLU8 x)))
           xs)
         s
       ＝
@@ -6434,8 +5909,8 @@ kla-affine-composition :
     (C.monoidAffine f₁ b₁)
   ＝
   C.monoidAffine
-    (C.intCodeMul f₂ f₁)
-    (C.intCodeAdd (C.intCodeMul f₂ b₁) b₂)
+    ((_*_) f₂ f₁)
+    ((_+_) ((_*_) f₂ b₁) b₂)
 kla-affine-composition f₁ b₁ f₂ b₂ = refl
 
 ------------------------------------------------------------------------
@@ -6454,8 +5929,8 @@ klaMobiusTransition :
   Integer → Integer → Integer → KLAMobiusMatrix
 klaMobiusTransition p aSquared phi =
   klaMobiusMatrix
-    (C.intCodeAdd C.oneIntCode (C.intCodeMul p phi))
-    (C.intCodeMul aSquared phi)
+    ((_+_) 1 ((_*_) p phi))
+    ((_*_) aSquared phi)
     p
     aSquared
 
@@ -6482,9 +5957,9 @@ klaAffineProjection-not-injective :
     s ＝ t)
 klaAffineProjection-not-injective derive =
   let
-    a = C.monoidAffine C.oneIntCode C.zeroIntCode
-    s = klaFullBeliefState a C.zeroIntCode
-    t = klaFullBeliefState a C.oneIntCode
+    a = C.monoidAffine 1 0
+    s = klaFullBeliefState a 0
+    t = klaFullBeliefState a 1
   in
   false-not-true
     (cong KLAFullBeliefState.precision
@@ -6757,7 +6232,7 @@ nat-plus-one n =
     (cong succ (zero-right-neutral n))
 
 integer-nat-plus-one :
-  ∀ n → (pos n) +Integer (pos 1) ＝ pos (succ n)
+  ∀ n → (pos n) + (pos 1) ＝ pos (succ n)
 integer-nat-plus-one n =
   cong pos (nat-plus-one n)
 
@@ -6765,48 +6240,48 @@ f4-zero-L2-unit-step-code :
   ∀ s →
   C.thetaQ
       (C.f4ThetaStep
-        (C.f4IntUKernel C.zeroIntCode)
+        (C.f4IntUKernel 0)
         s
-        C.oneIntCode)
+        1)
   ＝
-  C.thetaQ s +Integer (pos 1)
+  C.thetaQ s + (pos 1)
 f4-zero-L2-unit-step-code s =
   trans
     (cong (λ x → x)
       (C.f4ParameterInvariant
-        (C.f4IntUKernel C.zeroIntCode)
+        (C.f4IntUKernel 0)
         s
-        C.oneIntCode))
-    (ℤ-zero-right-neutral
-      (C.thetaQ s +Integer (pos 1)))
+        1))
+    (addInteger-idʳ
+      (C.thetaQ s + (pos 1)))
 
 f4-unit-forcing-linear-growth :
   ∀ n s →
   C.thetaQ
       (f4Orbit
-        (C.f4IntUKernel C.zeroIntCode)
-        C.oneIntCode
+        (C.f4IntUKernel 0)
+        1
         n
         s)
   ＝
-  C.thetaQ s +Integer (pos n)
+  C.thetaQ s + (pos n)
 f4-unit-forcing-linear-growth zero s =
-  sym (ℤ-zero-right-neutral (C.thetaQ s))
+  sym (addInteger-idʳ (C.thetaQ s))
 f4-unit-forcing-linear-growth (succ n) s =
   trans
     (f4-zero-L2-unit-step-code
-      (f4Orbit (C.f4IntUKernel C.zeroIntCode) C.oneIntCode n s))
+      (f4Orbit (C.f4IntUKernel 0) 1 n s))
     (trans
       (cong
-        (λ z → z +Integer (pos 1))
+        (λ z → z + (pos 1))
         (f4-unit-forcing-linear-growth n s))
       (trans
-        (ℤ+-assoc
+        (addInteger-assoc
           (C.thetaQ s)
           (pos n)
           (pos 1))
         (cong
-          (λ z → C.thetaQ s +Integer z)
+          (λ z → C.thetaQ s + z)
           (integer-nat-plus-one n))))
 
 nat-succ-not-le :
@@ -6817,10 +6292,10 @@ nat-succ-not-le (succ n) h =
 
 f4-unit-forcing-no-upper-bound :
   ∀ {s : C.F4IntUState} →
-  C.thetaQ s ＝ C.zeroIntCode →
+  C.thetaQ s ＝ 0 →
   ¬ F4UpperBoundedTrajectory
-      (C.f4IntUKernel C.zeroIntCode)
-      C.oneIntCode
+      (C.f4IntUKernel 0)
+      1
       s
 f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
   let
@@ -6833,8 +6308,8 @@ f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
     growthFromZero :
       C.thetaQ
           (f4Orbit
-            (C.f4IntUKernel C.zeroIntCode)
-            C.oneIntCode
+            (C.f4IntUKernel 0)
+            1
             (succ B)
             _)
       ＝
@@ -6844,9 +6319,9 @@ f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
         growth
         (trans
           (cong
-            (λ z → z +Integer (pos (succ B)))
+            (λ z → z + (pos (succ B)))
             (cong (λ x → x) thetaZero))
-          (ℤ-zero-left-neutral (pos (succ B))))
+          (addInteger-idˡ (pos (succ B))))
     impossibleOrder :
       pos (succ B) ≤ pos B
     impossibleOrder =
@@ -8126,7 +7601,7 @@ record MegaFirstWelfareTheoremConditions
           b
           a) →
       budget p
-        (pr₁ (strictlyBetter improvement))
+        (fst (strictlyBetter improvement))
         b
 
 open MegaFirstWelfareTheoremConditions public
@@ -8175,7 +7650,7 @@ record MegaDemandCostKernel
       feasible b →
       (improvement : MegaParetoImprovement
         Agent Allocation weakPreference strictPreference b a) →
-      budget p (pr₁ (strictlyBetter improvement)) b
+      budget p (fst (strictlyBetter improvement)) b
 
 open MegaDemandCostKernel public
 
@@ -8264,7 +7739,7 @@ record FiniteNonIIDDemandCostClosure
         goods
         price
         (endowment
-          (pr₁ (strictlyBetter improvement)))
+          (fst (strictlyBetter improvement)))
         b
 
 finiteNonIIDBudgetCostBound :
@@ -8723,8 +8198,8 @@ recursiveRadner-generalized
           Price
           Allocation
           Portfolio
-          (pr₁ allocationPair)
-          (pr₂ allocationPair))
+          (fst allocationPair)
+          (snd allocationPair))
         (λ D →
           RecursiveRadnerEquilibrium
             State
@@ -8734,8 +8209,8 @@ recursiveRadner-generalized
             Price
             Allocation
             Portfolio
-            (pr₁ allocationPair)
-            (pr₂ allocationPair)
+            (fst allocationPair)
+            (snd allocationPair)
             D))
     (λ pricePair allocationPair →
       Σ (RecursiveRadnerData
@@ -8746,8 +8221,8 @@ recursiveRadner-generalized
           Price
           Allocation
           Portfolio
-          (pr₁ allocationPair)
-          (pr₂ allocationPair))
+          (fst allocationPair)
+          (snd allocationPair))
         (λ D →
           RecursiveRadnerEquilibrium
             State
@@ -8757,8 +8232,8 @@ recursiveRadner-generalized
             Price
             Allocation
             Portfolio
-            (pr₁ allocationPair)
-            (pr₂ allocationPair)
+            (fst allocationPair)
+            (snd allocationPair)
             D))
     (λ {pricePair} {allocationPair} h → h)
 
@@ -9579,7 +9054,7 @@ FiniteCandidatePriceResult :
   Set₁
 FiniteCandidatePriceResult Price Allocation supports allocation =
   (Σ Price (λ p → supports p allocation))
-  ⊎
+  Either
   List (Σ Price (λ p → supports p allocation → ⊥))
 
 finiteCandidatePriceSearch :
@@ -9590,16 +9065,16 @@ finiteCandidatePriceSearch :
   (candidates : List Price) →
   FiniteCandidatePriceResult Price Allocation supports allocation
 finiteCandidatePriceSearch supports allocation decide [] =
-  inj₂ []
+  Right []
 finiteCandidatePriceSearch supports allocation decide (p ∷ ps) with decide p
 ... | acceptCandidate witness =
-  inj₁ (p , witness)
+  Left (p , witness)
 ... | rejectCandidate refute with
   finiteCandidatePriceSearch supports allocation decide ps
-...   | inj₁ witness =
-  inj₁ witness
-...   | inj₂ rejected =
-  inj₂ ((p , refute) ∷ rejected)
+...   | Left witness =
+  Left witness
+...   | Right rejected =
+  Right ((p , refute) ∷ rejected)
 
 finiteCandidatePriceSearch-complete :
   ∀ {Price Allocation : Set}
@@ -9707,15 +9182,15 @@ twoAgentCommonsCounterexample :
 twoAgentCommonsCounterexample =
   commonsNonDerivabilityCounterexample
     (⊤)
-    (⊤ ⊎ ⊤)
-    (⊤ ⊎ ⊤)
+    (⊤ Either ⊤)
+    (⊤ Either ⊤)
     ℕ
     (λ _ → succ zero)
     (λ _ → succ zero)
-    (λ _ _ → inj₂ tt)
+    (λ _ _ → Right tt)
     (λ _ → succ zero)
     (λ _ → succ (succ zero))
-    (λ _ _ a → a ＝ inj₂ tt)
+    (λ _ _ a → a ＝ Right tt)
     tt
     refl
     (λ _ → refl)
@@ -9856,14 +9331,14 @@ noUnconditionalCanonicalPriceDerivation C D =
            (equilibrium₂ C)))
 
 -- Disjoint sum constructors rule out a shared canonical price.
-twoPriceDistinct : inj₁ tt ≢ inj₂ tt
+twoPriceDistinct : Left tt ≢ Right tt
 twoPriceDistinct ()
 
 twoWorldsNoCommonSupportingPrice :
-  ¬ Σ (⊤ ⊎ ⊤)
+  ¬ Σ (⊤ Either ⊤)
     (λ p →
-      (inj₁ tt ＝ p) ×
-      (inj₂ tt ＝ p))
+      (Left tt ＝ p) ×
+      (Right tt ＝ p))
 twoWorldsNoCommonSupportingPrice
   (p , (support₁ , support₂)) =
   (λ ())
@@ -9873,20 +9348,20 @@ twoWorldCanonicalPriceNonIdentifiabilityCounterexample :
   CanonicalPriceNonIdentifiabilityCounterexample
 twoWorldCanonicalPriceNonIdentifiabilityCounterexample =
   canonicalPriceNonIdentifiabilityCounterexample
-    (⊤ ⊎ ⊤)
+    (⊤ Either ⊤)
     ⊤
-    (⊤ ⊎ ⊤)
+    (⊤ Either ⊤)
     ⊤
     (λ _ → tt)
     (λ world price _ → world ＝ price)
     (λ world price allocation → world ＝ price)
     (λ _ → ⊤)
-    (inj₁ tt)
-    (inj₂ tt)
+    (Left tt)
+    (Right tt)
     tt
     tt
-    (inj₁ tt)
-    (inj₂ tt)
+    (Left tt)
+    (Right tt)
     refl
     refl
     refl
@@ -10075,11 +9550,11 @@ twoAgentAggregateExtractionIsSum :
   ＝
   extraction twoAgentCommonsCounterexample
     (action twoAgentCommonsCounterexample
-      (inj₁ tt))
+      (Left tt))
   +
   extraction twoAgentCommonsCounterexample
     (action twoAgentCommonsCounterexample
-      (inj₂ tt))
+      (Right tt))
 twoAgentAggregateExtractionIsSum =
   trans
     (aggregateExtractionIsTwo twoAgentCommonsCounterexample)
@@ -10111,7 +9586,7 @@ noUnconditionalNestedCommonsPreservation level C D =
 ------------------------------------------------------------------------
 
 TwoScaleCommonsLevel : Set
-TwoScaleCommonsLevel = ⊤ ⊎ ⊤
+TwoScaleCommonsLevel = ⊤ Either ⊤
 
 noUnconditionalNestedCommonsPreservation-twoScale :
   ¬ NestedCommonsPreservationDerivation
@@ -10119,7 +9594,7 @@ noUnconditionalNestedCommonsPreservation-twoScale :
       twoAgentCommonsCounterexample
 noUnconditionalNestedCommonsPreservation-twoScale =
   noUnconditionalNestedCommonsPreservation
-    (inj₁ tt)
+    (Left tt)
     twoAgentCommonsCounterexample
 
 ------------------------------------------------------------------------

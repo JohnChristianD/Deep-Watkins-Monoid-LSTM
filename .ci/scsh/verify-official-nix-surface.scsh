@@ -32,6 +32,11 @@
     ".ci/fennel/ascii_surface.fnl" ".ci/presentation-smoke.cjs"
     ".ci/scsh/agda-semantic-source-closure.scsh"
     ".ci/scsh/forth-scheme-smoke.scsh" ".github/workflows/theorem-registry-autoprune.yml"))
+(require-text "FullCoupled/TheoremsMonolith.agda" "open import Agda.Builtin.Reflection using")
+(require-text "FullCoupled/TheoremsMonolith.agda" "open import Agda.Builtin.Sigma using")
+(for-each (lambda (token) (forbid-text "FullCoupled/TheoremsMonolith.agda" token))
+  '("module ReflectionCompat where" "open import MLTT.Plus"
+    "open import Ordinals.Notions" "Naturals.Multiplication" "TypeTopology"))
 (for-each (lambda (p)
   (require-text p "--with-K")
   (require-text p "--no-guardedness")

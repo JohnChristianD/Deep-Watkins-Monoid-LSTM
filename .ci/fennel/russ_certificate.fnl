@@ -61,8 +61,11 @@
 
 (assert (= learner-postulates 1)
   "learner RUSS trust boundary changed; audit source before changing certificate")
-(assert (= theorem-postulates 7)
-  "Reflection/TC postulate surface changed; audit source before changing certificate")
+(assert (= theorem-postulates 0)
+  "local Reflection/TC postulates remain; use Agda's builtin Reflection API")
+(assert (has-token theorem "open import Agda.Builtin.Reflection using"))
+(assert (not (has-token theorem "module ReflectionCompat where"))
+  "handwritten Reflection ABI remains in the theorem monolith")
 (assert (= named-classical 0) "named classical postulate detected")
 (assert (has-token learner "russianRecursiveMathematicsAssumptions : RussianRecursiveMathematicsBasis"))
 (assert (has-token theorem "russSearchBounded"))
@@ -81,7 +84,7 @@
 { directMonolithInventoryPassed = True
 , canonicalModuleCount = %d
 , learnerPostulateBlocks = %d
-, theoremReflectionPostulateBlocks = %d
+, theoremLocalPostulateBlocks = %d
 , namedClassicalPostulateCount = %d
 , boundedMarkovSearchPresent = True
 , registerMachineEvaluatorPresent = True
