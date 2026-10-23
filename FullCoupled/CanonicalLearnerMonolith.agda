@@ -3403,14 +3403,6 @@ module MonoidLSTMStreams where
   mapList f [] = []
   mapList f (value ∷ values) = f value ∷ mapList f values
   
-  trans :
-    {ℓ : Level} {a : Set ℓ} {left middle right : a} →
-    left ≡ middle → middle ≡ right → left ≡ right
-  trans refl second = second
-  
-  sym : {ℓ : Level} {a : Set ℓ} {left right : a} → left ≡ right → right ≡ left
-  sym refl = refl
-  
   mapListCong :
     {ℓa ℓb : Level} {a : Set ℓa} {b : Set ℓb}
     (f : a → b) {left right : List a} →
