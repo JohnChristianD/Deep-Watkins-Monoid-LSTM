@@ -68,7 +68,8 @@ open import Haskell.Control.Exception public
 open import Agda.Primitive public
 open import Agda.Builtin.Sigma public
 open import Agda.Builtin.Size public
-open import Agda.Builtin.Coinduction public
+-- Coinductive builtin import is omitted: it requires guardedness, disabled above.
+-- Sized observation streams use the Agda2HS Thunk interface instead.
 
 -- Preserve the file's established fullwidth equality notation as a purely
 -- definitional alias of Prelude propositional equality. No new axiom or
