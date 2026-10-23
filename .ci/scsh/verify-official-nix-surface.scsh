@@ -48,7 +48,7 @@
   (require-text p "--no-guardedness")
   (require-text p "--rewriting")
   (for-each (lambda (token) (forbid-text p token))
-    '("open import Cubical." "lawOfExcludedMiddle" "ExcludedMiddle" "classicalAxiom")))
+    '("open import Cubical." "open import Agda.Builtin.Coinduction" "lawOfExcludedMiddle" "ExcludedMiddle" "classicalAxiom")))
   '("FullCoupled/CanonicalLearnerMonolith.agda" "FullCoupled/TheoremsMonolith.agda"))
 (for-each (lambda (p)
   (for-each (lambda (token) (forbid-text p token))
