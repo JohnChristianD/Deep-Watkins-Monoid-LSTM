@@ -28,6 +28,7 @@
 
 (local is-declaration-line (fn [line]
   (and
+    (= (type line) "string")
     (> (string.len line) 0)
     (= (string.match line "^%S") (string.sub line 1 1))
     (not (string.match line "^%-%-"))
