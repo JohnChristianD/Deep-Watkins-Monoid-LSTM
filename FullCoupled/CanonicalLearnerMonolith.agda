@@ -66,7 +66,7 @@ open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Primitive public
-open import Agda.Builtin.Sigma public
+-- No dependent-pair syntax is needed in learner semantics; avoid a collision with Haskell pairs.
 open import Agda.Builtin.Size public
 -- Coinductive builtin import is omitted: it requires guardedness, disabled above.
 -- Sized observation streams use the Agda2HS Thunk interface instead.
