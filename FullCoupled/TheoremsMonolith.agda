@@ -2595,7 +2595,7 @@ gruFractalLimitConvergence-limitLeftInverse :
       Level State Observation LimitObservation
       Refines encode limitEncode rank Converges) →
   LimitLeftInverse State LimitObservation limitEncode
-gruFractalLimitConvergence-limitLeftInverse W =
+gruFractalLimitConvergence-limitLeftInverse {rank = rank} W =
   limitLeftInverse
     (λ state →
       coherentLimitDecoder-left-inverse
