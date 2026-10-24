@@ -728,6 +728,16 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
   riceEquivalentTrans first second input =
     trans (first input) (second input)
 
+  riceAdversarialTransform :
+    (Property : RiceProgram → Set) →
+    ((program : RiceProgram) → Decidable (Property program)) →
+    (good bad : RiceProgram) →
+    RiceProgram → RiceProgram
+  riceAdversarialTransform Property decide good bad program
+    with decide program
+  ... | yes _ = riceSelect False good bad
+  ... | no _ = riceSelect True good bad
+
   -- Rice's theorem, in constructive negative form: a nontrivial behavioral
   -- property admits no total decision procedure on program indices.
   riceNoDecider :
@@ -743,12 +753,15 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
     ((program : RiceProgram) → Decidable (Property program)) →
     EmptyComputability
   riceNoDecider Property extensional good goodProperty bad badNotProperty decide
-    with decide (riceFixedPoint chooseAgainstDecision)
+    with decide
+      (riceFixedPoint
+        (riceAdversarialTransform Property decide good bad))
   ... | yes fixedProperty =
     badNotProperty
       (extensional
         (riceEquivalentTrans
-          (riceFixedPointLaw chooseAgainstDecision)
+          (riceFixedPointLaw
+            (riceAdversarialTransform Property decide good bad))
           (riceSelectFalse good bad))
         fixedProperty)
   ... | no notFixedProperty =
@@ -756,14 +769,10 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
       (extensional
         (riceEquivalentSym
           (riceEquivalentTrans
-            (riceFixedPointLaw chooseAgainstDecision)
+            (riceFixedPointLaw
+              (riceAdversarialTransform Property decide good bad))
             (riceSelectTrue good bad)))
         goodProperty)
-    where
-      chooseAgainstDecision : RiceProgram → RiceProgram
-      chooseAgainstDecision program with decide program
-      ... | yes _ = riceSelect False good bad
-      ... | no _ = riceSelect True good bad
 
 ------------------------------------------------------------------------
 -- Guarded trace interface and coinductive stream-fusion proof.
