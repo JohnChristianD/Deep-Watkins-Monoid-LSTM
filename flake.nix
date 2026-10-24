@@ -282,19 +282,13 @@ PY
                 runtimeInputs = [
                   (agdaCommand system)
                   (fennelRuntime system)
-                  # Nixpkgs scsh is built against Scheme48, matching upstream scsh.
-                  # Keep this runtime explicit; Guile is not a scsh substitute here.
-                  pkgs.scsh
                   pkgs.lessc
                   pkgs.coreutils
-                  pkgs.findutils
-                  pkgs.gnugrep
-                  pkgs.gnused
                   pkgs.dhall
                 ];
                 text = ''
                   set -euo pipefail
-                  exec scsh -s .ci/scsh/ci-lanes.scsh ${lane}
+                  exec fennel .ci/fennel/ci.fnl ${lane}
                 '';
               };
             in {
@@ -305,7 +299,7 @@ PY
           ci = { type = "app"; program = "${pkgs.dhall}/bin/dhall"; };
           agda-learner-check = laneApp "AgdaLearner";
           agda-theorem-check = laneApp "AgdaTheorem";
-          russ-certificate = laneApp "RUSS";
+          russ-audit = laneApp "RUSS";
           pages = laneApp "Pages";
           default = { type = "app"; program = "${agdaCli system}/bin/agda"; };
         });
@@ -317,14 +311,9 @@ PY
             packages = [
               (agdaCommand system)
               (fennelRuntime system)
-              pkgs.scsh
-              pkgs.git
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
-              pkgs.findutils
-              pkgs.gnugrep
-              pkgs.gnused
             ];
             shellHook = ''
               export AGDA_COMMAND="agda2hs-agda"
@@ -334,12 +323,8 @@ PY
           presentation = pkgs.mkShellNoCC {
             packages = [
               (fennelRuntime system)
-              pkgs.scsh
               pkgs.lessc
               pkgs.coreutils
-              pkgs.findutils
-              pkgs.gnugrep
-              pkgs.gnused
             ];
           };
 
@@ -358,11 +343,9 @@ PY
             packages = [
               (agdaCommand system)
               (fennelRuntime system)
-              pkgs.scsh
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
-              pkgs.findutils
             ];
             shellHook = ''
               export AGDA_COMMAND="agda2hs-agda"

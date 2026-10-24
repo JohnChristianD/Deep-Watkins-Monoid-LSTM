@@ -1153,6 +1153,17 @@ statisticalEncodeInjective R {s} {t} collision =
     (sym (decodeEncode R s))
     (trans (cong (decode R) collision) (decodeEncode R t))
 
+-- Injectivity preserves constructive distinction: equality of encoded
+-- observations would contradict the supplied inequality of states.
+statisticalEncodeDistinguishes :
+  ∀ {State Observation : Set}
+    (R : CarrierPolymorphicStatisticalRepresentation State Observation)
+    {s t : State} →
+    s ≢ t →
+    encode R s ≢ encode R t
+statisticalEncodeDistinguishes R distinct encodedEquality =
+  distinct (statisticalEncodeInjective R encodedEquality)
+
 ------------------------------------------------------------------------
 -- Canonical theorem section: ZPF statistical representation boundary.
 ------------------------------------------------------------------------

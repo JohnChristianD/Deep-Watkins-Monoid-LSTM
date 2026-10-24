@@ -67,4 +67,4 @@
     (bool (has-token theorem "russCurrentBasisRelativeConsistency"))))
 
 (output:close)
-(print "russ-inventory=generated; lexical inventory is not a proof certificate")
+(print "russ-audit=generated; lexical inventory is not a proof certificate")

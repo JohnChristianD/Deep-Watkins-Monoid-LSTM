@@ -27,7 +27,7 @@ jobs:
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
-        run: nix develop .#agda-ci -c scsh -s .ci/scsh/ci-lanes.scsh All
+        run: nix develop .#agda-ci -c fennel .ci/fennel/ci.fnl All
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
