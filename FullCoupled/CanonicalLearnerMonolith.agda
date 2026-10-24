@@ -1211,30 +1211,6 @@ variable
 transport : (P : A → Set ℓ) → x ≡ y → P x → P y
 transport P refl p = p
 
-+comm : (m n : Nat) → m + n ≡ n + m
-+comm m n = addNat-comm m n
-
-zero+ : (n : Nat) → zero + n ≡ n
-zero+ n = refl
-
-suc+ : (m n : Nat) → suc m + n ≡ suc (m + n)
-suc+ m n = refl
-
-
-canonical-map-identity : map (λ x → x) xs ≡ xs
-canonical-map-identity {xs = []}     = refl
-canonical-map-identity {xs = x ∷ xs} = cong (_∷_ x) canonical-map-identity
-
-map-fuse : map mapFunction (map g xs) ≡ map (λ x → mapFunction (g x)) xs
-map-fuse {xs = []}     = refl
-map-fuse {xs = x ∷ xs} = cong (_∷_ _) map-fuse
-
-canonical-map-append : map mapFunction (xs ++ ys) ≡ (map mapFunction xs) ++ (map mapFunction ys)
-canonical-map-append {xs = []}     = refl
-canonical-map-append {xs = x ∷ xs} = cong (_∷_ _) (canonical-map-append {xs = xs})
-
-{-# REWRITE canonical-map-identity map-fuse canonical-map-append #-}
-
 -- Constructive transport over the reflexive-only relation used as the
 -- equality substrate for potential quotient interfaces. This kernel lemma
 -- has no postulates or rewrite rules; the quotient eliminator itself is not
@@ -1650,12 +1626,10 @@ not-less-than-itself (suc n) (natLtStep smaller) =
 
 
 plus-zero : ∀ n → n + zero ＝ n
-plus-zero zero = refl
-plus-zero (suc n) = cong suc (plus-zero n)
+plus-zero = addNat-idʳ
 
 plus-succ : ∀ (m n : ℕ) → m + suc n ＝ suc (m + n)
-plus-succ zero n = refl
-plus-succ (suc m) n = refl
+plus-succ = addNat-suc
 
 plus-succ-lt : ∀ (m n : ℕ) → m <ℕ (m + suc n)
 plus-succ-lt zero n = natLtZeroSucc
