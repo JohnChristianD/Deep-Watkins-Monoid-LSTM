@@ -135,6 +135,33 @@ module ConstructiveComputabilityPostulates where
     (x : A) → P x → PropExists P
   propExistsIntro x evidence R eliminate = eliminate x evidence
 
+  -- Prop-valued excluded middle is separate from computational data.
+  data PropFalsehood : Prop where
+
+  PropNeg : Prop → Prop
+  PropNeg P = P → PropFalsehood
+
+  data PropOr (P Q : Prop) : Prop where
+    propLeft : P → PropOr P Q
+    propRight : Q → PropOr P Q
+
+  LawOfExcludedMiddle : Set₃
+  LawOfExcludedMiddle = (P : Prop) → PropOr P (PropNeg P)
+
+  -- Richman's countable choice, expressed with proposition-valued witnesses.
+  -- This is distinct from the data-level selector theorem below.
+  record RichmanCountableChoice : Set₃ where
+    constructor richmanCountableChoice
+    field
+      richmanCountableChoiceLaw :
+        {A : Nat → Set} →
+        (P : (n : Nat) → A n → Prop) →
+        ((n : Nat) → PropExists (P n)) →
+        PropExists
+          (λ (choose : (n : Nat) → A n) →
+            (n : Nat) → P n (choose n))
+  open RichmanCountableChoice public
+
   ----------------------------------------------------------------------
   -- Concrete finite-trace register-machine semantics.
   --
@@ -353,6 +380,48 @@ module ConstructiveComputabilityPostulates where
     (program : RecursiveProgram) (f : Nat → Nat) : Set where
     field
       computationFor : (input : Nat) → ComputationTrace program input (f input)
+
+  -- Forster-style parametric computability in a function-family form: one
+  -- code function uniformly indexes programs for the whole family. This is
+  -- the SCT/function-family interface associated with Forster's EA/CT+SMN
+  -- equivalence in CIC, not a literal import of his impredicative Prop model.
+  record ParametricFunctionFamilyWitness
+    (universalProgram : Nat → RecursiveProgram)
+    (family : Nat → Nat → Nat) : Set₁ where
+    constructor parametricFunctionFamilyWitness
+    field
+      familyProgramCodes : Nat → Nat
+      familyProgramCorrect :
+        (index : Nat) →
+        ComputesFunction
+          (universalProgram (familyProgramCodes index))
+          (family index)
+  open ParametricFunctionFamilyWitness public
+
+  record ParametricEnumerability : Set₂ where
+    constructor parametricEnumerability
+    field
+      parametricUniversalProgram : Nat → RecursiveProgram
+      parametricEnumerateFunctionFamily :
+        (family : Nat → Nat → Nat) →
+        ParametricFunctionFamilyWitness parametricUniversalProgram family
+  open ParametricEnumerability public
+
+  -- Separate conditional classical/no-choice profile. Parametric enumeration
+  -- alone does not derive excluded middle; this record states the additional
+  -- classical assumption explicitly and deliberately omits Richman's choice.
+  record ForsterClassicalExtension : Set₄ where
+    constructor forsterClassicalExtension
+    field
+      forsterParametricEnumerability : ParametricEnumerability
+      forsterExcludedMiddle : LawOfExcludedMiddle
+  open ForsterClassicalExtension public
+
+  forsterExcludedMiddleTheorem :
+    (profile : ForsterClassicalExtension) →
+    (P : Prop) → PropOr P (PropNeg P)
+  forsterExcludedMiddleTheorem profile =
+    ForsterClassicalExtension.forsterExcludedMiddle profile
 
   record ComputesRelation
     (program : RecursiveProgram)
@@ -970,30 +1039,24 @@ module ConstructiveComputabilityPostulates where
       HAIsDeltaZero body →
       HADerivation context (haMarkovPrincipleFormula varIndex body)
   ----------------------------------------------------------------------
-  -- Russian constructivism: one explicit assumption package, with public
-  -- projections. These declarations are assumptions, not REWRITE rules.
+  -- RUSS and parametric computability: persistent axiom trust boundary.
   ----------------------------------------------------------------------
 
-  -- This record is the visible RUSS trust boundary for this development.
-  -- It packages Markov's Principle for decidable predicates and Richman's
-  -- computable-partial-functions (CPF) enumeration principle. Neither
-  -- countable choice nor dependent choice is assumed here. The ECT₀ result
-  -- for a relation with pointwise witnesses is derived from CPF below.
+  -- Full RUSS profile: Markov's principle + parametric enumerability +
+  -- Richman's countable choice. The separate classical/no-choice profile
+  -- above is deliberately not merged into this package.
   --
-  -- CONSISTENCY STATUS: neither this record nor a successful Agda kernel
-  -- check certifies joint RUSS consistency. Type-checking establishes
-  -- well-typedness only relative to this postulate, the imported theory,
-  -- rewrite configuration, compiler primitives, and trusted checker. A
-  -- consistency claim needs a model or relative-consistency argument for this
-  -- exact signature and its complete transitive dependency closure. Searching
-  -- for an inhabitant of an empty type is not such an argument.
+  -- POSTULATE/REWRITE POLICY: logical assumptions cannot be wholesale turned
+  -- into rewrite rules. Agda REWRITE requires a valid equality and a
+  -- computational right-hand side. MP, choice, and parametric universality
+  -- do not supply such equations. Do not claim these assumptions were
+  -- "rewritten" unless actual valid computational equations replace them.
   --
-  -- FORMALIZATION BOUNDARY: CPF is stated relative to this finite-trace
-  -- register-machine evaluator and to a partial function carrying an explicit
-  -- enumeration of its domain. This is the selected computational
-  -- interpretation; consistency still needs a separate model or
-  -- relative-consistency argument. ECT₀ is a derived corollary, not an axiom.
-  record RussianRecursiveMathematicsBasis : Set₃ where
+  -- CONSISTENCY STATUS: no model of this combined signature and its complete
+  -- transitive imports has been certified. This function-family interface is
+  -- related to Forster's EA formulation; it is not a literal port of his
+  -- CIC/Prop model and proves no consistency theorem by itself.
+  record RussianRecursiveMathematicsBasis : Set₄ where
     constructor russianRecursiveMathematicsBasis
     field
       russMarkov :
@@ -1002,19 +1065,16 @@ module ConstructiveComputabilityPostulates where
         Neg (Neg (SigmaWitness Nat P)) →
         SigmaWitness Nat P
 
-      -- Richman's CPF: every partial function with an explicitly
-      -- enumerable domain is computed by a finite register program.
-      russCPF :
-        (f : CountableDomainPartialFunction) →
-        CPFProgramWitness f
+      russParametricEnumerability : ParametricEnumerability
 
+      russCountableChoice : RichmanCountableChoice
 
-  -- The sole RUSS trust entry in this interface. The record's projections
-  -- below are consequences of this assumption; they are not extra axioms.
+  -- The sole global postulate packages the chosen full-RUSS assumptions.
+  -- Public names below are projections from this bundle, not extra
+  -- postulates.
   postulate
     russianRecursiveMathematicsAssumptions : RussianRecursiveMathematicsBasis
 
-  -- Keep the established public names as projections from the single basis.
   russianMarkovPrinciple :
     (P : Nat → Set) →
     ((n : Nat) → Decidable (P n)) →
@@ -1023,20 +1083,28 @@ module ConstructiveComputabilityPostulates where
   russianMarkovPrinciple =
     RussianRecursiveMathematicsBasis.russMarkov russianRecursiveMathematicsAssumptions
 
-  -- Public projection of Richman's CPF enumeration axiom.
-  computablePartialFunctionsEnumeration :
-    (f : CountableDomainPartialFunction) →
-    CPFProgramWitness f
-  computablePartialFunctionsEnumeration =
-    RussianRecursiveMathematicsBasis.russCPF
+  parametricEnumerabilityPrinciple : ParametricEnumerability
+  parametricEnumerabilityPrinciple =
+    RussianRecursiveMathematicsBasis.russParametricEnumerability
       russianRecursiveMathematicsAssumptions
 
-  -- "Church's thesis" names the adopted partial-function enumerability
-  -- principle, not a separate ECT₀ postulate.
+  richmanCountableChoicePrinciple : RichmanCountableChoice
+  richmanCountableChoicePrinciple =
+    RussianRecursiveMathematicsBasis.russCountableChoice
+      russianRecursiveMathematicsAssumptions
+
+  -- Ordinary CT for total Nat-functions follows from the constant family.
   churchThesis :
-    (f : CountableDomainPartialFunction) →
-    CPFProgramWitness f
-  churchThesis = computablePartialFunctionsEnumeration
+    (f : Nat → Nat) →
+    SigmaWitness RecursiveProgram (λ program → ComputesFunction program f)
+  churchThesis f with
+    parametricEnumerateFunctionFamily
+      parametricEnumerabilityPrinciple
+      (λ _ input → f input)
+  ... | parametricFunctionFamilyWitness codes correct =
+    sigma-witness
+      (parametricUniversalProgram parametricEnumerabilityPrinciple (codes zero))
+      (correct zero)
 
   extendedChurchThesis0FromBasis :
     (basis : RussianRecursiveMathematicsBasis) →
@@ -1046,27 +1114,23 @@ module ConstructiveComputabilityPostulates where
     SigmaWitness RecursiveProgram
       (λ program → ComputesRelation program relation)
   extendedChurchThesis0FromBasis basis relation _ pointwiseWitness
-    with RussianRecursiveMathematicsBasis.russCPF basis
-      (totalFunctionAsPartial
-        (λ input → sigmaValue (pointwiseWitness input)))
-  ... | cpfProgramWitness program computation =
-    sigma-witness program
+    with parametricEnumerateFunctionFamily
+      (RussianRecursiveMathematicsBasis.russParametricEnumerability basis)
+      (λ _ input → sigmaValue (pointwiseWitness input))
+  ... | parametricFunctionFamilyWitness codes correct =
+    sigma-witness
+      (parametricUniversalProgram
+        (RussianRecursiveMathematicsBasis.russParametricEnumerability basis)
+        (codes zero))
       (record
         { computesRelatedOutput = λ input →
-            let result =
-                  computesDefinedInput computation input alwaysDefined
-            in sigma-witness
-                 (sigmaValue result)
-                 (sigma-witness
-                   (sigmaValue (sigmaEvidence result))
-                   (partialFunctionTransport
-                     (relation input)
-                     (sigmaEvidence (sigmaEvidence result))
-                     (sigmaEvidence (pointwiseWitness input))))
+            sigma-witness
+              (sigmaValue (pointwiseWitness input))
+              (sigma-witness
+                (computationFor (correct zero) input)
+                (sigmaEvidence (pointwiseWitness input)))
         })
 
-  -- Compatibility theorem: ECT₀ follows from CPF after pointwise witnesses
-  -- are supplied. No ECT₀ axiom is installed in the core basis.
   extendedChurchThesis0 :
     (relation : Nat → Nat → Set) →
     ((input output : Nat) → Decidable (relation input output)) →
@@ -1076,6 +1140,8 @@ module ConstructiveComputabilityPostulates where
   extendedChurchThesis0 =
     extendedChurchThesis0FromBasis russianRecursiveMathematicsAssumptions
 
+  -- ECT₀ is derived from uniform parametric enumeration after explicit
+  -- pointwise data witnesses are supplied; it is not separately postulated.
   ----------------------------------------------------------------------
   -- A data-level version of countable choice is a theorem: if every index
   -- already supplies a computational SigmaWitness, select its projections.

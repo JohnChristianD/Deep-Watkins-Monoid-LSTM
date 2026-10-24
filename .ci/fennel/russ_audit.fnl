@@ -48,6 +48,9 @@
 , learnerPostulateBlocks = %d
 , theoremPostulateBlocks = %d
 , learnerRUSSAssumptionsPresent = %s
+, parametricEnumerabilityPresent = %s
+, richmanCountableChoicePresent = %s
+, conditionalExcludedMiddleProfilePresent = %s
 , boundedMarkovSearchPresent = %s
 , registerMachineEvaluatorPresent = %s
 , intuitionisticObjectCalculusSoundnessPresent = %s
@@ -63,11 +66,14 @@
     learner-postulates
     theorem-postulates
     (bool (has-token learner "russianRecursiveMathematicsAssumptions : RussianRecursiveMathematicsBasis"))
+    (bool (has-token learner "russParametricEnumerability"))
+    (bool (has-token learner "russCountableChoice"))
+    (bool (has-token theorem "excludedMiddleTheorem"))
     (bool (has-token theorem "russSearchBounded"))
-    (bool (has-token theorem "extendedChurchThesis0"))
+    (bool (has-token learner "runMachineWithFuel"))
     (bool (has-token theorem "russSoundness"))
     (bool (has-token theorem "russCurrentBasisRelativeConsistency"))
-    (bool (has-token theorem "riceNoDecider")))
+    (bool (has-token theorem "RiceTheorem")))
 
 (output:close)
 (print "russ-audit=generated; lexical inventory is not a proof certificate")

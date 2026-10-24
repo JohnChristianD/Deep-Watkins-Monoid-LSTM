@@ -100,9 +100,20 @@ open C.ConstructiveComputabilityPostulates public using
   ( RussianRecursiveMathematicsBasis
   ; russianRecursiveMathematicsAssumptions
   ; russianMarkovPrinciple
-  ; computablePartialFunctionsEnumeration
-  ; CountableDomainPartialFunction
-  ; CPFProgramWitness
+  ; parametricEnumerabilityPrinciple
+  ; richmanCountableChoicePrinciple
+  ; ParametricEnumerability
+  ; ParametricFunctionFamilyWitness
+  ; parametricUniversalProgram
+  ; parametricEnumerateFunctionFamily
+  ; familyProgramCodes
+  ; familyProgramCorrect
+  ; RichmanCountableChoice
+  ; ForsterClassicalExtension
+  ; LawOfExcludedMiddle
+  ; PropOr
+  ; PropNeg
+  ; forsterExcludedMiddleTheorem
   ; extendedChurchThesis0FromBasis
   ; extendedChurchThesis0
   ; churchThesis
@@ -120,6 +131,11 @@ open C.ConstructiveComputabilityPostulates public using
   ; RecursiveProgram
   ; ComputesRelation
   )
+
+excludedMiddleTheorem :
+  (profile : ForsterClassicalExtension) →
+  (P : Prop) → PropOr P (PropNeg P)
+excludedMiddleTheorem = forsterExcludedMiddleTheorem
 
 open import Agda.Primitive using (Level)
 open import Agda.Builtin.Size using (Size; Size<_; ∞)
@@ -163,7 +179,7 @@ macro
 
 module RUSSProofTheory where
 
-  RUSSPrinciplePackage : Set₃
+  RUSSPrinciplePackage : Set₄
   RUSSPrinciplePackage = RussianRecursiveMathematicsBasis
 
   ----------------------------------------------------------------------
@@ -195,30 +211,34 @@ module RUSSProofTheory where
   -- BOUNDARY: this is a relative consistency theorem for this object calculus
   -- interpreted in the Agda types supplied by the chosen basis. It is NOT a
   -- consistency proof for Agda, CIC/Rocq, or this repository's transitive
-  -- imports. The project's ECT0 and Prop-valued choice signatures still need
-  -- a model/relative-consistency argument for the exact combined theory.
+  -- imports. The parametric-computability plus Richman-choice profile still
+  -- needs a model/relative-consistency argument. The optional classical/no-
+  -- choice extension is separate from the full choice-bearing RUSS profile.
   ----------------------------------------------------------------------
 
   data RUSSAxiomTag : Set where
     russMarkovTag : RUSSAxiomTag
-    russCPFTag : RUSSAxiomTag
+    russParametricEnumerabilityTag : RUSSAxiomTag
+    russCountableChoiceTag : RUSSAxiomTag
 
-  RUSSAxiomMeaning : RUSSAxiomTag → Set₃
+  RUSSAxiomMeaning : RUSSAxiomTag → Set₄
   RUSSAxiomMeaning russMarkovTag =
     (P : Nat → Set) →
     ((n : Nat) → Decidable (P n)) →
     Neg (Neg (SigmaWitness Nat P)) →
     SigmaWitness Nat P
-  RUSSAxiomMeaning russCPFTag =
-    (f : CountableDomainPartialFunction) →
-    CPFProgramWitness f
+  RUSSAxiomMeaning russParametricEnumerabilityTag = ParametricEnumerability
+  RUSSAxiomMeaning russCountableChoiceTag = RichmanCountableChoice
+
   russAxiomFromBasis :
     (basis : RussianRecursiveMathematicsBasis) →
     (tag : RUSSAxiomTag) → RUSSAxiomMeaning tag
   russAxiomFromBasis basis russMarkovTag =
     RussianRecursiveMathematicsBasis.russMarkov basis
-  russAxiomFromBasis basis russCPFTag =
-    RussianRecursiveMathematicsBasis.russCPF basis
+  russAxiomFromBasis basis russParametricEnumerabilityTag =
+    RussianRecursiveMathematicsBasis.russParametricEnumerability basis
+  russAxiomFromBasis basis russCountableChoiceTag =
+    RussianRecursiveMathematicsBasis.russCountableChoice basis
   data RUSSFormula : Set where
     russFalsehood : RUSSFormula
     russTruthhood : RUSSFormula
@@ -266,7 +286,7 @@ module RUSSProofTheory where
 
   RUSSFormulaMeaning :
     (basis : RussianRecursiveMathematicsBasis) →
-    RUSSFormula → Set₃
+    RUSSFormula → Set₄
   RUSSFormulaMeaning basis russFalsehood = EmptyComputability
   RUSSFormulaMeaning basis russTruthhood = RUSSTruthEvidence
   RUSSFormulaMeaning basis (russAxiom tag) = RUSSAxiomMeaning tag
@@ -276,7 +296,7 @@ module RUSSProofTheory where
 
   RUSSContextModel :
     (basis : RussianRecursiveMathematicsBasis) →
-    List RUSSFormula → Set₃
+    List RUSSFormula → Set₄
   RUSSContextModel basis context =
     {formula : RUSSFormula} →
     RUSSContextMembership formula context →
@@ -673,6 +693,11 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
               (riceAdversarialTransform Property decide good bad))
             (riceSelectTrue good bad)))
         goodProperty)
+
+-- Public entry point for the existing constructive Rice theorem. The
+-- concrete finite-trace machine is not claimed to instantiate this interface.
+module RiceTheorem (system : RiceAcceptableSystem) where
+  open ConstructiveRiceTheorem system public
 
 ------------------------------------------------------------------------
 -- Guarded trace interface and coinductive stream-fusion proof.
@@ -9960,6 +9985,6 @@ module RUSSIntuitionisticCore where
   -- duplicating its schema declarations or silently changing their universes.
   -- Its fields are decidable-predicate Markov, finite register-machine ECT₀,
   -- without countable choice. This alias supplies no inhabitant.
-  RUSSPrinciplePackage : Set₃
+  RUSSPrinciplePackage : Set₄
   RUSSPrinciplePackage = RussianRecursiveMathematicsBasis
 
