@@ -6642,10 +6642,10 @@ nat-plus-right-mono :
   ∀ {a b c : ℕ} → a ≤ b → a + c ≤ b + c
 nat-plus-right-mono {a} {b} {c} p = helper a b p c
  where
-  P : (m n : ℕ) → m ≤ n → Set
-  P m n _ = (k : ℕ) → m + k ≤ n + k
+  LeqProofFamily : (m n : ℕ) → m ≤ n → Set
+  LeqProofFamily m n _ = (k : ℕ) → m + k ≤ n + k
 
-  base : (n : ℕ) → P zero n (zero-least n)
+  base : (n : ℕ) → LeqProofFamily zero n (zero-least n)
   base n k =
     transport
       (λ x → x ≤ n + k)
@@ -6654,8 +6654,8 @@ nat-plus-right-mono {a} {b} {c} p = helper a b p c
 
   nat-plus-right-mono-succ :
     (m n : ℕ) (q : m ≤ n) →
-    P m n q →
-    P (suc m) (suc n) (succ-monotone m n q)
+    LeqProofFamily m n q →
+    LeqProofFamily (suc m) (suc n) (succ-monotone m n q)
   nat-plus-right-mono-succ m n q ih k =
     transport
       (λ y → suc m + k ≤ y)
@@ -6665,8 +6665,8 @@ nat-plus-right-mono {a} {b} {c} p = helper a b p c
         (sym (succ-left m k))
         (succ-monotone (m + k) (n + k) (ih k)))
 
-  helper : (m n : ℕ) (q : m ≤ n) → P m n q
-  helper = ≤-induction P base nat-plus-right-mono-succ
+  helper : (m n : ℕ) (q : m ≤ n) → LeqProofFamily m n q
+  helper = ≤-induction LeqProofFamily base nat-plus-right-mono-succ
 
 record EfficientOperatorMonoidRepresentation
   (State Input : Set) : Set₁ where
