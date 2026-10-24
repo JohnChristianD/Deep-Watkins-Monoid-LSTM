@@ -2886,7 +2886,7 @@ canonicalHaarFeatureReconstruct :
 canonicalHaarFeatureReconstruct
   (pos 0) = refl
 canonicalHaarFeatureReconstruct
-  (pos (suc n)) = refl
+  (pos (suc n)) = cong pos (addNat-idʳ (suc n))
 canonicalHaarFeatureReconstruct
   (negsuc n) = addInteger-idˡ (negsuc n)
 
