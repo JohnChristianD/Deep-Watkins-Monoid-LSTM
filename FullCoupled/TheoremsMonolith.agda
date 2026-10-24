@@ -6967,10 +6967,10 @@ record CanonicalLearnerHodgeMaxwellCompositionTheorem
 
     learnerToSolution :
       C.CanonicalFullLearnerState →
-      Solution (semantics hodgeRepresentation)
+      Solution (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics hodgeRepresentation)
 
     solutionToLearner :
-      Solution (semantics hodgeRepresentation) →
+      Solution (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics hodgeRepresentation) →
       C.CanonicalFullLearnerState
 
     learnerSolutionLeftInverse :
@@ -6988,7 +6988,7 @@ record CanonicalLearnerHodgeMaxwellCompositionTheorem
         (C.canonicalFullStep K s)
       ＝
       step
-        (semantics hodgeRepresentation)
+        (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics hodgeRepresentation)
         (learnerToSolution s)
 
 open CanonicalLearnerHodgeMaxwellCompositionTheorem public
