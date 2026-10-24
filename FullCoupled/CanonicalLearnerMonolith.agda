@@ -998,8 +998,8 @@ module ConstructiveComputabilityPostulates where
   -- identified with a textbook formulation until the computation relation,
   -- admissible predicates, and quantifiers are shown equivalent. Its
   -- computational content is a substantive assumption. The Prop-valued
-  -- countable-choice field is a further project assumption; its compatibility
-  -- with the chosen RUSS model must be justified independently.
+  -- Countable choice is deliberately excluded from this core RUSS basis; any
+  -- theorem requiring it must state it as a separate hypothesis.
   record RussianRecursiveMathematicsBasis : Set₃ where
     constructor russianRecursiveMathematicsBasis
     field
@@ -1018,14 +1018,6 @@ module ConstructiveComputabilityPostulates where
         SigmaWitness RecursiveProgram
           (λ program → ComputesRelation program relation)
 
-      -- Prop-valued countable choice does not compute a choice function
-      -- from erased existential evidence.
-      russCountableChoice :
-        (A : Nat → Set) →
-        (P : (n : Nat) → A n → Prop) →
-        ((n : Nat) → PropExists (P n)) →
-        PropExists {A = (n : Nat) → A n}
-          (λ choose → (n : Nat) → P n (choose n))
 
   -- The sole RUSS trust entry in this interface. The record's projections
   -- below are consequences of this assumption; they are not extra axioms.
@@ -1049,15 +1041,6 @@ module ConstructiveComputabilityPostulates where
       (λ program → ComputesRelation program relation)
   extendedChurchThesis0 =
     RussianRecursiveMathematicsBasis.russECT0 russianRecursiveMathematicsAssumptions
-
-  russianCountableChoice :
-    (A : Nat → Set) →
-    (P : (n : Nat) → A n → Prop) →
-    ((n : Nat) → PropExists (P n)) →
-    PropExists {A = (n : Nat) → A n}
-      (λ choose → (n : Nat) → P n (choose n))
-  russianCountableChoice =
-    RussianRecursiveMathematicsBasis.russCountableChoice russianRecursiveMathematicsAssumptions
 
   -- Keep the established identifier, now explicitly referring to ECT_0.
   -- This preserves fully relevant Set-level program and trace witnesses.
@@ -1208,7 +1191,6 @@ open ConstructiveComputabilityPostulates public using
   ; russianRecursiveMathematicsAssumptions
   ; russianMarkovPrinciple
   ; extendedChurchThesis0
-  ; russianCountableChoice
   ; churchThesis
   ; constructiveCountableChoice
   )
