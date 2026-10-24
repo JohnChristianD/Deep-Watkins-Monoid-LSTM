@@ -79,7 +79,8 @@ syntax try-fun t f = try t or-else f
 -- No vendored ordinal or external sum-theory library is required.
 import Haskell.Law.Num.Integer as IntegerLaws
 open import Haskell.Law.Num.Nat using
-  ( addNat-comm
+  ( addNat-idʳ
+  ; addNat-comm
   ; mulNat-comm
   ; mulNat-distributeˡ-addNat
   ; mulNat-assoc
@@ -4164,7 +4165,7 @@ canonicalIterateComposition :
 canonicalIterateComposition K m zero s =
   cong
     (λ k → C.iterateCanonical K k s)
-    (zero-right-neutral m)
+    (addNat-idʳ m)
 canonicalIterateComposition K m (suc n) s =
   trans
     (cong
@@ -4188,8 +4189,8 @@ recurrentPrefixStepWork-split :
   recurrentPrefixStepWork m + recurrentPrefixStepWork n
 recurrentPrefixStepWork-split m zero =
   trans
-    (cong recurrentPrefixStepWork (zero-right-neutral m))
-    (sym (zero-right-neutral (recurrentPrefixStepWork m)))
+    (cong recurrentPrefixStepWork (addNat-idʳ m))
+    (sym (addNat-idʳ (recurrentPrefixStepWork m)))
 recurrentPrefixStepWork-split m (suc n) =
   trans
     (cong recurrentPrefixStepWork (succ-right m n))
@@ -6491,7 +6492,7 @@ nat-plus-one :
 nat-plus-one n =
   trans
     (succ-right n zero)
-    (cong suc (zero-right-neutral n))
+    (cong suc (addNat-idʳ n))
 
 integer-nat-plus-one :
   ∀ n → (pos n) + (pos 1) ＝ pos (suc n)
@@ -8704,7 +8705,7 @@ successorMeasureAfterIterate :
   (s : State) →
   measure (iterateStep step n s) ＝ measure s + n
 successorMeasureAfterIterate W zero s =
-  sym (zero-right-neutral (measure W s))
+  sym (addNat-idʳ (measure W s))
 successorMeasureAfterIterate W (suc n) s =
   trans
     (successor W (iterateStep (step W) n s))
