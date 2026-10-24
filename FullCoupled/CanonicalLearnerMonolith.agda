@@ -55,6 +55,7 @@ open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
 open import Haskell.Law.Num.Nat public using (addNat-idʳ; addNat-suc; addNat-comm)
+open import Haskell.Law.Extensionality public
 open import Agda.Builtin.Equality.Rewrite
 {-# REWRITE addNat-idʳ addNat-suc #-}
 open import Haskell.Law.Monad.List public
