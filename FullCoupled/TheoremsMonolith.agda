@@ -7239,28 +7239,28 @@ record NLabMaxwellSemanticClosure
   (Admissible : Variation → Set)
   (Stationary :
     MaxwellSolution
-      (semantics (hodgeRepresentation W)) → Set) : Set₁ where
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)) → Set) : Set₁ where
   constructor nLabMaxwellSemanticClosure
   field
     noether :
       NLabNoetherConservationTheorem
         (MaxwellSolution
-          (semantics (hodgeRepresentation W)))
+          (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
         Current
-        (step (semantics (hodgeRepresentation W)))
+        (step (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
         (MaxwellShell
-          (semantics (hodgeRepresentation W)))
+          (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
 
     variational :
       NLabEulerLagrangeMaxwellTheorem
         (MaxwellSolution
-          (semantics (hodgeRepresentation W)))
+          (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
         Variation
         Action
         Admissible
         Stationary
         (MaxwellShell
-          (semantics (hodgeRepresentation W)))
+          (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
 
 open NLabMaxwellSemanticClosure public
 
@@ -7274,7 +7274,7 @@ nLabMaxwellFourLawOneStep :
   {Admissible : Variation → Set}
   {Stationary :
     MaxwellSolution
-      (semantics (hodgeRepresentation W)) → Set} →
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)) → Set} →
   NLabMaxwellSemanticClosure
     W
     Current
@@ -7285,14 +7285,14 @@ nLabMaxwellFourLawOneStep :
   FourLawOneStepWitnessContract
     C.CanonicalFullLearnerState
     (MaxwellSolution
-      (semantics (hodgeRepresentation W)))
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
     Current
     Variation
     Action
     Admissible
     Stationary
     (C.canonicalFullStep K)
-    (step (semantics (hodgeRepresentation W)))
+    (step (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
 nLabMaxwellFourLawOneStep
   W
   K
@@ -7302,7 +7302,7 @@ nLabMaxwellFourLawOneStep
       (noether S)
       (λ p →
         maxwellEquation
-          (semantics (hodgeRepresentation W))
+          (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W))
           p)
       (learnerToSolution W)
       (solutionToLearner W)
@@ -7311,7 +7311,7 @@ nLabMaxwellFourLawOneStep
       (variational S)
       (λ p →
         maxwellEquation
-          (semantics (hodgeRepresentation W))
+          (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W))
           p)
       (learnerToSolution W)
       (solutionToLearner W)
@@ -7339,7 +7339,7 @@ record NLabMaxwellFourLawSemanticallyClosed
   (Admissible : Variation → Set)
   (Stationary :
     MaxwellSolution
-      (semantics (hodgeRepresentation W)) → Set) : Set₁ where
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)) → Set) : Set₁ where
   constructor nLabMaxwellFourLawSemanticallyClosed
   field
     kernel : C.CanonicalFullLearnerKernel
@@ -7362,7 +7362,7 @@ nLabMaxwellFourLawSemanticallyClosed-from-semantic :
   {Admissible : Variation → Set}
   {Stationary :
     MaxwellSolution
-      (semantics (hodgeRepresentation W)) → Set}
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)) → Set}
   (S :
     NLabMaxwellSemanticClosure
       W
@@ -7397,7 +7397,7 @@ nLabMaxwellFourLawOneStepClosed :
   {Admissible : Variation → Set}
   {Stationary :
     MaxwellSolution
-      (semantics (hodgeRepresentation W)) → Set}
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)) → Set}
   (B :
     NLabMaxwellFourLawSemanticallyClosed
       W
@@ -7409,14 +7409,14 @@ nLabMaxwellFourLawOneStepClosed :
   FourLawOneStepWitnessContract
     C.CanonicalFullLearnerState
     (MaxwellSolution
-      (semantics (hodgeRepresentation W)))
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
     Current
     Variation
     Action
     Admissible
     Stationary
     (C.canonicalFullStep (kernel B))
-    (step (semantics (hodgeRepresentation W)))
+    (step (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
 nLabMaxwellFourLawOneStepClosed {W = W} B =
   nLabMaxwellFourLawOneStep
     W
@@ -7442,7 +7442,7 @@ nLabMaxwellIterateConjugacy :
       s)
   ＝
   iterateStep
-    (step (semantics (hodgeRepresentation W)))
+    (step (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
     n
     (learnerToSolution W s)
 nLabMaxwellIterateConjugacy
@@ -7466,7 +7466,7 @@ nLabMaxwellIterateConjugacyClosed :
   {Admissible : Variation → Set}
   {Stationary :
     MaxwellSolution
-      (semantics (hodgeRepresentation W)) → Set}
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)) → Set}
   (B :
     NLabMaxwellFourLawSemanticallyClosed
       W
@@ -7483,7 +7483,7 @@ nLabMaxwellIterateConjugacyClosed :
       s)
   ＝
   iterateStep
-    (step (semantics (hodgeRepresentation W)))
+    (step (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
     n
     (learnerToSolution W s)
 nLabMaxwellIterateConjugacyClosed {W = W} B n s =
@@ -7513,7 +7513,7 @@ record NLabMaxwellFourLawGRUAlgebraicConsistencyTheorem
   {Admissible : Variation → Set}
   {Stationary :
     MaxwellSolution
-      (semantics (hodgeRepresentation W)) → Set}
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)) → Set}
   (B :
     NLabMaxwellFourLawSemanticallyClosed
       W
@@ -7541,14 +7541,14 @@ record NLabMaxwellFourLawGRUAlgebraicConsistencyTheorem
       FourLawOneStepWitnessContract
         C.CanonicalFullLearnerState
         (MaxwellSolution
-          (semantics (hodgeRepresentation W)))
+          (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
         Current
         Variation
         Action
         Admissible
         Stationary
         (C.canonicalFullStep (kernel B))
-        (step (semantics (hodgeRepresentation W)))
+        (step (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
     learnerSemantics :
       CanonicalMARLLawCompositionTheorem
     representation :
@@ -7563,7 +7563,7 @@ record NLabMaxwellFourLawGRUAlgebraicConsistencyTheorem
           s)
       ＝
       iterateStep
-        (step (semantics (hodgeRepresentation W)))
+        (step (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
         n
         (learnerToSolution W s)
 
@@ -7576,7 +7576,7 @@ nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem-from-closed :
   {Admissible : Variation → Set}
   {Stationary :
     MaxwellSolution
-      (semantics (hodgeRepresentation W)) → Set}
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)) → Set}
   (B :
     NLabMaxwellFourLawSemanticallyClosed
       W
