@@ -77,7 +77,7 @@ syntax try-fun t f = try t or-else f
 
 -- Use Agda2HS Prelude algebra and Agda's builtin dependent-pair type.
 -- No vendored ordinal or external sum-theory library is required.
-open import Haskell.Law.Num.Integer using (addInteger-assoc)
+import Haskell.Law.Num.Integer as IntegerLaws
 open import Haskell.Law.Num.Nat using
   ( addNat-comm
   ; mulNat-comm
@@ -1645,7 +1645,7 @@ integerLayerNorm-radicand-epsilon-succ xs epsilon =
         (pos n))
       (integerLayerNorm-epsilon-contribution-succ xs epsilon))
     (sym
-      (addInteger-assoc
+      (IntegerLaws.addInteger-assoc
         (C.integerLayerNormVarianceNumerator xs)
         (pos (epsilon * length xs * length xs))
         (pos (length xs * length xs))))
@@ -1696,7 +1696,7 @@ integerLayerNorm-radicand-epsilon-linear xs (succ epsilon) =
         refl)
       (trans
         (sym
-          (addInteger-assoc
+          (IntegerLaws.addInteger-assoc
             (C.integerLayerNormVarianceNumerator xs)
             (pos (epsilon * length xs * length xs))
             (pos (length xs * length xs))))
@@ -6538,7 +6538,7 @@ f4-unit-forcing-linear-growth (succ n) s =
         (λ z → z + (pos 1))
         (f4-unit-forcing-linear-growth n s))
       (trans
-        (addInteger-assoc
+        (IntegerLaws.addInteger-assoc
           (C.thetaQ s)
           (pos n)
           (pos 1))
