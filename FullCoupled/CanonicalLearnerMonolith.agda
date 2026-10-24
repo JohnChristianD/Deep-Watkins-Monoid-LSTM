@@ -3793,18 +3793,6 @@ canonicalLearnerTracePrefix :
 canonicalLearnerTracePrefix K initial n =
   MLS.iterateStreamPrefix n (canonicalFullStep K) initial
 
--- Arbitrary natural-index observation requires a productive infinite-size
--- stream. A finite size index does not promise enough tail depth for every n.
-learnerStreamAt :
-  ∀ {A : Set} →
-  ℕ →
-  LearnerStream ∞ (FullLearnerState A) →
-  FullLearnerState A
-learnerStreamAt zero trace = learnerStreamHead trace
-learnerStreamAt (suc n) trace =
-  learnerStreamAt n (learnerStreamTail trace)
-
-
 iterateCanonical : ∀ {A} → FullLearnerKernel A → ℕ → FullLearnerState A → FullLearnerState A
 iterateCanonical K zero s = s
 iterateCanonical K (suc n) s = canonicalFullStep K (iterateCanonical K n s)
@@ -3820,37 +3808,931 @@ iterateCanonical-step-shift K zero s = refl
 iterateCanonical-step-shift K (suc n) s =
   cong (canonicalFullStep K) (iterateCanonical-step-shift K n s)
 
-canonicalLearnerTraceAt :
-  ∀ {A}
-  (K : FullLearnerKernel A)
-  (s : FullLearnerState A)
-  (n : ℕ) →
-  learnerStreamAt n (canonicalLearnerTrace K s) ＝
-  iterateCanonical K n s
-canonicalLearnerTraceAt K s zero = refl
-canonicalLearnerTraceAt K s (suc n) =
-  trans
-    (canonicalLearnerTraceAt K (canonicalFullStep K s) n)
-    (iterateCanonical-step-shift K n s)
-
--- Exact finite observation means every state predicate is invariant under
--- choosing the productive stream view versus the canonical iterator view.
--- Instantiating P with a state-indexed beta-optimality predicate transports
--- that property; it does not prove the predicate holds without reward facts.
-canonicalLearnerTracePredicateAt :
-  ∀ {A}
-  (K : FullLearnerKernel A)
-  (initial : FullLearnerState A)
-  (n : ℕ)
-  (P : FullLearnerState A → Set) →
-  P (learnerStreamAt n (canonicalLearnerTrace K initial)) →
-  P (iterateCanonical K n initial)
-canonicalLearnerTracePredicateAt K initial n P property =
-  transport P (canonicalLearnerTraceAt K initial n) property
-
 
 canonicalFullStep-gru : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → gru (canonicalFullStep K s) ＝ canonicalGRUStep K s
 canonicalFullStep-gru K s = refl
+
+canonicalFullStep-optimizer : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → optimizer (canonicalFullStep K s) ＝ canonicalOptimizerStep K s
+canonicalFullStep-optimizer K s = refl
+
+canonicalFullStep-counts : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → lcbCounts (canonicalFullStep K s) ＝ canonicalCountStep K s
+canonicalFullStep-counts K s = refl
+
+canonicalFullStep-qLog : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → qLogValue (canonicalFullStep K s) ＝ canonicalQLogStep K s
+canonicalFullStep-qLog K s = refl
+
+canonicalFullStep-qLogControl : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → qLogControl (canonicalFullStep K s) ＝ canonicalQLogControlStep K s
+canonicalFullStep-qLogControl K s = refl
+
+canonicalTotalCountStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (canonicalFullStep K s)) ＝ suc (totalCount (lcbCounts s))
+canonicalTotalCountStep K s = refl
+
+canonicalNoFixedPoint :
+  ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
+  canonicalFullStep K s ≠ s
+canonicalNoFixedPoint K s eq =
+  plus-succ-not-self (totalCount (lcbCounts s)) zero
+    (trans (plus-succ (totalCount (lcbCounts s)) zero)
+      (trans (cong suc (plus-zero (totalCount (lcbCounts s))))
+        (trans (sym (canonicalTotalCountStep K s))
+          (cong (λ t → totalCount (lcbCounts t)) eq))))
+
+
+canonicalTotalCountAfter :
+  ∀ {A} (K : FullLearnerKernel A) (n : ℕ) (s : FullLearnerState A) →
+  totalCount (lcbCounts (iterateCanonical K n s)) ＝
+  totalCount (lcbCounts s) + n
+canonicalTotalCountAfter K zero s = sym (plus-zero (totalCount (lcbCounts s)))
+canonicalTotalCountAfter K (suc n) s =
+  trans
+    (canonicalTotalCountStep K (iterateCanonical K n s))
+    (trans
+      (cong suc (canonicalTotalCountAfter K n s))
+      (sym (plus-succ (totalCount (lcbCounts s)) n)))
+
+canonicalAperiodic : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ≠ s
+canonicalAperiodic K s n cyc = plus-succ-not-self (totalCount (lcbCounts s)) n
+  (trans
+    (sym (canonicalTotalCountAfter K (suc n) s))
+    (cong (λ t → totalCount (lcbCounts t)) cyc))
+
+canonicalOrbitNonFixed : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K n s ≠ canonicalFullStep K (iterateCanonical K n s)
+canonicalOrbitNonFixed K s n eq =
+  canonicalNoFixedPoint K (iterateCanonical K n s) (sym eq)
+
+canonicalNoNontrivialFiniteCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ＝ s → ⊥
+canonicalNoNontrivialFiniteCycle K s n cyc = canonicalAperiodic K s n cyc
+
+canonicalTotalCountIterate2 : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (iterateCanonical K 2 s)) ＝ suc (suc (totalCount (lcbCounts s)))
+canonicalTotalCountIterate2 K s = refl
+
+canonicalNoCountedTwoCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → iterateCanonical K 2 s ＝ s → ⊥
+canonicalNoCountedTwoCycle K s cyc = succ-succ-not-self (totalCount (lcbCounts s))
+  (trans (sym (canonicalTotalCountIterate2 K s))
+    (cong (λ t → totalCount (lcbCounts t)) cyc))
+
+temperatureCodeLaw : sparsemaxTemperature ＝ 16
+temperatureCodeLaw = refl
+
+pessimisticInit : Integer
+pessimisticInit = fromNat 128
+
+pessimisticCritic : ∀ {A} → CriticState A
+pessimisticCritic {A} = criticState (λ _ → pessimisticInit)
+
+pessimisticCritic-law : ∀ {A} (i : ℕ) → values (pessimisticCritic {A = A}) i ＝ pessimisticInit
+pessimisticCritic-law {A = A} i = refl
+
+canonicalPersistent : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → persistentGRU (canonicalGRUStep K s) ＝ persistentGRU (gru s)
+canonicalPersistent = canonicalPersistentGRUPreservation
+
+CanonicalToken : Set
+CanonicalToken = Integer
+
+CanonicalTokenSequence : Set
+CanonicalTokenSequence = List CanonicalToken
+
+canonicalTokenEncode : CanonicalToken → Integer
+canonicalTokenEncode = λ token → token
+
+-- Tokens use the official Agda2HS Prelude Integer carrier directly. The identity
+-- encoding/decoding gives a total left inverse and global injectivity.
+canonicalTokenEncodeLeftInverse :
+  ∀ token → canonicalTokenEncode token ＝ token
+canonicalTokenEncodeLeftInverse token = refl
+
+canonicalTokenEncodeInjective :
+  ∀ {left right} →
+  canonicalTokenEncode left ＝ canonicalTokenEncode right →
+  left ＝ right
+canonicalTokenEncodeInjective {left} {right} encodedEquality =
+  trans
+    (sym (canonicalTokenEncodeLeftInverse left))
+    (trans
+      (cong (λ x → x) encodedEquality)
+      (canonicalTokenEncodeLeftInverse right))
+
+-- Any representation with an exact left inverse is globally injective.
+-- If the inverse is also continuous, this algebraic fact remains true:
+-- continuity is additional structure, not an extra premise needed for injectivity.
+leftInverseImpliesInjective :
+  ∀ {State Feature : Set}
+  (observe : State → Feature)
+  (inverse : Feature → State) →
+  (∀ state → inverse (observe state) ＝ state) →
+  ∀ {left right} → observe left ＝ observe right → left ＝ right
+leftInverseImpliesInjective observe inverse leftInverse {left} {right} observationEquality =
+  trans
+    (sym (leftInverse left))
+    (trans
+      (cong inverse observationEquality)
+      (leftInverse right))
+
+canonicalTokenEncodeList : CanonicalTokenSequence → List Integer
+canonicalTokenEncodeList = map canonicalTokenEncode
+
+canonicalTokenEncodeListLeftInverse :
+  ∀ tokens → map (λ x → x) (canonicalTokenEncodeList tokens) ＝ tokens
+canonicalTokenEncodeListLeftInverse [] = refl
+canonicalTokenEncodeListLeftInverse (token ∷ tokens) =
+  cong (_∷_ token) (canonicalTokenEncodeListLeftInverse tokens)
+
+canonicalTokenEncodeListInjective :
+  ∀ {left right} →
+  canonicalTokenEncodeList left ＝ canonicalTokenEncodeList right →
+  left ＝ right
+canonicalTokenEncodeListInjective {left} {right} encodedEquality =
+  trans
+    (sym (canonicalTokenEncodeListLeftInverse left))
+    (trans
+      (cong (map (λ x → x)) encodedEquality)
+      (canonicalTokenEncodeListLeftInverse right))
+
+canonicalTokenStep : GRUState → CanonicalToken → GRUState
+canonicalTokenStep s t = gruStep s (canonicalTokenEncode t)
+
+canonicalTokenRecurrentNetwork :
+  RecurrentNetwork GRUState CanonicalToken
+canonicalTokenRecurrentNetwork =
+  recurrentNetwork canonicalTokenStep
+
+recurrentListState :
+  ∀ {State Input : Set} →
+  RecurrentNetwork State Input →
+  List Input →
+  State →
+  State
+recurrentListState R [] s = s
+recurrentListState R (x ∷ xs) s =
+  recurrentListState R xs (runNetwork R s x)
+
+canonicalTokenListState :
+  CanonicalTokenSequence →
+  GRUState →
+  GRUState
+canonicalTokenListState [] s = s
+canonicalTokenListState (t ∷ ts) s =
+  canonicalTokenListState ts (canonicalTokenStep s t)
+
+CanonicalTokenLogitVector : Set
+CanonicalTokenLogitVector = CanonicalToken → Integer
+
+record CanonicalTokenLanguageModelKernel : Set₁ where
+  constructor canonicalTokenLanguageModelKernel
+  field
+    logits : GRUState → CanonicalTokenLogitVector
+open CanonicalTokenLanguageModelKernel public
+
+canonicalTokenLogitTrace :
+  CanonicalTokenLanguageModelKernel →
+  CanonicalTokenSequence →
+  GRUState →
+  List CanonicalTokenLogitVector
+canonicalTokenLogitTrace K [] s = []
+canonicalTokenLogitTrace K (t ∷ ts) s =
+  logits K s ∷
+  canonicalTokenLogitTrace K ts (canonicalTokenStep s t)
+
+
+
+
+
+------------------------------------------------------------------------
+-- Computationally relevant policy boundary belongs beside the learner.
+-- Beta is additive regret tolerance, not the layer-normalisation offset.
+------------------------------------------------------------------------
+
+module BetaOptimalityBoundary where
+  open import Haskell.Prelude using (_≡_; refl)
+  import Haskell.Prelude as HP
+
+  BNat : Set
+  BNat = HP.Nat
+
+  bzero : BNat
+  bzero = HP.zero
+
+  bsuc : BNat → BNat
+  bsuc = HP.suc
+
+  BetaEmpty : Set
+  BetaEmpty = HP.⊥
+
+  data Action : Set where
+    leftAction rightAction : Action
+
+  data _≤B_ : BNat → BNat → Set where
+    zeroLeB : {n : BNat} → _≤B_ bzero n
+    succLeB : {m n : BNat} → _≤B_ m n → _≤B_ (bsuc m) (bsuc n)
+
+  infixl 6 _+B_
+  _+B_ : BNat → BNat → BNat
+  HP.zero +B n = n
+  HP.suc m +B n = HP.suc (m +B n)
+
+  leTrans : {a b c : BNat} → _≤B_ a b → _≤B_ b c → _≤B_ a c
+  leTrans zeroLeB _ = zeroLeB
+  leTrans (succLeB first) (succLeB second) =
+    succLeB (leTrans first second)
+
+  leAddRight : (n beta : BNat) → _≤B_ n (n +B beta)
+  leAddRight HP.zero beta = zeroLeB
+  leAddRight (HP.suc n) beta = succLeB (leAddRight n beta)
+
+  betaOptimal :
+    BNat → (Action → BNat) → Action → Set
+  betaOptimal beta reward choice =
+    (alternative : Action) →
+    _≤B_ (reward alternative) (reward choice +B beta)
+
+  record ExactOptimalChoice (reward : Action → BNat) : Set where
+    constructor exactOptimalChoice
+    field
+      selectedAction : Action
+      selectedMaximal :
+        (alternative : Action) →
+        _≤B_ (reward alternative) (reward selectedAction)
+
+  open ExactOptimalChoice public
+
+  exactOptimalImpliesBetaOptimal :
+    (beta : BNat)
+    (reward : Action → BNat)
+    (optimal : ExactOptimalChoice reward) →
+    betaOptimal beta reward (selectedAction optimal)
+  exactOptimalImpliesBetaOptimal beta reward optimal alternative =
+    leTrans
+      (selectedMaximal optimal alternative)
+      (leAddRight (reward (selectedAction optimal)) beta)
+
+  Not : Set → Set
+  Not proposition = proposition → BetaEmpty
+
+  counterReward : BNat → Action → Action → BNat
+  counterReward beta leftAction leftAction = bzero
+  counterReward beta leftAction rightAction = bsuc beta
+  counterReward beta rightAction leftAction = bsuc beta
+  counterReward beta rightAction rightAction = bzero
+
+  noSuccessorBoundedBySelf : (n : BNat) → Not (_≤B_ (bsuc n) n)
+  noSuccessorBoundedBySelf HP.zero ()
+  noSuccessorBoundedBySelf (HP.suc n) (succLeB evidence) =
+    noSuccessorBoundedBySelf n evidence
+
+  noUniformBetaOptimalChoice :
+    (beta : BNat) (choice : Action) →
+    Not (betaOptimal beta (counterReward beta choice) choice)
+  noUniformBetaOptimalChoice beta leftAction optimal =
+    noSuccessorBoundedBySelf beta (optimal rightAction)
+  noUniformBetaOptimalChoice beta rightAction optimal =
+    noSuccessorBoundedBySelf beta (optimal leftAction)
+
+
+
+------------------------------------------------------------------------
+-- Tarski least-fixed-point theorem for an explicit Bellman contract.
+-- No Bellman operator or monotonicity proof is postulated: each model must
+-- supply its value order, arbitrary infima, and a proof of monotonicity.
+------------------------------------------------------------------------
+
+module CanonicalBellmanOrderTheory where
+  open import Haskell.Prelude using (_≡_; refl; _×_; fst; snd)
+  import Haskell.Prelude as HP
+
+  BNat : Set
+  BNat = HP.Nat
+
+  bzero : BNat
+  bzero = HP.zero
+
+  bsuc : BNat → BNat
+  bsuc = HP.suc
+
+  -- Keep the extracted proof target self-contained: these helpers use
+  -- Prelude equality, not the monolith's separate Haskell equality aliases.
+  equalityTrans :
+    {A : Set} {x y z : A} → x ≡ y → y ≡ z → x ≡ z
+  equalityTrans refl second = second
+
+  equalitySym :
+    {A : Set} {x y : A} → x ≡ y → y ≡ x
+  equalitySym refl = refl
+
+  equalityCong :
+    {A B : Set} (f : A → B) {x y : A} →
+    x ≡ y → f x ≡ f y
+  equalityCong f refl = refl
+
+  record CompleteMeetOrder (Value : Set) : Set₂ where
+    field
+      _⊑_ : Value → Value → Set
+      refl⊑ : {x : Value} → x ⊑ x
+      trans⊑ :
+        {x y z : Value} → x ⊑ y → y ⊑ z → x ⊑ z
+      antisym⊑ :
+        {x y : Value} → x ⊑ y → y ⊑ x → x ≡ y
+      infimum : (Value → Set) → Value
+      infimumBelow :
+        (P : Value → Set) → {x : Value} → P x → infimum P ⊑ x
+      infimumGreatest :
+        (P : Value → Set) → {z : Value} →
+        (∀ {x : Value} → P x → z ⊑ x) → z ⊑ infimum P
+
+  module FixedPoint {Value : Set} (L : CompleteMeetOrder Value) where
+    open CompleteMeetOrder L
+
+    preFixed : (Value → Value) → Value → Set
+    preFixed F x = F x ⊑ x
+
+    leastFixedPoint :
+      (F : Value → Value) →
+      (∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      Value
+    leastFixedPoint F mono = infimum (preFixed F)
+
+    bellmanBelowLeast :
+      (F : Value → Value)
+      (mono : ∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      F (leastFixedPoint F mono) ⊑ leastFixedPoint F mono
+    bellmanBelowLeast F mono =
+      infimumGreatest (preFixed F)
+        (λ {x} px →
+          trans⊑ (mono (infimumBelow (preFixed F) px)) px)
+
+    leastBelowBellman :
+      (F : Value → Value)
+      (mono : ∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      leastFixedPoint F mono ⊑ F (leastFixedPoint F mono)
+    leastBelowBellman F mono =
+      infimumBelow (preFixed F) (mono (bellmanBelowLeast F mono))
+
+    leastFixedPointIsFixed :
+      (F : Value → Value)
+      (mono : ∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      F (leastFixedPoint F mono) ≡ leastFixedPoint F mono
+    leastFixedPointIsFixed F mono =
+      antisym⊑ (bellmanBelowLeast F mono) (leastBelowBellman F mono)
+
+    equalityImpliesOrder :
+      {x y : Value} → x ≡ y → x ⊑ y
+    equalityImpliesOrder refl = refl⊑
+
+    leastFixedPointIsLeast :
+      (F : Value → Value)
+      (mono : ∀ {x y : Value} → x ⊑ y → F x ⊑ F y) →
+      (x : Value) → F x ≡ x → leastFixedPoint F mono ⊑ x
+    leastFixedPointIsLeast F mono x fixed =
+      infimumBelow (preFixed F) (equalityImpliesOrder fixed)
+
+  record BellmanSemantics (Value : Set) : Set₃ where
+    constructor bellmanSemantics
+    field
+      valueOrder : CompleteMeetOrder Value
+      bellmanOperator : Value → Value
+      bellmanMonotone :
+        {x y : Value} →
+        CompleteMeetOrder._⊑_ valueOrder x y →
+        CompleteMeetOrder._⊑_ valueOrder
+          (bellmanOperator x) (bellmanOperator y)
+
+  open BellmanSemantics public
+
+  bellmanLeastFixedPoint :
+    {Value : Set} →
+    (B : BellmanSemantics Value) →
+    Value
+  bellmanLeastFixedPoint B =
+    FixedPoint.leastFixedPoint
+      (valueOrder B)
+      (bellmanOperator B)
+      (bellmanMonotone B)
+
+  bellmanLeastFixedPointIsFixed :
+    {Value : Set} →
+    (B : BellmanSemantics Value) →
+    bellmanOperator B (bellmanLeastFixedPoint B) ≡
+      bellmanLeastFixedPoint B
+  bellmanLeastFixedPointIsFixed B =
+    FixedPoint.leastFixedPointIsFixed
+      (valueOrder B)
+      (bellmanOperator B)
+      (bellmanMonotone B)
+
+  bellmanLeastFixedPointIsLeast :
+    {Value : Set} →
+    (B : BellmanSemantics Value) →
+    (x : Value) →
+    bellmanOperator B x ≡ x →
+    CompleteMeetOrder._⊑_ (valueOrder B) (bellmanLeastFixedPoint B) x
+  bellmanLeastFixedPointIsLeast B x fixed =
+    FixedPoint.leastFixedPointIsLeast
+      (valueOrder B)
+      (bellmanOperator B)
+      (bellmanMonotone B)
+      x
+      fixed
+
+  ------------------------------------------------------------------------
+  -- Kleene's theorem for an omega-CPO and an omega-continuous Bellman map.
+  -- This is deliberately a value-domain contract: learner-state transitions
+  -- need not be fixed-point maps (the LCB count advances on every step).
+  ------------------------------------------------------------------------
+
+  infix 4 _⊑ω_
+
+  record OmegaCPO (Value : Set) : Set₁ where
+    field
+      _⊑ω_ : Value → Value → Set
+      reflω : {x : Value} → _⊑ω_ x x
+      transω :
+        {x y z : Value} → _⊑ω_ x y → _⊑ω_ y z → _⊑ω_ x z
+      antisymω :
+        {x y : Value} → _⊑ω_ x y → _⊑ω_ y x → x ≡ y
+      bottomω : Value
+      bottomLeastω : (x : Value) → _⊑ω_ bottomω x
+      lubω :
+        (xs : BNat → Value) →
+        (∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
+        Value
+      lubUpperω :
+        (xs : BNat → Value) →
+        (chain : ∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
+        (n : BNat) →
+        _⊑ω_ (xs n) (lubω xs chain)
+      lubLeastω :
+        (xs : BNat → Value) →
+        (chain : ∀ n → _⊑ω_ (xs n) (xs (bsuc n))) →
+        (z : Value) →
+        (∀ n → _⊑ω_ (xs n) z) →
+        _⊑ω_ (lubω xs chain) z
+
+  open OmegaCPO public
+
+  record OmegaContinuousEndomap {Value : Set}
+    (O : OmegaCPO Value) : Set₂ where
+    field
+      stepω : Value → Value
+      monotoneω :
+        {x y : Value} →
+        OmegaCPO._⊑ω_ O x y →
+        OmegaCPO._⊑ω_ O (stepω x) (stepω y)
+      preservesOmegaSuprema :
+        (xs : BNat → Value) →
+        (chain : ∀ n → OmegaCPO._⊑ω_ O (xs n) (xs (bsuc n))) →
+        stepω (OmegaCPO.lubω O xs chain) ≡
+        OmegaCPO.lubω O
+          (λ n → stepω (xs n))
+          (λ n → monotoneω (chain n))
+
+  module OmegaKleeneFixedPoint
+    {Value : Set} (O : OmegaCPO Value) where
+    iter : OmegaContinuousEndomap O → BNat → Value
+    iter F HP.zero = OmegaCPO.bottomω O
+    iter F (HP.suc n) =
+      OmegaContinuousEndomap.stepω F (iter F n)
+
+    iterChain :
+      (F : OmegaContinuousEndomap O) →
+      (n : BNat) →
+      OmegaCPO._⊑ω_ O (iter F n) (iter F (bsuc n))
+    iterChain F HP.zero =
+      OmegaCPO.bottomLeastω O (OmegaContinuousEndomap.stepω F (iter F bzero))
+    iterChain F (HP.suc n) =
+      OmegaContinuousEndomap.monotoneω F (iterChain F n)
+
+    leastFixedPoint :
+      OmegaContinuousEndomap O → Value
+    leastFixedPoint F = OmegaCPO.lubω O (iter F) (iterChain F)
+
+    shiftUpper :
+      (F : OmegaContinuousEndomap O) →
+      (n : BNat) →
+      OmegaCPO._⊑ω_ O (iter F n)
+        (OmegaCPO.lubω O
+          (λ k → iter F (bsuc k))
+          (λ k → iterChain F (bsuc k)))
+    shiftUpper F HP.zero =
+      OmegaCPO.bottomLeastω O
+        (OmegaCPO.lubω O
+          (λ k → iter F (bsuc k))
+          (λ k → iterChain F (bsuc k)))
+    shiftUpper F (HP.suc n) =
+      OmegaCPO.lubUpperω O
+        (λ k → iter F (bsuc k))
+        (λ k → iterChain F (bsuc k))
+        n
+
+    transEq :
+      {x y z : Value} → x ≡ y → y ≡ z → x ≡ z
+    transEq refl second = second
+
+    symEq : {x y : Value} → x ≡ y → y ≡ x
+    symEq refl = refl
+
+    shiftedSupremum :
+      (F : OmegaContinuousEndomap O) →
+      leastFixedPoint F ≡
+        OmegaCPO.lubω O
+          (λ n → iter F (bsuc n))
+          (λ n → iterChain F (bsuc n))
+    shiftedSupremum F =
+      OmegaCPO.antisymω O
+        (OmegaCPO.lubLeastω O
+          (iter F)
+          (iterChain F)
+          (OmegaCPO.lubω O
+            (λ n → iter F (bsuc n))
+            (λ n → iterChain F (bsuc n)))
+          (shiftUpper F))
+        (OmegaCPO.lubLeastω O
+          (λ n → iter F (bsuc n))
+          (λ n → iterChain F (bsuc n))
+          (leastFixedPoint F)
+          (λ n → OmegaCPO.lubUpperω O (iter F) (iterChain F) (bsuc n)))
+
+    leastFixedPointIsFixed :
+      (F : OmegaContinuousEndomap O) →
+      OmegaContinuousEndomap.stepω F (leastFixedPoint F) ≡
+        leastFixedPoint F
+    leastFixedPointIsFixed F =
+      transEq
+        (OmegaContinuousEndomap.preservesOmegaSuprema F (iter F) (iterChain F))
+        (symEq (shiftedSupremum F))
+
+    equalityToOrder :
+      {x y : Value} → x ≡ y → OmegaCPO._⊑ω_ O x y
+    equalityToOrder refl = OmegaCPO.reflω O
+
+    iterBelowFixed :
+      (F : OmegaContinuousEndomap O) →
+      (x : Value) →
+      OmegaContinuousEndomap.stepω F x ≡ x →
+      (n : BNat) →
+      OmegaCPO._⊑ω_ O (iter F n) x
+    iterBelowFixed F x fixed HP.zero = OmegaCPO.bottomLeastω O x
+    iterBelowFixed F x fixed (HP.suc n) =
+      OmegaCPO.transω O
+        (OmegaContinuousEndomap.monotoneω F
+          (iterBelowFixed F x fixed n))
+        (equalityToOrder fixed)
+
+    leastFixedPointIsLeast :
+      (F : OmegaContinuousEndomap O) →
+      (x : Value) →
+      OmegaContinuousEndomap.stepω F x ≡ x →
+      OmegaCPO._⊑ω_ O (leastFixedPoint F) x
+    leastFixedPointIsLeast F x fixed =
+      OmegaCPO.lubLeastω O
+        (iter F)
+        (iterChain F)
+        x
+        (iterBelowFixed F x fixed)
+
+    leastFixedPointUnique :
+      (F : OmegaContinuousEndomap O) →
+      (x : Value) →
+      (fixed : OmegaContinuousEndomap.stepω F x ≡ x) →
+      (∀ {y : Value} →
+        OmegaContinuousEndomap.stepω F y ≡ y →
+        OmegaCPO._⊑ω_ O x y) →
+      x ≡ leastFixedPoint F
+    leastFixedPointUnique F x fixed least =
+      OmegaCPO.antisymω O
+        (least {y = leastFixedPoint F}
+          (leastFixedPointIsFixed F))
+        (leastFixedPointIsLeast F x fixed)
+
+  record OmegaContinuousBellmanSemantics (Value : Set) : Set₃ where
+    constructor omegaContinuousBellmanSemantics
+    field
+      valueDomain : OmegaCPO Value
+      bellmanOperator : OmegaContinuousEndomap valueDomain
+
+  open OmegaContinuousBellmanSemantics public
+
+  bellmanStreamValue :
+    {Value : Set} →
+    (B : OmegaContinuousBellmanSemantics Value) →
+    BNat →
+    Value
+  bellmanStreamValue B =
+    OmegaKleeneFixedPoint.iter
+      (valueDomain B) (bellmanOperator B)
+
+  bellmanStreamLeastFixedPoint :
+    {Value : Set} →
+    (B : OmegaContinuousBellmanSemantics Value) →
+    Value
+  bellmanStreamLeastFixedPoint B =
+    OmegaKleeneFixedPoint.leastFixedPoint
+      (valueDomain B) (bellmanOperator B)
+
+  bellmanStreamLeastFixedPointAtZero :
+    {Value : Set} →
+    (B : OmegaContinuousBellmanSemantics Value) →
+    bellmanStreamValue B bzero ≡
+      OmegaCPO.bottomω (valueDomain B)
+  bellmanStreamLeastFixedPointAtZero B = refl
+
+  bellmanStreamLeastFixedPointIsFixed :
+    {Value : Set} →
+    (B : OmegaContinuousBellmanSemantics Value) →
+    OmegaContinuousEndomap.stepω (bellmanOperator B)
+      (bellmanStreamLeastFixedPoint B) ≡
+      bellmanStreamLeastFixedPoint B
+  bellmanStreamLeastFixedPointIsFixed B =
+    OmegaKleeneFixedPoint.leastFixedPointIsFixed
+      (valueDomain B) (bellmanOperator B)
+
+  bellmanStreamLeastFixedPointIsLeast :
+    {Value : Set} →
+    (B : OmegaContinuousBellmanSemantics Value) →
+    (x : Value) →
+    OmegaContinuousEndomap.stepω (bellmanOperator B) x ≡ x →
+    OmegaCPO._⊑ω_ (valueDomain B)
+      (bellmanStreamLeastFixedPoint B) x
+  bellmanStreamLeastFixedPointIsLeast B x fixed =
+    OmegaKleeneFixedPoint.leastFixedPointIsLeast
+      (valueDomain B) (bellmanOperator B) x fixed
+
+  bellmanStreamLeastFixedPointUnique :
+    {Value : Set} →
+    (B : OmegaContinuousBellmanSemantics Value) →
+    (x : Value) →
+    (fixed : OmegaContinuousEndomap.stepω (bellmanOperator B) x ≡ x) →
+    (∀ {y : Value} →
+      OmegaContinuousEndomap.stepω (bellmanOperator B) y ≡ y →
+      OmegaCPO._⊑ω_ (valueDomain B) x y) →
+    x ≡ bellmanStreamLeastFixedPoint B
+  bellmanStreamLeastFixedPointUnique B x fixed least =
+    OmegaKleeneFixedPoint.leastFixedPointUnique
+      (valueDomain B) (bellmanOperator B) x fixed least
+
+
+
+
+
+  ------------------------------------------------------------------------
+  -- Neural-network / MDP instantiation of the omega-Kleene theorem.
+  --
+  -- State-value functions form the value domain. Reward and expected
+  -- transition value define one-step action returns; the least upper bound
+  -- over actions defines the optimal Bellman backup. A Q network and greedy
+  -- policy are explicit model fields, so neural assumptions remain visible.
+  -- State/action spaces are ordinary types: no Fin or Vec encoding needed.
+  ------------------------------------------------------------------------
+
+  record NeuralPolicyMDP : Set₄ where
+    constructor neuralPolicyMDP
+    field
+      neuralState : Set
+      neuralAction : Set
+      neuralScalar : Set
+      neuralParameters : Set
+
+      mdpScalarDomain : OmegaCPO neuralScalar
+      mdpValueDomain : OmegaCPO (neuralState → neuralScalar)
+
+      mdpDiscount : neuralScalar
+      mdpAdd : neuralScalar → neuralScalar → neuralScalar
+      mdpMultiply : neuralScalar → neuralScalar → neuralScalar
+      mdpReward : neuralState → neuralAction → neuralScalar
+      mdpTransitionExpectation :
+        neuralState →
+        neuralAction →
+        (neuralState → neuralScalar) →
+        neuralScalar
+
+      -- This is the least upper bound over action values.
+      mdpBestActionValue :
+        neuralState → (neuralAction → neuralScalar) → neuralScalar
+      mdpBestActionUpper :
+        (state : neuralState) →
+        (actionValues : neuralAction → neuralScalar) →
+        (action : neuralAction) →
+        OmegaCPO._⊑ω_ mdpScalarDomain
+          (actionValues action)
+          (mdpBestActionValue state actionValues)
+      mdpBestActionLeast :
+        (state : neuralState) →
+        (actionValues : neuralAction → neuralScalar) →
+        (bound : neuralScalar) →
+        (∀ action →
+          OmegaCPO._⊑ω_ mdpScalarDomain (actionValues action) bound) →
+        OmegaCPO._⊑ω_ mdpScalarDomain
+          (mdpBestActionValue state actionValues) bound
+
+      -- Neural Q approximation, its selected parameter state, and a greedy policy.
+      nnQ :
+        neuralParameters → neuralState → neuralAction → neuralScalar
+      nnParameters : neuralParameters
+      nnGreedyPolicy : neuralState → neuralAction
+      nnGreedy :
+        (state : neuralState) →
+        (action : neuralAction) →
+        OmegaCPO._⊑ω_ mdpScalarDomain
+          (nnQ nnParameters state action)
+          (nnQ nnParameters state (nnGreedyPolicy state))
+
+      -- The Bellman map preserves suprema of increasing omega-chains. Its
+      -- equation identifies the map with reward + discounted expectation,
+      -- followed by the action supremum.
+      mdpBellmanEndomap : OmegaContinuousEndomap mdpValueDomain
+      mdpBellmanEquation :
+        (values : neuralState → neuralScalar) →
+        (state : neuralState) →
+        OmegaContinuousEndomap.stepω mdpBellmanEndomap values state ≡
+          mdpBestActionValue state
+            (λ action →
+              mdpAdd
+                (mdpReward state action)
+                (mdpMultiply mdpDiscount
+                  (mdpTransitionExpectation state action values)))
+
+  open NeuralPolicyMDP public
+
+  -- Expected discounted one-step return for state, action, and continuation values.
+  neuralActionReturn :
+    (M : NeuralPolicyMDP) →
+    (neuralState M → neuralScalar M) →
+    neuralState M →
+    neuralAction M →
+    neuralScalar M
+  neuralActionReturn M values state action =
+    mdpAdd M
+      (mdpReward M state action)
+      (mdpMultiply M (mdpDiscount M)
+        (mdpTransitionExpectation M state action values))
+
+  -- Value iteration uses index zero for bottom and applies the Bellman map
+  -- once per successor index.
+  neuralBellmanValueIteration :
+    (M : NeuralPolicyMDP) →
+    BNat →
+    neuralState M →
+    neuralScalar M
+  neuralBellmanValueIteration M n state =
+    OmegaKleeneFixedPoint.iter
+      (mdpValueDomain M)
+      (mdpBellmanEndomap M)
+      n
+      state
+
+  -- Supremum of bottom-starting Bellman iterates: the MDP optimal value function.
+  neuralBellmanOptimalValueFunction :
+    (M : NeuralPolicyMDP) →
+    neuralState M → neuralScalar M
+  neuralBellmanOptimalValueFunction M =
+    OmegaKleeneFixedPoint.leastFixedPoint
+      (mdpValueDomain M)
+      (mdpBellmanEndomap M)
+
+  neuralBellmanAtStepZero :
+    (M : NeuralPolicyMDP) →
+    (state : neuralState M) →
+    neuralBellmanValueIteration M bzero state ≡
+      OmegaCPO.bottomω (mdpValueDomain M) state
+  neuralBellmanAtStepZero M state = refl
+
+  neuralBellmanOptimalValueIsFixed :
+    (M : NeuralPolicyMDP) →
+    OmegaContinuousEndomap.stepω (mdpBellmanEndomap M)
+      (neuralBellmanOptimalValueFunction M) ≡
+      neuralBellmanOptimalValueFunction M
+  neuralBellmanOptimalValueIsFixed M =
+    OmegaKleeneFixedPoint.leastFixedPointIsFixed
+      (mdpValueDomain M)
+      (mdpBellmanEndomap M)
+
+  neuralBellmanOptimalValueIsLeast :
+    (M : NeuralPolicyMDP) →
+    (candidate : neuralState M → neuralScalar M) →
+    OmegaContinuousEndomap.stepω (mdpBellmanEndomap M) candidate ≡ candidate →
+    OmegaCPO._⊑ω_ (mdpValueDomain M)
+      (neuralBellmanOptimalValueFunction M) candidate
+  neuralBellmanOptimalValueIsLeast M candidate fixed =
+    OmegaKleeneFixedPoint.leastFixedPointIsLeast
+      (mdpValueDomain M)
+      (mdpBellmanEndomap M)
+      candidate
+      fixed
+
+  -- Q* is the exact Bellman return computed from V*: reward plus discounted
+  -- transition expectation. It is a value-domain object, not a graph-search
+  -- heuristic or the capability planner's proposal prior.
+  neuralBellmanQStar :
+    (M : NeuralPolicyMDP) →
+    neuralState M →
+    neuralAction M →
+    neuralScalar M
+  neuralBellmanQStar M state action =
+    neuralActionReturn M
+      (neuralBellmanOptimalValueFunction M)
+      state action
+
+  -- The optimal value at each state is the least upper bound of its Q* action
+  -- values. This is the explicit V*=sup_a Q* bridge for this MDP contract.
+  neuralBellmanValueIsSupremumOfQStar :
+    (M : NeuralPolicyMDP) →
+    (state : neuralState M) →
+    neuralBellmanOptimalValueFunction M state ≡
+      mdpBestActionValue M state (neuralBellmanQStar M state)
+  neuralBellmanValueIsSupremumOfQStar M state =
+    equalityTrans
+      (equalitySym (equalityCong (λ values → values state)
+        (neuralBellmanOptimalValueIsFixed M)))
+      (mdpBellmanEquation M
+        (neuralBellmanOptimalValueFunction M)
+        state)
+
+  -- Equality transports action values into the scalar order.
+  scalarEqualityImpliesOrder :
+    (M : NeuralPolicyMDP) →
+    {left right : neuralScalar M} →
+    left ≡ right →
+    OmegaCPO._⊑ω_ (mdpScalarDomain M) left right
+  scalarEqualityImpliesOrder M refl =
+    OmegaCPO.reflω (mdpScalarDomain M)
+
+  -- With exact Bellman-consistent Q values, a network-greedy action is
+  -- maximal for one-step optimal Bellman return. This is local action
+  -- optimality; global policy optimality additionally needs the policy-value
+  -- evaluation theorem (e.g. discounted contraction/uniqueness assumptions).
+  neuralPolicyGreedyOptimalAtBellmanValue :
+    (M : NeuralPolicyMDP) →
+    (exactQ :
+      (state : neuralState M) →
+      (action : neuralAction M) →
+      nnQ M (nnParameters M) state action ≡
+        neuralBellmanQStar M state action) →
+    (state : neuralState M) →
+    (action : neuralAction M) →
+    OmegaCPO._⊑ω_ (mdpScalarDomain M)
+      (neuralActionReturn M
+        (neuralBellmanOptimalValueFunction M) state action)
+      (neuralActionReturn M
+        (neuralBellmanOptimalValueFunction M)
+        state (nnGreedyPolicy M state))
+  neuralPolicyGreedyOptimalAtBellmanValue M exactQ state action =
+    OmegaCPO.transω (mdpScalarDomain M)
+      (scalarEqualityImpliesOrder M
+        (OmegaKleeneFixedPoint.symEq (mdpScalarDomain M) (exactQ state action)))
+      (OmegaCPO.transω (mdpScalarDomain M)
+        (nnGreedy M state action)
+        (scalarEqualityImpliesOrder M
+          (exactQ state (nnGreedyPolicy M state))))
+
+  ------------------------------------------------------------------------
+  -- Quantified approximation guarantee for the Q*-greedy policy.
+  --
+  -- If the fixed network approximates each target Q* action value from both
+  -- sides within epsilon, and the scalar addition is monotone in its left
+  -- argument, then a greedy network action is within 2 epsilon of every
+  -- action in the target ordering. This is conditional on the supplied
+  -- uniform-error witness; it does not claim that this architecture satisfies
+  -- a universal approximation theorem or that training constructs the witness.
+  ------------------------------------------------------------------------
+
+  neuralPolicyGreedyTwoEpsilonRegret :
+    (M : NeuralPolicyMDP) →
+    (epsilon : neuralScalar M) →
+    (addMonotoneRight :
+      {x y z : neuralScalar M} →
+      OmegaCPO._⊑ω_ (mdpScalarDomain M) x y →
+      OmegaCPO._⊑ω_ (mdpScalarDomain M)
+        (mdpAdd M x z) (mdpAdd M y z)) →
+    (uniformQApproximation :
+      (state : neuralState M) →
+      (action : neuralAction M) →
+      (OmegaCPO._⊑ω_ (mdpScalarDomain M)
+        (neuralBellmanQStar M state action)
+        (mdpAdd M (nnQ M (nnParameters M) state action) epsilon)
+      ×
+      OmegaCPO._⊑ω_ (mdpScalarDomain M)
+        (nnQ M (nnParameters M) state action)
+        (mdpAdd M (neuralBellmanQStar M state action) epsilon))) →
+    (state : neuralState M) →
+    (action : neuralAction M) →
+    OmegaCPO._⊑ω_ (mdpScalarDomain M)
+      (neuralBellmanQStar M state action)
+      (mdpAdd M
+        (mdpAdd M
+          (neuralBellmanQStar M state (nnGreedyPolicy M state))
+          epsilon)
+        epsilon)
+  neuralPolicyGreedyTwoEpsilonRegret
+    M epsilon addMonotoneRight uniformQApproximation state action =
+      OmegaCPO.transω (mdpScalarDomain M)
+        (fst (uniformQApproximation state action))
+        (OmegaCPO.transω (mdpScalarDomain M)
+          (addMonotoneRight (nnGreedy M state action))
+          (addMonotoneRight
+            (snd
+              (uniformQApproximation
+                state (nnGreedyPolicy M state)))))
+
+
+
 
 canonicalFullStep-optimizer : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → optimizer (canonicalFullStep K s) ＝ canonicalOptimizerStep K s
 canonicalFullStep-optimizer K s = refl
