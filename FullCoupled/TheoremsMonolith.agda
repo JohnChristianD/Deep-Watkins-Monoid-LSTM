@@ -118,6 +118,39 @@ open import Agda.Primitive using (Level)
 open import Agda.Builtin.Size using (Size; Size<_; ∞)
 
 ------------------------------------------------------------------------
+-- Reflection macro for equality-congruence transport.
+-- The target type determines the function whose congruence is required.
+------------------------------------------------------------------------
+
+𝓋𝓇𝒶 : {A : Set} → A → Arg A
+𝓋𝓇𝒶 = arg (arg-info visible relevant)
+
+＝-type-info : Term → TC (Arg Term × Arg Term × Term × Term)
+＝-type-info (def (quote _＝_) (𝓁 ∷ 𝒯 ∷ arg _ left ∷ arg _ right ∷ [])) =
+  returnTC (𝓁 , 𝒯 , left , right)
+＝-type-info _ = typeError (strErr "Term is not a ＝-type." ∷ [])
+
+$-head : Term → Term
+$-head (var variable _) = var variable []
+$-head (con constructor _) = con constructor []
+$-head (def function _) = def function []
+$-head (pat-lam clauses _) = pat-lam clauses []
+$-head term = term
+
+macro
+  apply-cong : Term → Term → TC ⊤
+  apply-cong proof goal =
+    try
+      (bindTC (inferType goal) λ targetType →
+        bindTC (＝-type-info targetType) λ where
+          (_ , _ , left , _) →
+            unify goal
+              (def (quote cong)
+                (𝓋𝓇𝒶 ($-head left) ∷ 𝓋𝓇𝒶 proof ∷ [])))
+      or-else unify goal proof
+
+
+------------------------------------------------------------------------
 -- Flat modality as a comonad.
 --
 -- This is Agda's native crisp/flat modality, not an axiom added to RUSS.
