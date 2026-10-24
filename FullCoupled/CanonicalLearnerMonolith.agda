@@ -165,11 +165,11 @@ module ConstructiveComputabilityPostulates where
   ----------------------------------------------------------------------
   -- Concrete finite-trace register-machine semantics.
   --
-  -- The evaluator below is ordinary computation. Richman's computable-
-  -- partial-functions (CPF) principle is separate: it asserts that a partial
-  -- function with an explicitly enumerable domain is represented by a finite
-  -- program. The total Church/ECT₀ interface is derived from CPF, not separately
-  -- postulated.
+  -- The evaluator below is ordinary finite-trace computation. The
+  -- partial-function and enumerated-domain records remain semantic vocabulary,
+  -- but the global program-selection axiom is now parametric enumerability for
+  -- families of total functions. ECT₀ is derived from that interface when
+  -- pointwise computational witnesses are explicitly supplied.
   ----------------------------------------------------------------------
 
   data RecursiveInstruction : Set where
@@ -1127,7 +1127,7 @@ module ConstructiveComputabilityPostulates where
             sigma-witness
               (sigmaValue (pointwiseWitness input))
               (sigma-witness
-                (computationFor (correct zero) input)
+                (ComputesFunction.computationFor (correct zero) input)
                 (sigmaEvidence (pointwiseWitness input)))
         })
 
