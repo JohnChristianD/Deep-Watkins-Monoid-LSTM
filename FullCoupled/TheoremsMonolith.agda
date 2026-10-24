@@ -6387,7 +6387,7 @@ record F4UpperBoundedTrajectory
     bound : ℕ
     bounded :
       ∀ n →
-      C.thetaQ (f4Orbit K g n s) ≤ pos bound
+      (C.thetaQ (f4Orbit K g n s) <= pos bound) ≡ True
 
 nat-plus-one :
   ∀ n → n + suc zero ＝ suc n
@@ -6450,10 +6450,8 @@ f4-unit-forcing-linear-growth (suc n) s =
           (integer-nat-plus-one n))))
 
 nat-succ-not-le :
-  ∀ n → suc n ≤ n → ⊥
-nat-succ-not-le zero ()
-nat-succ-not-le (suc n) h =
-  nat-succ-not-le n h
+  ∀ n → (pos (suc n) <= pos n) ≡ True → ⊥
+nat-succ-not-le n ()
 
 f4-unit-forcing-no-upper-bound :
   ∀ {s : C.F4IntUState} →
@@ -6488,15 +6486,13 @@ f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
             (cong (λ x → x) thetaZero))
           (addInteger-idˡ (pos (suc B))))
     impossibleOrder :
-      pos (suc B) ≤ pos B
+      (pos (suc B) <= pos B) ≡ True
     impossibleOrder =
-      transport (λ z → z ≤ pos B)
+      transport (λ z → (z <= pos B) ≡ True)
         growthFromZero
         horizonBound
   in
-    nat-succ-not-le B
-      (ℤ-bigger-or-equal-not-less (pos (suc B)) (pos B) impossibleOrder
-       (ℕ-order-respects-ℤ-order B (suc B) (<-succ B)))
+    nat-succ-not-le B impossibleOrder
 
 record CanonicalPureNonOrangeBypassCompletionTheorem : Set₁ where
   constructor canonicalPureNonOrangeBypassCompletionTheorem
