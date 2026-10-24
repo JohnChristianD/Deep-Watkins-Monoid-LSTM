@@ -82,7 +82,7 @@ open import Haskell.Law.Num.Nat using
   ; mulNat-distributeˡ-addNat
   ; mulNat-assoc
   )
-open import FullCoupled.CanonicalLearnerMonolith as C hiding (gruStep; MLS; BetaOptimalityBoundary)
+open import FullCoupled.CanonicalLearnerMonolith as C hiding (gruStep)
 
 ------------------------------------------------------------------------
 -- Re-export shared constructive-computability assumptions from the
@@ -112,7 +112,6 @@ open C.ConstructiveComputabilityPostulates public using
   ; ComputesRelation
   )
 
-module MLS = C.MonoidLSTMStreams
 open import Agda.Primitive using (Level)
 open MLS using (Size; Size<_; ∞)
 
@@ -1023,7 +1022,6 @@ module LawvereDiagonal where
 ------------------------------------------------------------------------
 -- Re-export policy semantics proved beside the canonical learner transition.
 ------------------------------------------------------------------------
-module BetaOptimalityBoundary = C.BetaOptimalityBoundary
 
 module GRUStatisticalInjectivity where
 -- Constructive inequality is negated propositional equality; this is notation,
