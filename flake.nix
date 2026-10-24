@@ -83,6 +83,26 @@ PY
           grep -Fq 'defaultShowListTail {a = a} shows (x ∷ xs)' "$show_source"
           grep -Fq "showChar ','" "$show_source"
           grep -Fq 'defaultShowList {a = a} shows (x ∷ xs)' "$show_source"
+          integer_source="$(find "$out" -path '*/Haskell/Law/Num/Integer.agda' -print -quit)"
+          test -n "$integer_source" || {
+            echo "Haskell/Law/Num/Integer.agda not found in pinned agda2hs-base" >&2
+            exit 1
+          }
+          # Upstream subNat-distrib-minus-cong-+ drops one successor in its
+          # common-offset proof. Agda 2.8 exposes the resulting mismatch.
+          python - "$integer_source" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+source = path.read_text()
+old = "subNat-cong-+ m (n * suc m) (o * suc m)"
+new = "subNat-cong-+ (suc m) (n * suc m) (o * suc m)"
+if source.count(old) != 1:
+    raise SystemExit("pinned Haskell.Law.Num.Integer common-offset proof changed; refusing a fuzzy edit")
+path.write_text(source.replace(old, new, 1))
+PY
+          grep -Fq 'subNat-cong-+ (suc m) (n * suc m) (o * suc m)' "$integer_source"
           find "$out" -name '*.agda-lib' -print -quit | grep -q .
         '') // {
           # Nix's Agda package-set builder requires this metadata when building
