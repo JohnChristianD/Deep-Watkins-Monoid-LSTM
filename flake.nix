@@ -98,12 +98,13 @@ import sys
 path = pathlib.Path(sys.argv[1])
 source = path.read_text()
 pattern = re.compile(
-    r"(subNat-distrib-minus\s+\(suc m\)\s+\(suc n\)\s+\(suc o\)\s*=\s*)(.*?)(?=\n\nsubNat-mult-flip-negsuc)",
+    r"(subNat-distrib-minus\s+\(suc\s+m\)\s+\(suc\s+n\)\s+\(suc\s+o\)\s*=\s*)(.*?∎)",
     re.S,
 )
 match = pattern.search(source)
 if match is None:
-    raise SystemExit("pinned Haskell.Law.Num.Integer recursive multiplication clause changed")
+    start = source.find("subNat-distrib-minus")
+    raise SystemExit("pinned Haskell.Law.Num.Integer recursive multiplication clause changed: " + source[max(0, start):start + 900])
 body = match.group(2)
 old_call = re.compile(r"subNat-cong-\+\s+m\s+\(n\s*\*\s*suc\s+m\)\s+\(o\s*\*\s*suc\s+m\)")
 new_call = "subNat-cong-+ (suc m) (n * suc m) (o * suc m)"
