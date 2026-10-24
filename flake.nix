@@ -98,11 +98,16 @@ path = pathlib.Path(sys.argv[1])
 source = path.read_text()
 old = "subNat-cong-+ m (n * suc m) (o * suc m)"
 new = "subNat-cong-+ (suc m) (n * suc m) (o * suc m)"
-if source.count(old) != 1:
-    raise SystemExit("pinned Haskell.Law.Num.Integer common-offset proof changed; refusing a fuzzy edit")
-path.write_text(source.replace(old, new, 1))
+old_endpoint = "subNat (m + (n * suc m)) (m + (o * suc m)) ∎"
+new_endpoint = "subNat (suc m + (n * suc m)) (suc m + (o * suc m)) ∎"
+if source.count(old) != 1 or source.count(old_endpoint) != 1:
+    raise SystemExit("pinned Haskell.Law.Num.Integer multiplication proof changed; refusing a fuzzy edit")
+source = source.replace(old, new, 1)
+source = source.replace(old_endpoint, new_endpoint, 1)
+path.write_text(source)
 PY
           grep -Fq 'subNat-cong-+ (suc m) (n * suc m) (o * suc m)' "$integer_source"
+          grep -Fq 'subNat (suc m + (n * suc m)) (suc m + (o * suc m)) ∎' "$integer_source"
           find "$out" -name '*.agda-lib' -print -quit | grep -q .
         '') // {
           # Nix's Agda package-set builder requires this metadata when building
