@@ -16,7 +16,6 @@
 --no-guardedness
 --cohesion
 --flat-split
---exact-split
 --injective-type-constructors
 #-}
 

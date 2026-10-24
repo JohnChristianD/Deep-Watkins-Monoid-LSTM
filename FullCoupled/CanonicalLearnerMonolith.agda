@@ -16,7 +16,6 @@
 --no-guardedness
 --cohesion
 --flat-split
---exact-split
 --injective-type-constructors
 #-}
 
@@ -1212,14 +1211,14 @@ variable
 transport : (P : A → Set ℓ) → x ≡ y → P x → P y
 transport P refl p = p
 
-+comm : mNat + n ≡ n + mNat
-+comm = addNat-comm mNat n
++comm : (m n : Nat) → m + n ≡ n + m
++comm m n = addNat-comm m n
 
-zero+ : zero + n ≡ n
-zero+ = refl
+zero+ : (n : Nat) → zero + n ≡ n
+zero+ n = refl
 
-suc+ : (suc mNat) + n ≡ suc (mNat + n)
-suc+ = refl
+suc+ : (m n : Nat) → suc m + n ≡ suc (m + n)
+suc+ m n = refl
 
 
 canonical-map-identity : map (λ x → x) xs ≡ xs
