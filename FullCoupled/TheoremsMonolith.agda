@@ -7001,22 +7001,22 @@ canonical-learner-hodge-maxwell-step-conjugacy :
   ∀ (K : C.CanonicalFullLearnerKernel)
   (s : C.CanonicalFullLearnerState) →
   encode
-    (semantics (hodgeRepresentation W))
+    (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W))
     (learnerToSolution W s)
   ＝
   gruStep
-    (semantics (hodgeRepresentation W))
+    (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W))
     (encode
-      (semantics (hodgeRepresentation W))
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W))
       (learnerToSolution W s))
 canonical-learner-hodge-maxwell-step-conjugacy
   W K s =
   trans
     (cong
-      (encode (semantics (hodgeRepresentation W)))
+      (encode (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
       (sym (learnerStepConjugacy W K s)))
     (conjugacy
-      (semantics (hodgeRepresentation W))
+      (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W))
       (learnerToSolution W s))
 
 canonical-physics-to-learner-transition-witness :
@@ -7027,9 +7027,9 @@ canonical-physics-to-learner-transition-witness :
   (K : C.CanonicalFullLearnerKernel) →
   PhysicsToLearnerTransitionWitness
     C.CanonicalFullLearnerState
-    (Solution (semantics (hodgeRepresentation W)))
+    (Solution (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
     (C.canonicalFullStep K)
-    (step (semantics (hodgeRepresentation W)))
+    (step (ConnectedContinuousHodgeMaxwellGRURepresentationTheorem.semantics (hodgeRepresentation W)))
 canonical-physics-to-learner-transition-witness W K =
   physicsToLearnerTransitionWitness
     (learnerToSolution W)
