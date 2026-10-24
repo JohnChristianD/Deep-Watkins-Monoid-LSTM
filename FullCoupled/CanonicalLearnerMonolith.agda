@@ -50,7 +50,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 open import Haskell.Prelude public
 open import Haskell.Prim public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
-open import Haskell.Law.Equality public
+open import Haskell.Law.Equality public hiding (_≠_)
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
@@ -77,6 +77,12 @@ open import Agda.Builtin.Size public
 infix 4 _＝_
 _＝_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
 _＝_ = _≡_
+
+-- Agda2HS's legacy inequality helper is monomorphic in its carrier sort.
+-- State constructive inequality polymorphically so Set₁ learner states fit.
+infix 4 _≠_
+_≠_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
+x ≠ y = (x ＝ y) → ⊥
 
 ------------------------------------------------------------------------
 -- Shared constructive-computability assumptions and interfaces.
@@ -4256,9 +4262,8 @@ module CanonicalBellmanOrderTheory where
   -- need not be fixed-point maps (the LCB count advances on every step).
   ------------------------------------------------------------------------
 
-  infix 4 _⊑ω_
-
   record OmegaCPO (Value : Set) : Set₁ where
+    infix 4 _⊑ω_
     field
       _⊑ω_ : Value → Value → Set
       reflω : {x : Value} → _⊑ω_ x x
