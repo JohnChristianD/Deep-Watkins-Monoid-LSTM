@@ -92,9 +92,7 @@ open import FullCoupled.CanonicalLearnerMonolith as C hiding (gruStep)
 -- basis; it does not install global rewrite rules or prove consistency.
 -- Theorem kernel-check results remain relative to this basis, imports, and
 -- the Reflection/TC primitive trust boundary documented above.
-module ConstructiveComputabilityPostulates = C.ConstructiveComputabilityPostulates
-
-open ConstructiveComputabilityPostulates public using
+open C.ConstructiveComputabilityPostulates public using
   ( RussianRecursiveMathematicsBasis
   ; russianRecursiveMathematicsAssumptions
   ; russianMarkovPrinciple
