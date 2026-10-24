@@ -3812,8 +3812,9 @@ canonicalTotalCountStep :
   ∀ {A : Set}
   (K : FullLearnerKernel A)
   (s : FullLearnerState A) →
-  totalCount (lcbCounts (canonicalFullStep K s)) ＝
-  suc (totalCount (lcbCounts s))
+  totalCount {A = A}
+    (lcbCounts {A = A} (canonicalFullStep {A = A} K s)) ＝
+  suc (totalCount {A = A} (lcbCounts {A = A} s))
 canonicalTotalCountStep {A} K s = refl
 
 canonicalNoFixedPoint :
