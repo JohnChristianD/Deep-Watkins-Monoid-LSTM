@@ -8655,6 +8655,14 @@ canonicalTotalCountStepProgress K s =
     (C.canonicalTotalCountStep K s)
     (natSucProgress (C.totalCount (C.lcbCounts s)))
 
+-- Strict transitivity for the ordinary Nat order, proved from the
+-- non-strict order laws already used in this monolith.
+natStrictTrans :
+  ∀ {a b c : ℕ} → a < b → b < c → a < c
+natStrictTrans {a} {b} {c} aLessB bLessC =
+  ≤-trans (suc a) b c aLessB
+    (≤-trans b (suc b) c (x≤x+1 b) bLessC)
+
 canonicalTotalCountStrictProgress :
   ∀ {A : Set}
   (K : C.FullLearnerKernel A) →
@@ -8667,7 +8675,7 @@ canonicalTotalCountStrictProgress K =
   strictProgressWitness
     (λ s → C.totalCount (C.lcbCounts s))
     (λ s → canonicalTotalCountStepProgress K s)
-    <-trans
+    natStrictTrans
     (λ n → megaNatNoStrictBack {n = n})
 
 canonicalNoPositiveCycleFromTotalCount :
