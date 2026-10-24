@@ -10,3 +10,4 @@
 --cohesion
 --no-postfix-projections
 --experimental-lazy-instances
+--js
