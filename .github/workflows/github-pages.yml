@@ -1,23 +1,14 @@
-name: GitHub Pages
+name: Agda RUSS and static Pages
 
 on:
   push:
     branches: [main]
-    paths:
-      - ".github/workflows/github-pages.yml"
-      - ".github/workflows/nix-composition.yml"
-      - "FullCoupled/**"
-      - ".ci/**"
-      - "docs/**"
-      - "site/**"
-      - "index.html"
-      - "flake.nix"
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,28 +16,30 @@ concurrency:
 
 jobs:
   build:
-    name: Build static HTML/CSS artifact
+    name: End-to-end Agda, RUSS, and Pages
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
-      - name: Render static Pages with Fennel
+      - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
-        run: nix develop .#presentation -c scsh -s .ci/scsh/ci-lanes.scsh Pages
+        run: nix develop .#agda-ci -c scsh -s .ci/scsh/ci-lanes.scsh All
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: "${{ runner.temp }}/pages"
 
   deploy:
-    name: Deploy Pages
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-22.04
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: "${{ steps.deployment.outputs.page_url }}"
