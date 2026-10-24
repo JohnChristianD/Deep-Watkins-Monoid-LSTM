@@ -3808,8 +3808,13 @@ iterateCanonical-step-shift K zero s = refl
 iterateCanonical-step-shift K (suc n) s =
   cong (canonicalFullStep K) (iterateCanonical-step-shift K n s)
 
-canonicalTotalCountStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (canonicalFullStep K s)) ＝ suc (totalCount (lcbCounts s))
-canonicalTotalCountStep K s = refl
+canonicalTotalCountStep :
+  ∀ {A : Set}
+  (K : FullLearnerKernel A)
+  (s : FullLearnerState A) →
+  totalCount (lcbCounts (canonicalFullStep K s)) ＝
+  suc (totalCount (lcbCounts s))
+canonicalTotalCountStep {A} K s = refl
 
 canonicalNoFixedPoint :
   ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
