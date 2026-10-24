@@ -7610,7 +7610,7 @@ f4-add-right-nonnegative n zero = ≤-refl n
 f4-add-right-nonnegative n (suc m) =
   ≤-trans n (n + m) (suc (n + m))
     (f4-add-right-nonnegative n m)
-    (≤-succ (n + m))
+    (x≤x+1 (n + m))
 
 record MegaGeneralizedWalrasianEquilibrium
   (State Price Allocation : Set) : Set₁ where
