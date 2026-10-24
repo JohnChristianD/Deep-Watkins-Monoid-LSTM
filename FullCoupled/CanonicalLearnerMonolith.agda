@@ -136,12 +136,13 @@ module ConstructiveComputabilityPostulates where
   propExistsIntro x evidence R eliminate = eliminate x evidence
 
   ----------------------------------------------------------------------
-  -- A concrete computation relation for Church's Thesis.
+  -- Concrete finite-trace register-machine semantics.
   --
-  -- Programs are finite register-machine listings with increment,
-  -- decrement/zero-test, jumps, and halt. A computation is a finite trace
-  -- ending at halt with the output in register zero. Church's Thesis below
-  -- asserts that every total Nat -> Nat function has such a program.
+  -- The evaluator below is ordinary computation. Richman's computable-
+  -- partial-functions (CPF) principle is separate: it asserts that a partial
+  -- function with an explicitly enumerable domain is represented by a finite
+  -- program. The total Church/ECT₀ interface is derived from CPF, not separately
+  -- postulated.
   ----------------------------------------------------------------------
 
   data RecursiveInstruction : Set where
@@ -365,6 +366,88 @@ module ConstructiveComputabilityPostulates where
               (ComputationTrace program input output)
               (λ _ → relation input output))
 
+  -- An entry either skips an enumeration index or names a defined input.
+  -- Constructor inspection makes the set of active indices detachable; the
+  -- completeness field requires every defined input to occur.
+  data PartialDomainEntry : Set where
+    noPartialDomainEntry : PartialDomainEntry
+    partialDomainEntry : Nat → PartialDomainEntry
+
+  record CountableDomainPartialFunction : Set₂ where
+    constructor countableDomainPartialFunction
+    field
+      partialDomain : Nat → Set
+      partialValue : Nat → Nat
+      partialDomainEnumerator : Nat → PartialDomainEntry
+      partialDomainEnumeratorSound :
+        (index input : Nat) →
+        partialDomainEnumerator index ≡ partialDomainEntry input →
+        partialDomain input
+      partialDomainEnumeratorComplete :
+        (input : Nat) →
+        partialDomain input →
+        SigmaWitness Nat
+          (λ index → partialDomainEnumerator index ≡ partialDomainEntry input)
+  open CountableDomainPartialFunction public
+
+  record ComputesPartialFunction
+    (program : RecursiveProgram)
+    (f : CountableDomainPartialFunction) : Set₁ where
+    constructor computesPartialFunction
+    field
+      computesDefinedInput :
+        (input : Nat) →
+        partialDomain f input →
+        SigmaWitness Nat
+          (λ output →
+            SigmaWitness (ComputationTrace program input output)
+              (λ _ → partialValue f input ≡ output))
+      doesNotComputeUndefinedInput :
+        (input : Nat) →
+        Neg (partialDomain f input) →
+        (output : Nat) →
+        ComputationTrace program input output →
+        EmptyComputability
+  open ComputesPartialFunction public
+
+  record CPFProgramWitness
+    (f : CountableDomainPartialFunction) : Set₂ where
+    constructor cpfProgramWitness
+    field
+      cpfProgram : RecursiveProgram
+      cpfProgramCorrect : ComputesPartialFunction cpfProgram f
+  open CPFProgramWitness public
+
+  data AlwaysDefined : Set where
+    alwaysDefined : AlwaysDefined
+
+  totalFunctionDomainSound :
+    (index input : Nat) →
+    partialDomainEntry index ≡ partialDomainEntry input →
+    AlwaysDefined
+  totalFunctionDomainSound .input input refl = alwaysDefined
+
+  totalFunctionAsPartial :
+    (f : Nat → Nat) → CountableDomainPartialFunction
+  totalFunctionAsPartial f = record
+    { partialDomain = λ _ → AlwaysDefined
+    ; partialValue = f
+    ; partialDomainEnumerator = partialDomainEntry
+    ; partialDomainEnumeratorSound = totalFunctionDomainSound
+    ; partialDomainEnumeratorComplete =
+        λ input _ → sigma-witness input refl
+    }
+
+  partialFunctionEqualitySym :
+    {A : Set} {left right : A} →
+    left ≡ right → right ≡ left
+  partialFunctionEqualitySym refl = refl
+
+  partialFunctionTransport :
+    {A : Set} (P : A → Set) {left right : A} →
+    left ≡ right → P left → P right
+  partialFunctionTransport P refl evidence = evidence
+
   ----------------------------------------------------------------------
   -- First-order Heyting arithmetic syntax and its derivation rules.
   --
@@ -470,28 +553,6 @@ module ConstructiveComputabilityPostulates where
       (haImplication
         (haNegation (haNegation (haExistential varIndex body)))
         (haExistential varIndex body))
-
-  -- The ECT₀ axiom schema. The T-predicate is represented by the explicit
-  -- machine-computation atom; its arithmetisation and soundness bridge are
-  -- deliberately separate obligations rather than silently postulated.
-  haExtendedChurchThesis0Formula :
-    Nat → Nat → Nat → Nat → HAFormula → HAFormula → HAFormula
-  haExtendedChurchThesis0Formula input output code trace antecedent consequent =
-    haImplication
-      (haUniversal input
-        (haImplication antecedent (haExistential output consequent)))
-      (haExistential code
-        (haUniversal input
-          (haImplication antecedent
-            (haExistential output
-              (haExistential trace
-                (haConjunction
-                  (haMachineComputes
-                    (haVariable code)
-                    (haVariable input)
-                    (haVariable trace)
-                    (haVariable output))
-                  consequent))))))
 
   haBooleanOr : Bool → Bool → Bool
   haBooleanOr True _ = True
@@ -738,40 +799,6 @@ module ConstructiveComputabilityPostulates where
       HAIsDeltaZero body →
       HAIsDeltaZero (haBoundedExistential varIndex bound body)
 
-  -- The ECT_0 domain restriction is explicit: no disjunction and no unbounded
-  -- existential is admitted except where its body is delta-zero.
-  data HAAlmostNegative : HAFormula → Set where
-    haAlmostFalsehood : HAAlmostNegative haFalsehood
-    haAlmostEquality :
-      (left right : HATerm) → HAAlmostNegative (haEquality left right)
-    haAlmostLessOrEqual :
-      (left right : HATerm) → HAAlmostNegative (haLessOrEqual left right)
-    haAlmostMachineComputes :
-      (code input trace output : HATerm) →
-      HAAlmostNegative (haMachineComputes code input trace output)
-    haAlmostConjunction :
-      {left right : HAFormula} →
-      HAAlmostNegative left → HAAlmostNegative right →
-      HAAlmostNegative (haConjunction left right)
-    haAlmostImplication :
-      {left right : HAFormula} →
-      HAAlmostNegative left → HAAlmostNegative right →
-      HAAlmostNegative (haImplication left right)
-    haAlmostUniversal :
-      {varIndex : Nat} {body : HAFormula} →
-      HAAlmostNegative body → HAAlmostNegative (haUniversal varIndex body)
-    haAlmostBoundedUniversal :
-      {varIndex : Nat} {bound : HATerm} {body : HAFormula} →
-      HAAlmostNegative body →
-      HAAlmostNegative (haBoundedUniversal varIndex bound body)
-    haAlmostExistentialDeltaZero :
-      {varIndex : Nat} {body : HAFormula} →
-      HAIsDeltaZero body → HAAlmostNegative (haExistential varIndex body)
-    haAlmostBoundedExistentialDeltaZero :
-      {varIndex : Nat} {bound : HATerm} {body : HAFormula} →
-      HAIsDeltaZero body →
-      HAAlmostNegative (haBoundedExistential varIndex bound body)
-
   data HADerivation : List HAFormula → HAFormula → Set where
     haAssumption :
       {context : List HAFormula} {formula : HAFormula} →
@@ -942,49 +969,16 @@ module ConstructiveComputabilityPostulates where
       {context : List HAFormula} (varIndex : Nat) {body : HAFormula} →
       HAIsDeltaZero body →
       HADerivation context (haMarkovPrincipleFormula varIndex body)
-    haExtendedChurchThesis0 :
-      {context : List HAFormula}
-      {input output code trace : Nat}
-      {antecedent consequent : HAFormula} →
-      HAAlmostNegative antecedent →
-      HAContextFresh input context →
-      HAContextFresh code context →
-      HAContextFresh trace context →
-      haOccursFormula output antecedent ≡ False →
-      haOccursFormula code antecedent ≡ False →
-      haOccursFormula trace antecedent ≡ False →
-      haOccursFormula code consequent ≡ False →
-      haOccursFormula trace consequent ≡ False →
-      natEquality input output ≡ False →
-      natEquality input code ≡ False →
-      natEquality input trace ≡ False →
-      natEquality output code ≡ False →
-      natEquality output trace ≡ False →
-      natEquality code trace ≡ False →
-      HADerivation context
-        (haExtendedChurchThesis0Formula
-          input output code trace antecedent consequent)
-
-  data ConstructiveArithmeticSchema : Set where
-    markovPrincipleSchema : ConstructiveArithmeticSchema
-    extendedChurchThesis0Schema : ConstructiveArithmeticSchema
-
-  -- An untruncated marker for the object-language ECT_0 schema. Actual
-  -- machine-code soundness is not inferred from this marker.
-  churchThesisSchema : ConstructiveArithmeticSchema
-  churchThesisSchema = extendedChurchThesis0Schema
-
   ----------------------------------------------------------------------
   -- Russian constructivism: one explicit assumption package, with public
   -- projections. These declarations are assumptions, not REWRITE rules.
   ----------------------------------------------------------------------
 
   -- This record is the visible RUSS trust boundary for this development.
-  -- It packages Markov's Principle for decidable predicates, the concrete
-  -- finite-register-machine ECT₀ signature below, and Prop-valued countable
-  -- choice. Public projections expose the assumptions to downstream proofs;
-  -- that API visibility does not make them rewrite rules or derive them from
-  -- MLTT.
+  -- It packages Markov's Principle for decidable predicates and Richman's
+  -- computable-partial-functions (CPF) enumeration principle. Neither
+  -- countable choice nor dependent choice is assumed here. The ECT₀ result
+  -- for a relation with pointwise witnesses is derived from CPF below.
   --
   -- CONSISTENCY STATUS: neither this record nor a successful Agda kernel
   -- check certifies joint RUSS consistency. Type-checking establishes
@@ -994,12 +988,11 @@ module ConstructiveComputabilityPostulates where
   -- exact signature and its complete transitive dependency closure. Searching
   -- for an inhabitant of an empty type is not such an argument.
   --
-  -- FORMALIZATION BOUNDARY: the project-specific ECT₀ signature must not be
-  -- identified with a textbook formulation until the computation relation,
-  -- admissible predicates, and quantifiers are shown equivalent. Its
-  -- computational content is a substantive assumption. The Prop-valued
-  -- Countable choice is deliberately excluded from this core RUSS basis; any
-  -- theorem requiring it must state it as a separate hypothesis.
+  -- FORMALIZATION BOUNDARY: CPF is stated relative to this finite-trace
+  -- register-machine evaluator and to a partial function carrying an explicit
+  -- enumeration of its domain. This is the selected computational
+  -- interpretation; consistency still needs a separate model or
+  -- relative-consistency argument. ECT₀ is a derived corollary, not an axiom.
   record RussianRecursiveMathematicsBasis : Set₃ where
     constructor russianRecursiveMathematicsBasis
     field
@@ -1009,14 +1002,11 @@ module ConstructiveComputabilityPostulates where
         Neg (Neg (SigmaWitness Nat P)) →
         SigmaWitness Nat P
 
-      -- Extended Church Thesis 0: a stated assumption for the finite
-      -- register-machine relation, not a soundness theorem for the evaluator.
-      russECT0 :
-        (relation : Nat → Nat → Set) →
-        ((input output : Nat) → Decidable (relation input output)) →
-        ((input : Nat) → SigmaWitness Nat (relation input)) →
-        SigmaWitness RecursiveProgram
-          (λ program → ComputesRelation program relation)
+      -- Richman's CPF: every partial function with an explicitly
+      -- enumerable domain is computed by a finite register program.
+      russCPF :
+        (f : CountableDomainPartialFunction) →
+        CPFProgramWitness f
 
 
   -- The sole RUSS trust entry in this interface. The record's projections
@@ -1033,6 +1023,50 @@ module ConstructiveComputabilityPostulates where
   russianMarkovPrinciple =
     RussianRecursiveMathematicsBasis.russMarkov russianRecursiveMathematicsAssumptions
 
+  -- Public projection of Richman's CPF enumeration axiom.
+  computablePartialFunctionsEnumeration :
+    (f : CountableDomainPartialFunction) →
+    CPFProgramWitness f
+  computablePartialFunctionsEnumeration =
+    RussianRecursiveMathematicsBasis.russCPF
+      russianRecursiveMathematicsAssumptions
+
+  -- "Church's thesis" names the adopted partial-function enumerability
+  -- principle, not a separate ECT₀ postulate.
+  churchThesis :
+    (f : CountableDomainPartialFunction) →
+    CPFProgramWitness f
+  churchThesis = computablePartialFunctionsEnumeration
+
+  extendedChurchThesis0FromBasis :
+    (basis : RussianRecursiveMathematicsBasis) →
+    (relation : Nat → Nat → Set) →
+    ((input output : Nat) → Decidable (relation input output)) →
+    ((input : Nat) → SigmaWitness Nat (relation input)) →
+    SigmaWitness RecursiveProgram
+      (λ program → ComputesRelation program relation)
+  extendedChurchThesis0FromBasis basis relation _ pointwiseWitness
+    with RussianRecursiveMathematicsBasis.russCPF basis
+      (totalFunctionAsPartial
+        (λ input → sigmaValue (pointwiseWitness input)))
+  ... | cpfProgramWitness program computation =
+    sigma-witness program
+      (record
+        { computesRelatedOutput = λ input →
+            let result =
+                  computesDefinedInput computation input alwaysDefined
+            in sigma-witness
+                 (sigmaValue result)
+                 (sigma-witness
+                   (sigmaValue (sigmaEvidence result))
+                   (partialFunctionTransport
+                     (relation input)
+                     (sigmaEvidence (sigmaEvidence result))
+                     (sigmaEvidence (pointwiseWitness input)))
+        })
+
+  -- Compatibility theorem: ECT₀ follows from CPF after pointwise witnesses
+  -- are supplied. No ECT₀ axiom is installed in the core basis.
   extendedChurchThesis0 :
     (relation : Nat → Nat → Set) →
     ((input output : Nat) → Decidable (relation input output)) →
@@ -1040,17 +1074,7 @@ module ConstructiveComputabilityPostulates where
     SigmaWitness RecursiveProgram
       (λ program → ComputesRelation program relation)
   extendedChurchThesis0 =
-    RussianRecursiveMathematicsBasis.russECT0 russianRecursiveMathematicsAssumptions
-
-  -- Keep the established identifier, now explicitly referring to ECT_0.
-  -- This preserves fully relevant Set-level program and trace witnesses.
-  churchThesis :
-    (relation : Nat → Nat → Set) →
-    ((input output : Nat) → Decidable (relation input output)) →
-    ((input : Nat) → SigmaWitness Nat (relation input)) →
-    SigmaWitness RecursiveProgram
-      (λ program → ComputesRelation program relation)
-  churchThesis = extendedChurchThesis0
+    extendedChurchThesis0FromBasis russianRecursiveMathematicsAssumptions
 
   ----------------------------------------------------------------------
   -- A data-level version of countable choice is a theorem: if every index
