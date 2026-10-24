@@ -50,7 +50,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 open import Haskell.Prelude public
 open import Haskell.Prim public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
-open import Haskell.Law.Equality public hiding (_≠_)
+open import Haskell.Law.Equality public hiding (_≠_; sym; trans)
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
@@ -83,6 +83,18 @@ _＝_ = _≡_
 infix 4 _≠_
 _≠_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
 x ≠ y = (x ＝ y) → ⊥
+
+-- The Agda2HS equality convenience functions use the runtime carrier sort.
+-- These MLTT lemmas must also transport equalities of Set₁ learner states.
+sym :
+  ∀ {ℓ : Level} {X : Set ℓ} {x y : X} →
+  x ≡ y → y ≡ x
+sym refl = refl
+
+trans :
+  ∀ {ℓ : Level} {X : Set ℓ} {x y z : X} →
+  x ≡ y → y ≡ z → x ≡ z
+trans refl q = q
 
 ------------------------------------------------------------------------
 -- Shared constructive-computability assumptions and interfaces.
