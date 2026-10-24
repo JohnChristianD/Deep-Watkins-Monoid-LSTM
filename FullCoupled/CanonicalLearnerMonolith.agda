@@ -145,7 +145,7 @@ module ConstructiveComputabilityPostulates where
     propLeft : P → PropOr P Q
     propRight : Q → PropOr P Q
 
-  LawOfExcludedMiddle : Set₃
+  LawOfExcludedMiddle : Prop₁
   LawOfExcludedMiddle = (P : Prop) → PropOr P (PropNeg P)
 
   -- Richman's countable choice, expressed with proposition-valued witnesses.
