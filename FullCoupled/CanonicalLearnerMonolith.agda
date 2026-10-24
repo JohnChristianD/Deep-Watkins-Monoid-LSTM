@@ -3790,10 +3790,12 @@ canonicalLearnerTracePrefix :
 canonicalLearnerTracePrefix K initial n =
   MLS.iterateStreamPrefix n (canonicalFullStep K) initial
 
+-- Arbitrary natural-index observation requires a productive infinite-size
+-- stream. A finite size index does not promise enough tail depth for every n.
 learnerStreamAt :
-  {i : Size} {A : Set ℓ} →
+  {A : Set ℓ} →
   ℕ →
-  LearnerStream i A →
+  LearnerStream ∞ A →
   A
 learnerStreamAt zero trace = learnerStreamHead trace
 learnerStreamAt (suc n) trace =
