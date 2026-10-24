@@ -2,9 +2,7 @@
   (.. "'" (string.gsub value "'" "'\\''") "'")))
 
 (local succeeded? (fn [status]
-  (if (number? status)
-      (= status 0)
-      (and status true))))
+  (or (= status 0) (= status true))))
 
 (local run! (fn [label command]
   (local status (os.execute command))
