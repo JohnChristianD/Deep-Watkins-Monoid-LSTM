@@ -1126,6 +1126,33 @@ identityActivation8-injective :
 identityActivation8-injective eq = eq
 
 ------------------------------------------------------------------------
+-- Carrier-polymorphic statistical representation.
+--
+-- A left inverse implies injectivity constructively. The carrier remains an
+-- arbitrary Set, so the same representation law can be instantiated by the
+-- canonical GRU observation or an explicitly supplied ZPF state carrier.
+------------------------------------------------------------------------
+
+record CarrierPolymorphicStatisticalRepresentation
+  (State Observation : Set) : Set₁ where
+  constructor carrierPolymorphicStatisticalRepresentation
+  field
+    encode : State → Observation
+    decode : Observation → State
+    decodeEncode : ∀ state → decode (encode state) ＝ state
+
+open CarrierPolymorphicStatisticalRepresentation public
+
+statisticalEncodeInjective :
+  ∀ {State Observation : Set}
+    (R : CarrierPolymorphicStatisticalRepresentation State Observation)
+    {s t : State} →
+    encode R s ＝ encode R t → s ＝ t
+statisticalEncodeInjective R {s} {t} collision =
+  trans
+    (sym (decodeEncode R s))
+    (trans (cong (decode R) collision) (decodeEncode R t))
+
 ------------------------------------------------------------------------
 -- Canonical theorem section: ZPF statistical representation boundary.
 ------------------------------------------------------------------------
