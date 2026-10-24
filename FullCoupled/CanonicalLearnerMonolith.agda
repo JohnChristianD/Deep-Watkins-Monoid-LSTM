@@ -3366,6 +3366,23 @@ module MonoidLSTMStreams where
   streamPrefix (suc n) input =
     streamHead input ∷ streamPrefix n (streamTail input)
   
+  -- Equality transport is universe-polymorphic; the Agda2HS Prelude's
+  -- generic law is intentionally Set₀-only.
+  streamCong :
+    {ℓa ℓb : Level} {a : Set ℓa} {b : Set ℓb}
+    (f : a → b) {x y : a} → x ≡ y → f x ≡ f y
+  streamCong f refl = refl
+
+  streamTrans :
+    {ℓ : Level} {a : Set ℓ} {x y z : a} →
+    x ≡ y → y ≡ z → x ≡ z
+  streamTrans refl yz = yz
+
+  streamSym :
+    {ℓ : Level} {a : Set ℓ} {x y : a} →
+    x ≡ y → y ≡ x
+  streamSym refl = refl
+
   mapList : {ℓa ℓb : Level} {a : Set ℓa} {b : Set ℓb} → (a → b) → List a → List b
   mapList f [] = []
   mapList f (value ∷ values) = f value ∷ mapList f values
@@ -3383,7 +3400,7 @@ module MonoidLSTMStreams where
     mapList f (streamPrefix n input)
   mapStreamPrefix 0 f input = refl
   mapStreamPrefix (suc n) f input =
-    cong (λ rest → f (streamHead input) ∷ rest)
+    streamCong (λ rest → f (streamHead input) ∷ rest)
       (mapStreamPrefix n f (streamTail input))
   
   -- a stateful scan is the causal recurrence used by stream-processing
@@ -3465,7 +3482,7 @@ module MonoidLSTMStreams where
     scanList step state (streamPrefix n inputs)
   scanStreamPrefix 0 step state inputs = refl
   scanStreamPrefix (suc n) step state inputs =
-    cong (λ rest → step state (streamHead inputs) ∷ rest)
+    streamCong (λ rest → step state (streamHead inputs) ∷ rest)
       (scanStreamPrefix n step
         (step state (streamHead inputs))
         (streamTail inputs))
@@ -3479,7 +3496,7 @@ module MonoidLSTMStreams where
       iterateList n step initial
   iterateStreamPrefix zero step initial = refl
   iterateStreamPrefix (suc n) step initial =
-    cong (λ rest → initial ∷ rest)
+    streamCong (λ rest → initial ∷ rest)
       (iterateStreamPrefix n step (step initial))
   
   CausalAt :
@@ -3498,11 +3515,11 @@ module MonoidLSTMStreams where
     (n : Nat) (f : input → output) →
     CausalAt n (mapStream f)
   mapStreamCausalAt n f left right samePrefix =
-    trans
+    streamTrans
       (mapStreamPrefix n f left)
-      (trans
+      (streamTrans
         (mapListCong f samePrefix)
-        (sym (mapStreamPrefix n f right)))
+        (streamSym (mapStreamPrefix n f right)))
   
   scanStreamCausalAt :
     {ℓs ℓi : Level} {state : Set ℓs} {input : Set ℓi}
@@ -3511,11 +3528,11 @@ module MonoidLSTMStreams where
     (state : state) →
     CausalAt n (scanStream step state)
   scanStreamCausalAt n step state left right samePrefix =
-    trans
+    streamTrans
       (scanStreamPrefix n step state left)
-      (trans
+      (streamTrans
         (scanListCong step state samePrefix)
-        (sym (scanStreamPrefix n step state right)))
+        (streamSym (scanStreamPrefix n step state right)))
   
   -- Sized stream contexts represent successive suffixes whose available size
   -- decreases at each tail. a homogeneous same-size stream of streams would be
@@ -3591,7 +3608,7 @@ module MonoidLSTMStreams where
     mapList (λ value → f (g value)) values
   mapListCompose f g [] = refl
   mapListCompose f g (value ∷ values) =
-    cong (λ rest → f (g value) ∷ rest) (mapListCompose f g values)
+    streamCong (λ rest → f (g value) ∷ rest) (mapListCompose f g values)
   
   mapStreamFusionPrefix :
     {ℓ : Level} {a b c : Set ℓ}
@@ -3599,29 +3616,19 @@ module MonoidLSTMStreams where
     streamPrefix n (mapStream f (mapStream g input)) ≡
     streamPrefix n (mapStream (λ value → f (g value)) input)
   mapStreamFusionPrefix n f g input =
-    trans
+    streamTrans
       (mapStreamPrefix n f (mapStream g input))
-      (trans
+      (streamTrans
         (mapListCong f (mapStreamPrefix n g input))
-        (trans
+        (streamTrans
           (mapListCompose f g (streamPrefix n input))
-          (sym (mapStreamPrefix n (λ value → f (g value)) input))))
+          (streamSym (mapStreamPrefix n (λ value → f (g value)) input))))
   
   -- a state encoding fuses with a scan whenever it commutes with one transition.
   -- The proof is coinductive: each tail obligation reduces the commuting square,
   -- then recurses at the strictly smaller stream size.
-  -- Equality composition and congruence are isolated from the sized
-  -- coinductive field so that no equality is eliminated in a Size< context.
-  streamCong :
-    {ℓa ℓb : Level} {a : Set ℓa} {b : Set ℓb}
-    (f : a → b) {x y : a} → x ≡ y → f x ≡ f y
-  streamCong f refl = refl
-
-  streamTrans :
-    {ℓ : Level} {a : Set ℓ} {x y z : a} →
-    x ≡ y → y ≡ z → x ≡ z
-  streamTrans refl yz = yz
-
+  -- These equality functions are defined outside sized/coinductive fields;
+  -- tails recurse only after their proof obligations have been transported.
   scanMapFusionBisimAux :
     {ℓs ℓt ℓi : Level} {i : Size}
     {state : Set ℓs} {target : Set ℓt} {input : Set ℓi} →
