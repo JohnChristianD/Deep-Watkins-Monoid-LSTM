@@ -6831,7 +6831,7 @@ record ContinuousHodgeMaxwellExactRepresentationData
     Form2 : Set
     FormStar : Set
     Form3 : Set
-    d : Form2 → Form3
+    exteriorDerivative : Form2 → Form3
     star : Form2 → FormStar
     dStar : FormStar → Form3
     zero3 : Form3
@@ -6842,7 +6842,7 @@ record ContinuousHodgeMaxwellExactRepresentationData
 
     maxwellEquation :
       ∀ s →
-      (d (fieldF s) ＝ zero3) ×
+      (exteriorDerivative (fieldF s) ＝ zero3) ×
       (dStar (star (fieldF s)) ＝ fieldJ s)
 
     step : Solution → Solution
