@@ -3796,10 +3796,10 @@ canonicalLearnerTracePrefix K initial n =
 -- Arbitrary natural-index observation requires a productive infinite-size
 -- stream. A finite size index does not promise enough tail depth for every n.
 learnerStreamAt :
-  {ℓA : Level} {A : Set ℓA} →
+  ∀ {A : Set} →
   ℕ →
-  LearnerStream ∞ A →
-  A
+  LearnerStream ∞ (FullLearnerState A) →
+  FullLearnerState A
 learnerStreamAt zero trace = learnerStreamHead trace
 learnerStreamAt (suc n) trace =
   learnerStreamAt n (learnerStreamTail trace)
