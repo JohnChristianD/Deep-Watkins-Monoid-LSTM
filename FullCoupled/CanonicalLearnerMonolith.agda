@@ -1300,7 +1300,7 @@ module CanonicalIntegerLaws where
   open import Haskell.Prim.Num
   open import Haskell.Prim.Integer
   
-  open import Haskell.Law.Equality
+  open import Haskell.Law.Equality hiding (sym; trans)
   open import Haskell.Law.Num.Def
   open import Haskell.Law.Num.Nat
   
