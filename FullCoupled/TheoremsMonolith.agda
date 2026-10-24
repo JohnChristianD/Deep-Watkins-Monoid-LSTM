@@ -4907,7 +4907,7 @@ generalTsallis2NearRationalCodeSparsity-definition :
   generalTsallis2NearRationalCodeSparsity xs ＝
     C.fromNatRationalCode
       (generalTsallis2Numerator xs)
-      (generalTsallis2Denominator xs)
+      (generalTsallis2Denominator xs C._∸_ suc zero)
 generalTsallis2NearRationalCodeSparsity-definition xs h
   with actionWeightSquareSum xs
 ... | zero = integerLayerNorm-absurd (h refl)
@@ -4938,7 +4938,7 @@ generalSupportSparsityRationalCode-definition :
   generalSupportSparsityRationalCode xs ＝
     C.fromNatRationalCode
       (length xs C._∸_ actionSupportCount xs)
-      (length xs)
+      (length xs C._∸_ suc zero)
 generalSupportSparsityRationalCode-definition xs = refl
 
 generalSupportSparsityRationalCode-oneHot :
