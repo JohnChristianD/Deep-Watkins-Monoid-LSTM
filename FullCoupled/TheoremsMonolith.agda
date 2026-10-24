@@ -82,7 +82,8 @@ syntax try-fun t f = try t or-else f
 -- Use Agda2HS Prelude algebra and Agda's builtin dependent-pair type.
 -- No vendored ordinal or external sum-theory library is required.
 open import Haskell.Law.Num.Nat using
-  ( mulNat-comm
+  ( addNat-comm
+  ; mulNat-comm
   ; mulNat-distributeˡ-addNat
   ; mulNat-assoc
   )
@@ -1504,7 +1505,7 @@ nat-ring-solver-layernorm-contribution xs epsilon =
           (trans
             (cong (λ value → (n * n) + value)
               (mulNat-comm n (epsilon * n)))
-            (addition-commutativity (n * n) ((epsilon * n) * n))))))
+            (addNat-comm (n * n) ((epsilon * n) * n))))))
 integerLayerNorm-epsilon-contribution-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
   (succ epsilon * length xs * length xs)
