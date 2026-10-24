@@ -171,7 +171,7 @@ module RUSSProofTheory where
   --   a syntactic presheaf model of CIC interpreting Markov's Principle while
   --   preserving canonicity and decidability of type-checking. It motivates
   --   a model-based treatment of MP; it does not certify this repository's
-  --   combined RUSS, ECT0, countable-choice, or Scott-Ershov assumptions.
+  --   combined RUSS/ECT₀ or Scott-Ershov assumptions.
   -- * Pédrot, "Upon This Quote I Will Build My Church Thesis," LICS 2024,
   --   https://doi.org/10.1145/3661814.3662070. Its quotation-based extension
   --   of MLTT derives internal Church's Thesis and proves consistency,
@@ -198,7 +198,6 @@ module RUSSProofTheory where
   data RUSSAxiomTag : Set where
     russMarkovTag : RUSSAxiomTag
     russECT0Tag : RUSSAxiomTag
-    russCountableChoiceTag : RUSSAxiomTag
 
   RUSSAxiomMeaning : RUSSAxiomTag → Set₃
   RUSSAxiomMeaning russMarkovTag =
@@ -212,13 +211,6 @@ module RUSSProofTheory where
     ((input : Nat) → SigmaWitness Nat (relation input)) →
     SigmaWitness RecursiveProgram
       (λ program → ComputesRelation program relation)
-  RUSSAxiomMeaning russCountableChoiceTag =
-    (A : Nat → Set) →
-    (P : (n : Nat) → A n → Prop) →
-    ((n : Nat) → PropExists (P n)) →
-    PropExists {A = (n : Nat) → A n}
-      (λ choose → (n : Nat) → P n (choose n))
-
   russAxiomFromBasis :
     (basis : RussianRecursiveMathematicsBasis) →
     (tag : RUSSAxiomTag) → RUSSAxiomMeaning tag
@@ -226,9 +218,6 @@ module RUSSProofTheory where
     RussianRecursiveMathematicsBasis.russMarkov basis
   russAxiomFromBasis basis russECT0Tag =
     RussianRecursiveMathematicsBasis.russECT0 basis
-  russAxiomFromBasis basis russCountableChoiceTag =
-    RussianRecursiveMathematicsBasis.russCountableChoice basis
-
   data RUSSFormula : Set where
     russFalsehood : RUSSFormula
     russTruthhood : RUSSFormula
@@ -430,17 +419,6 @@ module RUSSProofTheory where
   russECT0CertifiedProgram basis relation decide pointwiseWitness =
     RussianRecursiveMathematicsBasis.russECT0
       basis relation decide pointwiseWitness
-
-  russPropCountableSelector :
-    (basis : RussianRecursiveMathematicsBasis) →
-    (A : Nat → Set) →
-    (P : (n : Nat) → A n → Prop) →
-    ((n : Nat) → PropExists (P n)) →
-    PropExists {A = (n : Nat) → A n}
-      (λ choose → (n : Nat) → P n (choose n))
-  russPropCountableSelector basis A P pointwise =
-    RussianRecursiveMathematicsBasis.russCountableChoice
-      basis A P pointwise
 
   russDataCountableSelector :
     (A : Nat → Set) →
