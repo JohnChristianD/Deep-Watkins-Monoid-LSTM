@@ -3823,12 +3823,11 @@ canonicalTotalCountStep {A} K s = refl
 canonicalNoFixedPoint :
   ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
   canonicalFullStep K s ≠ s
-canonicalNoFixedPoint K s eq =
+canonicalNoFixedPoint K s refl =
   plus-succ-not-self (totalCount (lcbCounts s)) zero
     (trans (plus-succ (totalCount (lcbCounts s)) zero)
       (trans (cong suc (plus-zero (totalCount (lcbCounts s))))
-        (trans (sym (canonicalTotalCountStep K s))
-          (cong (λ t → totalCount (lcbCounts t)) eq))))
+        (sym (canonicalTotalCountStep K s))))
 
 
 canonicalTotalCountAfter :
@@ -3844,10 +3843,9 @@ canonicalTotalCountAfter K (suc n) s =
       (sym (plus-succ (totalCount (lcbCounts s)) n)))
 
 canonicalAperiodic : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ≠ s
-canonicalAperiodic K s n cyc = plus-succ-not-self (totalCount (lcbCounts s)) n
-  (trans
+canonicalAperiodic K s n refl =
+  plus-succ-not-self (totalCount (lcbCounts s)) n
     (sym (canonicalTotalCountAfter K (suc n) s))
-    (cong (λ t → totalCount (lcbCounts t)) cyc))
 
 canonicalOrbitNonFixed : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K n s ≠ canonicalFullStep K (iterateCanonical K n s)
 canonicalOrbitNonFixed K s n eq =
@@ -3860,9 +3858,9 @@ canonicalTotalCountIterate2 : ∀ {A} (K : FullLearnerKernel A) (s : FullLearner
 canonicalTotalCountIterate2 K s = refl
 
 canonicalNoCountedTwoCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → iterateCanonical K 2 s ＝ s → ⊥
-canonicalNoCountedTwoCycle K s cyc = succ-succ-not-self (totalCount (lcbCounts s))
-  (trans (sym (canonicalTotalCountIterate2 K s))
-    (cong (λ t → totalCount (lcbCounts t)) cyc))
+canonicalNoCountedTwoCycle K s refl =
+  succ-succ-not-self (totalCount (lcbCounts s))
+    (sym (canonicalTotalCountIterate2 K s))
 
 temperatureCodeLaw : sparsemaxTemperature ＝ 16
 temperatureCodeLaw = refl
