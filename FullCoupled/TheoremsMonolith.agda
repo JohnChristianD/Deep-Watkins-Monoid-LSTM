@@ -1594,7 +1594,7 @@ integerLayerNorm-absurd ()
 
 nat-ring-solver-layernorm-contribution :
   ∀ (xs : List Integer) (epsilon : ℕ) →
-  (succ epsilon * length xs * length xs)
+  (suc epsilon * length xs * length xs)
   ＝
   (epsilon * length xs * length xs)
   + (length xs * length xs)
@@ -1615,7 +1615,7 @@ nat-ring-solver-layernorm-contribution xs epsilon =
             (addNat-comm (n * n) ((epsilon * n) * n))))))
 integerLayerNorm-epsilon-contribution-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
-  (succ epsilon * length xs * length xs)
+  (suc epsilon * length xs * length xs)
   ＝
   (epsilon * length xs * length xs)
   + (length xs * length xs)
@@ -1631,7 +1631,7 @@ integerLayerNorm-radicand-epsilon-zero xs = refl
 
 integerLayerNorm-radicand-epsilon-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
-  C.integerLayerNormRadicand xs (succ epsilon)
+  C.integerLayerNormRadicand xs (suc epsilon)
   ＝
   C.integerLayerNormRadicand xs epsilon
   +
@@ -1687,7 +1687,7 @@ integerLayerNorm-radicand-epsilon-linear xs zero =
     (sym
       (addInteger-idʳ
         (C.integerLayerNormVarianceNumerator xs)))
-integerLayerNorm-radicand-epsilon-linear xs (succ epsilon) =
+integerLayerNorm-radicand-epsilon-linear xs (suc epsilon) =
   trans
     (integerLayerNorm-radicand-epsilon-succ xs epsilon)
     (trans
@@ -1843,7 +1843,7 @@ iterateConjugacy :
   ＝
   C.iterate physicalStep n (encode s)
 iterateConjugacy encode stepConjugacy zero s = refl
-iterateConjugacy {learnerStep = learnerStep} {physicalStep = physicalStep} encode stepConjugacy (succ n) s =
+iterateConjugacy {learnerStep = learnerStep} {physicalStep = physicalStep} encode stepConjugacy (suc n) s =
   trans
     (stepConjugacy (C.iterate learnerStep n s))
     (cong
@@ -2197,8 +2197,8 @@ canonicalGRUFractalTransportedInjective =
   fractalTransportedEncodeInjective canonicalGRUFractal
 
 canonicalGRUTwoScaleRefinement :
-  GRUFractalRefines zero (succ zero)
-canonicalGRUTwoScaleRefinement = zero-least (succ zero)
+  GRUFractalRefines zero (suc zero)
+canonicalGRUTwoScaleRefinement = zero-least (suc zero)
 
 canonicalGRUTwoScaleInjective :
   ∀ {s t : C.GRUState} →
@@ -2753,12 +2753,12 @@ canonical-aq-loop-theorem =
 
 canonicalAperiodic-theorem :
   ∀ K s n →
-  C.iterateCanonical K (succ n) s ≢ s
+  C.iterateCanonical K (suc n) s ≢ s
 canonicalAperiodic-theorem = C.canonicalAperiodic
 
 canonicalNoNontrivialFiniteCycle-theorem :
   ∀ K s n →
-  C.iterateCanonical K (succ n) s ＝ s → ⊥
+  C.iterateCanonical K (suc n) s ＝ s → ⊥
 canonicalNoNontrivialFiniteCycle-theorem = C.canonicalNoNontrivialFiniteCycle
 
 record StateIsomorphism (A B : Set) : Set where
@@ -2774,7 +2774,7 @@ open StateIsomorphism public
 iterateIsomorphism :
   ∀ {A : Set} → (A → A) → ℕ → A → A
 iterateIsomorphism f zero a = a
-iterateIsomorphism f (succ n) a = iterateIsomorphism f n (f a)
+iterateIsomorphism f (suc n) a = iterateIsomorphism f n (f a)
 
 record StepConjugacyWitness
   (A B : Set)
@@ -2801,7 +2801,7 @@ stepConjugacy-iterate :
   iterateIsomorphism targetStep n (to (isomorphism W) a)
 stepConjugacy-iterate {sourceStep = sourceStep} {targetStep = targetStep} W zero a =
   refl
-stepConjugacy-iterate {sourceStep = sourceStep} {targetStep = targetStep} W (succ n) a =
+stepConjugacy-iterate {sourceStep = sourceStep} {targetStep = targetStep} W (suc n) a =
   trans
     (stepConjugacy-iterate {sourceStep = sourceStep} {targetStep = targetStep} W n (sourceStep a))
     (cong
@@ -2818,7 +2818,7 @@ iteratePredicateTransport :
   Property (iterateIsomorphism step n b)
 iteratePredicateTransport step Property preserved zero b proof =
   proof
-iteratePredicateTransport step Property preserved (succ n) b proof =
+iteratePredicateTransport step Property preserved (suc n) b proof =
   iteratePredicateTransport
     step
     Property
@@ -2884,7 +2884,7 @@ canonicalPersistentGRU-afterFullStep-iterate :
   ＝
   persistentGRU (gru s)
 canonicalPersistentGRU-afterFullStep-iterate K zero s = refl
-canonicalPersistentGRU-afterFullStep-iterate K (succ n) s =
+canonicalPersistentGRU-afterFullStep-iterate K (suc n) s =
   trans
     (canonicalPersistentGRU-afterFullStep-iterate
       K n (canonicalFullStep K s))
@@ -3214,7 +3214,7 @@ commutingIterate :
   ∀ {S : Set} →
   (S → S) → ℕ → S → S
 commutingIterate step zero s = s
-commutingIterate step (succ n) s =
+commutingIterate step (suc n) s =
   step (commutingIterate step n s)
 
 record CommutingSquareTheorem
@@ -3250,7 +3250,7 @@ commutingSquareTheorem-from-square {step = step} {observe = observe} {featureSte
       observe (commutingIterate step n s) ＝
       commutingIterate featureStep n (observe s)
     deriveIterateSquare zero s = refl
-    deriveIterateSquare (succ n) s =
+    deriveIterateSquare (suc n) s =
       trans
         (square (commutingIterate step n s))
         (cong featureStep (deriveIterateSquare n s))
@@ -3286,7 +3286,7 @@ canonicalCount-freeMonoidActionHomomorphism :
     C.CanonicalFullLearnerState
     ℕ
     (C.canonicalFullStep K)
-    succ
+    suc
     (λ s → C.totalCount (C.lcbCounts s))
 canonicalCount-freeMonoidActionHomomorphism K =
   freeMonoidActionHomomorphism-from-square
@@ -3323,7 +3323,7 @@ recurrentPrefix-scan-lifts-conjugacy :
       xs n
       (replace s)
 recurrentPrefix-scan-lifts-conjugacy replace step h xs zero s = refl
-recurrentPrefix-scan-lifts-conjugacy replace step h xs (succ n) s =
+recurrentPrefix-scan-lifts-conjugacy replace step h xs (suc n) s =
   trans
     (recurrentPrefix-scan-lifts-conjugacy
       replace
@@ -3439,7 +3439,7 @@ canonicalFullLearner-iterate-conjugacy :
   replace (C.iterateCanonical K n s) ＝
   C.iterateCanonical K n (replace s)
 canonicalFullLearner-iterate-conjugacy replace K h zero s = refl
-canonicalFullLearner-iterate-conjugacy replace K h (succ n) s =
+canonicalFullLearner-iterate-conjugacy replace K h (suc n) s =
   trans
     (canonicalFullLearner-iterate-conjugacy
       replace K h n (C.canonicalFullStep K s))
@@ -3503,7 +3503,7 @@ productRecurrentPrefix-correct :
   (C.recurrentPrefixState RA xs n s ,
    C.recurrentPrefixState RB xs n t)
 productRecurrentPrefix-correct RA RB xs zero s t = refl
-productRecurrentPrefix-correct RA RB xs (succ n) s t =
+productRecurrentPrefix-correct RA RB xs (suc n) s t =
   cong₂
     (λ a b →
       (C.runNetwork RA a (xs n) ,
@@ -3640,7 +3640,7 @@ canonical-qLog2Bias8-law :
         (C.rationalCodeDenominator (C.qLog8 x))))
 canonical-qLog2Bias8-law x with C.intCodeMagnitude x
 ... | zero = refl
-... | succ n = refl
+... | suc n = refl
 
 
 record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
@@ -3742,13 +3742,13 @@ canonicalWatkinsTarget-endogenous-leftInverse K observe inverse leftInverse s =
       (leftInverse s))
 
 succ-injective :
-  ∀ {m n : ℕ} → succ m ＝ succ n → m ＝ n
+  ∀ {m n : ℕ} → suc m ＝ suc n → m ＝ n
 succ-injective refl = refl
 
 natPlus-left-cancel :
   ∀ (k m n : ℕ) → k + m ＝ k + n → m ＝ n
 natPlus-left-cancel zero m n eq = eq
-natPlus-left-cancel (succ k) m n eq =
+natPlus-left-cancel (suc k) m n eq =
   natPlus-left-cancel k m n (succ-injective eq)
 
 canonicalOrbit-state-injective :
@@ -4142,7 +4142,7 @@ canonicalDeterministicFiniteStepDivergenceInevitability :
   (K : C.CanonicalFullLearnerKernel)
   (s : C.CanonicalFullLearnerState)
   (n : ℕ) →
-  C.iterateCanonical K (succ n) s ≢ s
+  C.iterateCanonical K (suc n) s ≢ s
 canonicalDeterministicFiniteStepDivergenceInevitability =
   C.canonicalAperiodic
 
@@ -4165,7 +4165,7 @@ canonicalIterateComposition K m zero s =
   cong
     (λ k → C.iterateCanonical K k s)
     (zero-right-neutral m)
-canonicalIterateComposition K m (succ n) s =
+canonicalIterateComposition K m (suc n) s =
   trans
     (cong
       (λ k → C.iterateCanonical K k s)
@@ -4176,7 +4176,7 @@ canonicalIterateComposition K m (succ n) s =
 
 recurrentPrefixStepWork : ℕ → ℕ
 recurrentPrefixStepWork zero = zero
-recurrentPrefixStepWork (succ n) = succ (recurrentPrefixStepWork n)
+recurrentPrefixStepWork (suc n) = suc (recurrentPrefixStepWork n)
 
 recurrentPrefixStepWork-law :
   ∀ n → recurrentPrefixStepWork n ＝ n
@@ -4190,10 +4190,10 @@ recurrentPrefixStepWork-split m zero =
   trans
     (cong recurrentPrefixStepWork (zero-right-neutral m))
     (sym (zero-right-neutral (recurrentPrefixStepWork m)))
-recurrentPrefixStepWork-split m (succ n) =
+recurrentPrefixStepWork-split m (suc n) =
   trans
     (cong recurrentPrefixStepWork (succ-right m n))
-    (cong succ (recurrentPrefixStepWork-split m n))
+    (cong suc (recurrentPrefixStepWork-split m n))
 
 canonicalNatIndexedExactUniversalReadout :
   ∀ {Feature Output : Set}
@@ -4221,7 +4221,7 @@ hardSignGate-idempotent x with C.hardSign x
 
 iterateState : ∀ {State : Set} → (State → State) → ℕ → State → State
 iterateState step zero s = s
-iterateState step (succ n) s = step (iterateState step n s)
+iterateState step (suc n) s = step (iterateState step n s)
 
 -- Stable compatibility name. Declared here because Agda checks declarations
 -- in order, and earlier theorem statements consume this generic iterator.
@@ -4450,7 +4450,7 @@ iterateUpdate :
   ∀ {State : Set} →
   (State → State) → ℕ → State → State
 iterateUpdate update zero state = state
-iterateUpdate update (succ n) state =
+iterateUpdate update (suc n) state =
   update (iterateUpdate update n state)
 
 GloballyEventuallyFixed :
@@ -4482,7 +4482,7 @@ guardedTraceStage :
   GuardedTrace Feature →
   Feature
 guardedTraceStage zero trace = GuardedTrace.traceHead trace
-guardedTraceStage (succ n) trace =
+guardedTraceStage (suc n) trace =
   guardedTraceStage n (GuardedTrace.traceTail trace)
 
 record GuardedTraceDenseRepresentation
@@ -4550,7 +4550,7 @@ iterateGuardedFeature :
   GuardedTrace Feature →
   GuardedTrace Feature
 iterateGuardedFeature step zero s = s
-iterateGuardedFeature step (succ n) s =
+iterateGuardedFeature step (suc n) s =
   step (iterateGuardedFeature step n s)
 
 guardedTraceIterateConjugacy :
@@ -4577,7 +4577,7 @@ guardedTraceIterateConjugacy
 guardedTraceIterateConjugacy
   {stateStep = stateStep}
   {featureStep = featureStep}
-  C (succ n) s =
+  C (suc n) s =
   trans
     (GuardedTraceConjugacy.stepConjugacy C (iterateUpdate stateStep n s))
     (cong
@@ -4711,7 +4711,7 @@ iterateStep-add :
   iterateStep step n
     (iterateStep step m s)
 iterateStep-add step zero n s = refl
-iterateStep-add step (succ m) n s =
+iterateStep-add step (suc m) n s =
   iterateStep-add step m n (step s)
 
 iterateStep-fixed :
@@ -4722,7 +4722,7 @@ iterateStep-fixed :
   ∀ n →
   iterateStep step n s ＝ s
 iterateStep-fixed step fixed zero = refl
-iterateStep-fixed step fixed (succ n) =
+iterateStep-fixed step fixed (suc n) =
   trans
     (cong
       (iterateStep step n)
@@ -4835,7 +4835,7 @@ gruInjectiveTailStability-identifiability W =
 
 
 successor-never-globally-eventually-fixed-at-zero :
-  ¬ GloballyEventuallyFixed succ 0
+  ¬ GloballyEventuallyFixed suc 0
 successor-never-globally-eventually-fixed-at-zero h =
   no-succ-zero
     (trans
@@ -4843,12 +4843,12 @@ successor-never-globally-eventually-fixed-at-zero h =
       (snd (h 1)))
   where
     iterateUpdate-succ :
-      ∀ n → iterateUpdate succ n 1 ＝ succ n
+      ∀ n → iterateUpdate suc n 1 ＝ suc n
     iterateUpdate-succ zero = refl
-    iterateUpdate-succ (succ n) =
-      cong succ (iterateUpdate-succ n)
+    iterateUpdate-succ (suc n) =
+      cong suc (iterateUpdate-succ n)
 
-    no-succ-zero : ∀ {n : ℕ} → succ n ≢ 0
+    no-succ-zero : ∀ {n : ℕ} → suc n ≢ 0
     no-succ-zero ()
 
 exact-injective-continuous-leftInverse-does-not-imply-update-stability :
@@ -4868,7 +4868,7 @@ exact-injective-continuous-leftInverse-does-not-imply-update-stability h =
       (λ n → n)
       (λ n → n)
       (λ _ → TrivialContinuity)
-      succ
+      suc
       0
       (continuousLeftInverseTheorem
         (λ _ → trivialContinuity)
@@ -4922,7 +4922,7 @@ ActionWeights = List ℕ
 
 nonzeroWeight : ℕ → ℕ
 nonzeroWeight zero = zero
-nonzeroWeight (succ _) = succ zero
+nonzeroWeight (suc _) = suc zero
 
 actionSupportCount : ActionWeights → ℕ
 actionSupportCount [] = zero
@@ -4952,12 +4952,12 @@ generalTsallis2NearRationalCodeSparsity : ActionWeights → C.RationalCode
 generalTsallis2NearRationalCodeSparsity xs with actionWeightSquareSum xs
 ... | zero =
   C.fromNatRationalCode 1 1
-... | succ q =
+... | suc q =
   C.fromNatRationalCode
     (generalTsallis2Numerator xs)
     (generalTsallis2Denominator xs)
 
-natZeroNotSuc : ∀ {n} → succ n ≢ zero
+natZeroNotSuc : ∀ {n} → suc n ≢ zero
 natZeroNotSuc ()
 
 generalTsallis2NearRationalCodeSparsity-zero :
@@ -4968,7 +4968,7 @@ generalTsallis2NearRationalCodeSparsity-zero :
 generalTsallis2NearRationalCodeSparsity-zero xs h
   with actionWeightSquareSum xs
 ... | zero = refl
-... | succ q = magic (natZeroNotSuc h)
+... | suc q = magic (natZeroNotSuc h)
 
 generalTsallis2NearRationalCodeSparsity-definition :
   ∀ (xs : ActionWeights) →
@@ -4980,7 +4980,7 @@ generalTsallis2NearRationalCodeSparsity-definition :
 generalTsallis2NearRationalCodeSparsity-definition xs h
   with actionWeightSquareSum xs
 ... | zero = magic (h refl)
-... | succ q = refl
+... | suc q = refl
 
 rationalCodeRepresentationEqual :
   C.RationalCode →
@@ -4990,7 +4990,7 @@ rationalCodeRepresentationEqual x y = x ＝ y
 
 tsallis2NearRationalCode-oneHot :
   rationalCodeRepresentationEqual
-    (generalTsallis2NearRationalCodeSparsity (succ zero ∷ zero ∷ []))
+    (generalTsallis2NearRationalCodeSparsity (suc zero ∷ zero ∷ []))
     (C.fromNatRationalCode 1 2)
 tsallis2NearRationalCode-oneHot = refl
 
@@ -5574,7 +5574,7 @@ globalConjugacyEquivalence-iterate :
   ＝
   iterateState featureStep n (observe s)
 globalConjugacyEquivalence-iterate G zero s = refl
-globalConjugacyEquivalence-iterate {step = step} {featureStep = featureStep} G (succ n) s =
+globalConjugacyEquivalence-iterate {step = step} {featureStep = featureStep} G (suc n) s =
   trans
     (GlobalConjugacyEquivalence.forward G (iterateState step n s))
     (cong
@@ -6276,9 +6276,9 @@ record CanonicalFiniteCycleExclusionIsomorphismTheorem : Set₁ where
         (f : A → A)
         (g : B → B) →
         (∀ a → to iso (f a) ＝ g (to iso a)) →
-        (∀ n a → iterateIsomorphism f (succ n) a ≢ a) →
+        (∀ n a → iterateIsomorphism f (suc n) a ≢ a) →
         ∀ n a →
-        iterateIsomorphism g (succ n) (to iso a) ≢ to iso a
+        iterateIsomorphism g (suc n) (to iso a) ≢ to iso a
 
 open CanonicalFiniteCycleExclusionIsomorphismTheorem public
 
@@ -6324,7 +6324,7 @@ record StationaryLimitTheorem
   constructor stationaryLimitTheorem
   field
     transitionLaw :
-      ∀ n → μ (succ n) ＝ P (μ n)
+      ∀ n → μ (suc n) ＝ P (μ n)
     converges :
       Converges μ μ∞
     limitPreserved :
@@ -6472,7 +6472,7 @@ canonical-operator-composition-theorem =
 f4Orbit :
   C.F4IntUKernel → Integer → ℕ → C.F4IntUState → C.F4IntUState
 f4Orbit K g zero s = s
-f4Orbit K g (succ n) s =
+f4Orbit K g (suc n) s =
   C.f4ThetaStep K (f4Orbit K g n s) g
 
 record F4UpperBoundedTrajectory
@@ -6487,14 +6487,14 @@ record F4UpperBoundedTrajectory
       C.thetaQ (f4Orbit K g n s) ≤ pos bound
 
 nat-plus-one :
-  ∀ n → n + succ zero ＝ succ n
+  ∀ n → n + suc zero ＝ suc n
 nat-plus-one n =
   trans
     (succ-right n zero)
-    (cong succ (zero-right-neutral n))
+    (cong suc (zero-right-neutral n))
 
 integer-nat-plus-one :
-  ∀ n → (pos n) + (pos 1) ＝ pos (succ n)
+  ∀ n → (pos n) + (pos 1) ＝ pos (suc n)
 integer-nat-plus-one n =
   cong pos (nat-plus-one n)
 
@@ -6529,7 +6529,7 @@ f4-unit-forcing-linear-growth :
   C.thetaQ s + (pos n)
 f4-unit-forcing-linear-growth zero s =
   sym (addInteger-idʳ (C.thetaQ s))
-f4-unit-forcing-linear-growth (succ n) s =
+f4-unit-forcing-linear-growth (suc n) s =
   trans
     (f4-zero-L2-unit-step-code
       (f4Orbit (C.f4IntUKernel 0) 1 n s))
@@ -6547,9 +6547,9 @@ f4-unit-forcing-linear-growth (succ n) s =
           (integer-nat-plus-one n))))
 
 nat-succ-not-le :
-  ∀ n → succ n ≤ n → ⊥
+  ∀ n → suc n ≤ n → ⊥
 nat-succ-not-le zero ()
-nat-succ-not-le (succ n) h =
+nat-succ-not-le (suc n) h =
   nat-succ-not-le n h
 
 f4-unit-forcing-no-upper-bound :
@@ -6562,38 +6562,38 @@ f4-unit-forcing-no-upper-bound :
 f4-unit-forcing-no-upper-bound thetaZero boundedWitness =
   let
     B = F4UpperBoundedTrajectory.bound boundedWitness
-    horizonBound = F4UpperBoundedTrajectory.bounded boundedWitness (succ B)
+    horizonBound = F4UpperBoundedTrajectory.bounded boundedWitness (suc B)
     growth =
       f4-unit-forcing-linear-growth
-        (succ B)
+        (suc B)
         _
     growthFromZero :
       C.thetaQ
           (f4Orbit
             (C.f4IntUKernel 0)
             1
-            (succ B)
+            (suc B)
             _)
       ＝
-      pos (succ B)
+      pos (suc B)
     growthFromZero =
       trans
         growth
         (trans
           (cong
-            (λ z → z + (pos (succ B)))
+            (λ z → z + (pos (suc B)))
             (cong (λ x → x) thetaZero))
-          (addInteger-idˡ (pos (succ B))))
+          (addInteger-idˡ (pos (suc B))))
     impossibleOrder :
-      pos (succ B) ≤ pos B
+      pos (suc B) ≤ pos B
     impossibleOrder =
       transport (λ z → z ≤ pos B)
         growthFromZero
         horizonBound
   in
     nat-succ-not-le B
-      (ℤ-bigger-or-equal-not-less (pos (succ B)) (pos B) impossibleOrder
-       (ℕ-order-respects-ℤ-order B (succ B) (<-succ B)))
+      (ℤ-bigger-or-equal-not-less (pos (suc B)) (pos B) impossibleOrder
+       (ℕ-order-respects-ℤ-order B (suc B) (<-succ B)))
 
 record CanonicalPureNonOrangeBypassCompletionTheorem : Set₁ where
   constructor canonicalPureNonOrangeBypassCompletionTheorem
@@ -6643,7 +6643,7 @@ record CanonicalStationarySubcompositionTheorem : Set₁ where
         (μ : ℕ → Distribution)
         (π : Distribution)
         (Converges : (ℕ → Distribution) → Distribution → Set) →
-      (∀ n → μ (succ n) ＝ P (μ n)) →
+      (∀ n → μ (suc n) ＝ P (μ n)) →
       Converges μ π →
       (Converges μ π → P π ＝ π) →
       StationaryLimitTheorem
@@ -6736,8 +6736,8 @@ record StrictFunctionClassSeparation
       ¬ FBase witness
 
 twoPow : ℕ → ℕ
-twoPow zero = succ zero
-twoPow (succ k) = twoPow k + twoPow k
+twoPow zero = suc zero
+twoPow (suc k) = twoPow k + twoPow k
 
 nat-plus-right-mono :
   ∀ {a b c : ℕ} → a ≤ b → a + c ≤ b + c
@@ -6756,13 +6756,13 @@ nat-plus-right-mono {a} {b} {c} p = helper a b p c
   nat-plus-right-mono-succ :
     (m n : ℕ) (q : m ≤ n) →
     P m n q →
-    P (succ m) (succ n) (succ-monotone m n q)
+    P (suc m) (suc n) (succ-monotone m n q)
   nat-plus-right-mono-succ m n q ih k =
     transport
-      (λ y → succ m + k ≤ y)
+      (λ y → suc m + k ≤ y)
       (sym (succ-left n k))
       (transport
-        (λ x → x ≤ succ (n + k))
+        (λ x → x ≤ suc (n + k))
         (sym (succ-left m k))
         (succ-monotone (m + k) (n + k) (ih k)))
 
@@ -7723,8 +7723,8 @@ nLabMaxwellFourLawGRUAlgebraicConsistencyTheorem-from-closed {W = W} B =
 f4-add-right-nonnegative :
   ∀ (n m : ℕ) → n ≤ n + m
 f4-add-right-nonnegative n zero = ≤-refl n
-f4-add-right-nonnegative n (succ m) =
-  ≤-trans n (n + m) (succ (n + m))
+f4-add-right-nonnegative n (suc m) =
+  ≤-trans n (n + m) (suc (n + m))
     (f4-add-right-nonnegative n m)
     (≤-succ (n + m))
 
@@ -7870,10 +7870,10 @@ open MegaFirstWelfareTheoremConditions public
 
 megaNatNoStrictBack :
   ∀ {n : ℕ} →
-  succ n ≤ n →
+  suc n ≤ n →
   ⊥
 megaNatNoStrictBack {zero} ()
-megaNatNoStrictBack {succ n} h =
+megaNatNoStrictBack {suc n} h =
   megaNatNoStrictBack h
 
 megaNatStrictCostContradiction :
@@ -8294,7 +8294,7 @@ factorTransitionAfterIterate :
   iterateIsomorphism (factorStep W) n (observe s)
 factorTransitionAfterIterate W zero s =
   refl
-factorTransitionAfterIterate W (succ n) s =
+factorTransitionAfterIterate W (suc n) s =
   trans
     (factorTransitionAfterIterate W n (step s))
     (cong
@@ -8648,10 +8648,10 @@ strictProgressAfterIterate :
   (n : ℕ)
   (s : State) →
   measure W s <
-  measure W (iterateStep step (succ n) s)
+  measure W (iterateStep step (suc n) s)
 strictProgressAfterIterate W zero s =
   stepProgress W s
-strictProgressAfterIterate W (succ n) s =
+strictProgressAfterIterate W (suc n) s =
   StrictProgressWitness.strictProgressTransitive W
     (stepProgress W s)
     (strictProgressAfterIterate W n (step s))
@@ -8663,7 +8663,7 @@ noPositiveFiniteCycleFromStrictProgress :
   (W : StrictProgressWitness State Measure step _<_)
   (n : ℕ)
   (s : State) →
-  iterateStep step (succ n) s ＝ s →
+  iterateStep step (suc n) s ＝ s →
   ⊥
 noPositiveFiniteCycleFromStrictProgress W n s eq =
   StrictProgressWitness.strictProgressIrreflexive W
@@ -8681,18 +8681,18 @@ record NatSuccessorProgressWitness
   field
     successor :
       ∀ s →
-      measure (step s) ＝ succ (measure s)
+      measure (step s) ＝ suc (measure s)
 
 open NatSuccessorProgressWitness public
 
 sucInjective :
-  ∀ {m n : ℕ} → succ m ＝ succ n → m ＝ n
+  ∀ {m n : ℕ} → suc m ＝ suc n → m ＝ n
 sucInjective refl = refl
 
 natPlusLeftCancel :
   ∀ (k m n : ℕ) → k + m ＝ k + n → m ＝ n
 natPlusLeftCancel zero m n eq = eq
-natPlusLeftCancel (succ k) m n eq =
+natPlusLeftCancel (suc k) m n eq =
   natPlusLeftCancel k m n (sucInjective eq)
 
 successorMeasureAfterIterate :
@@ -8705,11 +8705,11 @@ successorMeasureAfterIterate :
   measure (iterateStep step n s) ＝ measure s + n
 successorMeasureAfterIterate W zero s =
   sym (zero-right-neutral (measure W s))
-successorMeasureAfterIterate W (succ n) s =
+successorMeasureAfterIterate W (suc n) s =
   trans
     (successor W (iterateStep (step W) n s))
     (trans
-      (cong succ (successorMeasureAfterIterate W n s))
+      (cong suc (successorMeasureAfterIterate W n s))
       (sym (succ-right (measure W s) n)))
 
 successorMeasureOrbitInjective :
@@ -8732,8 +8732,8 @@ successorMeasureOrbitInjective W s {m} {n} eq =
         (cong (measure W) eq)
         (successorMeasureAfterIterate W n s)))
 
-natSucProgress : ∀ n → n < succ n
-natSucProgress n = ≤-refl (succ n)
+natSucProgress : ∀ n → n < suc n
+natSucProgress n = ≤-refl (suc n)
 
 canonicalTotalCountStepProgress :
   ∀ {A : Set}
@@ -8766,7 +8766,7 @@ canonicalNoPositiveCycleFromTotalCount :
   (K : C.FullLearnerKernel A)
   (n : ℕ)
   (s : C.FullLearnerState A) →
-  iterateStep (C.canonicalFullStep K) (succ n) s ＝ s →
+  iterateStep (C.canonicalFullStep K) (suc n) s ＝ s →
   ⊥
 canonicalNoPositiveCycleFromTotalCount K n s =
   noPositiveFiniteCycleFromStrictProgress
@@ -8794,7 +8794,7 @@ record MonolithStrictProgressClosure
       StrictProgressWitness State Measure step _<_
     noPositiveCycle :
       ∀ n s →
-      iterateStep step (succ n) s ＝ s →
+      iterateStep step (suc n) s ＝ s →
       ⊥
 
 open MonolithStrictProgressClosure public
@@ -9401,19 +9401,19 @@ record CommonsNonDerivabilityCounterexample : Set₁ where
         (action commonsWorld a)
     aggregateExtractionIsTwo :
       aggregateExtraction commonsWorld ＝
-      succ (succ zero)
+      suc (suc zero)
     extractionIsOne :
       ∀ a →
       extraction (action commonsWorld a) ＝
-      succ zero
+      suc zero
     capacityIsOne :
       resourceCapacity (sharedResource commonsWorld) ＝
-      succ zero
+      suc zero
 
 open CommonsNonDerivabilityCounterexample public
 
 twoNotLeOne :
-  ¬ succ (succ zero) ≤ succ zero
+  ¬ suc (suc zero) ≤ suc zero
 twoNotLeOne ()
 noUnconditionalCommonsPreservation :
   ∀ (C : CommonsNonDerivabilityCounterexample) →
@@ -9430,9 +9430,9 @@ noUnconditionalCommonsPreservation :
       (localOptimal C)
 noUnconditionalCommonsPreservation C D =
   twoNotLeOne
-    (transport (λ n → n ≤ succ zero)
+    (transport (λ n → n ≤ suc zero)
       (capacityIsOne C)
-      (transport (λ n → succ (succ zero) ≤ n)
+      (transport (λ n → suc (suc zero) ≤ n)
         (aggregateExtractionIsTwo C)
         (derive D
           (commonsWorld C)
@@ -9447,11 +9447,11 @@ twoAgentCommonsCounterexample =
     (⊤ Either ⊤)
     (⊤ Either ⊤)
     ℕ
-    (λ _ → succ zero)
-    (λ _ → succ zero)
+    (λ _ → suc zero)
+    (λ _ → suc zero)
     (λ _ _ → Right tt)
-    (λ _ → succ zero)
-    (λ _ → succ (succ zero))
+    (λ _ → suc zero)
+    (λ _ → suc (suc zero))
     (λ _ _ a → a ＝ Right tt)
     tt
     refl
@@ -9833,9 +9833,9 @@ noUnconditionalNestedCommonsPreservation :
   ¬ NestedCommonsPreservationDerivation Level C
 noUnconditionalNestedCommonsPreservation level C D =
   twoNotLeOne
-    (transport (λ n → n ≤ succ zero)
+    (transport (λ n → n ≤ suc zero)
       (capacityIsOne C)
-      (transport (λ n → succ (succ zero) ≤ n)
+      (transport (λ n → suc (suc zero) ≤ n)
         (aggregateExtractionIsTwo C)
         (derive D
           level
