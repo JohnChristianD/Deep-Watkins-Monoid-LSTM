@@ -4873,6 +4873,9 @@ generalTsallis2Numerator xs =
   generalTsallis2Denominator xs ∸
   (actionWeightSum xs * actionWeightSum xs)
 
+-- The RationalCode denominator field stores denominator minus one.
+-- When the square sum is positive, list length and square sum are both
+-- positive, so the mathematical denominator is positive as well.
 generalTsallis2NearRationalCodeSparsity : ActionWeights → C.RationalCode
 generalTsallis2NearRationalCodeSparsity xs with actionWeightSquareSum xs
 ... | zero =
@@ -4880,7 +4883,7 @@ generalTsallis2NearRationalCodeSparsity xs with actionWeightSquareSum xs
 ... | suc q =
   C.fromNatRationalCode
     (generalTsallis2Numerator xs)
-    (generalTsallis2Denominator xs)
+    (generalTsallis2Denominator xs C._∸_ suc zero)
 
 natZeroNotSuc : ∀ {n} → suc n ≢ zero
 natZeroNotSuc ()
@@ -4919,14 +4922,16 @@ rationalCodeRepresentationEqual x y = x ＝ y
 tsallis2NearRationalCode-oneHot :
   rationalCodeRepresentationEqual
     (generalTsallis2NearRationalCodeSparsity (suc zero ∷ zero ∷ []))
-    (C.fromNatRationalCode 1 2)
+    (C.fromNatRationalCode 1 1)
 tsallis2NearRationalCode-oneHot = refl
 
 generalSupportSparsityRationalCode : ActionWeights → C.RationalCode
+-- A nonempty input list uses denominator length; an empty list is
+-- totalized as 0/1 because RationalCode always stores a positive denominator.
 generalSupportSparsityRationalCode xs =
   C.fromNatRationalCode
     (length xs C._∸_ actionSupportCount xs)
-    (length xs)
+    (length xs C._∸_ suc zero)
 
 generalSupportSparsityRationalCode-definition :
   ∀ xs →
@@ -4935,6 +4940,12 @@ generalSupportSparsityRationalCode-definition :
       (length xs C._∸_ actionSupportCount xs)
       (length xs)
 generalSupportSparsityRationalCode-definition xs = refl
+
+generalSupportSparsityRationalCode-oneHot :
+  rationalCodeRepresentationEqual
+    (generalSupportSparsityRationalCode (suc zero ∷ zero ∷ []))
+    (C.fromNatRationalCode 1 1)
+generalSupportSparsityRationalCode-oneHot = refl
 
 record UniformSupportTsallisBoundary
   (weights : ActionWeights) : Set₁ where
