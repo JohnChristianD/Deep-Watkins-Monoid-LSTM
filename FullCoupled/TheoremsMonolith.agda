@@ -80,6 +80,7 @@ syntax try-fun t f = try t or-else f
 import Haskell.Law.Num.Integer as IntegerLaws
 open import Haskell.Law.Num.Nat using
   ( addNat-idʳ
+  ; addNat-suc
   ; addNat-comm
   ; mulNat-comm
   ; mulNat-distributeˡ-addNat
@@ -4170,7 +4171,7 @@ canonicalIterateComposition K m (suc n) s =
   trans
     (cong
       (λ k → C.iterateCanonical K k s)
-      (succ-right m n))
+      (addNat-suc m n))
     (cong
       (C.canonicalFullStep K)
       (canonicalIterateComposition K m n s))
@@ -4193,7 +4194,7 @@ recurrentPrefixStepWork-split m zero =
     (sym (addNat-idʳ (recurrentPrefixStepWork m)))
 recurrentPrefixStepWork-split m (suc n) =
   trans
-    (cong recurrentPrefixStepWork (succ-right m n))
+    (cong recurrentPrefixStepWork (addNat-suc m n))
     (cong suc (recurrentPrefixStepWork-split m n))
 
 canonicalNatIndexedExactUniversalReadout :
@@ -6491,7 +6492,7 @@ nat-plus-one :
   ∀ n → n + suc zero ＝ suc n
 nat-plus-one n =
   trans
-    (succ-right n zero)
+    (addNat-suc n zero)
     (cong suc (addNat-idʳ n))
 
 integer-nat-plus-one :
@@ -8711,7 +8712,7 @@ successorMeasureAfterIterate W (suc n) s =
     (successor W (iterateStep (step W) n s))
     (trans
       (cong suc (successorMeasureAfterIterate W n s))
-      (sym (succ-right (measure W s) n)))
+      (sym (addNat-suc (measure W s) n)))
 
 successorMeasureOrbitInjective :
   ∀ {State : Set}
