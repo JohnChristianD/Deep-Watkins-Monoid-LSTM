@@ -353,7 +353,7 @@ PY
             ];
           };
 
-          agda-emacs = pkgs.mkShell {
+          agda-emacs = pkgs.mkShellNoCC {
             packages = [
               (agdaCli system)
               (agdaCommand system)

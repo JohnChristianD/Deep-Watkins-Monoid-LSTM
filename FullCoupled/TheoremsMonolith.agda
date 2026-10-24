@@ -662,7 +662,108 @@ module RUSSProofTheory where
 
 open RUSSProofTheory public
 
+------------------------------------------------------------------------
+-- Constructive Rice theorem over an acceptable-programming interface.
+--
+-- A property is extensional when it depends only on program behavior. If
+-- such a property is nontrivial, a total decision procedure contradicts a
+-- Kleene fixed-point operator: make the fixed point behave as a counterexample
+-- when the decider says yes, and as a witness when the decider says no.
+--
+-- This derivation is intuitionistic. It uses explicit Decidable evidence,
+-- pointwise behavioral equality, and the fixed-point law; no excluded middle,
+-- function extensionality, or Markov principle is invoked.
+--
+-- IMPORTANT INSTANCE BOUNDARY: the register machine above currently has a
+-- finite-trace relation and a bounded evaluator. A concrete Rice theorem for
+-- that machine still requires a proved universal-program/fixed-point
+-- construction. RiceAcceptableSystem is an interface, not a postulate that
+-- the repository's register machine already satisfies it.
+------------------------------------------------------------------------
 
+data RiceObservation : Set where
+  riceDiverges : RiceObservation
+  riceReturns : Nat → RiceObservation
+
+RiceEquivalent :
+  {Program : Set} →
+  (Program → Nat → RiceObservation) →
+  Program → Program → Set
+RiceEquivalent observe left right =
+  (input : Nat) → observe left input ≡ observe right input
+
+record RiceAcceptableSystem : Set₁ where
+  constructor riceAcceptableSystem
+  field
+    RiceProgram : Set
+    riceObserve : RiceProgram → Nat → RiceObservation
+    riceSelect : Bool → RiceProgram → RiceProgram → RiceProgram
+    riceFixedPoint : (RiceProgram → RiceProgram) → RiceProgram
+    riceSelectTrue :
+      (left right : RiceProgram) →
+      RiceEquivalent riceObserve (riceSelect True left right) left
+    riceSelectFalse :
+      (left right : RiceProgram) →
+      RiceEquivalent riceObserve (riceSelect False left right) right
+    riceFixedPointLaw :
+      (transform : RiceProgram → RiceProgram) →
+      RiceEquivalent riceObserve
+        (riceFixedPoint transform)
+        (transform (riceFixedPoint transform))
+
+module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
+  open RiceAcceptableSystem system
+
+  riceEquivalentSym :
+    ∀ {left right : RiceProgram} →
+    RiceEquivalent riceObserve left right →
+    RiceEquivalent riceObserve right left
+  riceEquivalentSym equivalent input = sym (equivalent input)
+
+  riceEquivalentTrans :
+    ∀ {left middle right : RiceProgram} →
+    RiceEquivalent riceObserve left middle →
+    RiceEquivalent riceObserve middle right →
+    RiceEquivalent riceObserve left right
+  riceEquivalentTrans first second input =
+    trans (first input) (second input)
+
+  -- Rice's theorem, in constructive negative form: a nontrivial behavioral
+  -- property admits no total decision procedure on program indices.
+  riceNoDecider :
+    (Property : RiceProgram → Set) →
+    (extensional :
+      ∀ {left right : RiceProgram} →
+      RiceEquivalent riceObserve left right →
+      Property left → Property right) →
+    (good : RiceProgram) →
+    Property good →
+    (bad : RiceProgram) →
+    (Property bad → EmptyComputability) →
+    ((program : RiceProgram) → Decidable (Property program)) →
+    EmptyComputability
+  riceNoDecider Property extensional good goodProperty bad badNotProperty decide
+    with decide (riceFixedPoint chooseAgainstDecision)
+  ... | yes fixedProperty =
+    badNotProperty
+      (extensional
+        (riceEquivalentTrans
+          (riceFixedPointLaw chooseAgainstDecision)
+          (riceSelectFalse good bad))
+        fixedProperty)
+  ... | no notFixedProperty =
+    notFixedProperty
+      (extensional
+        (riceEquivalentSym
+          (riceEquivalentTrans
+            (riceFixedPointLaw chooseAgainstDecision)
+            (riceSelectTrue good bad)))
+        goodProperty)
+    where
+      chooseAgainstDecision : RiceProgram → RiceProgram
+      chooseAgainstDecision program with decide program
+      ... | yes _ = riceSelect False good bad
+      ... | no _ = riceSelect True good bad
 
 ------------------------------------------------------------------------
 -- Guarded trace interface and coinductive stream-fusion proof.

@@ -52,6 +52,8 @@
 , registerMachineEvaluatorPresent = %s
 , intuitionisticObjectCalculusSoundnessPresent = %s
 , objectCalculusRelativeConsistencyPresent = %s
+, constructiveRiceTheoremPresent = %s
+, concreteRiceProgrammingSystemPresent = False
 , independentCombinedBasisModelProvided = False
 , transitiveImportClosureCertified = False
 , fullRUSSConsistencyCertified = False
@@ -64,7 +66,8 @@
     (bool (has-token theorem "russSearchBounded"))
     (bool (has-token theorem "extendedChurchThesis0"))
     (bool (has-token theorem "russSoundness"))
-    (bool (has-token theorem "russCurrentBasisRelativeConsistency"))))
+    (bool (has-token theorem "russCurrentBasisRelativeConsistency"))
+    (bool (has-token theorem "riceNoDecider")))
 
 (output:close)
 (print "russ-audit=generated; lexical inventory is not a proof certificate")
