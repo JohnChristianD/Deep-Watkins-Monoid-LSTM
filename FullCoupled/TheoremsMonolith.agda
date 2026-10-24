@@ -6638,35 +6638,20 @@ twoPow : ℕ → ℕ
 twoPow zero = suc zero
 twoPow (suc k) = twoPow k + twoPow k
 
+nat-add-preserves-order :
+  (c b : ℕ) → c ≤ b + c
+nat-add-preserves-order c zero = ≤-refl c
+nat-add-preserves-order c (suc b) =
+  ≤-trans
+    (nat-add-preserves-order c b)
+    (x≤x+1 (b + c))
+
 nat-plus-right-mono :
   ∀ {a b c : ℕ} → a ≤ b → a + c ≤ b + c
-nat-plus-right-mono {a} {b} {c} p = helper a b p c
- where
-  LeqProofFamily : (m n : ℕ) → m ≤ n → Set
-  LeqProofFamily m n _ = (k : ℕ) → m + k ≤ n + k
-
-  base : (n : ℕ) → LeqProofFamily zero n (z≤n)
-  base n k =
-    transport
-      (λ x → x ≤ n + k)
-      (sym (zero-left-neutral k))
-      (≤-+' n k)
-
-  nat-plus-right-mono-succ :
-    (m n : ℕ) (q : m ≤ n) →
-    LeqProofFamily m n q →
-    LeqProofFamily (suc m) (suc n) (succ-monotone m n q)
-  nat-plus-right-mono-succ m n q ih k =
-    transport
-      (λ y → suc m + k ≤ y)
-      (sym (succ-left n k))
-      (transport
-        (λ x → x ≤ suc (n + k))
-        (sym (succ-left m k))
-        (succ-monotone (m + k) (n + k) (ih k)))
-
-  helper : (m n : ℕ) (q : m ≤ n) → LeqProofFamily m n q
-  helper = ≤-induction LeqProofFamily base nat-plus-right-mono-succ
+nat-plus-right-mono {zero} {b} {c} z≤n =
+  nat-add-preserves-order c b
+nat-plus-right-mono {suc a} {suc b} {c} (s≤s p) =
+  s≤s (nat-plus-right-mono {a} {b} {c} p)
 
 record EfficientOperatorMonoidRepresentation
   (State Input : Set) : Set₁ where
