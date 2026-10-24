@@ -103,6 +103,8 @@ open C.ConstructiveComputabilityPostulates public using
   ; EmptyComputability
   ; Neg
   ; Decidable
+  ; yes
+  ; no
   ; SigmaWitness
   ; sigma-witness
   ; sigmaValue
@@ -113,7 +115,7 @@ open C.ConstructiveComputabilityPostulates public using
   )
 
 open import Agda.Primitive using (Level)
-open MLS using (Size; Size<_; ∞)
+open import Agda.Builtin.Size using (Size; Size<_; ∞)
 
 ------------------------------------------------------------------------
 -- Flat modality as a comonad.
