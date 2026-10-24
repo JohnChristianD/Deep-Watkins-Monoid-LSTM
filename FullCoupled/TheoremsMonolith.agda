@@ -4962,6 +4962,9 @@ generalTsallis2NearRationalCodeSparsity xs with actionWeightSquareSum xs
 natZeroNotSuc : ∀ {n} → suc n ≢ zero
 natZeroNotSuc ()
 
+natSucNotZero : ∀ {n} → zero ≢ suc n
+natSucNotZero ()
+
 generalTsallis2NearRationalCodeSparsity-zero :
   ∀ (xs : ActionWeights) →
   actionWeightSquareSum xs ＝ zero →
@@ -4970,7 +4973,7 @@ generalTsallis2NearRationalCodeSparsity-zero :
 generalTsallis2NearRationalCodeSparsity-zero xs h
   with actionWeightSquareSum xs
 ... | zero = refl
-... | suc q = magic (natZeroNotSuc h)
+... | suc q = ⊥-elim (natZeroNotSuc h)
 
 generalTsallis2NearRationalCodeSparsity-definition :
   ∀ (xs : ActionWeights) →
@@ -4981,7 +4984,7 @@ generalTsallis2NearRationalCodeSparsity-definition :
       (generalTsallis2Denominator xs)
 generalTsallis2NearRationalCodeSparsity-definition xs h
   with actionWeightSquareSum xs
-... | zero = magic (h refl)
+... | zero = ⊥-elim (h refl)
 ... | suc q = refl
 
 rationalCodeRepresentationEqual :
