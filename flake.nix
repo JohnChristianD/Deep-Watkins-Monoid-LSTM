@@ -269,9 +269,6 @@ PY
           agda2hs = agda2hsTool system;
           agda-emacs = agdaEmacs system;
           ci = pkgs.dhall;
-          # Optional maintained Forth interpreter. It is not a CI dependency
-          # and has no smoke-test lane in this Agda/Fennel/Pages workflow.
-          gforth = pkgs.gforth;
           default = agdaCli system;
         });
 
