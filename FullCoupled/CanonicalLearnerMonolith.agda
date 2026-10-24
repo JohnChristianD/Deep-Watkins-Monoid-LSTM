@@ -57,7 +57,7 @@ open import Haskell.Law.Nat public
 open import Haskell.Law.Num.Nat public using (addNat-idʳ; addNat-suc; addNat-comm)
 open import Haskell.Law.Extensionality public
 open import Agda.Builtin.Equality.Rewrite
-{-# REWRITE addNat-idʳ addNat-suc #-}
+{-# REWRITE addNat-idʳ #-}
 open import Haskell.Law.Monad.List public
 open import Haskell.Law.Monoid.List public
 open import Haskell.Prim.Absurd public
