@@ -92,18 +92,30 @@ PY
           # common-offset proof. Agda 2.8 exposes the resulting mismatch.
           python - "$integer_source" <<'PY'
 import pathlib
+import re
 import sys
 
 path = pathlib.Path(sys.argv[1])
 source = path.read_text()
-old = "subNat-cong-+ m (n * suc m) (o * suc m)"
-new = "subNat-cong-+ (suc m) (n * suc m) (o * suc m)"
-old_endpoint = "subNat (m + (n * suc m)) (m + (o * suc m)) ∎"
-new_endpoint = "subNat (suc m + (n * suc m)) (suc m + (o * suc m)) ∎"
-if source.count(old) != 1 or source.count(old_endpoint) != 1:
-    raise SystemExit("pinned Haskell.Law.Num.Integer multiplication proof changed; refusing a fuzzy edit")
-source = source.replace(old, new, 1)
-source = source.replace(old_endpoint, new_endpoint, 1)
+pattern = re.compile(
+    r"(subNat-distrib-minus\s+\(suc m\)\s+\(suc n\)\s+\(suc o\)\s*=\s*)(.*?)(?=\n\nsubNat-mult-flip-negsuc)",
+    re.S,
+)
+match = pattern.search(source)
+if match is None:
+    raise SystemExit("pinned Haskell.Law.Num.Integer recursive multiplication clause changed")
+body = match.group(2)
+old_call = re.compile(r"subNat-cong-\+\s+m\s+\(n\s*\*\s*suc\s+m\)\s+\(o\s*\*\s*suc\s+m\)")
+new_call = "subNat-cong-+ (suc m) (n * suc m) (o * suc m)"
+body, calls = old_call.subn(new_call, body, count=1)
+if calls == 0 and "subNat-cong-+ (suc m) (n * suc m) (o * suc m)" not in body:
+    raise SystemExit("pinned Integer law common-offset call changed")
+old_end = re.compile(r"subNat\s*\(\s*m\s*\+\s*\(\s*n\s*\*\s*suc\s+m\s*\)\s*\)\s*\(\s*m\s*\+\s*\(\s*o\s*\*\s*suc\s+m\s*\)\s*\)\s*∎")
+new_end = "subNat (suc m + (n * suc m)) (suc m + (o * suc m)) ∎"
+body, ends = old_end.subn(new_end, body, count=1)
+if ends == 0 and new_end not in body:
+    raise SystemExit("pinned Integer law endpoint changed")
+source = source[:match.start()] + match.group(1) + body + source[match.end():]
 path.write_text(source)
 PY
           grep -Fq 'subNat-cong-+ (suc m) (n * suc m) (o * suc m)' "$integer_source"
