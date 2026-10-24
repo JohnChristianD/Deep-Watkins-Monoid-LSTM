@@ -3805,8 +3805,9 @@ iterateCanonical-step-shift :
   iterateCanonical K n (canonicalFullStep K s) ＝
   iterateCanonical K (suc n) s
 iterateCanonical-step-shift K zero s = refl
-iterateCanonical-step-shift K (suc n) s =
-  cong (canonicalFullStep K) (iterateCanonical-step-shift K n s)
+iterateCanonical-step-shift K (suc n) s
+  with iterateCanonical-step-shift K n s
+... | refl = refl
 
 canonicalTotalCountStep :
   ∀ {A : Set}
