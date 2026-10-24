@@ -3748,25 +3748,28 @@ module MLS = MonoidLSTMStreams
 
 -- The embedded stream carrier and observation laws belong to this learner module.
 -- The trace below iterates the actual canonical learner transition.
-LearnerStream : (i : Size) → Set ℓ → Set ℓ
+LearnerStream : (i : Size) → {ℓA : Level} → Set ℓA → Set ℓA
 LearnerStream i A = MLS.Stream A i
 
 learnerStreamHead :
-  {i : Size} {A : Set ℓ} → LearnerStream i A → A
+  {i : Size} {ℓA : Level} {A : Set ℓA} →
+  LearnerStream i A → A
 learnerStreamHead = MLS.streamHead
 
 learnerStreamTail :
-  {i : Size} {A : Set ℓ}
+  {i : Size} {ℓA : Level} {A : Set ℓA}
   (input : LearnerStream i A) →
   {j : Size< i} → LearnerStream j A
 learnerStreamTail = MLS.streamTail
 
 learnerStreamRepeat :
-  {i : Size} {A : Set ℓ} → A → LearnerStream i A
+  {i : Size} {ℓA : Level} {A : Set ℓA} →
+  A → LearnerStream i A
 learnerStreamRepeat = MLS.repeatStream
 
 mapLearnerStream :
-  {i : Size} {A B : Set ℓ} →
+  {i : Size} {ℓA ℓB : Level}
+  {A : Set ℓA} {B : Set ℓB} →
   (A → B) → LearnerStream i A → LearnerStream i B
 mapLearnerStream = MLS.mapStream
 
@@ -3793,7 +3796,7 @@ canonicalLearnerTracePrefix K initial n =
 -- Arbitrary natural-index observation requires a productive infinite-size
 -- stream. A finite size index does not promise enough tail depth for every n.
 learnerStreamAt :
-  {A : Set ℓ} →
+  {ℓA : Level} {A : Set ℓA} →
   ℕ →
   LearnerStream ∞ A →
   A
