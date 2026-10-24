@@ -6645,7 +6645,7 @@ nat-plus-right-mono {a} {b} {c} p = helper a b p c
   LeqProofFamily : (m n : ℕ) → m ≤ n → Set
   LeqProofFamily m n _ = (k : ℕ) → m + k ≤ n + k
 
-  base : (n : ℕ) → LeqProofFamily zero n (zero-least n)
+  base : (n : ℕ) → LeqProofFamily zero n (z≤n)
   base n k =
     transport
       (λ x → x ≤ n + k)
