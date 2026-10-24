@@ -1062,7 +1062,7 @@ module ConstructiveComputabilityPostulates where
                    (partialFunctionTransport
                      (relation input)
                      (sigmaEvidence (sigmaEvidence result))
-                     (sigmaEvidence (pointwiseWitness input)))
+                     (sigmaEvidence (pointwiseWitness input))))
         })
 
   -- Compatibility theorem: ECT₀ follows from CPF after pointwise witnesses
