@@ -65,7 +65,7 @@ open import Agda.Builtin.Reflection using
   ; strErr
   )
 
-open import Agda.Builtin.Sigma public
+open import Agda.Builtin.Sigma public hiding ( _,_ )
 import Agda.Builtin.Sigma as Sigma
 
 try-fun : ∀ {a} {A : Set a} → TC A → TC A → TC A
@@ -4574,9 +4574,9 @@ gruInjectiveTailStability-tailFixedPoint
   {featureStep = featureStep}
   {encode = encode}
   W s with featureTailStable W s
-... | n , tail =
-  n ,
-  encodeInjective W
+... | Sigma._,_ n tail =
+  Sigma._,_ n
+  (encodeInjective W
     (trans
       (stepConjugacy W
         (iterateStep stateStep n s))
@@ -4595,7 +4595,7 @@ gruInjectiveTailStability-tailFixedPoint
               encode
               (stepConjugacy W)
               n
-              s)))))
+              s))))))
 
 gruInjectiveTailStability-eventualStationarity :
   ∀ {State Feature : Set}
@@ -4626,15 +4626,15 @@ gruInjectiveTailStability-eventualStationarity
     {featureStep = featureStep}
     {encode = encode}
     W s
-... | n , fixed =
-  n ,
-  λ k →
+... | Sigma._,_ n fixed =
+  Sigma._,_ n
+  (λ k →
     trans
       (iterateStep-add stateStep n k s)
       (iterateStep-fixed
         stateStep
         fixed
-        k)
+        k))
 
 gruInjectiveTailStability-identifiability :
   ∀ {State Feature : Set}
@@ -6133,8 +6133,8 @@ nashEveryFiniteGameViaBrouwer :
   Σ Profile (λ p → mixedNash p)
 nashEveryFiniteGameViaBrouwer mixedNash N
   with fixedPoint N
-... | p , fixed =
-  p , fixedImpliesNash N p fixed
+... | Sigma._,_ p fixed =
+  Sigma._,_ p (fixedImpliesNash N p fixed)
 
 record StationaryLimitTheorem
   (Distribution : Set)
@@ -6233,9 +6233,9 @@ finiteMixedNash-from-GRU-tail
   featureFixedImpliesMixedNash
   s
   with gruInjectiveTailStability-tailFixedPoint W s
-... | n , fixed =
-  n ,
-  featureFixedImpliesMixedNash
+... | Sigma._,_ n fixed =
+  Sigma._,_ n
+  (featureFixedImpliesMixedNash
     (encode
       (iterateStep
         stateStep
@@ -6250,7 +6250,7 @@ finiteMixedNash-from-GRU-tail
             s)))
       (cong
         encode
-        fixed))
+        fixed)))
 
 
 record CanonicalOperatorCompositionTheorem : Set₁ where
@@ -7916,7 +7916,7 @@ megaSecondWelfareTheorem-boundary-counterexample =
     (λ _ _ → ⊥)
     tt
     tt
-    (λ { (_ , e) → e })
+    (λ { (Sigma._,_ _ e) → e })
 
 record MegaNoStrictAffordableAlternativeBoundary
   (Agent Price Allocation : Set)
@@ -8338,7 +8338,7 @@ megaNoEquilibriumWitness :
           p
           a))
 megaNoEquilibriumWitness
-  (p , a , witness) =
+  (Sigma._,_ p (Sigma._,_ a witness)) =
   witness
 
 noUnconditionalMegaGeneralizedWalrasianExistence :
@@ -9151,13 +9151,13 @@ finiteCandidatePriceSearch supports allocation decide [] =
   Right []
 finiteCandidatePriceSearch supports allocation decide (p ∷ ps) with decide p
 ... | acceptCandidate witness =
-  Left (p , witness)
+  Left (Sigma._,_ p witness)
 ... | rejectCandidate refute with
   finiteCandidatePriceSearch supports allocation decide ps
 ...   | Left witness =
   Left witness
 ...   | Right rejected =
-  Right ((p , refute) ∷ rejected)
+  Right ((Sigma._,_ p refute) ∷ rejected)
 
 finiteCandidatePriceSearch-complete :
   ∀ {Price Allocation : Set}
@@ -9423,7 +9423,7 @@ twoWorldsNoCommonSupportingPrice :
       (Left tt ＝ p) ×
       (Right tt ＝ p))
 twoWorldsNoCommonSupportingPrice
-  (p , (support₁ , support₂)) =
+  (Sigma._,_ p (support₁ , support₂)) =
   (λ ())
     (trans support₁ (sym support₂))
 

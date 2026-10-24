@@ -101,7 +101,7 @@
       "Naturals.Multiplication"
       "TypeTopology"))
   (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--cohesion")
-  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--exact-split")
+  (require-text "FullCoupled/CanonicalLearnerMonolith.agda" "--flat-split")
   (require-text "FullCoupled/TheoremsMonolith.agda" "--cohesion")
   (require-text "FullCoupled/TheoremsMonolith.agda" "--exact-split")
   (require-text "flake.nix" "gforth = pkgs.gforth;")
@@ -112,7 +112,7 @@
       (require-text path "--rewriting")
       (for-each (lambda (needle) (forbid-text path needle))
         '("open import Cubical." "open import Cubical "
-          "lawOfExcludedMiddle" "ExcludedMiddle" "classicalAxiom")))
+          "open import Agda.Builtin.Coinduction" "lawOfExcludedMiddle" "ExcludedMiddle" "classicalAxiom")))
     '("FullCoupled/CanonicalLearnerMonolith.agda"
       "FullCoupled/TheoremsMonolith.agda"))
   (display "official-nix-surface=pass\n"))
