@@ -45,6 +45,10 @@ open import Agda.Builtin.Reflection using
   ; visible
   ; Relevance
   ; relevant
+  ; Quantity
+  ; quantity-ω
+  ; Modality
+  ; modality
   ; ArgInfo
   ; arg-info
   ; Arg
@@ -123,7 +127,7 @@ open import Agda.Builtin.Size using (Size; Size<_; ∞)
 ------------------------------------------------------------------------
 
 𝓋𝓇𝒶 : {A : Set} → A → Arg A
-𝓋𝓇𝒶 = arg (arg-info visible relevant)
+𝓋𝓇𝒶 = arg (arg-info visible (modality relevant quantity-ω))
 
 ＝-type-info : Term → TC (Arg Term × Arg Term × Term × Term)
 ＝-type-info (def (quote _＝_) (𝓁 ∷ 𝒯 ∷ arg _ left ∷ arg _ right ∷ [])) =
