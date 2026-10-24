@@ -1504,7 +1504,7 @@ nat-ring-solver-layernorm-contribution xs epsilon =
           (trans
             (cong (λ value → (n * n) + value)
               (mulNat-comm n (epsilon * n)))
-            (addition-commutativity (n * n) ((epsilon * n) * n)))))
+            (addition-commutativity (n * n) ((epsilon * n) * n))))))
 integerLayerNorm-epsilon-contribution-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
   (succ epsilon * length xs * length xs)
