@@ -135,11 +135,11 @@ open import Agda.Builtin.Size using (Size; Size<_; ∞)
 ＝-type-info _ = typeError (strErr "Term is not a ＝-type." ∷ [])
 
 $-head : Term → Term
-$-head (var variable _) = var variable []
-$-head (con constructor _) = con constructor []
-$-head (def function _) = def function []
-$-head (pat-lam clauses _) = pat-lam clauses []
-$-head term = term
+$-head (var v args) = var v []
+$-head (con c args) = con c []
+$-head (def f args) = def f []
+$-head (pat-lam cs args) = pat-lam cs []
+$-head t = t
 
 macro
   apply-cong : Term → Term → TC ⊤
