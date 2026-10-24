@@ -580,7 +580,7 @@ module RUSSProofTheory where
   russStageMeetTrueRegression q n = refl
 
 
-open RUSSProofTheory public
+open RUSSProofTheory public using (russCurrentBasisRelativeConsistency)
 
 ------------------------------------------------------------------------
 -- Constructive Rice theorem over an acceptable-programming interface.
