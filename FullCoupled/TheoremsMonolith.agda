@@ -739,7 +739,7 @@ scanLearnerStream :
   {State : Set ℓS} {Input : Set ℓI} →
   (State → Input → State) →
   State → C.LearnerStream i Input → C.LearnerStream i State
-scanLearnerStream = MLS.scanSeededStream
+scanLearnerStream = C.MonoidLSTMStreams.scanSeededStream
 
 scanMapFusionBisim :
   {ℓS ℓT ℓI : Level} {i : Size}
