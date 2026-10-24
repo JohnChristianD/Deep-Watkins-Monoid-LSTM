@@ -3808,21 +3808,6 @@ iterateCanonical-step-shift K zero s = refl
 iterateCanonical-step-shift K (suc n) s =
   cong (canonicalFullStep K) (iterateCanonical-step-shift K n s)
 
-canonicalFullStep-gru : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → gru (canonicalFullStep K s) ＝ canonicalGRUStep K s
-canonicalFullStep-gru K s = refl
-
-canonicalFullStep-optimizer : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → optimizer (canonicalFullStep K s) ＝ canonicalOptimizerStep K s
-canonicalFullStep-optimizer K s = refl
-
-canonicalFullStep-counts : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → lcbCounts (canonicalFullStep K s) ＝ canonicalCountStep K s
-canonicalFullStep-counts K s = refl
-
-canonicalFullStep-qLog : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → qLogValue (canonicalFullStep K s) ＝ canonicalQLogStep K s
-canonicalFullStep-qLog K s = refl
-
-canonicalFullStep-qLogControl : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → qLogControl (canonicalFullStep K s) ＝ canonicalQLogControlStep K s
-canonicalFullStep-qLogControl K s = refl
-
 canonicalTotalCountStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → totalCount (lcbCounts (canonicalFullStep K s)) ＝ suc (totalCount (lcbCounts s))
 canonicalTotalCountStep K s = refl
 
