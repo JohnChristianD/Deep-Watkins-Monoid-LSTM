@@ -86,7 +86,7 @@ open import Haskell.Law.Num.Nat using
   ; mulNat-distributeˡ-addNat
   ; mulNat-assoc
   )
-open import FullCoupled.CanonicalLearnerMonolith as C hiding (gruStep)
+open import FullCoupled.CanonicalLearnerMonolith as C hiding (gruStep; String)
 
 ------------------------------------------------------------------------
 -- Re-export shared constructive-computability assumptions from the
