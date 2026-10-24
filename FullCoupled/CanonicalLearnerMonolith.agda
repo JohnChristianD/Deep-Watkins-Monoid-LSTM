@@ -1208,7 +1208,10 @@ variable
   k l mNat n   : Nat
   xs ys zs    : List A
 
-transport : (P : A → Set ℓ) → x ≡ y → P x → P y
+transport :
+  ∀ {ℓ₁ ℓ₂ : Level} {X : Set ℓ₁} →
+  (P : X → Set ℓ₂) {x y : X} →
+  x ≡ y → P x → P y
 transport P refl p = p
 
 -- Constructive transport over the reflexive-only relation used as the
@@ -3805,9 +3808,13 @@ iterateCanonical-step-shift :
   iterateCanonical K n (canonicalFullStep K s) ＝
   iterateCanonical K (suc n) s
 iterateCanonical-step-shift K zero s = refl
-iterateCanonical-step-shift K (suc n) s
-  with iterateCanonical-step-shift K n s
-... | refl = refl
+iterateCanonical-step-shift K (suc n) s =
+  transport
+    (λ t →
+      canonicalFullStep K (iterateCanonical K n (canonicalFullStep K s)) ＝
+      canonicalFullStep K t)
+    (iterateCanonical-step-shift K n s)
+    refl
 
 canonicalTotalCountStep :
   ∀ {A : Set}
@@ -3823,11 +3830,17 @@ canonicalTotalCountStep {A} K s = refl
 canonicalNoFixedPoint :
   ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
   canonicalFullStep K s ≠ s
-canonicalNoFixedPoint K s refl =
+canonicalNoFixedPoint K s eq =
   plus-succ-not-self (totalCount (lcbCounts s)) zero
     (trans (plus-succ (totalCount (lcbCounts s)) zero)
       (trans (cong suc (plus-zero (totalCount (lcbCounts s))))
-        (sym (canonicalTotalCountStep K s))))
+        (trans (sym (canonicalTotalCountStep K s))
+          (transport
+            (λ t →
+              totalCount (lcbCounts (canonicalFullStep K s)) ＝
+              totalCount (lcbCounts t))
+            eq
+            refl))))
 
 
 canonicalTotalCountAfter :
@@ -3843,9 +3856,16 @@ canonicalTotalCountAfter K (suc n) s =
       (sym (plus-succ (totalCount (lcbCounts s)) n)))
 
 canonicalAperiodic : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K (suc n) s ≠ s
-canonicalAperiodic K s n refl =
+canonicalAperiodic K s n cyc =
   plus-succ-not-self (totalCount (lcbCounts s)) n
-    (sym (canonicalTotalCountAfter K (suc n) s))
+    (trans
+      (sym (canonicalTotalCountAfter K (suc n) s))
+      (transport
+        (λ t →
+          totalCount (lcbCounts (iterateCanonical K (suc n) s)) ＝
+          totalCount (lcbCounts t))
+        cyc
+        refl))
 
 canonicalOrbitNonFixed : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) (n : ℕ) → iterateCanonical K n s ≠ canonicalFullStep K (iterateCanonical K n s)
 canonicalOrbitNonFixed K s n eq =
@@ -3858,9 +3878,16 @@ canonicalTotalCountIterate2 : ∀ {A} (K : FullLearnerKernel A) (s : FullLearner
 canonicalTotalCountIterate2 K s = refl
 
 canonicalNoCountedTwoCycle : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → iterateCanonical K 2 s ＝ s → ⊥
-canonicalNoCountedTwoCycle K s refl =
+canonicalNoCountedTwoCycle K s cyc =
   succ-succ-not-self (totalCount (lcbCounts s))
-    (sym (canonicalTotalCountIterate2 K s))
+    (trans
+      (sym (canonicalTotalCountIterate2 K s))
+      (transport
+        (λ t →
+          totalCount (lcbCounts (iterateCanonical K 2 s)) ＝
+          totalCount (lcbCounts t))
+        cyc
+        refl))
 
 temperatureCodeLaw : sparsemaxTemperature ＝ 16
 temperatureCodeLaw = refl
