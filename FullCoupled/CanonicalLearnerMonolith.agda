@@ -1848,7 +1848,7 @@ integerCodeSumList (x ∷ xs) = x + integerCodeSumList xs
 integerLayerNormCenteredNumerator :
   List Integer → Integer → Integer
 integerLayerNormCenteredNumerator xs x =
-  (pos (length xs)) * x + negateInteger (integerCodeSum xs)
+  (pos (lengthNat xs)) * x + negateInteger (integerCodeSum xs)
 
 integerLayerNormCenteredNumerators :
   List Integer → List Integer
@@ -1873,7 +1873,7 @@ integerLayerNormEpsilonContribution :
 integerLayerNormEpsilonContribution xs epsilon =
   (_*_)
       (fromNat epsilon)
-      ((_*_) (fromNat (length xs)) (fromNat (length xs)))
+      ((_*_) (fromNat (lengthNat xs)) (fromNat (lengthNat xs)))
 
 integerLayerNormRadicand :
   List Integer → ℕ → Integer
@@ -1962,7 +1962,7 @@ searchSupport xs temperature (suc n) current best with supportValid xs temperatu
 ... | disabled = searchSupport xs temperature n (suc current) best
 
 supportSize : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ
-supportSize K q c = searchSupport (sortScores (scoreList K q c)) sparsemaxTemperature (length (candidates K)) (suc zero) (suc zero)
+supportSize K q c = searchSupport (sortScores (scoreList K q c)) sparsemaxTemperature (lengthNat (candidates K)) (suc zero) (suc zero)
 
 record SparseWeight : Set where
   constructor sparseWeight
