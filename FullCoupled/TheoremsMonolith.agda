@@ -100,6 +100,10 @@ open C.ConstructiveComputabilityPostulates public using
   ( RussianRecursiveMathematicsBasis
   ; russianRecursiveMathematicsAssumptions
   ; russianMarkovPrinciple
+  ; computablePartialFunctionsEnumeration
+  ; CountableDomainPartialFunction
+  ; CPFProgramWitness
+  ; extendedChurchThesis0FromBasis
   ; extendedChurchThesis0
   ; churchThesis
   ; constructiveCountableChoice
@@ -171,7 +175,7 @@ module RUSSProofTheory where
   --   a syntactic presheaf model of CIC interpreting Markov's Principle while
   --   preserving canonicity and decidability of type-checking. It motivates
   --   a model-based treatment of MP; it does not certify this repository's
-  --   combined RUSS/ECT₀ or Scott-Ershov assumptions.
+  --   combined RUSS/CPF or Scott-Ershov assumptions.
   -- * Pédrot, "Upon This Quote I Will Build My Church Thesis," LICS 2024,
   --   https://doi.org/10.1145/3661814.3662070. Its quotation-based extension
   --   of MLTT derives internal Church's Thesis and proves consistency,
@@ -197,7 +201,7 @@ module RUSSProofTheory where
 
   data RUSSAxiomTag : Set where
     russMarkovTag : RUSSAxiomTag
-    russECT0Tag : RUSSAxiomTag
+    russCPFTag : RUSSAxiomTag
 
   RUSSAxiomMeaning : RUSSAxiomTag → Set₃
   RUSSAxiomMeaning russMarkovTag =
@@ -205,19 +209,16 @@ module RUSSProofTheory where
     ((n : Nat) → Decidable (P n)) →
     Neg (Neg (SigmaWitness Nat P)) →
     SigmaWitness Nat P
-  RUSSAxiomMeaning russECT0Tag =
-    (relation : Nat → Nat → Set) →
-    ((input output : Nat) → Decidable (relation input output)) →
-    ((input : Nat) → SigmaWitness Nat (relation input)) →
-    SigmaWitness RecursiveProgram
-      (λ program → ComputesRelation program relation)
+  RUSSAxiomMeaning russCPFTag =
+    (f : CountableDomainPartialFunction) →
+    CPFProgramWitness f
   russAxiomFromBasis :
     (basis : RussianRecursiveMathematicsBasis) →
     (tag : RUSSAxiomTag) → RUSSAxiomMeaning tag
   russAxiomFromBasis basis russMarkovTag =
     RussianRecursiveMathematicsBasis.russMarkov basis
-  russAxiomFromBasis basis russECT0Tag =
-    RussianRecursiveMathematicsBasis.russECT0 basis
+  russAxiomFromBasis basis russCPFTag =
+    RussianRecursiveMathematicsBasis.russCPF basis
   data RUSSFormula : Set where
     russFalsehood : RUSSFormula
     russTruthhood : RUSSFormula
@@ -395,11 +396,11 @@ module RUSSProofTheory where
   ----------------------------------------------------------------------
   -- Executable interpretation boundary for the selected RUSS principles.
   --
-  -- Markov search reduces at finite fuel. ECT0 returns a program carrying
-  -- finite-trace evidence via the named basis projection; it is not a
-  -- definitional compiler for arbitrary relations. Prop-valued countable
-  -- choice remains an opaque proof-level selector. Data-valued choice is
-  -- constructive and computational.
+  -- Markov search reduces at finite fuel. CPF supplies a program and
+  -- finite-trace semantics for a partial function with an enumerated domain.
+  -- ECT₀ for a total relation is derived by packaging its pointwise witnesses
+  -- as a total function; countable/dependent choice is not assumed by the basis.
+  -- Data-valued selection from explicit witnesses remains constructive.
   ----------------------------------------------------------------------
 
   russMarkovOperationalPrefix :
@@ -417,7 +418,7 @@ module RUSSProofTheory where
     SigmaWitness RecursiveProgram
       (λ program → ComputesRelation program relation)
   russECT0CertifiedProgram basis relation decide pointwiseWitness =
-    RussianRecursiveMathematicsBasis.russECT0
+    extendedChurchThesis0FromBasis
       basis relation decide pointwiseWitness
 
   russDataCountableSelector :
