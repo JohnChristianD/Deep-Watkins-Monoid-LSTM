@@ -1492,20 +1492,19 @@ nat-ring-solver-layernorm-contribution :
   + (length xs * length xs)
 nat-ring-solver-layernorm-contribution xs epsilon =
   let n = length xs in
-  (succ epsilon * n) * n
-    ＝⟨ cong (_* n) (mulNat-comm (succ epsilon) n) ⟩
-  (n * succ epsilon) * n
-    ＝⟨ refl ⟩
-  (n + n * epsilon) * n
-    ＝⟨ mulNat-distributeˡ-addNat n (n * epsilon) n ⟩
-  (n * n) + (n * epsilon) * n
-    ＝⟨ cong ((n * n) +_) (mulNat-assoc n epsilon n) ⟩
-  (n * n) + n * (epsilon * n)
-    ＝⟨ cong ((n * n) +_) (mulNat-comm n (epsilon * n)) ⟩
-  (n * n) + (epsilon * n) * n
-    ＝⟨ addition-commutativity (n * n) ((epsilon * n) * n) ⟩
-  (epsilon * n) * n + (n * n) ∎
-
+  trans
+    (cong (λ value → value * n) (mulNat-comm (suc epsilon) n))
+    (trans
+      refl
+      (trans
+        (mulNat-distributeˡ-addNat n (n * epsilon) n)
+        (trans
+          (cong (λ value → (n * n) + value)
+            (mulNat-assoc n epsilon n))
+          (trans
+            (cong (λ value → (n * n) + value)
+              (mulNat-comm n (epsilon * n)))
+            (addition-commutativity (n * n) ((epsilon * n) * n)))))
 integerLayerNorm-epsilon-contribution-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
   (succ epsilon * length xs * length xs)
