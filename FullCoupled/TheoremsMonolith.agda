@@ -151,7 +151,7 @@ open import Agda.Builtin.Size using (Size; Size<_; ∞)
 ＝-type-info : Term → TC (Arg Term × Arg Term × Term × Term)
 ＝-type-info (def (quote _＝_) (𝓁 ∷ 𝒯 ∷ arg _ left ∷ arg _ right ∷ [])) =
   returnTC (𝓁 , 𝒯 , left , right)
-＝-type-info _ = typeError (strErr "Term is not a ＝-type." ∷ [])
+＝-type-info _ = typeError []
 
 $-head : Term → Term
 $-head (var v args) = var v []
