@@ -1975,7 +1975,7 @@ data CanonicalListPermutation {A : Set} : List A -> List A -> Set where
     CanonicalListPermutation ys zs →
     CanonicalListPermutation xs zs
 
-CanonicalLearnerPermutationInvariant : Set₁
+CanonicalLearnerPermutationInvariant : Set
 CanonicalLearnerPermutationInvariant =
   ∀ (xs ys : List Integer) →
   CanonicalListPermutation xs ys →
