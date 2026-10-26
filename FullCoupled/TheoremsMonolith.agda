@@ -3389,20 +3389,15 @@ recurrentPrefix-scan-lifts-conjugacy :
 recurrentPrefix-scan-lifts-conjugacy replace step h xs zero s = refl
 recurrentPrefix-scan-lifts-conjugacy replace step h xs (suc n) s =
   trans
-    (recurrentPrefix-scan-lifts-conjugacy
-      replace
-      step
-      h
-      xs
-      n
-      (step s (xs n)))
+    (h
+      (C.recurrentPrefixState
+        (C.recurrentNetwork step)
+        xs n s)
+      (xs n))
     (cong
-      (λ q →
-        C.recurrentPrefixState
-          (C.recurrentNetwork step)
-          xs n
-          q)
-      (h s (xs n)))
+      (λ q → step q (xs n))
+      (recurrentPrefix-scan-lifts-conjugacy
+        replace step h xs n s))
 
 record RecurrentScanConjugacyTheorem
   (State Input : Set) : Set₁ where
