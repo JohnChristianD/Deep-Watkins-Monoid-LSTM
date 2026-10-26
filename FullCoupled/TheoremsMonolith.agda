@@ -2639,6 +2639,7 @@ gruFractalLimitConvergence-limitLeftInverse :
   LimitLeftInverse State LimitObservation limitEncode
 gruFractalLimitConvergence-limitLeftInverse {rank = rank} W =
   limitLeftInverse
+    (CoherentLimitDecoder.limitDecode (coherentDecoder W))
     (λ state →
       coherentLimitDecoder-left-inverse
         (coherentDecoder W)
