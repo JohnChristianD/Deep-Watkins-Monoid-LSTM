@@ -3695,7 +3695,7 @@ canonical-qLog2Bias8-law :
     (fromNat
       (C.rationalCodeDivideMagnitude
         (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-        (C.rationalCodeDenominator (C.qLog8 x))))
+        (C.qLog8 x)))
 canonical-qLog2Bias8-law x with C.intCodeMagnitude x
 ... | zero = refl
 ... | suc n = refl
@@ -3711,7 +3711,7 @@ record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
         (fromNat
           (C.rationalCodeDivideMagnitude
             (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-            (C.rationalCodeDenominator (C.qLog8 x))))
+            (C.qLog8 x)))
 
     targetDecomposition :
       ∀ K s →
@@ -3755,7 +3755,7 @@ record CanonicalQMunchausenL2SharedNegationPolarityTheorem : Set₁ where
         (fromNat
           (C.rationalCodeDivideMagnitude
             (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-            (C.rationalCodeDenominator (C.qLog8 x))))
+            (C.qLog8 x)))
 
     l2CorrectionNegation :
       ∀ x →
