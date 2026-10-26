@@ -1784,7 +1784,7 @@ canonical-f4-global-optimizer-stability-theorem =
   canonicalF4GlobalOptimizerStabilityTheorem
     (λ K s → C.f4ParameterInvariant
       (C.optimizerKernel K) (C.optimizer s) (C.canonicalSignal K s))
-    (λ K s → refl , (refl , (refl , refl)))
+    (λ K s → (((refl , refl) , refl) , refl))
     (λ K s t optimizerEq signalEq →
       cong₂
         (λ optimizer signal →
