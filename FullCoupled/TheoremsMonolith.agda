@@ -2164,10 +2164,12 @@ fractalLevelInjective :
   ∀ level {s t : State} →
   encode F level s ＝ encode F level t →
   s ＝ t
-fractalLevelInjective F level eq =
+fractalLevelInjective F level {s = s} {t = t} eq =
   trans
-    (decodeEncode F level _)
-    (cong (decode F level) eq)
+    (sym (decodeEncode F level s))
+    (trans
+      (cong (decode F level) eq)
+      (decodeEncode F level t))
 
 fractalTransportedEncodeInjective :
   ∀ {Level State Observation : Set}
