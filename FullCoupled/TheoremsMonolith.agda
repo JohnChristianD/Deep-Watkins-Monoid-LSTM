@@ -1214,8 +1214,8 @@ module GRUStatisticalInjectivity where
 -- Constructive inequality is negated propositional equality; this is notation,
 -- not a classical principle.
 infix 4 _≢_
-_≢_ : ∀ {A : Set} → A → A → Set
-x ≢ y = ¬ (x ＝ y)
+_≢_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
+x ≢ y = (x ＝ y) → ⊥
 
 CanonicalGRUStatisticalObservation : Set
 CanonicalGRUStatisticalObservation = C.GRUState × (C.CanonicalToken → Integer)
