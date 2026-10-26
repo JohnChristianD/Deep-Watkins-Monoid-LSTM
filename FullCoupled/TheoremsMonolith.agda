@@ -1674,18 +1674,28 @@ integerLayerNorm-radicand-epsilon-succ :
   +
   (pos (C.lengthNat xs * C.lengthNat xs))
 integerLayerNorm-radicand-epsilon-succ xs epsilon =
+  let n = C.lengthNat xs
+      variance = C.integerLayerNormVarianceNumerator xs
+  in
   trans
     (cong
-      (λ n →
-        C.integerLayerNormVarianceNumerator xs
-        +
-        (pos n))
-      (integerLayerNorm-epsilon-contribution-succ xs epsilon))
-    (sym
-      (IntegerLaws.addInteger-assoc
-        (C.integerLayerNormVarianceNumerator xs)
-        (pos (epsilon * C.lengthNat xs * C.lengthNat xs))
-        (pos (C.lengthNat xs * C.lengthNat xs))))
+      (λ value → variance + pos value)
+      (sym (mulNat-assoc (suc epsilon) n n)))
+    (trans
+      (cong
+        (λ value → variance + pos value)
+        (integerLayerNorm-epsilon-contribution-succ xs epsilon))
+      (trans
+        (sym
+          (IntegerLaws.addInteger-assoc
+            variance
+            (pos ((epsilon * n) * n))
+            (pos (n * n))))
+        (cong
+          (λ value → value + pos (n * n))
+          (cong
+            (λ value → variance + pos value)
+            (mulNat-assoc epsilon n n)))))
 
 integer-layernorm-centered-statistics-independent-of-epsilon :
   ∀ (xs : List Integer) (epsilon delta : ℕ) →
