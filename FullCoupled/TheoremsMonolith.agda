@@ -84,6 +84,7 @@ open import Haskell.Law.Num.Nat using
   ; addNat-comm
   ; mulNat-comm
   ; mulNat-distributeˡ-addNat
+  ; mulNat-distributeʳ-addNat
   ; mulNat-assoc
   )
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (gruStep; String)
@@ -1640,18 +1641,8 @@ nat-ring-solver-layernorm-contribution :
 nat-ring-solver-layernorm-contribution xs epsilon =
   let n = C.lengthNat xs in
   trans
-    (cong (λ value → value * n) (mulNat-comm (suc epsilon) n))
-    (trans
-      refl
-      (trans
-        (mulNat-distributeˡ-addNat n (n * epsilon) n)
-        (trans
-          (cong (λ value → (n * n) + value)
-            (mulNat-assoc n epsilon n))
-          (trans
-            (cong (λ value → (n * n) + value)
-              (mulNat-comm n (epsilon * n)))
-            (addNat-comm (n * n) ((epsilon * n) * n))))))
+    (mulNat-distributeʳ-addNat n n (epsilon * n))
+    (addNat-comm (n * n) ((epsilon * n) * n))
 integerLayerNorm-epsilon-contribution-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
   (suc epsilon * C.lengthNat xs * C.lengthNat xs)
