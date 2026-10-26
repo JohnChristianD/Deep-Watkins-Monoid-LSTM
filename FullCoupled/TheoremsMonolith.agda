@@ -668,15 +668,27 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
   riceEquivalentTrans first second input =
     trans (first input) (second input)
 
+  -- Keep the decision split in a first-order selector. This lets the
+  -- fixed-point proof reduce the selected branch after splitting on the
+  -- identical decision, instead of getting stuck on a nested with-function.
+  riceAdversarialChoice :
+    (Property : RiceProgram → Set) →
+    (good bad : RiceProgram) →
+    {program : RiceProgram} →
+    Decidable (Property program) →
+    RiceProgram
+  riceAdversarialChoice Property good bad (yes _) =
+    riceSelect False good bad
+  riceAdversarialChoice Property good bad (no _) =
+    riceSelect True good bad
+
   riceAdversarialTransform :
     (Property : RiceProgram → Set) →
     ((program : RiceProgram) → Decidable (Property program)) →
     (good bad : RiceProgram) →
     RiceProgram → RiceProgram
-  riceAdversarialTransform Property decide good bad program
-    with decide program
-  ... | yes _ = riceSelect False good bad
-  ... | no _ = riceSelect True good bad
+  riceAdversarialTransform Property decide good bad program =
+    riceAdversarialChoice Property good bad (decide program)
 
   -- Rice's theorem, in constructive negative form: a nontrivial behavioral
   -- property admits no total decision procedure on program indices.
