@@ -574,7 +574,7 @@ module RUSSProofTheory where
 
   -- A stage-indexed prompt exception: at stage p it must provide a
   -- witness for every refinement q <= p. The top fibre is empty.
-  RUSSPromptExceptionAt : RUSSStage → Set₁
+  RUSSPromptExceptionAt : RUSSStage → Set
   RUSSPromptExceptionAt stage =
     (refinement : RUSSStage) →
     RUSSStageLeq refinement stage →
