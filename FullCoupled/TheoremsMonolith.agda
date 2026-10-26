@@ -84,6 +84,7 @@ open import Haskell.Law.Num.Nat using
   ; addNat-comm
   ; mulNat-comm
   ; mulNat-distributeˡ-addNat
+  ; mulNat-distributeʳ-addNat
   ; mulNat-assoc
   )
 open import FullCoupled.CanonicalLearnerMonolith as C hiding (gruStep; String)
@@ -330,7 +331,7 @@ module RUSSProofTheory where
   russExtendContext basis model evidence (russThere membership) =
     model membership
 
-  russEliminateFalse : {A : Set} → EmptyComputability → A
+  russEliminateFalse : ∀ {ℓ : Level} {A : Set ℓ} → EmptyComputability → A
   russEliminateFalse ()
 
   russSoundness :
@@ -568,13 +569,13 @@ module RUSSProofTheory where
   russStageMeetLeRight :
     (p q : RUSSStage) →
     RUSSStageLeq (russStageMeet p q) q
-  russStageMeetLeRight p q n qIsTrue with q n
+  russStageMeetLeRight p q n qIsTrue with p n
   ... | True = refl
-  ... | False = russEliminateFalse (russFalseNotTrue qIsTrue)
+  ... | False = qIsTrue
 
   -- A stage-indexed prompt exception: at stage p it must provide a
   -- witness for every refinement q <= p. The top fibre is empty.
-  RUSSPromptExceptionAt : RUSSStage → Set₁
+  RUSSPromptExceptionAt : RUSSStage → Set
   RUSSPromptExceptionAt stage =
     (refinement : RUSSStage) →
     RUSSStageLeq refinement stage →
@@ -668,15 +669,62 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
   riceEquivalentTrans first second input =
     trans (first input) (second input)
 
+  -- Keep the decision split in a first-order selector. This lets the
+  -- fixed-point proof reduce the selected branch after splitting on the
+  -- identical decision, instead of getting stuck on a nested with-function.
+  riceAdversarialChoice :
+    (Property : RiceProgram → Set) →
+    (good bad : RiceProgram) →
+    {program : RiceProgram} →
+    Decidable (Property program) →
+    RiceProgram
+  riceAdversarialChoice Property good bad (yes _) =
+    riceSelect False good bad
+  riceAdversarialChoice Property good bad (no _) =
+    riceSelect True good bad
+
   riceAdversarialTransform :
     (Property : RiceProgram → Set) →
     ((program : RiceProgram) → Decidable (Property program)) →
     (good bad : RiceProgram) →
     RiceProgram → RiceProgram
-  riceAdversarialTransform Property decide good bad program
+  riceAdversarialTransform Property decide good bad program =
+    riceAdversarialChoice Property good bad (decide program)
+
+  -- Eliminate the empty computability type locally, without adding an axiom.
+  riceEmptyElim : ∀ {A : Set} → EmptyComputability → A
+  riceEmptyElim ()
+
+  riceAdversarialTransformWhenTrue :
+    (Property : RiceProgram → Set) →
+    (decide : (program : RiceProgram) → Decidable (Property program)) →
+    (good bad program : RiceProgram) →
+    Property program →
+    riceAdversarialTransform Property decide good bad program
+      ≡ riceSelect False good bad
+  riceAdversarialTransformWhenTrue Property decide good bad program proof
     with decide program
-  ... | yes _ = riceSelect False good bad
-  ... | no _ = riceSelect True good bad
+  ... | yes _ = refl
+  ... | no refute = riceEmptyElim (refute proof)
+
+  riceAdversarialTransformWhenFalse :
+    (Property : RiceProgram → Set) →
+    (decide : (program : RiceProgram) → Decidable (Property program)) →
+    (good bad program : RiceProgram) →
+    (Property program → EmptyComputability) →
+    riceAdversarialTransform Property decide good bad program
+      ≡ riceSelect True good bad
+  riceAdversarialTransformWhenFalse Property decide good bad program notProperty
+    with decide program
+  ... | yes proof = riceEmptyElim (notProperty proof)
+  ... | no _ = refl
+
+  riceEquivalentTransportLeft :
+    ∀ {actual chosen target : RiceProgram} →
+    actual ≡ chosen →
+    RiceEquivalent riceObserve chosen target →
+    RiceEquivalent riceObserve actual target
+  riceEquivalentTransportLeft refl equivalent = equivalent
 
   -- Rice's theorem, in constructive negative form: a nontrivial behavioral
   -- property admits no total decision procedure on program indices.
@@ -702,7 +750,12 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
         (riceEquivalentTrans
           (riceFixedPointLaw
             (riceAdversarialTransform Property decide good bad))
-          (riceSelectFalse good bad))
+          (riceEquivalentTransportLeft
+            (riceAdversarialTransformWhenTrue Property decide good bad
+              (riceFixedPoint
+                (riceAdversarialTransform Property decide good bad))
+              fixedProperty)
+            (riceSelectFalse good bad)))
         fixedProperty)
   ... | no notFixedProperty =
     notFixedProperty
@@ -711,7 +764,12 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
           (riceEquivalentTrans
             (riceFixedPointLaw
               (riceAdversarialTransform Property decide good bad))
-            (riceSelectTrue good bad)))
+            (riceEquivalentTransportLeft
+              (riceAdversarialTransformWhenFalse Property decide good bad
+                (riceFixedPoint
+                  (riceAdversarialTransform Property decide good bad))
+                notFixedProperty)
+              (riceSelectTrue good bad))))
         goodProperty)
 
 -- Public entry point for the existing constructive Rice theorem. The
@@ -794,6 +852,45 @@ scanLearnerStream :
   State → C.LearnerStream i Input → C.LearnerStream i State
 scanLearnerStream = C.MonoidLSTMStreams.scanSeededStream
 
+scanFusionCong :
+  {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB} →
+  (f : A → B) → {x y : A} → x ＝ y → f x ＝ f y
+scanFusionCong f refl = refl
+
+scanMapFusionBisimAux :
+  {ℓS ℓT ℓI : Level} {i : Size}
+  {State : Set ℓS} {Target : Set ℓT} {Input : Set ℓI} →
+  (encode : State → Target) →
+  (step : State → Input → State) →
+  (targetStep : Target → Input → Target) →
+  (stepFusion :
+    (state : State) (input : Input) →
+    encode (step state input) ＝ targetStep (encode state) input) →
+  (state : State) (targetState : Target) →
+  encode state ＝ targetState →
+  (inputs : C.LearnerStream i Input) →
+  LearnerStreamBisim i
+    (C.mapLearnerStream encode (scanLearnerStream step state inputs))
+    (scanLearnerStream targetStep targetState inputs)
+scanMapFusionBisimAux encode step targetStep stepFusion
+  state targetState stateAgreement inputs .learnerStreamHeadsAgree =
+    stateAgreement
+scanMapFusionBisimAux encode step targetStep stepFusion
+  state targetState stateAgreement inputs .learnerStreamTailsBisimilar {j} =
+    scanMapFusionBisimAux
+      encode
+      step
+      targetStep
+      stepFusion
+      (step state (C.learnerStreamHead inputs))
+      (targetStep targetState (C.learnerStreamHead inputs))
+      (trans
+        (stepFusion state (C.learnerStreamHead inputs))
+        (scanFusionCong
+          (λ value → targetStep value (C.learnerStreamHead inputs))
+          stateAgreement))
+      (C.learnerStreamTail inputs {j})
+
 scanMapFusionBisim :
   {ℓS ℓT ℓI : Level} {i : Size}
   {State : Set ℓS} {Target : Set ℓT} {Input : Set ℓI} →
@@ -807,18 +904,16 @@ scanMapFusionBisim :
   LearnerStreamBisim i
     (C.mapLearnerStream encode (scanLearnerStream step state inputs))
     (scanLearnerStream targetStep (encode state) inputs)
-scanMapFusionBisim encode step targetStep stepFusion state inputs
-  .learnerStreamHeadsAgree = refl
-scanMapFusionBisim encode step targetStep stepFusion state inputs
-  .learnerStreamTailsBisimilar {j}
-  rewrite sym (stepFusion state (C.learnerStreamHead inputs)) =
-    scanMapFusionBisim
-      encode
-      step
-      targetStep
-      stepFusion
-      (step state (C.learnerStreamHead inputs))
-      (C.learnerStreamTail inputs {j})
+scanMapFusionBisim encode step targetStep stepFusion state inputs =
+  scanMapFusionBisimAux
+    encode
+    step
+    targetStep
+    stepFusion
+    state
+    (encode state)
+    refl
+    inputs
 
 repeatUnitLearnerStream : {i : Size} → C.LearnerStream i C.⊤
 repeatUnitLearnerStream = C.learnerStreamRepeat C.tt
@@ -1140,7 +1235,7 @@ leftInverse-implies-injective observe inverse leftInverse eq =
   trans
     (sym (leftInverse _))
     (trans
-      apply-cong eq
+      (cong inverse eq)
       (leftInverse _))
 
 canonicalGRUStatisticalEncodeLeftInverse :
@@ -1539,31 +1634,21 @@ integerLayerNorm-absurd ()
 
 nat-ring-solver-layernorm-contribution :
   ∀ (xs : List Integer) (epsilon : ℕ) →
-  (suc epsilon * length xs * length xs)
+  (suc epsilon * C.lengthNat xs * C.lengthNat xs)
   ＝
-  (epsilon * length xs * length xs)
-  + (length xs * length xs)
+  (epsilon * C.lengthNat xs * C.lengthNat xs)
+  + (C.lengthNat xs * C.lengthNat xs)
 nat-ring-solver-layernorm-contribution xs epsilon =
-  let n = length xs in
+  let n = C.lengthNat xs in
   trans
-    (cong (λ value → value * n) (mulNat-comm (suc epsilon) n))
-    (trans
-      refl
-      (trans
-        (mulNat-distributeˡ-addNat n (n * epsilon) n)
-        (trans
-          (cong (λ value → (n * n) + value)
-            (mulNat-assoc n epsilon n))
-          (trans
-            (cong (λ value → (n * n) + value)
-              (mulNat-comm n (epsilon * n)))
-            (addNat-comm (n * n) ((epsilon * n) * n))))))
+    (mulNat-distributeʳ-addNat n n (epsilon * n))
+    (addNat-comm (n * n) ((epsilon * n) * n))
 integerLayerNorm-epsilon-contribution-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
-  (suc epsilon * length xs * length xs)
+  (suc epsilon * C.lengthNat xs * C.lengthNat xs)
   ＝
-  (epsilon * length xs * length xs)
-  + (length xs * length xs)
+  (epsilon * C.lengthNat xs * C.lengthNat xs)
+  + (C.lengthNat xs * C.lengthNat xs)
 integerLayerNorm-epsilon-contribution-succ =
   nat-ring-solver-layernorm-contribution
 
@@ -1572,7 +1657,14 @@ integerLayerNorm-radicand-epsilon-zero :
   C.integerLayerNormRadicand xs zero
   ＝
   C.integerLayerNormVarianceNumerator xs
-integerLayerNorm-radicand-epsilon-zero xs = refl
+integerLayerNorm-radicand-epsilon-zero xs =
+  trans
+    (cong
+      (λ contribution → C.integerLayerNormVarianceNumerator xs + contribution)
+      (IntegerLaws.mulInteger-zeroˡ
+        (fromNat (C.lengthNat xs * C.lengthNat xs))))
+    (IntegerLaws.addInteger-idʳ
+      (C.integerLayerNormVarianceNumerator xs))
 
 integerLayerNorm-radicand-epsilon-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
@@ -1580,20 +1672,30 @@ integerLayerNorm-radicand-epsilon-succ :
   ＝
   C.integerLayerNormRadicand xs epsilon
   +
-  (pos (length xs * length xs))
+  (pos (C.lengthNat xs * C.lengthNat xs))
 integerLayerNorm-radicand-epsilon-succ xs epsilon =
+  let n = C.lengthNat xs
+      variance = C.integerLayerNormVarianceNumerator xs
+  in
   trans
     (cong
-      (λ n →
-        C.integerLayerNormVarianceNumerator xs
-        +
-        (pos n))
-      (integerLayerNorm-epsilon-contribution-succ xs epsilon))
-    (sym
-      (IntegerLaws.addInteger-assoc
-        (C.integerLayerNormVarianceNumerator xs)
-        (pos (epsilon * length xs * length xs))
-        (pos (length xs * length xs))))
+      (λ value → variance + pos value)
+      (sym (mulNat-assoc (suc epsilon) n n)))
+    (trans
+      (cong
+        (λ value → variance + pos value)
+        (integerLayerNorm-epsilon-contribution-succ xs epsilon))
+      (trans
+        (sym
+          (IntegerLaws.addInteger-assoc
+            variance
+            (pos ((epsilon * n) * n))
+            (pos (n * n))))
+        (cong
+          (λ value → value + pos (n * n))
+          (cong
+            (λ value → variance + pos value)
+            (mulNat-assoc epsilon n n)))))
 
 integer-layernorm-centered-statistics-independent-of-epsilon :
   ∀ (xs : List Integer) (epsilon delta : ℕ) →
@@ -1625,14 +1727,17 @@ integerLayerNorm-radicand-epsilon-linear :
   ＝
   C.integerLayerNormVarianceNumerator xs
   +
-  (pos (epsilon * length xs * length xs))
+  (pos (epsilon * (C.lengthNat xs * C.lengthNat xs)))
 integerLayerNorm-radicand-epsilon-linear xs zero =
   trans
     (integerLayerNorm-radicand-epsilon-zero xs)
     (sym
-      (addInteger-idʳ
+      (IntegerLaws.addInteger-idʳ
         (C.integerLayerNormVarianceNumerator xs)))
 integerLayerNorm-radicand-epsilon-linear xs (suc epsilon) =
+  let n = C.lengthNat xs
+      variance = C.integerLayerNormVarianceNumerator xs
+  in
   trans
     (integerLayerNorm-radicand-epsilon-succ xs epsilon)
     (trans
@@ -1640,21 +1745,15 @@ integerLayerNorm-radicand-epsilon-linear xs (suc epsilon) =
         (integerLayerNorm-radicand-epsilon-linear xs epsilon)
         refl)
       (trans
-        (sym
-          (IntegerLaws.addInteger-assoc
-            (C.integerLayerNormVarianceNumerator xs)
-            (pos (epsilon * length xs * length xs))
-            (pos (length xs * length xs))))
+        (IntegerLaws.addInteger-assoc
+          variance
+          (pos (epsilon * (n * n)))
+          (pos (n * n)))
         (cong
-          (λ n →
-            C.integerLayerNormVarianceNumerator xs
-            +
-            (pos n))
-          (sym
-            (integerLayerNorm-epsilon-contribution-succ
-              xs
-              epsilon)))))
-
+          (λ contribution → variance + contribution)
+          (IntegerLaws.addInteger-comm
+            (pos (epsilon * (n * n)))
+            (pos (n * n))))))
 record CanonicalF4GlobalOptimizerStabilityTheorem : Set₁ where
   constructor canonicalF4GlobalOptimizerStabilityTheorem
   field
@@ -1667,9 +1766,9 @@ record CanonicalF4GlobalOptimizerStabilityTheorem : Set₁ where
     stableNonThetaCoordinates :
       ∀ {A} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       (C.rTheta (C.canonicalOptimizerStep K s) ＝ 0) ×
-      (C.eQ (C.canonicalOptimizerStep K s) ＝ C.eQ (C.optimizer s)) ×
-      (C.rE (C.canonicalOptimizerStep K s) ＝ C.rE (C.optimizer s)) ×
-      (C.rL (C.canonicalOptimizerStep K s) ＝ C.rL (C.optimizer s))
+      ((C.eQ (C.canonicalOptimizerStep K s) ＝ C.eQ (C.optimizer s)) ×
+        ((C.rE (C.canonicalOptimizerStep K s) ＝ C.rE (C.optimizer s)) ×
+          (C.rL (C.canonicalOptimizerStep K s) ＝ C.rL (C.optimizer s))))
     equalInputStability :
       ∀ {A} (K : C.FullLearnerKernel A)
         (s t : C.FullLearnerState A) →
@@ -1685,7 +1784,7 @@ canonical-f4-global-optimizer-stability-theorem =
   canonicalF4GlobalOptimizerStabilityTheorem
     (λ K s → C.f4ParameterInvariant
       (C.optimizerKernel K) (C.optimizer s) (C.canonicalSignal K s))
-    (λ K s → refl , (refl , (refl , refl)))
+    (λ K s → (refl , (refl , (refl , refl))))
     (λ K s t optimizerEq signalEq →
       cong₂
         (λ optimizer signal →
@@ -1876,7 +1975,7 @@ data CanonicalListPermutation {A : Set} : List A -> List A -> Set where
     CanonicalListPermutation ys zs →
     CanonicalListPermutation xs zs
 
-CanonicalLearnerPermutationInvariant : Set₁
+CanonicalLearnerPermutationInvariant : Set
 CanonicalLearnerPermutationInvariant =
   ∀ (xs ys : List Integer) →
   CanonicalListPermutation xs ys →
@@ -2065,10 +2164,12 @@ fractalLevelInjective :
   ∀ level {s t : State} →
   encode F level s ＝ encode F level t →
   s ＝ t
-fractalLevelInjective F level eq =
+fractalLevelInjective F level {s = s} {t = t} eq =
   trans
-    (decodeEncode F level _)
-    (cong (decode F level) eq)
+    (sym (decodeEncode F level s))
+    (trans
+      (cong (decode F level) eq)
+      (decodeEncode F level t))
 
 fractalTransportedEncodeInjective :
   ∀ {Level State Observation : Set}
@@ -10027,3 +10128,161 @@ module RUSSIntuitionisticCore where
   RUSSPrinciplePackage : Set₄
   RUSSPrinciplePackage = RussianRecursiveMathematicsBasis
 
+
+
+------------------------------------------------------------------------
+-- A machine-checked Kripke countermodel to intuitionistic excluded middle.
+--
+-- The frame has two worlds kEarly ≤ kLate. The atom is forced only at
+-- kLate. Thus kEarly forces neither the atom nor its negation: its future
+-- kLate forces the atom. Soundness below shows that no proof of this
+-- excluded-middle instance exists in the stated intuitionistic propositional
+-- natural-deduction calculus.
+--
+-- This is a metatheoretic non-derivability result for intuitionistic logic.
+-- It is not a proof of the negation of excluded middle inside Agda's current
+-- postulated RUSS theory, and it does not refute excluded middle in classical
+-- logic. A global law of excluded middle would imply this atomic instance.
+------------------------------------------------------------------------
+
+module IntuitionisticExcludedMiddleCountermodel where
+
+  data KEmpty : Set where
+
+  kEmptyElimination : ∀ {A : Set} → KEmpty → A
+  kEmptyElimination ()
+
+  data KUnit : Set where
+    kUnit : KUnit
+
+  data KSum (A B : Set) : Set where
+    kLeft : A → KSum A B
+    kRight : B → KSum A B
+
+  data KWorld : Set where
+    kEarly kLate : KWorld
+
+  data _KLe_ : KWorld → KWorld → Set where
+    kEarlyLeEarly : kEarly KLe kEarly
+    kEarlyLeLate : kEarly KLe kLate
+    kLateLeLate : kLate KLe kLate
+
+  kLeRefl : (w : KWorld) → w KLe w
+  kLeRefl kEarly = kEarlyLeEarly
+  kLeRefl kLate = kLateLeLate
+
+  kLeTrans :
+    ∀ {w v u} → w KLe v → v KLe u → w KLe u
+  kLeTrans kEarlyLeEarly kEarlyLeEarly = kEarlyLeEarly
+  kLeTrans kEarlyLeEarly kEarlyLeLate = kEarlyLeLate
+  kLeTrans kEarlyLeLate kLateLeLate = kEarlyLeLate
+  kLeTrans kLateLeLate kLateLeLate = kLateLeLate
+
+  data KFormula : Set where
+    kAtom : KFormula
+    kFalse : KFormula
+    kOr : KFormula → KFormula → KFormula
+    kImp : KFormula → KFormula → KFormula
+
+  KForce : KWorld → KFormula → Set
+  KForce kEarly kAtom = KEmpty
+  KForce kLate kAtom = KUnit
+  KForce w kFalse = KEmpty
+  KForce w (kOr A B) = KSum (KForce w A) (KForce w B)
+  KForce w (kImp A B) =
+    (v : KWorld) → w KLe v → KForce v A → KForce v B
+
+  kForceMonotone :
+    ∀ {w v A} → w KLe v → KForce w A → KForce v A
+  kForceMonotone {A = kAtom} kEarlyLeEarly evidence = evidence
+  kForceMonotone {A = kAtom} kEarlyLeLate ()
+  kForceMonotone {A = kAtom} kLateLeLate evidence = evidence
+  kForceMonotone {A = kFalse} kEarlyLeEarly ()
+  kForceMonotone {A = kFalse} kEarlyLeLate ()
+  kForceMonotone {A = kFalse} kLateLeLate ()
+  kForceMonotone {A = kOr leftFormula rightFormula} relation
+    (kLeft evidence) =
+      kLeft (kForceMonotone relation evidence)
+  kForceMonotone {A = kOr leftFormula rightFormula} relation
+    (kRight evidence) =
+      kRight (kForceMonotone relation evidence)
+  kForceMonotone {A = kImp leftFormula rightFormula} relation function
+    future relationToFuture evidence =
+      function future (kLeTrans relation relationToFuture) evidence
+
+  data KMember (A : KFormula) : List KFormula → Set where
+    kMemberHere : ∀ {Γ} → KMember A (A ∷ Γ)
+    kMemberThere :
+      ∀ {B Γ} → KMember A Γ → KMember A (B ∷ Γ)
+
+  data KDerives (Γ : List KFormula) : KFormula → Set where
+    kAssumption :
+      ∀ {A} → KMember A Γ → KDerives Γ A
+    kBottomElimination :
+      ∀ {A} → KDerives Γ kFalse → KDerives Γ A
+    kImpIntroduction :
+      ∀ {A B} → KDerives (A ∷ Γ) B → KDerives Γ (kImp A B)
+    kImpElimination :
+      ∀ {A B} → KDerives Γ (kImp A B) → KDerives Γ A → KDerives Γ B
+    kOrIntroductionLeft :
+      ∀ {A B} → KDerives Γ A → KDerives Γ (kOr A B)
+    kOrIntroductionRight :
+      ∀ {A B} → KDerives Γ B → KDerives Γ (kOr A B)
+    kOrElimination :
+      ∀ {A B C} →
+      KDerives Γ (kOr A B) →
+      KDerives (A ∷ Γ) C →
+      KDerives (B ∷ Γ) C →
+      KDerives Γ C
+
+  KModel : KWorld → List KFormula → Set
+  KModel w Γ = ∀ {A} → KMember A Γ → KForce w A
+
+  kExtendModel :
+    ∀ {w Γ A} →
+    KModel w Γ → KForce w A → KModel w (A ∷ Γ)
+  kExtendModel model evidence kMemberHere = evidence
+  kExtendModel model evidence (kMemberThere member) = model member
+
+  kLiftModel :
+    ∀ {w v Γ} → w KLe v → KModel w Γ → KModel v Γ
+  kLiftModel relation model member =
+    kForceMonotone relation (model member)
+
+  kSound :
+    ∀ {Γ A w} → KDerives Γ A → KModel w Γ → KForce w A
+  kSound (kAssumption member) model = model member
+  kSound (kBottomElimination derivation) model =
+    kEmptyElimination (kSound derivation model)
+  kSound (kImpIntroduction derivation) model =
+    λ future relation evidence →
+      kSound derivation
+        (kExtendModel (kLiftModel relation model) evidence)
+  kSound {w = w} (kImpElimination function argument) model =
+    kSound function model w (kLeRefl w) (kSound argument model)
+  kSound (kOrIntroductionLeft derivation) model =
+    kLeft (kSound derivation model)
+  kSound (kOrIntroductionRight derivation) model =
+    kRight (kSound derivation model)
+  kSound (kOrElimination disjunction left right) model
+    with kSound disjunction model
+  ... | kLeft evidence = kSound left (kExtendModel model evidence)
+  ... | kRight evidence = kSound right (kExtendModel model evidence)
+
+  kNot : KFormula → KFormula
+  kNot A = kImp A kFalse
+
+  kExcludedMiddleInstance : KFormula
+  kExcludedMiddleInstance = kOr kAtom (kNot kAtom)
+
+  kNotForcesExcludedMiddleAtEarly :
+    KForce kEarly kExcludedMiddleInstance → KEmpty
+  kNotForcesExcludedMiddleAtEarly (kLeft evidence) = evidence
+  kNotForcesExcludedMiddleAtEarly (kRight notAtom) =
+    notAtom kLate kEarlyLeLate kUnit
+
+  kNoIntuitionisticProofOfExcludedMiddle :
+    KDerives [] kExcludedMiddleInstance → KEmpty
+  kNoIntuitionisticProofOfExcludedMiddle derivation =
+    kNotForcesExcludedMiddleAtEarly
+      (kSound derivation (λ ()))
