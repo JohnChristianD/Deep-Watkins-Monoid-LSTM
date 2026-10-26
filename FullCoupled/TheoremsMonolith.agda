@@ -690,6 +690,41 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
   riceAdversarialTransform Property decide good bad program =
     riceAdversarialChoice Property good bad (decide program)
 
+  -- Eliminate the empty computability type locally, without adding an axiom.
+  riceEmptyElim : ∀ {A : Set} → EmptyComputability → A
+  riceEmptyElim ()
+
+  riceAdversarialTransformWhenTrue :
+    (Property : RiceProgram → Set) →
+    ((program : RiceProgram) → Decidable (Property program)) →
+    (good bad program : RiceProgram) →
+    Property program →
+    riceAdversarialTransform Property decide good bad program
+      ≡ riceSelect False good bad
+  riceAdversarialTransformWhenTrue Property decide good bad program proof
+    with decide program
+  ... | yes _ = refl
+  ... | no refute = riceEmptyElim (refute proof)
+
+  riceAdversarialTransformWhenFalse :
+    (Property : RiceProgram → Set) →
+    ((program : RiceProgram) → Decidable (Property program)) →
+    (good bad program : RiceProgram) →
+    (Property program → EmptyComputability) →
+    riceAdversarialTransform Property decide good bad program
+      ≡ riceSelect True good bad
+  riceAdversarialTransformWhenFalse Property decide good bad program notProperty
+    with decide program
+  ... | yes proof = riceEmptyElim (notProperty proof)
+  ... | no _ = refl
+
+  riceEquivalentTransportLeft :
+    ∀ {actual chosen target : RiceProgram} →
+    actual ≡ chosen →
+    RiceEquivalent riceObserve chosen target →
+    RiceEquivalent riceObserve actual target
+  riceEquivalentTransportLeft refl equivalent = equivalent
+
   -- Rice's theorem, in constructive negative form: a nontrivial behavioral
   -- property admits no total decision procedure on program indices.
   riceNoDecider :
@@ -714,7 +749,12 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
         (riceEquivalentTrans
           (riceFixedPointLaw
             (riceAdversarialTransform Property decide good bad))
-          (riceSelectFalse good bad))
+          (riceEquivalentTransportLeft
+            (riceAdversarialTransformWhenTrue Property decide good bad
+              (riceFixedPoint
+                (riceAdversarialTransform Property decide good bad))
+              fixedProperty)
+            (riceSelectFalse good bad)))
         fixedProperty)
   ... | no notFixedProperty =
     notFixedProperty
@@ -723,7 +763,12 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
           (riceEquivalentTrans
             (riceFixedPointLaw
               (riceAdversarialTransform Property decide good bad))
-            (riceSelectTrue good bad)))
+            (riceEquivalentTransportLeft
+              (riceAdversarialTransformWhenFalse Property decide good bad
+                (riceFixedPoint
+                  (riceAdversarialTransform Property decide good bad))
+                notFixedProperty)
+              (riceSelectTrue good bad)))
         goodProperty)
 
 -- Public entry point for the existing constructive Rice theorem. The
