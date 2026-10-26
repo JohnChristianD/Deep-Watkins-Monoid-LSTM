@@ -330,7 +330,7 @@ module RUSSProofTheory where
   russExtendContext basis model evidence (russThere membership) =
     model membership
 
-  russEliminateFalse : {A : Set} → EmptyComputability → A
+  russEliminateFalse : ∀ {ℓ : Level} {A : Set ℓ} → EmptyComputability → A
   russEliminateFalse ()
 
   russSoundness :
@@ -10027,3 +10027,161 @@ module RUSSIntuitionisticCore where
   RUSSPrinciplePackage : Set₄
   RUSSPrinciplePackage = RussianRecursiveMathematicsBasis
 
+
+
+------------------------------------------------------------------------
+-- A machine-checked Kripke countermodel to intuitionistic excluded middle.
+--
+-- The frame has two worlds kEarly ≤ kLate. The atom is forced only at
+-- kLate. Thus kEarly forces neither the atom nor its negation: its future
+-- kLate forces the atom. Soundness below shows that no proof of this
+-- excluded-middle instance exists in the stated intuitionistic propositional
+-- natural-deduction calculus.
+--
+-- This is a metatheoretic non-derivability result for intuitionistic logic.
+-- It is not a proof of the negation of excluded middle inside Agda's current
+-- postulated RUSS theory, and it does not refute excluded middle in classical
+-- logic. A global law of excluded middle would imply this atomic instance.
+------------------------------------------------------------------------
+
+module IntuitionisticExcludedMiddleCountermodel where
+
+  data KEmpty : Set where
+
+  kEmptyElimination : ∀ {A : Set} → KEmpty → A
+  kEmptyElimination ()
+
+  data KUnit : Set where
+    kUnit : KUnit
+
+  data KSum (A B : Set) : Set where
+    kLeft : A → KSum A B
+    kRight : B → KSum A B
+
+  data KWorld : Set where
+    kEarly kLate : KWorld
+
+  data _KLe_ : KWorld → KWorld → Set where
+    kEarlyLeEarly : kEarly KLe kEarly
+    kEarlyLeLate : kEarly KLe kLate
+    kLateLeLate : kLate KLe kLate
+
+  kLeRefl : (w : KWorld) → w KLe w
+  kLeRefl kEarly = kEarlyLeEarly
+  kLeRefl kLate = kLateLeLate
+
+  kLeTrans :
+    ∀ {w v u} → w KLe v → v KLe u → w KLe u
+  kLeTrans kEarlyLeEarly kEarlyLeEarly = kEarlyLeEarly
+  kLeTrans kEarlyLeEarly kEarlyLeLate = kEarlyLeLate
+  kLeTrans kEarlyLeLate kLateLeLate = kEarlyLeLate
+  kLeTrans kLateLeLate kLateLeLate = kLateLeLate
+
+  data KFormula : Set where
+    kAtom : KFormula
+    kFalse : KFormula
+    kOr : KFormula → KFormula → KFormula
+    kImp : KFormula → KFormula → KFormula
+
+  KForce : KWorld → KFormula → Set
+  KForce kEarly kAtom = KEmpty
+  KForce kLate kAtom = KUnit
+  KForce w kFalse = KEmpty
+  KForce w (kOr A B) = KSum (KForce w A) (KForce w B)
+  KForce w (kImp A B) =
+    (v : KWorld) → w KLe v → KForce v A → KForce v B
+
+  kForceMonotone :
+    ∀ {w v A} → w KLe v → KForce w A → KForce v A
+  kForceMonotone {A = kAtom} kEarlyLeEarly evidence = evidence
+  kForceMonotone {A = kAtom} kEarlyLeLate ()
+  kForceMonotone {A = kAtom} kLateLeLate evidence = evidence
+  kForceMonotone {A = kFalse} kEarlyLeEarly ()
+  kForceMonotone {A = kFalse} kEarlyLeLate ()
+  kForceMonotone {A = kFalse} kLateLeLate ()
+  kForceMonotone {A = kOr leftFormula rightFormula} relation
+    (kLeft evidence) =
+      kLeft (kForceMonotone relation evidence)
+  kForceMonotone {A = kOr leftFormula rightFormula} relation
+    (kRight evidence) =
+      kRight (kForceMonotone relation evidence)
+  kForceMonotone {A = kImp leftFormula rightFormula} relation function
+    future relationToFuture evidence =
+      function future (kLeTrans relation relationToFuture) evidence
+
+  data KMember (A : KFormula) : List KFormula → Set where
+    kMemberHere : ∀ {Γ} → KMember A (A ∷ Γ)
+    kMemberThere :
+      ∀ {B Γ} → KMember A Γ → KMember A (B ∷ Γ)
+
+  data KDerives (Γ : List KFormula) : KFormula → Set where
+    kAssumption :
+      ∀ {A} → KMember A Γ → KDerives Γ A
+    kBottomElimination :
+      ∀ {A} → KDerives Γ kFalse → KDerives Γ A
+    kImpIntroduction :
+      ∀ {A B} → KDerives (A ∷ Γ) B → KDerives Γ (kImp A B)
+    kImpElimination :
+      ∀ {A B} → KDerives Γ (kImp A B) → KDerives Γ A → KDerives Γ B
+    kOrIntroductionLeft :
+      ∀ {A B} → KDerives Γ A → KDerives Γ (kOr A B)
+    kOrIntroductionRight :
+      ∀ {A B} → KDerives Γ B → KDerives Γ (kOr A B)
+    kOrElimination :
+      ∀ {A B C} →
+      KDerives Γ (kOr A B) →
+      KDerives (A ∷ Γ) C →
+      KDerives (B ∷ Γ) C →
+      KDerives Γ C
+
+  KModel : KWorld → List KFormula → Set
+  KModel w Γ = ∀ {A} → KMember A Γ → KForce w A
+
+  kExtendModel :
+    ∀ {w Γ A} →
+    KModel w Γ → KForce w A → KModel w (A ∷ Γ)
+  kExtendModel model evidence kMemberHere = evidence
+  kExtendModel model evidence (kMemberThere member) = model member
+
+  kLiftModel :
+    ∀ {w v Γ} → w KLe v → KModel w Γ → KModel v Γ
+  kLiftModel relation model member =
+    kForceMonotone relation (model member)
+
+  kSound :
+    ∀ {Γ A w} → KDerives Γ A → KModel w Γ → KForce w A
+  kSound (kAssumption member) model = model member
+  kSound (kBottomElimination derivation) model =
+    kEmptyElimination (kSound derivation model)
+  kSound (kImpIntroduction derivation) model =
+    λ future relation evidence →
+      kSound derivation
+        (kExtendModel (kLiftModel relation model) evidence)
+  kSound {w = w} (kImpElimination function argument) model =
+    kSound function model w (kLeRefl w) (kSound argument model)
+  kSound (kOrIntroductionLeft derivation) model =
+    kLeft (kSound derivation model)
+  kSound (kOrIntroductionRight derivation) model =
+    kRight (kSound derivation model)
+  kSound (kOrElimination disjunction left right) model
+    with kSound disjunction model
+  ... | kLeft evidence = kSound left (kExtendModel model evidence)
+  ... | kRight evidence = kSound right (kExtendModel model evidence)
+
+  kNot : KFormula → KFormula
+  kNot A = kImp A kFalse
+
+  kExcludedMiddleInstance : KFormula
+  kExcludedMiddleInstance = kOr kAtom (kNot kAtom)
+
+  kNotForcesExcludedMiddleAtEarly :
+    KForce kEarly kExcludedMiddleInstance → KEmpty
+  kNotForcesExcludedMiddleAtEarly (kLeft evidence) = evidence
+  kNotForcesExcludedMiddleAtEarly (kRight notAtom) =
+    notAtom kLate kEarlyLeLate kUnit
+
+  kNoIntuitionisticProofOfExcludedMiddle :
+    KDerives [] kExcludedMiddleInstance → KEmpty
+  kNoIntuitionisticProofOfExcludedMiddle derivation =
+    kNotForcesExcludedMiddleAtEarly
+      (kSound derivation (λ ()))
