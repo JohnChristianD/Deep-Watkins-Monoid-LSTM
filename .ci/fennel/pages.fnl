@@ -90,16 +90,22 @@
 
 (local template (read-file "index.html"))
 (local output-path (assert (. arg 1) "usage: pages.fnl OUTPUT.html"))
-(local replace-first (fn [source needle replacement]
-  (local start (assert (string.find source needle 1 true)
-    (.. "missing template marker: " needle)))
-  (local after (+ start (string.len needle)))
+(local replace-region (fn [source start-marker end-marker replacement]
+  (local start (assert (string.find source start-marker 1 true)
+    (.. "missing template marker: " start-marker)))
+  (local content-start (+ start (string.len start-marker)))
+  (local finish (assert (string.find source end-marker content-start true)
+    (.. "missing template marker: " end-marker)))
   (.. (string.sub source 1 (- start 1))
       replacement
-      (string.sub source after))))
+      (string.sub source (+ finish (string.len end-marker)))))
 
 (local rendered
-  (replace-first template "<!-- GENERATED_CONTENT -->" generated-content))
+  (replace-region
+    template
+    "<!-- GENERATED_CONTENT_START -->"
+    "<!-- GENERATED_CONTENT_END -->"
+    generated-content))
 (assert (not (= rendered template)) "index.html template marker was not replaced")
 (assert (not (string.find rendered "<script" 1 true)) "published HTML must not contain script elements")
 (assert (string.find rendered "Global RUSS consistency: not certified" 1 true)
