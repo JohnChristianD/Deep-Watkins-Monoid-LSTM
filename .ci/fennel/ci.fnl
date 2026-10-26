@@ -15,7 +15,7 @@
 
 (local check-agda (fn [path]
   (run! (.. "Agda " path)
-    (.. (shell-quote agda-command) " -i . " (shell-quote path)))))
+    (.. (shell-quote agda-command) " --trace-imports=0 -i . " (shell-quote path)))))
 
 (local check-agda-learner (fn []
   (check-agda "FullCoupled/CanonicalLearnerMonolith.agda")
