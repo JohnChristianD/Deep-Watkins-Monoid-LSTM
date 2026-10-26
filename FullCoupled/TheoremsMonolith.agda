@@ -2938,9 +2938,8 @@ canonicalPersistentGRU-afterFullStep-iterate :
 canonicalPersistentGRU-afterFullStep-iterate K zero s = refl
 canonicalPersistentGRU-afterFullStep-iterate K (suc n) s =
   trans
-    (canonicalPersistentGRU-afterFullStep-iterate
-      K n (C.canonicalFullStep K s))
-    (C.canonicalPersistentGRUPreservation K s)
+    (C.canonicalPersistentGRUPreservation K (C.iterateCanonical K n s))
+    (canonicalPersistentGRU-afterFullStep-iterate K n s)
 
 record EqualityCompositionTheorem
   {A : Set}
