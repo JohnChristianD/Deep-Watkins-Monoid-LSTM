@@ -1633,12 +1633,12 @@ integerLayerNorm-absurd ()
 
 nat-ring-solver-layernorm-contribution :
   ∀ (xs : List Integer) (epsilon : ℕ) →
-  (suc epsilon * length xs * length xs)
+  (suc epsilon * C.lengthNat xs * C.lengthNat xs)
   ＝
-  (epsilon * length xs * length xs)
-  + (length xs * length xs)
+  (epsilon * C.lengthNat xs * C.lengthNat xs)
+  + (C.lengthNat xs * C.lengthNat xs)
 nat-ring-solver-layernorm-contribution xs epsilon =
-  let n = length xs in
+  let n = C.lengthNat xs in
   trans
     (cong (λ value → value * n) (mulNat-comm (suc epsilon) n))
     (trans
@@ -1654,10 +1654,10 @@ nat-ring-solver-layernorm-contribution xs epsilon =
             (addNat-comm (n * n) ((epsilon * n) * n))))))
 integerLayerNorm-epsilon-contribution-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
-  (suc epsilon * length xs * length xs)
+  (suc epsilon * C.lengthNat xs * C.lengthNat xs)
   ＝
-  (epsilon * length xs * length xs)
-  + (length xs * length xs)
+  (epsilon * C.lengthNat xs * C.lengthNat xs)
+  + (C.lengthNat xs * C.lengthNat xs)
 integerLayerNorm-epsilon-contribution-succ =
   nat-ring-solver-layernorm-contribution
 
@@ -1674,7 +1674,7 @@ integerLayerNorm-radicand-epsilon-succ :
   ＝
   C.integerLayerNormRadicand xs epsilon
   +
-  (pos (length xs * length xs))
+  (pos (C.lengthNat xs * C.lengthNat xs))
 integerLayerNorm-radicand-epsilon-succ xs epsilon =
   trans
     (cong
@@ -1686,8 +1686,8 @@ integerLayerNorm-radicand-epsilon-succ xs epsilon =
     (sym
       (IntegerLaws.addInteger-assoc
         (C.integerLayerNormVarianceNumerator xs)
-        (pos (epsilon * length xs * length xs))
-        (pos (length xs * length xs))))
+        (pos (epsilon * C.lengthNat xs * C.lengthNat xs))
+        (pos (C.lengthNat xs * C.lengthNat xs))))
 
 integer-layernorm-centered-statistics-independent-of-epsilon :
   ∀ (xs : List Integer) (epsilon delta : ℕ) →
