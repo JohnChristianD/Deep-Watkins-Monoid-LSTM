@@ -1657,7 +1657,14 @@ integerLayerNorm-radicand-epsilon-zero :
   C.integerLayerNormRadicand xs zero
   ＝
   C.integerLayerNormVarianceNumerator xs
-integerLayerNorm-radicand-epsilon-zero xs = refl
+integerLayerNorm-radicand-epsilon-zero xs =
+  trans
+    (cong
+      (λ contribution → C.integerLayerNormVarianceNumerator xs + contribution)
+      (IntegerLaws.mulInteger-zeroˡ
+        (fromNat (C.lengthNat xs * C.lengthNat xs))))
+    (IntegerLaws.addInteger-idʳ
+      (C.integerLayerNormVarianceNumerator xs))
 
 integerLayerNorm-radicand-epsilon-succ :
   ∀ (xs : List Integer) (epsilon : ℕ) →
