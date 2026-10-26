@@ -868,11 +868,7 @@ scanMapFusionBisimAux :
     (scanLearnerStream targetStep targetState inputs)
 scanMapFusionBisimAux encode step targetStep stepFusion
   state targetState stateAgreement inputs .learnerStreamHeadsAgree =
-    trans
-      (stepFusion state (C.learnerStreamHead inputs))
-      (cong
-        (λ value → targetStep value (C.learnerStreamHead inputs))
-        stateAgreement)
+    stateAgreement
 scanMapFusionBisimAux encode step targetStep stepFusion
   state targetState stateAgreement inputs .learnerStreamTailsBisimilar {j} =
     scanMapFusionBisimAux
