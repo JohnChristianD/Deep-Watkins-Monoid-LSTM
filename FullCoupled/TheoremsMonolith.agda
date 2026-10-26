@@ -3376,7 +3376,7 @@ recurrentPrefix-scan-lifts-conjugacy :
   (h :
     ∀ (s : State) (x : Input) →
     replace (step s x) ＝ step (replace s) x) →
-  ∀ (xs : List Input) (n : ℕ) (s : State) →
+  ∀ (xs : ℕ → Input) (n : ℕ) (s : State) →
     replace
       (C.recurrentPrefixState
         (C.recurrentNetwork step)
