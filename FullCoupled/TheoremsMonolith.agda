@@ -221,24 +221,31 @@ module RUSSProofTheory where
     russParametricEnumerabilityTag : RUSSAxiomTag
     russCountableChoiceTag : RUSSAxiomTag
 
-  RUSSAxiomMeaning : RUSSAxiomTag → Set₄
-  RUSSAxiomMeaning russMarkovTag =
-    (P : Nat → Set) →
-    ((n : Nat) → Decidable (P n)) →
-    Neg (Neg (SigmaWitness Nat P)) →
-    SigmaWitness Nat P
-  RUSSAxiomMeaning russParametricEnumerabilityTag = ParametricEnumerability
-  RUSSAxiomMeaning russCountableChoiceTag = RichmanCountableChoice
+  data RUSSAxiomMeaning : RUSSAxiomTag → Set₄ where
+    russMarkovMeaning :
+      ((P : Nat → Set) →
+       ((n : Nat) → Decidable (P n)) →
+       Neg (Neg (SigmaWitness Nat P)) →
+       SigmaWitness Nat P) →
+      RUSSAxiomMeaning russMarkovTag
+    russParametricEnumerabilityMeaning :
+      ParametricEnumerability →
+      RUSSAxiomMeaning russParametricEnumerabilityTag
+    russCountableChoiceMeaning :
+      RichmanCountableChoice →
+      RUSSAxiomMeaning russCountableChoiceTag
 
   russAxiomFromBasis :
     (basis : RussianRecursiveMathematicsBasis) →
     (tag : RUSSAxiomTag) → RUSSAxiomMeaning tag
   russAxiomFromBasis basis russMarkovTag =
-    RussianRecursiveMathematicsBasis.russMarkov basis
+    russMarkovMeaning (RussianRecursiveMathematicsBasis.russMarkov basis)
   russAxiomFromBasis basis russParametricEnumerabilityTag =
-    RussianRecursiveMathematicsBasis.russParametricEnumerability basis
+    russParametricEnumerabilityMeaning
+      (RussianRecursiveMathematicsBasis.russParametricEnumerability basis)
   russAxiomFromBasis basis russCountableChoiceTag =
-    RussianRecursiveMathematicsBasis.russCountableChoice basis
+    russCountableChoiceMeaning
+      (RussianRecursiveMathematicsBasis.russCountableChoice basis)
   data RUSSFormula : Set where
     russFalsehood : RUSSFormula
     russTruthhood : RUSSFormula
