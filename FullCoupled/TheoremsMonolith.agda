@@ -2749,7 +2749,7 @@ record CanonicalAQLoopTheorem : Set₁ where
   constructor canonicalAQLoopTheorem
   field
     policyComposition :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalPolicy K s ＝
       C.sparsemaxPolicy
         (C.actionSpaceK K)
@@ -2759,19 +2759,19 @@ record CanonicalAQLoopTheorem : Set₁ where
           (C.critic (C.watkins s)))
         (C.valuesCount (C.lcbCounts s))
     sharedWatkinsSignal :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalSignal K s ＝
       C.canonicalWatkinsTarget K s
     gruHaarInputCoupling :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalGRUStep K s ＝
       C.gruStep (C.gru s) (C.canonicalHaarRecurrentInput K s)
     f4SignalCoupling :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalOptimizerStep K s ＝
       C.f4ThetaStep (C.optimizerKernel K) (C.optimizer s) (C.canonicalSignal K s)
     watkinsEndogenousCoupling :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalWatkinsTarget K s ＝
       (_+_)
         ((_+_)
