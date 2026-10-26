@@ -3696,7 +3696,7 @@ canonical-qLog2Bias8-law :
       (C.rationalCodeDivideMagnitude
         (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
         (C.qLog8 x)))
-canonical-qLog2Bias8-law x with C.intCodeMagnitude x
+canonical-qLog2Bias8-law x with C.rationalCodeNumeratorMagnitude (C.qLog8 x)
 ... | zero = refl
 ... | suc n = refl
 
