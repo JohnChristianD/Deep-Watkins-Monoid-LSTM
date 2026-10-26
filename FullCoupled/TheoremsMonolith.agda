@@ -3350,8 +3350,8 @@ canonicalCount-freeMonoidActionHomomorphism :
     C.CanonicalFullLearnerState
     ℕ
     (C.canonicalFullStep K)
-    suc
     (λ s → C.totalCount (C.lcbCounts s))
+    suc
 canonicalCount-freeMonoidActionHomomorphism K =
   freeMonoidActionHomomorphism-from-square
     (commutingSquareTheorem-from-square
