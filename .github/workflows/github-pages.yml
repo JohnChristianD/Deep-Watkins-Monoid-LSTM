@@ -29,14 +29,9 @@ jobs:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
         shell: bash
         run: |
-          set +e
-          nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All \
-            > "$RUNNER_TEMP/agda-ci.stdout.log" \
-            2> "$RUNNER_TEMP/agda-ci.stderr.log"
-          status=$?
-          cat "$RUNNER_TEMP/agda-ci.stdout.log"
-          sed '/^copying path .* from .*$/d' "$RUNNER_TEMP/agda-ci.stderr.log" >&2
-          exit "$status"
+          set -o pipefail
+          nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All 2>&1 \
+            | sed '/^copying path .* from .*$/d'
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
