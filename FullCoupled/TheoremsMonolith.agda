@@ -568,9 +568,9 @@ module RUSSProofTheory where
   russStageMeetLeRight :
     (p q : RUSSStage) →
     RUSSStageLeq (russStageMeet p q) q
-  russStageMeetLeRight p q n qIsTrue with q n
+  russStageMeetLeRight p q n qIsTrue with p n
   ... | True = refl
-  ... | False = russEliminateFalse (russFalseNotTrue qIsTrue)
+  ... | False = qIsTrue
 
   -- A stage-indexed prompt exception: at stage p it must provide a
   -- witness for every refinement q <= p. The top fibre is empty.
