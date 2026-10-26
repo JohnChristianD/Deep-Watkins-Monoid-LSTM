@@ -2779,7 +2779,7 @@ record CanonicalAQLoopTheorem : Set₁ where
             (C.canonicalReward8 K s)
             (C.canonicalQLogBias K s))
           ((_*_) C.canonicalDiscount8
-            (C.maxCriticValue8 (C.critic (C.watkins s)))))
+            (C.maxCriticValue8 (C.actionSpaceK K) (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
 
 open CanonicalAQLoopTheorem public
@@ -3708,7 +3708,7 @@ record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
             (C.canonicalQLogBias K s))
           ((_*_)
             C.canonicalDiscount8
-            (C.maxCriticValue8 (C.critic (C.watkins s)))))
+            (C.maxCriticValue8 (C.actionSpaceK K) (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
 
     l2ConsumesTarget :
