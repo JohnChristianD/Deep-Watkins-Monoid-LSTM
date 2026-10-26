@@ -27,7 +27,16 @@ jobs:
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
-        run: nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All
+        shell: bash
+        run: |
+          set +e
+          nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All \
+            > "$RUNNER_TEMP/agda-ci.stdout.log" \
+            2> "$RUNNER_TEMP/agda-ci.stderr.log"
+          status=$?
+          cat "$RUNNER_TEMP/agda-ci.stdout.log"
+          sed '/^copying path .* from .*$/d' "$RUNNER_TEMP/agda-ci.stderr.log" >&2
+          exit "$status"
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
@@ -44,6 +53,8 @@ jobs:
       name: github-pages
       url: "${{ steps.deployment.outputs.page_url }}"
     steps:
+      - name: Verify GitHub Pages configuration
+        uses: actions/configure-pages@v5
       - name: Deploy Pages artifact
         id: deployment
         uses: actions/deploy-pages@v4
