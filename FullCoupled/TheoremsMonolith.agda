@@ -3288,6 +3288,11 @@ record CommutingSquareTheorem
 
 open CommutingSquareTheorem public
 
+commutingSquareCong :
+  ∀ {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB}
+    (f : A → B) {x y : A} → x ＝ y → f x ＝ f y
+commutingSquareCong f refl = refl
+
 commutingSquareTheorem-from-square :
   ∀ {ℓState ℓFeature : Level}
   {State : Set ℓState} {Feature : Set ℓFeature}
@@ -3309,7 +3314,7 @@ commutingSquareTheorem-from-square {step = step} {observe = observe} {featureSte
     deriveIterateSquare (suc n) s =
       trans
         (square (commutingIterate step n s))
-        (cong featureStep (deriveIterateSquare n s))
+        (commutingSquareCong featureStep (deriveIterateSquare n s))
 
 record FreeMonoidActionHomomorphism
   {ℓState ℓFeature : Level}
