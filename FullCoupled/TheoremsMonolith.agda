@@ -2181,7 +2181,7 @@ fractalTransportedEncodeInjective :
   s ＝ t
 fractalTransportedEncodeInjective F {lower = lower} r eq =
   fractalLevelInjective F lower
-    (transportInjective F r eq)
+    (transportInjective F {r = r} eq)
 
 ------------------------------------------------------------------------
 -- Canonical theorem section: canonical GRU fractal injective composition.
