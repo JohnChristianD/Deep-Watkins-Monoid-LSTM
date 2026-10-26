@@ -851,6 +851,11 @@ scanLearnerStream :
   State → C.LearnerStream i Input → C.LearnerStream i State
 scanLearnerStream = C.MonoidLSTMStreams.scanSeededStream
 
+scanFusionCong :
+  {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB} →
+  (f : A → B) → {x y : A} → x ＝ y → f x ＝ f y
+scanFusionCong f refl = refl
+
 scanMapFusionBisimAux :
   {ℓS ℓT ℓI : Level} {i : Size}
   {State : Set ℓS} {Target : Set ℓT} {Input : Set ℓI} →
@@ -880,7 +885,7 @@ scanMapFusionBisimAux encode step targetStep stepFusion
       (targetStep targetState (C.learnerStreamHead inputs))
       (trans
         (stepFusion state (C.learnerStreamHead inputs))
-        (cong
+        (scanFusionCong
           (λ value → targetStep value (C.learnerStreamHead inputs))
           stateAgreement))
       (C.learnerStreamTail inputs {j})
