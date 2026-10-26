@@ -3416,7 +3416,7 @@ record RecurrentScanConjugacyTheorem
         (h :
           ∀ (s : State) (x : Input) →
           replace (step s x) ＝ step (replace s) x) →
-        (xs : List Input) →
+        (xs : ℕ → Input) →
         (n : ℕ) →
         (s : State) →
         replace
