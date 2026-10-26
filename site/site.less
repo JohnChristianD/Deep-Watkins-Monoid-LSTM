@@ -108,6 +108,43 @@ h3 { overflow-wrap: anywhere; }
 .source-record p { margin: .35rem 0; }
 code { overflow-wrap: anywhere; }
 
+.table-wrap { max-width: 100%; overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: .55rem .65rem;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid color-mix(in srgb, @ink 18%, transparent);
+}
+
+th {
+  font-size: .7rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(0, 2fr);
+  gap: 0 1.25rem;
+}
+
+dt {
+  padding: .85rem 0 .35rem;
+  font-weight: 700;
+}
+
+dd {
+  margin: 0;
+  padding: .85rem 0;
+  border-top: 1px solid color-mix(in srgb, @ink 18%, transparent);
+}
+
 .entry {
   padding: 1rem 0;
   border-top: 1px solid color-mix(in srgb, @ink 18%, transparent);
@@ -140,4 +177,6 @@ code { overflow-wrap: anywhere; }
   .masthead { align-items: flex-start; flex-direction: column; gap: .4rem; }
   .mast-note { text-align: left; }
   .document { padding-top: 1.5rem; }
+  dl { grid-template-columns: 1fr; }
+  dd { padding-top: .25rem; }
 }

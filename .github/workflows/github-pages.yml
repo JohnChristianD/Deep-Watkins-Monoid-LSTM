@@ -27,7 +27,11 @@ jobs:
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
-        run: nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All
+        shell: bash
+        run: |
+          set -o pipefail
+          nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All 2>&1 \
+            | sed '/^copying path .* from .*$/d'
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
@@ -38,12 +42,15 @@ jobs:
     needs: build
     runs-on: ubuntu-22.04
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: "${{ steps.deployment.outputs.page_url }}"
     steps:
+      - name: Verify GitHub Pages configuration
+        uses: actions/configure-pages@v5
       - name: Deploy Pages artifact
         id: deployment
         uses: actions/deploy-pages@v4
