@@ -3262,17 +3262,19 @@ canonical-gruf4-watkins-prefix-composition-theorem =
     canonicalFullStep-GRUF4-prefix-bridge
 
 commutingIterate :
-  ∀ {S : Set} →
+  ∀ {ℓ : Level} {S : Set ℓ} →
   (S → S) → ℕ → S → S
 commutingIterate step zero s = s
 commutingIterate step (suc n) s =
   step (commutingIterate step n s)
 
 record CommutingSquareTheorem
-  (State Feature : Set)
+  {ℓState ℓFeature : Level}
+  (State : Set ℓState)
+  (Feature : Set ℓFeature)
   (step : State → State)
   (observe : State → Feature)
-  (featureStep : Feature → Feature) : Set₁ where
+  (featureStep : Feature → Feature) : Set (suc (ℓState ⊔ ℓFeature)) where
   constructor commutingSquareTheorem
   field
     square :
@@ -3285,7 +3287,8 @@ record CommutingSquareTheorem
 open CommutingSquareTheorem public
 
 commutingSquareTheorem-from-square :
-  ∀ {State Feature : Set}
+  ∀ {ℓState ℓFeature : Level}
+  {State : Set ℓState} {Feature : Set ℓFeature}
   {step : State → State}
   {observe : State → Feature}
   {featureStep : Feature → Feature} →
@@ -3307,10 +3310,12 @@ commutingSquareTheorem-from-square {step = step} {observe = observe} {featureSte
         (cong featureStep (deriveIterateSquare n s))
 
 record FreeMonoidActionHomomorphism
-  (State Feature : Set)
+  {ℓState ℓFeature : Level}
+  (State : Set ℓState)
+  (Feature : Set ℓFeature)
   (step : State → State)
   (observe : State → Feature)
-  (featureStep : Feature → Feature) : Set₁ where
+  (featureStep : Feature → Feature) : Set (suc (ℓState ⊔ ℓFeature)) where
   constructor freeMonoidActionHomomorphism
   field
     iterateHomomorphism :
@@ -3321,7 +3326,8 @@ record FreeMonoidActionHomomorphism
 open FreeMonoidActionHomomorphism public
 
 freeMonoidActionHomomorphism-from-square :
-  ∀ {State Feature : Set}
+  ∀ {ℓState ℓFeature : Level}
+  {State : Set ℓState} {Feature : Set ℓFeature}
   {step : State → State}
   {observe : State → Feature}
   {featureStep : Feature → Feature} →
