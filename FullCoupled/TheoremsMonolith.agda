@@ -1234,7 +1234,7 @@ leftInverse-implies-injective observe inverse leftInverse eq =
   trans
     (sym (leftInverse _))
     (trans
-      apply-cong eq
+      (cong inverse eq)
       (leftInverse _))
 
 canonicalGRUStatisticalEncodeLeftInverse :
