@@ -291,11 +291,22 @@ module RUSSProofTheory where
       RUSSDerivation context russFalsehood →
       RUSSDerivation context formula
 
+  -- Lift low-universe falsity/truth evidence into the common model universe.
+  -- The wrappers preserve the original evidence and keep all formula meanings in Set₄.
+  data RUSSFalsehoodMeaning : Set₄ where
+    russFalsehoodMeaning : EmptyComputability → RUSSFalsehoodMeaning
+
+  data RUSSTruthhoodMeaning : Set₄ where
+    russTruthhoodMeaning : RUSSTruthEvidence → RUSSTruthhoodMeaning
+
+  russUnwrapFalsehood : RUSSFalsehoodMeaning → EmptyComputability
+  russUnwrapFalsehood (russFalsehoodMeaning evidence) = evidence
+
   RUSSFormulaMeaning :
     (basis : RussianRecursiveMathematicsBasis) →
     RUSSFormula → Set₄
-  RUSSFormulaMeaning basis russFalsehood = EmptyComputability
-  RUSSFormulaMeaning basis russTruthhood = RUSSTruthEvidence
+  RUSSFormulaMeaning basis russFalsehood = RUSSFalsehoodMeaning
+  RUSSFormulaMeaning basis russTruthhood = RUSSTruthhoodMeaning
   RUSSFormulaMeaning basis (russAxiom tag) = RUSSAxiomMeaning tag
   RUSSFormulaMeaning basis (russImplies antecedent consequent) =
     RUSSFormulaMeaning basis antecedent →
@@ -330,7 +341,7 @@ module RUSSProofTheory where
     RUSSFormulaMeaning basis formula
   russSoundness basis (russAssumption membership) model =
     model membership
-  russSoundness basis russTruthD model = russTruthEvidence
+  russSoundness basis russTruthD model = russTruthhoodMeaning russTruthEvidence
   russSoundness basis (russAxiomD tag) model =
     russAxiomFromBasis basis tag
   russSoundness basis (russImpliesIntro derivation) model =
@@ -342,14 +353,16 @@ module RUSSProofTheory where
       (russSoundness basis antecedent model)
   russSoundness basis (russFalseElim derivation) model =
     russEliminateFalse
-      (russSoundness basis derivation model)
+      (russUnwrapFalsehood
+        (russSoundness basis derivation model))
 
   russCoreConsistency :
     (basis : RussianRecursiveMathematicsBasis) →
     Neg (RUSSDerivation [] russFalsehood)
   russCoreConsistency basis derivation =
     russEliminateFalse
-      (russSoundness basis derivation (λ ()))
+      (russUnwrapFalsehood
+        (russSoundness basis derivation (λ ())))
 
   -- CONDITIONAL ONLY: this applies the calculus theorem to the postulated basis.
   -- It neither supplies an inhabitant of the basis nor proves the basis consistent.
