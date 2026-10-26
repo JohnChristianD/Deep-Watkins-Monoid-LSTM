@@ -1727,14 +1727,17 @@ integerLayerNorm-radicand-epsilon-linear :
   ＝
   C.integerLayerNormVarianceNumerator xs
   +
-  (pos (epsilon * length xs * length xs))
+  (pos (epsilon * (C.lengthNat xs * C.lengthNat xs)))
 integerLayerNorm-radicand-epsilon-linear xs zero =
   trans
     (integerLayerNorm-radicand-epsilon-zero xs)
     (sym
-      (addInteger-idʳ
+      (IntegerLaws.addInteger-idʳ
         (C.integerLayerNormVarianceNumerator xs)))
 integerLayerNorm-radicand-epsilon-linear xs (suc epsilon) =
+  let n = C.lengthNat xs
+      variance = C.integerLayerNormVarianceNumerator xs
+  in
   trans
     (integerLayerNorm-radicand-epsilon-succ xs epsilon)
     (trans
@@ -1742,21 +1745,15 @@ integerLayerNorm-radicand-epsilon-linear xs (suc epsilon) =
         (integerLayerNorm-radicand-epsilon-linear xs epsilon)
         refl)
       (trans
-        (sym
-          (IntegerLaws.addInteger-assoc
-            (C.integerLayerNormVarianceNumerator xs)
-            (pos (epsilon * length xs * length xs))
-            (pos (length xs * length xs))))
+        (IntegerLaws.addInteger-assoc
+          variance
+          (pos (epsilon * (n * n)))
+          (pos (n * n)))
         (cong
-          (λ n →
-            C.integerLayerNormVarianceNumerator xs
-            +
-            (pos n))
-          (sym
-            (integerLayerNorm-epsilon-contribution-succ
-              xs
-              epsilon)))))
-
+          (λ contribution → variance + contribution)
+          (IntegerLaws.addInteger-comm
+            (pos (epsilon * (n * n)))
+            (pos (n * n)))))
 record CanonicalF4GlobalOptimizerStabilityTheorem : Set₁ where
   constructor canonicalF4GlobalOptimizerStabilityTheorem
   field
