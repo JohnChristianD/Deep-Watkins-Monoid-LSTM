@@ -3592,10 +3592,10 @@ informationPreserving-all-tasks-injective
   observe inverse allTasks
   {s} {t} eq =
   trans
-    (sym (allTasks (λ x → x) s))
+    (allTasks (λ x → x) s)
     (trans
-      apply-cong eq
-      (allTasks (λ x → x) t))
+      (cong inverse eq)
+      (sym (allTasks (λ x → x) t)))
 
 productObservation :
   ∀ {StateA StateB FeatureA FeatureB : Set} →
