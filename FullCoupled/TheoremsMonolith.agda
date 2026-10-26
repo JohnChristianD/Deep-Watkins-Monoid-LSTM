@@ -1753,7 +1753,7 @@ integerLayerNorm-radicand-epsilon-linear xs (suc epsilon) =
           (λ contribution → variance + contribution)
           (IntegerLaws.addInteger-comm
             (pos (epsilon * (n * n)))
-            (pos (n * n)))))
+            (pos (n * n))))))
 record CanonicalF4GlobalOptimizerStabilityTheorem : Set₁ where
   constructor canonicalF4GlobalOptimizerStabilityTheorem
   field
