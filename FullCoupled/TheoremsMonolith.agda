@@ -851,6 +851,44 @@ scanLearnerStream :
   State → C.LearnerStream i Input → C.LearnerStream i State
 scanLearnerStream = C.MonoidLSTMStreams.scanSeededStream
 
+scanMapFusionBisimAux :
+  {ℓS ℓT ℓI : Level} {i : Size}
+  {State : Set ℓS} {Target : Set ℓT} {Input : Set ℓI} →
+  (encode : State → Target) →
+  (step : State → Input → State) →
+  (targetStep : Target → Input → Target) →
+  (stepFusion :
+    (state : State) (input : Input) →
+    encode (step state input) ＝ targetStep (encode state) input) →
+  (state : State) (targetState : Target) →
+  encode state ＝ targetState →
+  (inputs : C.LearnerStream i Input) →
+  LearnerStreamBisim i
+    (C.mapLearnerStream encode (scanLearnerStream step state inputs))
+    (scanLearnerStream targetStep targetState inputs)
+scanMapFusionBisimAux encode step targetStep stepFusion
+  state targetState stateAgreement inputs .learnerStreamHeadsAgree =
+    trans
+      (stepFusion state (C.learnerStreamHead inputs))
+      (cong
+        (λ value → targetStep value (C.learnerStreamHead inputs))
+        stateAgreement)
+scanMapFusionBisimAux encode step targetStep stepFusion
+  state targetState stateAgreement inputs .learnerStreamTailsBisimilar {j} =
+    scanMapFusionBisimAux
+      encode
+      step
+      targetStep
+      stepFusion
+      (step state (C.learnerStreamHead inputs))
+      (targetStep targetState (C.learnerStreamHead inputs))
+      (trans
+        (stepFusion state (C.learnerStreamHead inputs))
+        (cong
+          (λ value → targetStep value (C.learnerStreamHead inputs))
+          stateAgreement))
+      (C.learnerStreamTail inputs {j})
+
 scanMapFusionBisim :
   {ℓS ℓT ℓI : Level} {i : Size}
   {State : Set ℓS} {Target : Set ℓT} {Input : Set ℓI} →
@@ -864,18 +902,16 @@ scanMapFusionBisim :
   LearnerStreamBisim i
     (C.mapLearnerStream encode (scanLearnerStream step state inputs))
     (scanLearnerStream targetStep (encode state) inputs)
-scanMapFusionBisim encode step targetStep stepFusion state inputs
-  .learnerStreamHeadsAgree = refl
-scanMapFusionBisim encode step targetStep stepFusion state inputs
-  .learnerStreamTailsBisimilar {j}
-  rewrite sym (stepFusion state (C.learnerStreamHead inputs)) =
-    scanMapFusionBisim
-      encode
-      step
-      targetStep
-      stepFusion
-      (step state (C.learnerStreamHead inputs))
-      (C.learnerStreamTail inputs {j})
+scanMapFusionBisim encode step targetStep stepFusion state inputs =
+  scanMapFusionBisimAux
+    encode
+    step
+    targetStep
+    stepFusion
+    state
+    (encode state)
+    refl
+    inputs
 
 repeatUnitLearnerStream : {i : Size} → C.LearnerStream i C.⊤
 repeatUnitLearnerStream = C.learnerStreamRepeat C.tt
