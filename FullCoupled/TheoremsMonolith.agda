@@ -768,7 +768,7 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
                 (riceFixedPoint
                   (riceAdversarialTransform Property decide good bad))
                 notFixedProperty)
-              (riceSelectTrue good bad)))
+              (riceSelectTrue good bad))))
         goodProperty)
 
 -- Public entry point for the existing constructive Rice theorem. The
