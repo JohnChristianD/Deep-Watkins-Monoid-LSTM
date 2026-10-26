@@ -32,6 +32,8 @@ module FullCoupled.TheoremsMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude hiding (String)
 
+import Agda.Primitive as Prim
+
 -- Use compiler-owned builtin strings and the version-matched Reflection API.
 -- This removes a second declaration of the Reflection/TC ABI. Reflection's
 -- operational implementation remains part of the trusted compiler boundary.
@@ -3274,7 +3276,7 @@ record CommutingSquareTheorem
   (Feature : Set ℓFeature)
   (step : State → State)
   (observe : State → Feature)
-  (featureStep : Feature → Feature) : Set (suc (ℓState ⊔ ℓFeature)) where
+  (featureStep : Feature → Feature) : Set (Prim.lsuc (Prim._⊔_ ℓState ℓFeature)) where
   constructor commutingSquareTheorem
   field
     square :
@@ -3315,7 +3317,7 @@ record FreeMonoidActionHomomorphism
   (Feature : Set ℓFeature)
   (step : State → State)
   (observe : State → Feature)
-  (featureStep : Feature → Feature) : Set (suc (ℓState ⊔ ℓFeature)) where
+  (featureStep : Feature → Feature) : Set (Prim.lsuc (Prim._⊔_ ℓState ℓFeature)) where
   constructor freeMonoidActionHomomorphism
   field
     iterateHomomorphism :
