@@ -696,7 +696,7 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
 
   riceAdversarialTransformWhenTrue :
     (Property : RiceProgram → Set) →
-    ((program : RiceProgram) → Decidable (Property program)) →
+    (decide : (program : RiceProgram) → Decidable (Property program)) →
     (good bad program : RiceProgram) →
     Property program →
     riceAdversarialTransform Property decide good bad program
@@ -708,7 +708,7 @@ module ConstructiveRiceTheorem (system : RiceAcceptableSystem) where
 
   riceAdversarialTransformWhenFalse :
     (Property : RiceProgram → Set) →
-    ((program : RiceProgram) → Decidable (Property program)) →
+    (decide : (program : RiceProgram) → Decidable (Property program)) →
     (good bad program : RiceProgram) →
     (Property program → EmptyComputability) →
     riceAdversarialTransform Property decide good bad program
