@@ -2895,24 +2895,32 @@ data LearnerReplacement : Set where
   optimizerReplacement : F4IntUState → LearnerReplacement
 
 applyLearnerReplacement :
-  LearnerReplacement → FullLearnerState → FullLearnerState
-applyLearnerReplacement (optimizerReplacement o) s = replaceOptimizer s o
+  ∀ {A : Set} →
+  LearnerReplacement →
+  C.FullLearnerState A →
+  C.FullLearnerState A
+applyLearnerReplacement (optimizerReplacement o) s = C.replaceOptimizer s o
 
 applyLearnerReplacements :
-  List LearnerReplacement → FullLearnerState → FullLearnerState
+  ∀ {A : Set} →
+  List LearnerReplacement →
+  C.FullLearnerState A →
+  C.FullLearnerState A
 applyLearnerReplacements [] s = s
 applyLearnerReplacements (r ∷ rs) s =
   applyLearnerReplacements rs (applyLearnerReplacement r s)
 
 canonicalPolicy-learnerReplacement-invariant :
-  ∀ K s r →
-  canonicalPolicy K (applyLearnerReplacement r s) ＝ canonicalPolicy K s
+  ∀ {A : Set} (K : C.FullLearnerKernel A)
+    (s : C.FullLearnerState A) (r : LearnerReplacement) →
+  C.canonicalPolicy K (applyLearnerReplacement r s) ＝ C.canonicalPolicy K s
 canonicalPolicy-learnerReplacement-invariant K s (optimizerReplacement o) =
-  canonicalPolicy-optimizer-invariant K s o
+  C.canonicalPolicy-optimizer-invariant K s o
 
 canonicalPolicy-learnerReplacement-composition :
-  ∀ K s rs →
-  canonicalPolicy K (applyLearnerReplacements rs s) ＝ canonicalPolicy K s
+  ∀ {A : Set} (K : C.FullLearnerKernel A)
+    (s : C.FullLearnerState A) (rs : List LearnerReplacement) →
+  C.canonicalPolicy K (applyLearnerReplacements rs s) ＝ C.canonicalPolicy K s
 canonicalPolicy-learnerReplacement-composition K s [] = refl
 canonicalPolicy-learnerReplacement-composition K s (r ∷ rs) =
   trans
@@ -2921,17 +2929,18 @@ canonicalPolicy-learnerReplacement-composition K s (r ∷ rs) =
     (canonicalPolicy-learnerReplacement-invariant K s r)
 
 canonicalPersistentGRU-afterFullStep-iterate :
-  ∀ K n s →
-  persistentGRU
-    (gru (iterateCanonical K n s))
+  ∀ {A : Set} (K : C.FullLearnerKernel A)
+    (n : ℕ) (s : C.FullLearnerState A) →
+  C.persistentGRU
+    (C.gru (C.iterateCanonical K n s))
   ＝
-  persistentGRU (gru s)
+  C.persistentGRU (C.gru s)
 canonicalPersistentGRU-afterFullStep-iterate K zero s = refl
 canonicalPersistentGRU-afterFullStep-iterate K (suc n) s =
   trans
     (canonicalPersistentGRU-afterFullStep-iterate
-      K n (canonicalFullStep K s))
-    (canonicalPersistentGRUPreservation K s)
+      K n (C.canonicalFullStep K s))
+    (C.canonicalPersistentGRUPreservation K s)
 
 record EqualityCompositionTheorem
   {A : Set}
