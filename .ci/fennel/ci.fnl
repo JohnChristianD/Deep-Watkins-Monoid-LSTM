@@ -59,9 +59,21 @@
   (write-file css (.. (read-file palette) "\n" (read-file base-css)))
   (run! "render static HTML"
     (.. "fennel .ci/fennel/pages.fnl " (shell-quote html)))
+  (local generated-html (read-file html))
+  (local generated-css (read-file css))
+  (assert (string.find generated-html "href=\"site.css\"" 1 true)
+    "published HTML is missing its stylesheet link")
+  (assert (string.find generated-html "class=\"intro\"" 1 true)
+    "published HTML is missing the styled intro section")
+  (assert (string.find generated-html "class=\"russ-status\"" 1 true)
+    "published HTML is missing the styled RUSS status")
+  (assert (string.find generated-css ".russ-status" 1 true)
+    "compiled LESS is missing the RUSS status style")
+  (assert (string.find generated-css ".table-wrap" 1 true)
+    "compiled LESS is missing the table layout style")
   (os.remove palette)
   (os.remove base-css)
-  (print "static-pages=generated; browser-JavaScript=none")))
+  (print "static-pages=generated; less-css=validated; browser-JavaScript=none")))
 
 (local lanes
   {"AgdaLearner" check-agda-learner
