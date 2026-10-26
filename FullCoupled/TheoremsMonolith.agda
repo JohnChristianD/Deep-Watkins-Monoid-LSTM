@@ -3500,11 +3500,10 @@ canonicalFullLearner-iterate-conjugacy :
 canonicalFullLearner-iterate-conjugacy replace K h zero s = refl
 canonicalFullLearner-iterate-conjugacy replace K h (suc n) s =
   trans
-    (canonicalFullLearner-iterate-conjugacy
-      replace K h n (C.canonicalFullStep K s))
+    (h (C.iterateCanonical K n s))
     (cong
-      (C.iterateCanonical K n)
-      (h s))
+      (C.canonicalFullStep K)
+      (canonicalFullLearner-iterate-conjugacy replace K h n s))
 
 canonical-full-learner-connected-scan-conjugacy-theorem :
   CanonicalFullLearnerConnectedScanConjugacyTheorem
