@@ -1766,9 +1766,9 @@ record CanonicalF4GlobalOptimizerStabilityTheorem : Set₁ where
     stableNonThetaCoordinates :
       ∀ {A} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       (C.rTheta (C.canonicalOptimizerStep K s) ＝ 0) ×
-      (C.eQ (C.canonicalOptimizerStep K s) ＝ C.eQ (C.optimizer s)) ×
-      (C.rE (C.canonicalOptimizerStep K s) ＝ C.rE (C.optimizer s)) ×
-      (C.rL (C.canonicalOptimizerStep K s) ＝ C.rL (C.optimizer s))
+      ((C.eQ (C.canonicalOptimizerStep K s) ＝ C.eQ (C.optimizer s)) ×
+        ((C.rE (C.canonicalOptimizerStep K s) ＝ C.rE (C.optimizer s)) ×
+          (C.rL (C.canonicalOptimizerStep K s) ＝ C.rL (C.optimizer s))))
     equalInputStability :
       ∀ {A} (K : C.FullLearnerKernel A)
         (s t : C.FullLearnerState A) →
