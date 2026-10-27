@@ -2202,6 +2202,29 @@ rationalCodeDivideMagnitude : ℕ → RationalCode → ℕ
 rationalCodeDivideMagnitude n (_ , denominatorMinusOne) =
   fst (fractionDivision n (suc denominatorMinusOne))
 
+-- Encode a rational Sparsemax weight as a bounded 0..128 policy code.
+-- The denominator matters: numerator alone is not a probability.
+clampPolicyCode8 : ℕ → ℕ
+clampPolicyCode8 n with natLE n 128
+... | enabled = n
+... | disabled = 128
+
+sparseWeightCode8 : SparseWeight → Integer
+sparseWeightCode8 (sparseWeight n d) =
+  fromNat (clampPolicyCode8 (fst (fractionDivision (128 *ℕ n) d)))
+
+sparseWeightCode8-quarter-regression :
+  sparseWeightCode8 (sparseWeight 1 4) ＝ fromNat 32
+sparseWeightCode8-quarter-regression = refl
+
+sparseWeightCode8-half-regression :
+  sparseWeightCode8 (sparseWeight 1 2) ＝ fromNat 64
+sparseWeightCode8-half-regression = refl
+
+sparseWeightCode8-unit-regression :
+  sparseWeightCode8 (sparseWeight 1 1) ＝ fromNat 128
+sparseWeightCode8-unit-regression = refl
+
 qLog8 : Integer → RationalCode
 qLog8 x with intCodeMagnitude x
 ... | zero = fromNatRationalCode 1 zero
@@ -3244,7 +3267,7 @@ canonicalBehaviorAction-law :
   canonicalBehaviorAction K s ＝ canonicalPolicy K s
 canonicalBehaviorAction-law K s = refl
 
-canonicalPolicyWeightCode K s = fromNat (numerator (canonicalPolicyWeight K s))
+canonicalPolicyWeightCode K s = sparseWeightCode8 (canonicalPolicyWeight K s)
 
 HardSparse : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → Set
 HardSparse {A} K s =
