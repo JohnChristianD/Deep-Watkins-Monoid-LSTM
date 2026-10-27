@@ -1906,8 +1906,23 @@ sparsemaxTemperature = 16
 ScoreEntry : Set
 ScoreEntry = Integer × ℕ
 
+-- Score lists built from already-computed scores do not apply an LCB
+-- correction a second time.
+scoreListFromScores : ∀ {A : Set} → ActionSpace A → QFunction {A} → List ScoreEntry
+scoreListFromScores K q = map (λ a → (q a , a)) (actionCandidates K)
+
+scoreListFromScores-regression :
+  scoreListFromScores
+    (actionSpace {A = ⊤} (zero ∷ []) zero)
+    (λ _ → negsuc zero) ＝
+  ((negsuc zero , zero) ∷ [])
+scoreListFromScores-regression = refl
+
+-- Compatibility entry point for raw critic values, applying the built-in
+-- finite LCB schedule exactly once.
 scoreList : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → List ScoreEntry
-scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (actionCandidates K)
+scoreList {A} K q c =
+  scoreListFromScores K (scoreA {A = A} q c)
 
 data ComparisonResult : Set where
   less equal greater : ComparisonResult
@@ -2112,8 +2127,17 @@ searchSupport xs temperature (suc n) current best with supportValid xs temperatu
 ... | enabled = searchSupport xs temperature n (suc current) (maxNat best current)
 ... | disabled = searchSupport xs temperature n (suc current) best
 
+supportSizeFromScores : ∀ {A : Set} → ActionSpace A → QFunction {A} → ℕ
+supportSizeFromScores K q =
+  searchSupport
+    (sortScores (scoreListFromScores K q))
+    sparsemaxTemperature
+    (lengthNat (actionCandidates K))
+    (suc zero)
+    (suc zero)
+
 supportSize : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ
-supportSize K q c = searchSupport (sortScores (scoreList K q c)) sparsemaxTemperature (lengthNat (actionCandidates K)) (suc zero) (suc zero)
+supportSize K q c = supportSizeFromScores K (scoreA q c)
 
 -- Every SparseWeight has a positive denominator: the stored second
 -- component is denominator-minus-one, as in RationalCode. This prevents the
@@ -2128,22 +2152,31 @@ open SparseWeight public
 sparseWeightDenominator : SparseWeight → ℕ
 sparseWeightDenominator (sparseWeight _ d) = suc d
 
-sparsemaxWeightInSupport : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
-sparsemaxWeightInSupport {A} K q c a =
+sparsemaxWeightFromScoresInSupport : ∀ {A : Set} → ActionSpace A → QFunction {A} → ℕ → SparseWeight
+sparsemaxWeightFromScoresInSupport {A} K q a =
   sparseWeight
-    (((supportK *ℕ integerGap (scoreA {A = A} q c a) scoreBaseline)
+    (((supportK *ℕ integerGap (q a) scoreBaseline)
        +ℕ sparsemaxTemperature) ∸ scoreSum)
     ((supportK *ℕ sparsemaxTemperature) ∸ 1)
   where
-    scoreEntries = sortScores (scoreList K q c)
+    scoreEntries = sortScores (scoreListFromScores K q)
     scoreBaseline = minimumScore scoreEntries
-    supportK = supportSize K q c
+    supportK = supportSizeFromScores K q
     scoreSum = sumList (topCodes supportK scoreEntries)
 
+sparsemaxWeightFromScores : ∀ {A : Set} → ActionSpace A → QFunction {A} → ℕ → SparseWeight
+sparsemaxWeightFromScores K q a with containsAction a (actionCandidates K)
+... | disabled =
+  sparseWeight zero ((supportSizeFromScores K q *ℕ sparsemaxTemperature) ∸ 1)
+... | enabled = sparsemaxWeightFromScoresInSupport K q a
+
+-- Compatibility entry point for raw critic values and counts.
+sparsemaxWeightInSupport : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
+sparsemaxWeightInSupport {A} K q c a =
+  sparsemaxWeightFromScoresInSupport K (scoreA {A = A} q c) a
+
 sparsemaxWeight : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
-sparsemaxWeight K q c a with containsAction a (actionCandidates K)
-... | disabled = sparseWeight zero ((supportSize K q c *ℕ sparsemaxTemperature) ∸ 1)
-... | enabled = sparsemaxWeightInSupport K q c a
+sparsemaxWeight K q c a = sparsemaxWeightFromScores K (scoreA q c) a
 
 sparsemaxWeight-outside-action-space-regression :
   numerator
@@ -2159,14 +2192,22 @@ weightPositive (sparseWeight n d) with natEq n zero
 ... | enabled = disabled
 ... | disabled = enabled
 
-selectPositive : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → List ScoreEntry → ℕ
-selectPositive K q c [] = witness K
-selectPositive K q c ((s , a) ∷ xs) with weightPositive (sparsemaxWeight K q c a)
+selectPositiveFromScores : ∀ {A : Set} → ActionSpace A → QFunction {A} → List ScoreEntry → ℕ
+selectPositiveFromScores K q [] = witness K
+selectPositiveFromScores K q ((s , a) ∷ xs)
+  with weightPositive (sparsemaxWeightFromScores K q a)
 ... | enabled = a
-... | disabled = selectPositive K q c xs
+... | disabled = selectPositiveFromScores K q xs
+
+selectPositive : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → List ScoreEntry → ℕ
+selectPositive K q c xs = selectPositiveFromScores K (scoreA q c) xs
+
+sparsemaxPolicyFromScores : ∀ {A : Set} → ActionSpace A → QFunction {A} → ℕ
+sparsemaxPolicyFromScores K q =
+  selectPositiveFromScores K q (sortScores (scoreListFromScores K q))
 
 sparsemaxPolicy : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ
-sparsemaxPolicy K q c = selectPositive K q c (sortScores (scoreList K q c))
+sparsemaxPolicy K q c = sparsemaxPolicyFromScores K (scoreA q c)
 
 ------------------------------------------------------------------------
 -- Exact sparsemax behavior-policy readout.
@@ -3339,11 +3380,23 @@ CanonicalFullLearnerState = FullLearnerState ⊤
 CanonicalFullLearnerKernel : Set₁
 CanonicalFullLearnerKernel = FullLearnerKernel ⊤
 
+canonicalPolicyScores : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → QFunction
+canonicalPolicyScores K s =
+  lcbScore
+    (lcbKernel K)
+    (lcbCounts s)
+    (critic (watkins s))
+
 canonicalPolicy : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → ℕ
-canonicalPolicy K s = sparsemaxPolicy (actionSpaceK K) (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s))) (valuesCount (lcbCounts s))
+canonicalPolicy K s =
+  sparsemaxPolicyFromScores (actionSpaceK K) (canonicalPolicyScores K s)
 
 canonicalPolicyWeight : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → SparseWeight
-canonicalPolicyWeight K s = sparsemaxWeight (actionSpaceK K) (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s))) (valuesCount (lcbCounts s)) (canonicalPolicy K s)
+canonicalPolicyWeight K s =
+  sparsemaxWeightFromScores
+    (actionSpaceK K)
+    (canonicalPolicyScores K s)
+    (canonicalPolicy K s)
 
 canonicalPolicyWeightQLog : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → RationalCode
 
@@ -3356,13 +3409,9 @@ canonicalBehaviorPolicy :
   FullLearnerState A →
   BehaviorPolicy
 canonicalBehaviorPolicy K s a =
-  sparsemaxWeight
+  sparsemaxWeightFromScores
     (actionSpaceK K)
-    (lcbScore
-      (lcbKernel K)
-      (lcbCounts s)
-      (critic (watkins s)))
-    (valuesCount (lcbCounts s))
+    (canonicalPolicyScores K s)
     a
 
 canonicalBehaviorAction :
@@ -3385,7 +3434,7 @@ HardSparse : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → Se
 HardSparse {A} K s =
   ∀ {a : ℕ} →
   a ≠ canonicalPolicy K s →
-  numerator (sparsemaxWeight (actionSpaceK K) (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s))) (valuesCount (lcbCounts s)) a) ＝ zero
+  numerator (sparsemaxWeightFromScores (actionSpaceK K) (canonicalPolicyScores K s) a) ＝ zero
 
 SoftSparseBounded : ∀ {A : Set} →
   FullLearnerKernel A →
@@ -3396,10 +3445,9 @@ SoftSparseBounded {A} K s epsilon =
   ∀ {a : ℕ} →
   a ≠ canonicalPolicy K s →
   numerator
-    (sparsemaxWeight
+    (sparsemaxWeightFromScores
       (actionSpaceK K)
-      (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s)))
-      (valuesCount (lcbCounts s))
+      (canonicalPolicyScores K s)
       a)
   ≤ epsilon
 
