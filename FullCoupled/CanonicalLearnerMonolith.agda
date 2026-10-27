@@ -1,5 +1,5 @@
 {-# OPTIONS
---sized-types
+--exact-split
 --no-postfix-projections
 --no-projection-like
 --erased-matches
@@ -11,8 +11,7 @@
 --large-indices
 --no-forced-argument-recursion
 --with-K
---no-guardedness
---injective-type-constructors
+--guardedness
 #-}
 
 ------------------------------------------------------------------------
@@ -52,7 +51,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 open import Haskell.Prelude public
 open import Haskell.Prim public using (pos; negsuc)
 open import Haskell.Law.Ord.Ordering public
-open import Haskell.Law.Equality public hiding (_≠_; sym; trans)
+open import Haskell.Law.Equality public
 open import Haskell.Law.Functor.FromMonad public
 open import Haskell.Law.Semigroup.List public
 open import Haskell.Law.Nat public
