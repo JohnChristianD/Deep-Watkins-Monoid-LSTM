@@ -2626,8 +2626,29 @@ zeroGRUNoise = zeroMonoidLSTMNoise
 zeroGlobalControl : GlobalControl
 zeroGlobalControl = zeroMonoidLSTMControl
 
+-- Project the represented rational to an Integer by truncating
+-- toward zero. Dividing by the stored positive denominator makes equivalent
+-- ratio encodings agree and preserves the sign of negative values.
 rationalCodeCode : RationalCode → Integer
-rationalCodeCode q = fromNat (rationalCodeNumeratorMagnitude q)
+rationalCodeCode (pos n , denominatorMinusOne) =
+  fromNat (fst (fractionDivision n (suc denominatorMinusOne)))
+rationalCodeCode (negsuc n , denominatorMinusOne) =
+  negateInteger
+    (fromNat (fst (fractionDivision (suc n) (suc denominatorMinusOne))))
+
+rationalCodeCode-positive-equivalent-fractions-regression :
+  rationalCodeCode (fromNatRationalCode 2 0) ＝
+  rationalCodeCode (fromNatRationalCode 4 1)
+rationalCodeCode-positive-equivalent-fractions-regression = refl
+
+rationalCodeCode-negative-equivalent-fractions-regression :
+  rationalCodeCode (negsuc (suc zero) , zero) ＝
+  rationalCodeCode (negsuc (suc (suc (suc zero))) , suc zero)
+rationalCodeCode-negative-equivalent-fractions-regression = refl
+
+rationalCodeCode-negative-unit-regression :
+  rationalCodeCode (negsuc zero , zero) ＝ negsuc zero
+rationalCodeCode-negative-unit-regression = refl
 
 identityActivation8 : Integer → Integer
 identityActivation8 x = x
