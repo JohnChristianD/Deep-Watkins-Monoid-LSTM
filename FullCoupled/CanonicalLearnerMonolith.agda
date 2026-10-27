@@ -31,6 +31,12 @@
 -- token layer and Haar-featured linear transformer are exact formal substrates, not
 -- empirical language-model or physical-realism claims.
 --
+-- Numeric contract: recurrent, critic, and update values use unbounded Integer;
+-- action identifiers and counts use ℕ; ratios use exact numerator plus a
+-- positive-denominator encoding. There are no machine-byte, Float, or Double
+-- state types in the recurrent path. Historical “8” suffixes denote code
+-- scales or legacy interfaces, not an 8-bit storage constraint.
+--
 -- This file intentionally contains definitions and local definitional laws,
 -- not economic existence conclusions. Convergence, fixed points, market
 -- clearing, supporting prices, and Walrasian existence require independent
@@ -1764,6 +1770,14 @@ record ActionSpace (A : Set) : Set where
     witness : ℕ
 open ActionSpace public
 
+-- A witness is the canonical fallback when the declared list is empty.
+-- Use this effective action set consistently; otherwise the fallback action
+-- can be selected but receive zero weight, and out-of-set actions can get mass.
+actionCandidates : ∀ {A : Set} → ActionSpace A → List ℕ
+actionCandidates K with candidates K
+... | [] = witness K ∷ []
+... | xs = xs
+
 QFunction : ∀ {A : Set} → Set
 QFunction {A} = ℕ → Integer
 
@@ -1781,6 +1795,12 @@ natEq zero zero = enabled
 natEq zero (suc n) = disabled
 natEq (suc m) zero = disabled
 natEq (suc m) (suc n) = natEq m n
+
+containsAction : ℕ → List ℕ → BoolLike
+containsAction a [] = disabled
+containsAction a (b ∷ bs) with natEq a b
+... | enabled = enabled
+... | disabled = containsAction a bs
 
 natLt : ℕ → ℕ → BoolLike
 natLt zero zero = disabled
@@ -1871,7 +1891,7 @@ ScoreEntry : Set
 ScoreEntry = Integer × ℕ
 
 scoreList : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → List ScoreEntry
-scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (candidates K)
+scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (actionCandidates K)
 
 data ComparisonResult : Set where
   less equal greater : ComparisonResult
@@ -2077,20 +2097,46 @@ searchSupport xs temperature (suc n) current best with supportValid xs temperatu
 ... | disabled = searchSupport xs temperature n (suc current) best
 
 supportSize : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ
-supportSize K q c = searchSupport (sortScores (scoreList K q c)) sparsemaxTemperature (lengthNat (candidates K)) (suc zero) (suc zero)
+supportSize K q c = searchSupport (sortScores (scoreList K q c)) sparsemaxTemperature (lengthNat (actionCandidates K)) (suc zero) (suc zero)
 
+-- Every SparseWeight has a positive denominator: the stored second
+-- component is denominator-minus-one, as in RationalCode. This prevents the
+-- constructor from representing an invalid denominator-zero ratio.
 record SparseWeight : Set where
   constructor sparseWeight
-  field numerator denominator : ℕ
+  field
+    numerator : ℕ
+    denominatorMinusOne : ℕ
 open SparseWeight public
 
-sparsemaxWeight : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
-sparsemaxWeight {A} K q c a = sparseWeight (((supportK *ℕ integerGap (scoreA {A = A} q c a) scoreBaseline) +ℕ sparsemaxTemperature) ∸ scoreSum) (supportK *ℕ sparsemaxTemperature)
+sparseWeightDenominator : SparseWeight → ℕ
+sparseWeightDenominator (sparseWeight _ d) = suc d
+
+sparsemaxWeightInSupport : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
+sparsemaxWeightInSupport {A} K q c a =
+  sparseWeight
+    (((supportK *ℕ integerGap (scoreA {A = A} q c a) scoreBaseline)
+       +ℕ sparsemaxTemperature) ∸ scoreSum)
+    ((supportK *ℕ sparsemaxTemperature) ∸ 1)
   where
     scoreEntries = sortScores (scoreList K q c)
     scoreBaseline = minimumScore scoreEntries
     supportK = supportSize K q c
     scoreSum = sumList (topCodes supportK scoreEntries)
+
+sparsemaxWeight : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
+sparsemaxWeight K q c a with containsAction a (actionCandidates K)
+... | disabled = sparseWeight zero ((supportSize K q c *ℕ sparsemaxTemperature) ∸ 1)
+... | enabled = sparsemaxWeightInSupport K q c a
+
+sparsemaxWeight-outside-action-space-regression :
+  numerator
+    (sparsemaxWeight
+      (actionSpace {A = ⊤} (zero ∷ []) zero)
+      (λ _ → pos 0)
+      (λ _ → zero)
+      (suc zero)) ＝ zero
+sparsemaxWeight-outside-action-space-regression = refl
 
 weightPositive : SparseWeight → BoolLike
 weightPositive (sparseWeight n d) with natEq n zero
@@ -2202,29 +2248,38 @@ rationalCodeDivideMagnitude : ℕ → RationalCode → ℕ
 rationalCodeDivideMagnitude n (_ , denominatorMinusOne) =
   fst (fractionDivision n (suc denominatorMinusOne))
 
--- Encode a rational Sparsemax weight as a bounded 0..128 policy code.
--- The denominator matters: numerator alone is not a probability.
-clampPolicyCode8 : ℕ → ℕ
-clampPolicyCode8 n with natLE n 128
-... | enabled = n
-... | disabled = 128
+-- Exact rational surrogate for policy surprise. For p = n/d this represents
+-- (1-p)/(p + 1/128) = 128(d-n)/(128n+d), without first flooring p to a
+-- 0..128 integer. This is not the transcendental logarithm log(p); arithmetic
+-- remains exact until the final Integer bias.
+qLogSparseWeight : SparseWeight → RationalCode
+qLogSparseWeight (sparseWeight n dMinusOne) with natLE n (suc dMinusOne)
+... | disabled = fromNatRationalCode zero zero
+... | enabled =
+  fromNatRationalCode
+    (128 *ℕ ((suc dMinusOne) ∸ n))
+    (((128 *ℕ n) +ℕ suc dMinusOne) ∸ 1)
 
-sparseWeightCode8 : SparseWeight → Integer
-sparseWeightCode8 (sparseWeight n d) =
-  fromNat (clampPolicyCode8 (fst (fractionDivision (128 *ℕ n) d)))
+qLogSparseWeight-quarter-regression :
+  rationalCodeCrossProductEqual
+    (qLogSparseWeight (sparseWeight 1 3))
+    (fromNatRationalCode 32 10)
+qLogSparseWeight-quarter-regression = refl
 
-sparseWeightCode8-quarter-regression :
-  sparseWeightCode8 (sparseWeight 1 4) ＝ fromNat 32
-sparseWeightCode8-quarter-regression = refl
+qLogSparseWeight-half-regression :
+  rationalCodeCrossProductEqual
+    (qLogSparseWeight (sparseWeight 1 1))
+    (fromNatRationalCode 64 64)
+qLogSparseWeight-half-regression = refl
 
-sparseWeightCode8-half-regression :
-  sparseWeightCode8 (sparseWeight 1 2) ＝ fromNat 64
-sparseWeightCode8-half-regression = refl
+qLogSparseWeight-unit-regression :
+  rationalCodeCrossProductEqual
+    (qLogSparseWeight (sparseWeight 1 zero))
+    (fromNatRationalCode zero 128)
+qLogSparseWeight-unit-regression = refl
 
-sparseWeightCode8-unit-regression :
-  sparseWeightCode8 (sparseWeight 1 1) ＝ fromNat 128
-sparseWeightCode8-unit-regression = refl
-
+-- Legacy helper for an explicitly pre-quantized 0..128 code. The canonical
+-- learner below intentionally does not route policy weights through this API.
 qLog8 : Integer → RationalCode
 qLog8 x with intCodeMagnitude x
 ... | zero = fromNatRationalCode 1 zero
@@ -3233,7 +3288,7 @@ canonicalPolicy K s = sparsemaxPolicy (actionSpaceK K) (lcbScore (lcbKernel K) (
 canonicalPolicyWeight : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → SparseWeight
 canonicalPolicyWeight K s = sparsemaxWeight (actionSpaceK K) (lcbScore (lcbKernel K) (lcbCounts s) (critic (watkins s))) (valuesCount (lcbCounts s)) (canonicalPolicy K s)
 
-canonicalPolicyWeightCode : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → Integer
+canonicalPolicyWeightQLog : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → RationalCode
 
 BehaviorPolicy : Set
 BehaviorPolicy = ℕ → SparseWeight
@@ -3267,7 +3322,7 @@ canonicalBehaviorAction-law :
   canonicalBehaviorAction K s ＝ canonicalPolicy K s
 canonicalBehaviorAction-law K s = refl
 
-canonicalPolicyWeightCode K s = sparseWeightCode8 (canonicalPolicyWeight K s)
+canonicalPolicyWeightQLog K s = qLogSparseWeight (canonicalPolicyWeight K s)
 
 HardSparse : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → Set
 HardSparse {A} K s =
@@ -3328,10 +3383,10 @@ maxCriticValueList (x ∷ xs) with compareInt8 x (maxCriticValueList xs)
 ... | greater = x
 
 maxCriticValue8 : ∀ {A : Set} → ActionSpace A → CriticState A → Integer
-maxCriticValue8 K q = maxCriticValueList (map (λ a → values q a) (candidates K))
+maxCriticValue8 K q = maxCriticValueList (map (λ a → values q a) (actionCandidates K))
 
 canonicalQLogBias : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
-canonicalQLogBias K s = qLog2Bias8 (canonicalPolicyWeightCode K s)
+canonicalQLogBias K s = signedRationalCodeBias8 (canonicalPolicyWeightQLog K s)
 
 canonicalReward8 : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
 canonicalReward8 K s = observedReward8 K s
@@ -3457,7 +3512,7 @@ canonicalCountStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) 
 canonicalCountStep K s = updateLCBCount (canonicalPolicy K s) (lcbCounts s)
 
 canonicalQLogStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → RationalCode
-canonicalQLogStep K s = qLog8 (canonicalPolicyWeightCode K s)
+canonicalQLogStep K s = canonicalPolicyWeightQLog K s
 
 canonicalFullStep : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) → FullLearnerState A
 canonicalFullStep K s =
