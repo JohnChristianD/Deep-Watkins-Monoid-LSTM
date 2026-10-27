@@ -32,6 +32,8 @@ module FullCoupled.TheoremsMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 open import Haskell.Prelude hiding (String)
 
+import Agda.Primitive as Prim
+
 -- Use compiler-owned builtin strings and the version-matched Reflection API.
 -- This removes a second declaration of the Reflection/TC ABI. Reflection's
 -- operational implementation remains part of the trusted compiler boundary.
@@ -852,10 +854,10 @@ scanLearnerStream :
   State → C.LearnerStream i Input → C.LearnerStream i State
 scanLearnerStream = C.MonoidLSTMStreams.scanSeededStream
 
-scanFusionCong :
+universeCong :
   {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB} →
   (f : A → B) → {x y : A} → x ＝ y → f x ＝ f y
-scanFusionCong f refl = refl
+universeCong f refl = refl
 
 scanMapFusionBisimAux :
   {ℓS ℓT ℓI : Level} {i : Size}
@@ -886,7 +888,7 @@ scanMapFusionBisimAux encode step targetStep stepFusion
       (targetStep targetState (C.learnerStreamHead inputs))
       (trans
         (stepFusion state (C.learnerStreamHead inputs))
-        (scanFusionCong
+        (universeCong
           (λ value → targetStep value (C.learnerStreamHead inputs))
           stateAgreement))
       (C.learnerStreamTail inputs {j})
@@ -1214,8 +1216,8 @@ module GRUStatisticalInjectivity where
 -- Constructive inequality is negated propositional equality; this is notation,
 -- not a classical principle.
 infix 4 _≢_
-_≢_ : ∀ {A : Set} → A → A → Set
-x ≢ y = ¬ (x ＝ y)
+_≢_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
+x ≢ y = (x ＝ y) → ⊥
 
 CanonicalGRUStatisticalObservation : Set
 CanonicalGRUStatisticalObservation = C.GRUState × (C.CanonicalToken → Integer)
@@ -1267,11 +1269,11 @@ canonicalGRUStatisticalDistinguishability distinct collision = distinct (canonic
 canonicalGRUStatisticalStepConsequence : ∀ (s : C.GRUState) (x : Integer) → canonicalGRUStatisticalEncode (C.gruStep s x) ＝ (C.gruStep s x , (λ _ → C.hiddenState (C.gruStep s x)))
 canonicalGRUStatisticalStepConsequence s x = refl
 
-identityActivation8-injective :
+identityActivation-injective :
   ∀ {x y : Integer} →
-  C.identityActivation8 x ＝ C.identityActivation8 y →
+  C.identityActivation x ＝ C.identityActivation y →
   x ＝ y
-identityActivation8-injective eq = eq
+identityActivation-injective eq = eq
 
 ------------------------------------------------------------------------
 -- Carrier-polymorphic statistical representation.
@@ -1983,19 +1985,19 @@ CanonicalLearnerPermutationInvariant =
   C.runMonoidLSTMCell xs c ＝
   C.runMonoidLSTMCell ys c
 
-canonicalNegativeOne8 : Integer
-canonicalNegativeOne8 = negsuc zero
+canonicalNegativeOne : Integer
+canonicalNegativeOne = negsuc zero
 
 canonicalPermutation-swap :
   CanonicalListPermutation
-    (1 ∷ canonicalNegativeOne8 ∷ [])
-    (canonicalNegativeOne8 ∷ 1 ∷ [])
+    (1 ∷ canonicalNegativeOne ∷ [])
+    (canonicalNegativeOne ∷ 1 ∷ [])
 canonicalPermutation-swap =
-  canonical-perm-swap 1 canonicalNegativeOne8 []
+  canonical-perm-swap 1 canonicalNegativeOne []
 
 canonicalPermutation-left :
   C.runMonoidLSTMCell
-    (1 ∷ canonicalNegativeOne8 ∷ [])
+    (1 ∷ canonicalNegativeOne ∷ [])
     0
   ＝
   0
@@ -2003,7 +2005,7 @@ canonicalPermutation-left = refl
 
 canonicalPermutation-right :
   C.runMonoidLSTMCell
-    (canonicalNegativeOne8 ∷ 1 ∷ [])
+    (canonicalNegativeOne ∷ 1 ∷ [])
     0
   ＝
   1
@@ -2013,21 +2015,21 @@ canonicalZeroInt-not-oneInt :
   ¬ ((pos 0) ＝ (pos 1))
 canonicalZeroInt-not-oneInt ()
 
-canonicalZero8-not-1 :
+canonicalZero-not-1 :
   0 ≢ 1
-canonicalZero8-not-1 eq =
+canonicalZero-not-1 eq =
   canonicalZeroInt-not-oneInt eq
 
 canonicalPermutation-results-distinct :
   C.runMonoidLSTMCell
-    (1 ∷ canonicalNegativeOne8 ∷ [])
+    (1 ∷ canonicalNegativeOne ∷ [])
     0
   ≢
   C.runMonoidLSTMCell
-    (canonicalNegativeOne8 ∷ 1 ∷ [])
+    (canonicalNegativeOne ∷ 1 ∷ [])
     0
 canonicalPermutation-results-distinct eq =
-  canonicalZero8-not-1
+  canonicalZero-not-1
     (trans
       (sym canonicalPermutation-left)
       (trans eq canonicalPermutation-right))
@@ -2037,8 +2039,8 @@ canonicalLearnerPermutationInvariant-impossible :
 canonicalLearnerPermutationInvariant-impossible invariant =
   canonicalPermutation-results-distinct
     (invariant
-      (1 ∷ canonicalNegativeOne8 ∷ [])
-      (canonicalNegativeOne8 ∷ 1 ∷ [])
+      (1 ∷ canonicalNegativeOne ∷ [])
+      (canonicalNegativeOne ∷ 1 ∷ [])
       canonicalPermutation-swap
       0)
 
@@ -2047,15 +2049,15 @@ record CanonicalLearnerPermutationCompositionImpossibilityTheorem : Set₁ where
   field
     permutationWitness :
       CanonicalListPermutation
-        (1 ∷ canonicalNegativeOne8 ∷ [])
-        (canonicalNegativeOne8 ∷ 1 ∷ [])
+        (1 ∷ canonicalNegativeOne ∷ [])
+        (canonicalNegativeOne ∷ 1 ∷ [])
     distinctResults :
       C.runMonoidLSTMCell
-        (1 ∷ canonicalNegativeOne8 ∷ [])
+        (1 ∷ canonicalNegativeOne ∷ [])
         0
       ≢
       C.runMonoidLSTMCell
-        (canonicalNegativeOne8 ∷ 1 ∷ [])
+        (canonicalNegativeOne ∷ 1 ∷ [])
         0
     noGlobalPermutationInvariant :
       CanonicalLearnerPermutationInvariant → ⊥
@@ -2179,13 +2181,9 @@ fractalTransportedEncodeInjective :
   transportObservation F r (encode F lower s) ＝
   transportObservation F r (encode F lower t) →
   s ＝ t
-fractalTransportedEncodeInjective F {upper = upper} r eq =
-  fractalLevelInjective F upper
-    (trans
-      (transportEncode F r _)
-      (trans
-        (transportInjective F eq)
-        (sym (transportEncode F r _))))
+fractalTransportedEncodeInjective F {lower = lower} r eq =
+  fractalLevelInjective F lower
+    (transportInjective F {r = r} eq)
 
 ------------------------------------------------------------------------
 -- Canonical theorem section: canonical GRU fractal injective composition.
@@ -2643,6 +2641,7 @@ gruFractalLimitConvergence-limitLeftInverse :
   LimitLeftInverse State LimitObservation limitEncode
 gruFractalLimitConvergence-limitLeftInverse {rank = rank} W =
   limitLeftInverse
+    (CoherentLimitDecoder.limitDecode (coherentDecoder W))
     (λ state →
       coherentLimitDecoder-left-inverse
         (coherentDecoder W)
@@ -2752,7 +2751,7 @@ record CanonicalAQLoopTheorem : Set₁ where
   constructor canonicalAQLoopTheorem
   field
     policyComposition :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalPolicy K s ＝
       C.sparsemaxPolicy
         (C.actionSpaceK K)
@@ -2762,27 +2761,27 @@ record CanonicalAQLoopTheorem : Set₁ where
           (C.critic (C.watkins s)))
         (C.valuesCount (C.lcbCounts s))
     sharedWatkinsSignal :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalSignal K s ＝
       C.canonicalWatkinsTarget K s
     gruHaarInputCoupling :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalGRUStep K s ＝
       C.gruStep (C.gru s) (C.canonicalHaarRecurrentInput K s)
     f4SignalCoupling :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalOptimizerStep K s ＝
       C.f4ThetaStep (C.optimizerKernel K) (C.optimizer s) (C.canonicalSignal K s)
     watkinsEndogenousCoupling :
-      ∀ K s →
+      ∀ {A : Set} (K : C.FullLearnerKernel A) (s : C.FullLearnerState A) →
       C.canonicalWatkinsTarget K s ＝
       (_+_)
         ((_+_)
           ((_+_)
-            (C.canonicalReward8 K s)
+            (C.canonicalReward K s)
             (C.canonicalQLogBias K s))
-          ((_*_) C.canonicalDiscount8
-            (C.maxCriticValue8 (C.critic (C.watkins s)))))
+          ((_*_) C.canonicalDiscount
+            (C.maxCriticValue (C.actionSpaceK K) (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
 
 open CanonicalAQLoopTheorem public
@@ -2898,24 +2897,32 @@ data LearnerReplacement : Set where
   optimizerReplacement : F4IntUState → LearnerReplacement
 
 applyLearnerReplacement :
-  LearnerReplacement → FullLearnerState → FullLearnerState
-applyLearnerReplacement (optimizerReplacement o) s = replaceOptimizer s o
+  ∀ {A : Set} →
+  LearnerReplacement →
+  C.FullLearnerState A →
+  C.FullLearnerState A
+applyLearnerReplacement (optimizerReplacement o) s = C.replaceOptimizer s o
 
 applyLearnerReplacements :
-  List LearnerReplacement → FullLearnerState → FullLearnerState
+  ∀ {A : Set} →
+  List LearnerReplacement →
+  C.FullLearnerState A →
+  C.FullLearnerState A
 applyLearnerReplacements [] s = s
 applyLearnerReplacements (r ∷ rs) s =
   applyLearnerReplacements rs (applyLearnerReplacement r s)
 
 canonicalPolicy-learnerReplacement-invariant :
-  ∀ K s r →
-  canonicalPolicy K (applyLearnerReplacement r s) ＝ canonicalPolicy K s
+  ∀ {A : Set} (K : C.FullLearnerKernel A)
+    (s : C.FullLearnerState A) (r : LearnerReplacement) →
+  C.canonicalPolicy K (applyLearnerReplacement r s) ＝ C.canonicalPolicy K s
 canonicalPolicy-learnerReplacement-invariant K s (optimizerReplacement o) =
-  canonicalPolicy-optimizer-invariant K s o
+  C.canonicalPolicy-optimizer-invariant K s o
 
 canonicalPolicy-learnerReplacement-composition :
-  ∀ K s rs →
-  canonicalPolicy K (applyLearnerReplacements rs s) ＝ canonicalPolicy K s
+  ∀ {A : Set} (K : C.FullLearnerKernel A)
+    (s : C.FullLearnerState A) (rs : List LearnerReplacement) →
+  C.canonicalPolicy K (applyLearnerReplacements rs s) ＝ C.canonicalPolicy K s
 canonicalPolicy-learnerReplacement-composition K s [] = refl
 canonicalPolicy-learnerReplacement-composition K s (r ∷ rs) =
   trans
@@ -2924,17 +2931,17 @@ canonicalPolicy-learnerReplacement-composition K s (r ∷ rs) =
     (canonicalPolicy-learnerReplacement-invariant K s r)
 
 canonicalPersistentGRU-afterFullStep-iterate :
-  ∀ K n s →
-  persistentGRU
-    (gru (iterateCanonical K n s))
+  ∀ {A : Set} (K : C.FullLearnerKernel A)
+    (n : ℕ) (s : C.FullLearnerState A) →
+  C.persistentGRU
+    (C.gru (C.iterateCanonical K n s))
   ＝
-  persistentGRU (gru s)
+  C.persistentGRU (C.gru s)
 canonicalPersistentGRU-afterFullStep-iterate K zero s = refl
 canonicalPersistentGRU-afterFullStep-iterate K (suc n) s =
   trans
-    (canonicalPersistentGRU-afterFullStep-iterate
-      K n (canonicalFullStep K s))
-    (canonicalPersistentGRUPreservation K s)
+    (C.canonicalPersistentGRUPreservation K (C.iterateCanonical K n s))
+    (canonicalPersistentGRU-afterFullStep-iterate K n s)
 
 record EqualityCompositionTheorem
   {A : Set}
@@ -3257,17 +3264,19 @@ canonical-gruf4-watkins-prefix-composition-theorem =
     canonicalFullStep-GRUF4-prefix-bridge
 
 commutingIterate :
-  ∀ {S : Set} →
+  ∀ {ℓ : Level} {S : Set ℓ} →
   (S → S) → ℕ → S → S
 commutingIterate step zero s = s
 commutingIterate step (suc n) s =
   step (commutingIterate step n s)
 
 record CommutingSquareTheorem
-  (State Feature : Set)
+  {ℓState ℓFeature : Level}
+  (State : Set ℓState)
+  (Feature : Set ℓFeature)
   (step : State → State)
   (observe : State → Feature)
-  (featureStep : Feature → Feature) : Set₁ where
+  (featureStep : Feature → Feature) : Set (Prim.lsuc (Prim._⊔_ ℓState ℓFeature)) where
   constructor commutingSquareTheorem
   field
     square :
@@ -3279,8 +3288,14 @@ record CommutingSquareTheorem
 
 open CommutingSquareTheorem public
 
+commutingSquareCong :
+  ∀ {ℓA ℓB : Level} {A : Set ℓA} {B : Set ℓB}
+    (f : A → B) {x y : A} → x ＝ y → f x ＝ f y
+commutingSquareCong f refl = refl
+
 commutingSquareTheorem-from-square :
-  ∀ {State Feature : Set}
+  ∀ {ℓState ℓFeature : Level}
+  {State : Set ℓState} {Feature : Set ℓFeature}
   {step : State → State}
   {observe : State → Feature}
   {featureStep : Feature → Feature} →
@@ -3299,13 +3314,15 @@ commutingSquareTheorem-from-square {step = step} {observe = observe} {featureSte
     deriveIterateSquare (suc n) s =
       trans
         (square (commutingIterate step n s))
-        (cong featureStep (deriveIterateSquare n s))
+        (commutingSquareCong featureStep (deriveIterateSquare n s))
 
 record FreeMonoidActionHomomorphism
-  (State Feature : Set)
+  {ℓState ℓFeature : Level}
+  (State : Set ℓState)
+  (Feature : Set ℓFeature)
   (step : State → State)
   (observe : State → Feature)
-  (featureStep : Feature → Feature) : Set₁ where
+  (featureStep : Feature → Feature) : Set (Prim.lsuc (Prim._⊔_ ℓState ℓFeature)) where
   constructor freeMonoidActionHomomorphism
   field
     iterateHomomorphism :
@@ -3316,7 +3333,8 @@ record FreeMonoidActionHomomorphism
 open FreeMonoidActionHomomorphism public
 
 freeMonoidActionHomomorphism-from-square :
-  ∀ {State Feature : Set}
+  ∀ {ℓState ℓFeature : Level}
+  {State : Set ℓState} {Feature : Set ℓFeature}
   {step : State → State}
   {observe : State → Feature}
   {featureStep : Feature → Feature} →
@@ -3332,8 +3350,8 @@ canonicalCount-freeMonoidActionHomomorphism :
     C.CanonicalFullLearnerState
     ℕ
     (C.canonicalFullStep K)
-    suc
     (λ s → C.totalCount (C.lcbCounts s))
+    suc
 canonicalCount-freeMonoidActionHomomorphism K =
   freeMonoidActionHomomorphism-from-square
     (commutingSquareTheorem-from-square
@@ -3358,7 +3376,7 @@ recurrentPrefix-scan-lifts-conjugacy :
   (h :
     ∀ (s : State) (x : Input) →
     replace (step s x) ＝ step (replace s) x) →
-  ∀ (xs : List Input) (n : ℕ) (s : State) →
+  ∀ (xs : ℕ → Input) (n : ℕ) (s : State) →
     replace
       (C.recurrentPrefixState
         (C.recurrentNetwork step)
@@ -3371,20 +3389,15 @@ recurrentPrefix-scan-lifts-conjugacy :
 recurrentPrefix-scan-lifts-conjugacy replace step h xs zero s = refl
 recurrentPrefix-scan-lifts-conjugacy replace step h xs (suc n) s =
   trans
-    (recurrentPrefix-scan-lifts-conjugacy
-      replace
-      step
-      h
-      xs
-      n
-      (step s (xs n)))
+    (h
+      (C.recurrentPrefixState
+        (C.recurrentNetwork step)
+        xs n s)
+      (xs n))
     (cong
-      (λ q →
-        C.recurrentPrefixState
-          (C.recurrentNetwork step)
-          xs n
-          q)
-      (h s (xs n)))
+      (λ q → step q (xs n))
+      (recurrentPrefix-scan-lifts-conjugacy
+        replace step h xs n s))
 
 record RecurrentScanConjugacyTheorem
   (State Input : Set) : Set₁ where
@@ -3403,7 +3416,7 @@ record RecurrentScanConjugacyTheorem
         (h :
           ∀ (s : State) (x : Input) →
           replace (step s x) ＝ step (replace s) x) →
-        (xs : List Input) →
+        (xs : ℕ → Input) →
         (n : ℕ) →
         (s : State) →
         replace
@@ -3487,11 +3500,10 @@ canonicalFullLearner-iterate-conjugacy :
 canonicalFullLearner-iterate-conjugacy replace K h zero s = refl
 canonicalFullLearner-iterate-conjugacy replace K h (suc n) s =
   trans
-    (canonicalFullLearner-iterate-conjugacy
-      replace K h n (C.canonicalFullStep K s))
-    (cong
-      (C.iterateCanonical K n)
-      (h s))
+    (h (C.iterateCanonical K n s))
+    (universeCong
+      (C.canonicalFullStep K)
+      (canonicalFullLearner-iterate-conjugacy replace K h n s))
 
 canonical-full-learner-connected-scan-conjugacy-theorem :
   CanonicalFullLearnerConnectedScanConjugacyTheorem
@@ -3580,10 +3592,10 @@ informationPreserving-all-tasks-injective
   observe inverse allTasks
   {s} {t} eq =
   trans
-    (sym (allTasks (λ x → x) s))
+    (allTasks (λ x → x) s)
     (trans
-      apply-cong eq
-      (allTasks (λ x → x) t))
+      (cong inverse eq)
+      (sym (allTasks (λ x → x) t)))
 
 productObservation :
   ∀ {StateA StateB FeatureA FeatureB : Set} →
@@ -3671,47 +3683,45 @@ open PointwiseSandwich public
 open MinimaxBellmanShapleyOperator public
 open MinimaxBellmanShapleyInclusionTheorem public
 
-canonicalBiasedWatkinsNegativeQMunchausenL2Target :
+canonicalBiasedWatkinsPositiveQMunchausenL2Target :
   C.CanonicalFullLearnerKernel → C.CanonicalFullLearnerState → Integer
-canonicalBiasedWatkinsNegativeQMunchausenL2Target =
+canonicalBiasedWatkinsPositiveQMunchausenL2Target =
   C.canonicalWatkinsTarget
 
-canonical-qLog2Bias8-law :
+canonical-tsallisQ2SurpriseFromPolicyCode-law :
   ∀ x →
-  C.qLog2Bias8 x ＝
-  negateInteger
-    (fromNat
-      (C.rationalCodeDivideMagnitude
-        (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-        (C.rationalCodeDenominator (C.qLog8 x))))
-canonical-qLog2Bias8-law x with C.intCodeMagnitude x
+  C.tsallisQ2SurpriseFromPolicyCode x ＝
+  fromNat
+    (C.rationalCodeDivideMagnitude
+      (C.tsallisQ2BiasScale * C.rationalCodeNumeratorMagnitude (C.tsallisQLog2FromPolicyCode x))
+      (C.tsallisQLog2FromPolicyCode x))
+canonical-tsallisQ2SurpriseFromPolicyCode-law x with C.rationalCodeNumeratorMagnitude (C.tsallisQLog2FromPolicyCode x)
 ... | zero = refl
 ... | suc n = refl
 
 
-record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
-  constructor canonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem
+record CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem : Set₁ where
+  constructor canonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
   field
-    negativeQMunchausenBias :
+    positiveQMunchausenBias :
       ∀ x →
-      C.qLog2Bias8 x ＝
-      negateInteger
-        (fromNat
-          (C.rationalCodeDivideMagnitude
-            (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-            (C.rationalCodeDenominator (C.qLog8 x))))
+      C.tsallisQ2SurpriseFromPolicyCode x ＝
+      fromNat
+        (C.rationalCodeDivideMagnitude
+          (C.tsallisQ2BiasScale * C.rationalCodeNumeratorMagnitude (C.tsallisQLog2FromPolicyCode x))
+          (C.tsallisQLog2FromPolicyCode x))
 
     targetDecomposition :
       ∀ K s →
-      canonicalBiasedWatkinsNegativeQMunchausenL2Target K s ＝
+      canonicalBiasedWatkinsPositiveQMunchausenL2Target K s ＝
       (_+_)
         ((_+_)
           ((_+_)
-            (C.canonicalReward8 K s)
+            (C.canonicalReward K s)
             (C.canonicalQLogBias K s))
           ((_*_)
-            C.canonicalDiscount8
-            (C.maxCriticValue8 (C.critic (C.watkins s)))))
+            C.canonicalDiscount
+            (C.maxCriticValue (C.actionSpaceK K) (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
 
     l2ConsumesTarget :
@@ -3720,36 +3730,35 @@ record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
       C.f4ThetaStep
         (C.optimizerKernel K)
         (C.optimizer s)
-        (canonicalBiasedWatkinsNegativeQMunchausenL2Target K s)
+        (canonicalBiasedWatkinsPositiveQMunchausenL2Target K s)
 
-open CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem public
+open CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem public
 
-canonical-biased-watkins-negative-q-munchausen-l2-target-theorem :
-  CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem
-canonical-biased-watkins-negative-q-munchausen-l2-target-theorem =
-  canonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem
-    canonical-qLog2Bias8-law
+canonical-biased-watkins-positive-q-munchausen-l2-target-theorem :
+  CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
+canonical-biased-watkins-positive-q-munchausen-l2-target-theorem =
+  canonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
+    canonical-tsallisQ2SurpriseFromPolicyCode-law
     (λ K s → C.canonicalWatkinsTarget-law K s)
     (λ K s → C.canonicalOptimizerStep-qMunchausen-L2 K s)
 
 
-record CanonicalQMunchausenL2SharedNegationPolarityTheorem : Set₁ where
-  constructor canonicalQMunchausenL2SharedNegationPolarityTheorem
+record CanonicalQMunchausenL2PositiveBiasPolarityTheorem : Set₁ where
+  constructor canonicalQMunchausenL2PositiveBiasPolarityTheorem
   field
-    qMunchausenBiasNegation :
+    qMunchausenBiasPositivePolarity :
       ∀ x →
-      C.qLog2Bias8 x ＝
-      negateInteger
-        (fromNat
-          (C.rationalCodeDivideMagnitude
-            (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-            (C.rationalCodeDenominator (C.qLog8 x))))
+      C.tsallisQ2SurpriseFromPolicyCode x ＝
+      fromNat
+        (C.rationalCodeDivideMagnitude
+          (C.tsallisQ2BiasScale * C.rationalCodeNumeratorMagnitude (C.tsallisQLog2FromPolicyCode x))
+          (C.tsallisQLog2FromPolicyCode x))
 
     l2CorrectionNegation :
       ∀ x →
       C.l2Correction x ＝ negateInteger x
 
-open CanonicalQMunchausenL2SharedNegationPolarityTheorem public
+open CanonicalQMunchausenL2PositiveBiasPolarityTheorem public
 
 canonicalWatkinsTarget-endogenous-leftInverse :
   ∀ (K : C.CanonicalFullLearnerKernel)
@@ -3761,11 +3770,12 @@ canonicalWatkinsTarget-endogenous-leftInverse :
     (_+_)
       ((_+_)
         ((_+_)
-          (C.canonicalReward8 K (inverse (observe s)))
+          (C.canonicalReward K (inverse (observe s)))
           (C.canonicalQLogBias K (inverse (observe s))))
         ((_*_)
-          C.canonicalDiscount8
-          (C.maxCriticValue8
+          C.canonicalDiscount
+          (C.maxCriticValue
+            (C.actionSpaceK K)
             (C.critic
               (C.watkins
                 (inverse (observe s)))))))
@@ -3778,11 +3788,12 @@ canonicalWatkinsTarget-endogenous-leftInverse K observe inverse leftInverse s =
         (_+_)
           ((_+_)
             ((_+_)
-              (C.canonicalReward8 K t)
+              (C.canonicalReward K t)
               (C.canonicalQLogBias K t))
             ((_*_)
-              C.canonicalDiscount8
-              (C.maxCriticValue8
+              C.canonicalDiscount
+              (C.maxCriticValue
+                (C.actionSpaceK K)
                 (C.critic (C.watkins t)))))
           (C.canonicalEndogenousFeedback K t))
       (leftInverse s))
@@ -4071,7 +4082,7 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
   constructor canonicalEndogenousMinimaxBellmanShapleyUAPTheorem
   field
     targetSemantics :
-      CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem
+      CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
 
     exactDiscreteUAP :
       ∀ {Feature Output : Set}
@@ -4097,7 +4108,7 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
       PointwiseSandwich
         _≤_
         lower
-        (canonicalBiasedWatkinsNegativeQMunchausenL2Target K)
+        (canonicalBiasedWatkinsPositiveQMunchausenL2Target K)
         upper →
       MinimaxBellmanShapleyInclusionTheorem
         C.CanonicalFullLearnerState
@@ -4105,7 +4116,7 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
         _≤_
         operator
         lower
-        (canonicalBiasedWatkinsNegativeQMunchausenL2Target K)
+        (canonicalBiasedWatkinsPositiveQMunchausenL2Target K)
         upper
 
     endogenousFactorization :
@@ -4118,11 +4129,12 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
       (_+_)
         ((_+_)
           ((_+_)
-            (C.canonicalReward8 K (inverse (observe s)))
+            (C.canonicalReward K (inverse (observe s)))
             (C.canonicalQLogBias K (inverse (observe s))))
           ((_*_)
-            C.canonicalDiscount8
-            (C.maxCriticValue8
+            C.canonicalDiscount
+            (C.maxCriticValue
+              (C.actionSpaceK K)
               (C.critic (C.watkins (inverse (observe s))))))
         (C.canonicalEndogenousFeedback K (inverse (observe s))))
 
@@ -6063,8 +6075,8 @@ canonicalHaarFeature-recurrent-step :
   C.gruStep
     s
     ((_-_)
-      (fst (C.canonicalCReLU8 x))
-      (snd (C.canonicalCReLU8 x)))
+      (fst (C.canonicalCReLU x))
+      (snd (C.canonicalCReLU x)))
   ＝
   C.gruStep s x
 canonicalHaarFeature-recurrent-step s x =
@@ -6079,8 +6091,8 @@ canonicalHaarFeature-recurrent-prefix :
     (map
       (λ x →
         (_-_)
-          (fst (C.canonicalCReLU8 x))
-          (snd (C.canonicalCReLU8 x)))
+          (fst (C.canonicalCReLU x))
+          (snd (C.canonicalCReLU x)))
       xs)
     s
   ＝
@@ -6097,8 +6109,8 @@ canonicalHaarFeature-recurrent-prefix (x ∷ xs) s =
       (C.gruStep
         s
         ((_-_)
-          (fst (C.canonicalCReLU8 x))
-          (snd (C.canonicalCReLU8 x)))))
+          (fst (C.canonicalCReLU x))
+          (snd (C.canonicalCReLU x)))))
     (cong
       (C.recurrentListState
         C.canonicalGRURecurrentNetwork
@@ -6112,8 +6124,8 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
       CanonicalIntegerHaarScaledOrthogonalityTheorem
     cReLUInjective :
       ∀ {x y : Integer} →
-      C.canonicalCReLU8 x ＝
-      C.canonicalCReLU8 y →
+      C.canonicalCReLU x ＝
+      C.canonicalCReLU y →
       x ＝ y
     attentionAppend :
       ∀ (accumulator : C.HaarAccumulator)
@@ -6136,8 +6148,8 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
       C.gruStep
         s
         ((_-_)
-          (fst (C.canonicalCReLU8 x))
-          (snd (C.canonicalCReLU8 x)))
+          (fst (C.canonicalCReLU x))
+          (snd (C.canonicalCReLU x)))
       ＝
       C.gruStep s x
     reconstructedPrefix :
@@ -6147,8 +6159,8 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
         (map
           (λ x →
             (_-_)
-              (fst (C.canonicalCReLU8 x))
-              (snd (C.canonicalCReLU8 x)))
+              (fst (C.canonicalCReLU x))
+              (snd (C.canonicalCReLU x)))
           xs)
         s
       ＝
