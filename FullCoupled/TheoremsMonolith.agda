@@ -3683,39 +3683,37 @@ open PointwiseSandwich public
 open MinimaxBellmanShapleyOperator public
 open MinimaxBellmanShapleyInclusionTheorem public
 
-canonicalBiasedWatkinsNegativeQMunchausenL2Target :
+canonicalBiasedWatkinsPositiveQMunchausenL2Target :
   C.CanonicalFullLearnerKernel → C.CanonicalFullLearnerState → Integer
-canonicalBiasedWatkinsNegativeQMunchausenL2Target =
+canonicalBiasedWatkinsPositiveQMunchausenL2Target =
   C.canonicalWatkinsTarget
 
 canonical-qLog2Bias8-law :
   ∀ x →
   C.qLog2Bias8 x ＝
-  negateInteger
-    (fromNat
-      (C.rationalCodeDivideMagnitude
-        (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-        (C.qLog8 x)))
+  fromNat
+    (C.rationalCodeDivideMagnitude
+      (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
+      (C.qLog8 x))
 canonical-qLog2Bias8-law x with C.rationalCodeNumeratorMagnitude (C.qLog8 x)
 ... | zero = refl
 ... | suc n = refl
 
 
-record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
-  constructor canonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem
+record CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem : Set₁ where
+  constructor canonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
   field
-    negativeQMunchausenBias :
+    positiveQMunchausenBias :
       ∀ x →
       C.qLog2Bias8 x ＝
-      negateInteger
-        (fromNat
-          (C.rationalCodeDivideMagnitude
-            (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-            (C.qLog8 x)))
+      fromNat
+        (C.rationalCodeDivideMagnitude
+          (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
+          (C.qLog8 x))
 
     targetDecomposition :
       ∀ K s →
-      canonicalBiasedWatkinsNegativeQMunchausenL2Target K s ＝
+      canonicalBiasedWatkinsPositiveQMunchausenL2Target K s ＝
       (_+_)
         ((_+_)
           ((_+_)
@@ -3732,36 +3730,35 @@ record CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem : Set₁ where
       C.f4ThetaStep
         (C.optimizerKernel K)
         (C.optimizer s)
-        (canonicalBiasedWatkinsNegativeQMunchausenL2Target K s)
+        (canonicalBiasedWatkinsPositiveQMunchausenL2Target K s)
 
-open CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem public
+open CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem public
 
-canonical-biased-watkins-negative-q-munchausen-l2-target-theorem :
-  CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem
-canonical-biased-watkins-negative-q-munchausen-l2-target-theorem =
-  canonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem
+canonical-biased-watkins-positive-q-munchausen-l2-target-theorem :
+  CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
+canonical-biased-watkins-positive-q-munchausen-l2-target-theorem =
+  canonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
     canonical-qLog2Bias8-law
     (λ K s → C.canonicalWatkinsTarget-law K s)
     (λ K s → C.canonicalOptimizerStep-qMunchausen-L2 K s)
 
 
-record CanonicalQMunchausenL2SharedNegationPolarityTheorem : Set₁ where
-  constructor canonicalQMunchausenL2SharedNegationPolarityTheorem
+record CanonicalQMunchausenL2PositiveBiasPolarityTheorem : Set₁ where
+  constructor canonicalQMunchausenL2PositiveBiasPolarityTheorem
   field
-    qMunchausenBiasNegation :
+    qMunchausenBiasPositivePolarity :
       ∀ x →
       C.qLog2Bias8 x ＝
-      negateInteger
-        (fromNat
-          (C.rationalCodeDivideMagnitude
-            (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-            (C.qLog8 x)))
+      fromNat
+        (C.rationalCodeDivideMagnitude
+          (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
+          (C.qLog8 x))
 
     l2CorrectionNegation :
       ∀ x →
       C.l2Correction x ＝ negateInteger x
 
-open CanonicalQMunchausenL2SharedNegationPolarityTheorem public
+open CanonicalQMunchausenL2PositiveBiasPolarityTheorem public
 
 canonicalWatkinsTarget-endogenous-leftInverse :
   ∀ (K : C.CanonicalFullLearnerKernel)
@@ -4083,7 +4080,7 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
   constructor canonicalEndogenousMinimaxBellmanShapleyUAPTheorem
   field
     targetSemantics :
-      CanonicalBiasedWatkinsNegativeQMunchausenL2TargetTheorem
+      CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
 
     exactDiscreteUAP :
       ∀ {Feature Output : Set}
@@ -4109,7 +4106,7 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
       PointwiseSandwich
         _≤_
         lower
-        (canonicalBiasedWatkinsNegativeQMunchausenL2Target K)
+        (canonicalBiasedWatkinsPositiveQMunchausenL2Target K)
         upper →
       MinimaxBellmanShapleyInclusionTheorem
         C.CanonicalFullLearnerState
@@ -4117,7 +4114,7 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
         _≤_
         operator
         lower
-        (canonicalBiasedWatkinsNegativeQMunchausenL2Target K)
+        (canonicalBiasedWatkinsPositiveQMunchausenL2Target K)
         upper
 
     endogenousFactorization :

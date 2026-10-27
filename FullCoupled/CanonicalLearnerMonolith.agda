@@ -2183,18 +2183,35 @@ qLog8 x with intCodeMagnitude x
 munchausenScale8 : ℕ
 munchausenScale8 = 16
 
+-- Use the opposite sign of the usual non-positive log-policy correction:
+-- this finite rational proxy is a positive surprise/curiosity bonus.
 signedRationalCodeBias8 : RationalCode → Integer
 signedRationalCodeBias8 q with rationalCodeNumeratorMagnitude q
 ... | zero = 0
-... | suc n = negateInteger
-  (fromNat
+... | suc n = fromNat
+  (rationalCodeDivideMagnitude
+    (munchausenScale8 *ℕ suc n)
+    q)
+
+signedRationalCodeBias8-positive-law :
+  ∀ q →
+  signedRationalCodeBias8 q ＝
+  fromNat
     (rationalCodeDivideMagnitude
-      (munchausenScale8 *ℕ suc n)
-      q))
+      (munchausenScale8 *ℕ rationalCodeNumeratorMagnitude q)
+      q)
+signedRationalCodeBias8-positive-law q
+  with rationalCodeNumeratorMagnitude q
+... | zero = refl
+... | suc n = refl
 
 qLog2Bias8 : Integer → Integer
 qLog2Bias8 x =
   signedRationalCodeBias8 (qLog8 x)
+
+qLog2Bias8-rare-weight-positive-regression :
+  qLog2Bias8 (fromNat 1) ＝ fromNat 1016
+qLog2Bias8-rare-weight-positive-regression = refl
 
 negativeAlpha8 : Integer
 negativeAlpha8 = fromNat 255
@@ -2331,13 +2348,25 @@ data MonoidLSTMGate : Set where
 monoidLSTMGateOf : Integer → MonoidLSTMGate
 monoidLSTMGateOf (pos 0) = monoidHold
 monoidLSTMGateOf (pos (suc n)) = monoidAccum
-monoidLSTMGateOf (negsuc n) = monoidReset
+-- Negative signals are integrated as signed evidence, not treated as a
+-- command to erase recurrent history.
+monoidLSTMGateOf (negsuc n) = monoidAccum
+
+monoidLSTMGateOf-negative-accumulates :
+  ∀ n → monoidLSTMGateOf (negsuc n) ＝ monoidAccum
+monoidLSTMGateOf-negative-accumulates n = refl
 
 monoidLSTMCellStep : MonoidLSTMGate → Integer → Integer → Integer
 monoidLSTMCellStep monoidHold c x = c
 monoidLSTMCellStep monoidWrite c x = leaky2 x
 monoidLSTMCellStep monoidReset c x = 0
 monoidLSTMCellStep monoidAccum c x = (_+_) c (leaky2 x)
+
+monoidLSTM-negative-input-accumulates :
+  ∀ n c →
+  monoidLSTMCellStep (monoidLSTMGateOf (negsuc n)) c (negsuc n) ＝
+  (_+_) c (leaky2 (negsuc n))
+monoidLSTM-negative-input-accumulates n c = refl
 
 monoidLSTMAffineOf : MonoidLSTMGate → Integer → MonoidAffine
 monoidLSTMAffineOf monoidHold x = monoidAffine 1 0
