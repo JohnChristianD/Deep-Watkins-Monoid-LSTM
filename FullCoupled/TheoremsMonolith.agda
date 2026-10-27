@@ -3775,6 +3775,7 @@ canonicalWatkinsTarget-endogenous-leftInverse :
         ((_*_)
           C.canonicalDiscount8
           (C.maxCriticValue8
+            (C.actionSpaceK K)
             (C.critic
               (C.watkins
                 (inverse (observe s)))))))
@@ -3792,6 +3793,7 @@ canonicalWatkinsTarget-endogenous-leftInverse K observe inverse leftInverse s =
             ((_*_)
               C.canonicalDiscount8
               (C.maxCriticValue8
+                (C.actionSpaceK K)
                 (C.critic (C.watkins t)))))
           (C.canonicalEndogenousFeedback K t))
       (leftInverse s))
@@ -4132,6 +4134,7 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
           ((_*_)
             C.canonicalDiscount8
             (C.maxCriticValue8
+              (C.actionSpaceK K)
               (C.critic (C.watkins (inverse (observe s))))))
         (C.canonicalEndogenousFeedback K (inverse (observe s))))
 
