@@ -5,12 +5,9 @@
 --erased-matches
 --prop
 --confluence-check
---two-level
 --rewriting
 --experimental-lazy-instances
---large-indices
---no-forced-argument-recursion
---with-K
+--without-K
 --guardedness
 #-}
 
@@ -62,7 +59,7 @@ open import Haskell.Law.Monad.List public
 open import Haskell.Law.Monoid.List public
 open import Haskell.Prim.Absurd public
 open import Haskell.Prim.Applicative public
-open import Haskell.Extra.Delay public
+open import Haskell.Law.Extensionality public
 open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
