@@ -32,10 +32,10 @@
 -- empirical language-model or physical-realism claims.
 --
 -- Numeric contract: recurrent, critic, and update values use unbounded Integer;
--- action identifiers and counts use ℕ; ratios use exact numerator plus a
--- positive-denominator encoding. No machine-width integer or floating-point
--- domain is used for recurrent state. Historical “8” suffixes denote code
--- scales or legacy interfaces, not an 8-bit storage constraint.
+-- action identifiers and counts use ℕ; ratios are exact numerator/positive-
+-- denominator encodings over those same domains. No machine-width integer or
+-- floating-point domain is used for recurrent state. Policy scales such as
+-- 128 are ordinary Integer/Nat constants, not storage-width constraints.
 --
 -- This file intentionally contains definitions and local definitional laws,
 -- not economic existence conclusions. Convergence, fixed points, market
@@ -1881,21 +1881,21 @@ record LCBCountKernel : Set₁ where
   field bonus : ℕ → Integer
 open LCBCountKernel public
 
-finiteLCBBonus8 : ℕ → Integer
-finiteLCBBonus8 zero = fromNat 127
-finiteLCBBonus8 (suc zero) = fromNat 63
-finiteLCBBonus8 (suc (suc zero)) = fromNat 31
-finiteLCBBonus8 (suc (suc (suc zero))) = fromNat 15
-finiteLCBBonus8 (suc (suc (suc (suc zero)))) = fromNat 7
-finiteLCBBonus8 (suc (suc (suc (suc (suc zero))))) = fromNat 3
-finiteLCBBonus8 (suc (suc (suc (suc (suc (suc zero)))))) = fromNat 1
-finiteLCBBonus8 _ = 0
+finiteLCBBonus : ℕ → Integer
+finiteLCBBonus zero = fromNat 127
+finiteLCBBonus (suc zero) = fromNat 63
+finiteLCBBonus (suc (suc zero)) = fromNat 31
+finiteLCBBonus (suc (suc (suc zero))) = fromNat 15
+finiteLCBBonus (suc (suc (suc (suc zero)))) = fromNat 7
+finiteLCBBonus (suc (suc (suc (suc (suc zero))))) = fromNat 3
+finiteLCBBonus (suc (suc (suc (suc (suc (suc zero)))))) = fromNat 1
+finiteLCBBonus _ = 0
 
 lcbNegate : Integer → Integer
 lcbNegate x = negateInteger x
 
 scoreA : ∀ {A : Set} → QFunction {A} → CountFunction {A} → ℕ → Integer
-scoreA q c a = (_+_) (q a) (lcbNegate (finiteLCBBonus8 (c a)))
+scoreA q c a = (_+_) (q a) (lcbNegate (finiteLCBBonus (c a)))
 
 lcbScore : ∀ {A : Set} → LCBCountKernel → LCBCountState A → CriticState A → QFunction {A}
 lcbScore L c q a = (_+_) (values q a) (lcbNegate (bonus L (valuesCount c a)))
@@ -2347,10 +2347,10 @@ tsallisQLog2-zero-weight-regression :
   tsallisQLog2 (sparseWeight zero zero) ＝ (negsuc 127 , zero)
 tsallisQLog2-zero-weight-regression = refl
 
--- Legacy helper for an explicitly pre-quantized 0..128 code. The canonical
--- learner below intentionally does not route policy weights through this API.
--- Compatibility adapter for a natural/integer code m interpreted as p=m/128.
--- It computes the same smoothed Tsallis q=2 log, with epsilon = 1/128.
+-- Compatibility adapter for callers that supply an integer policy code m
+-- interpreted as p = m/128. The canonical learner uses SparseWeight ratios
+-- directly and computes the same smoothed Tsallis q=2 log without quantizing
+-- those canonical policy weights.
 tsallisQLog2FromPolicyCode : Integer → RationalCode
 tsallisQLog2FromPolicyCode x with intCodeMagnitude x
 ... | zero = (negsuc 127 , zero)
@@ -2395,8 +2395,8 @@ tsallisQ2SurpriseFromPolicyCode-rare-weight-positive-regression :
   tsallisQ2SurpriseFromPolicyCode (fromNat 1) ＝ fromNat 1016
 tsallisQ2SurpriseFromPolicyCode-rare-weight-positive-regression = refl
 
-negativeAlpha8 : Integer
-negativeAlpha8 = fromNat 255
+qLogControlDefaultCode : Integer
+qLogControlDefaultCode = fromNat 255
 
 record SignedQLogControl : Set where
   constructor signedQLogControl
@@ -2405,7 +2405,7 @@ open SignedQLogControl public
 
 canonicalQLogControl : SignedQLogControl
 canonicalQLogControl =
-  signedQLogControl negativeAlpha8 negativeAlpha8
+  signedQLogControl qLogControlDefaultCode qLogControlDefaultCode
 
 qLogSignal : SignedQLogControl → Integer → Integer
 qLogSignal c x = (_+_) x (coefficient c)
@@ -2429,18 +2429,18 @@ hardSignGate x with hardSign x
 ... | zeroSign = 0
 ... | positive = 1
 
-two8 : Integer
-two8 = (_+_) 1 1
+twoInteger : Integer
+twoInteger = (_+_) 1 1
 
-relu8 : Integer → Integer
-relu8 x with hardSign x
+reluInteger : Integer → Integer
+reluInteger x with hardSign x
 ... | negativeSign = 0
 ... | zeroSign = 0
 ... | positive = x
 
 leaky2 : Integer → Integer
 leaky2 x with hardSign x
-... | negativeSign = (_*_) two8 x
+... | negativeSign = (_*_) twoInteger x
 ... | zeroSign = 0
 ... | positive = x
 
@@ -2727,25 +2727,25 @@ rationalCodeCode-negative-unit-regression :
   rationalCodeCode (negsuc zero , zero) ＝ negsuc zero
 rationalCodeCode-negative-unit-regression = refl
 
-identityActivation8 : Integer → Integer
-identityActivation8 x = x
+identityActivation : Integer → Integer
+identityActivation x = x
 
-identityActivation8-law : ∀ x → identityActivation8 x ＝ x
-identityActivation8-law x = refl
+identityActivation-law : ∀ x → identityActivation x ＝ x
+identityActivation-law x = refl
 
-identityActivation8-zero : identityActivation8 0 ＝ 0
-identityActivation8-zero = refl
+identityActivation-zero : identityActivation 0 ＝ 0
+identityActivation-zero = refl
 
-gruCandidate8 : Integer → Integer → Integer
-gruCandidate8 h x = (_+_) h x
+gruCandidate : Integer → Integer → Integer
+gruCandidate h x = (_+_) h x
 
-complement128 : Integer → Integer
-complement128 g = (_-_) 1 g
+complementGate : Integer → Integer
+complementGate g = (_-_) 1 g
 
-mix8 : Integer → Integer → Integer → Integer
-mix8 g old new =
+mixGate : Integer → Integer → Integer → Integer
+mixGate g old new =
   (_+_)
-    ((_*_) (complement128 g) old)
+    ((_*_) (complementGate g) old)
     ((_*_) g new)
 
 gateCode : Signed → Integer
@@ -3139,15 +3139,15 @@ canonicalHaarMix-linear-form :
   ((_+_) x y , (_-_) x y)
 canonicalHaarMix-linear-form x y = refl
 
-canonicalReLU8 : Integer → Integer
-canonicalReLU8 x with hardSign x
+canonicalReLU : Integer → Integer
+canonicalReLU x with hardSign x
 ... | negativeSign = 0
 ... | zeroSign = 0
 ... | positiveSign = x
 
-canonicalCReLU8 : Integer → CanonicalHaarPair
-canonicalCReLU8 x =
-  canonicalReLU8 x , canonicalReLU8 (negateInteger x)
+canonicalCReLU : Integer → CanonicalHaarPair
+canonicalCReLU x =
+  canonicalReLU x , canonicalReLU (negateInteger x)
 
 ------------------------------------------------------------------------
 -- Fraction-code CReLU': CReLU with a numerator/denominator softsign map on
@@ -3175,21 +3175,21 @@ canonicalCReLU' x =
 canonicalHaarFeature : Integer → CanonicalHaarPair
 canonicalHaarFeature x =
   canonicalHaarMix
-    (fst (canonicalCReLU8 x))
-    (snd (canonicalCReLU8 x))
+    (fst (canonicalCReLU x))
+    (snd (canonicalCReLU x))
 
 canonicalHaarFeature-left : ∀ x →
   fst (canonicalHaarFeature x) ＝
   (_+_)
-    (fst (canonicalCReLU8 x))
-    (snd (canonicalCReLU8 x))
+    (fst (canonicalCReLU x))
+    (snd (canonicalCReLU x))
 canonicalHaarFeature-left x = refl
 
 canonicalHaarFeature-right : ∀ x →
   snd (canonicalHaarFeature x) ＝
   (_-_)
-    (fst (canonicalCReLU8 x))
-    (snd (canonicalCReLU8 x))
+    (fst (canonicalCReLU x))
+    (snd (canonicalCReLU x))
 canonicalHaarFeature-right x = refl
 
 canonicalHaarOrthogonalCross :
@@ -3201,8 +3201,8 @@ canonicalHaarOrthogonalCross = refl
 
 canonicalHaarFeatureReconstruct :
   ∀ x →
-  let p = fst (canonicalCReLU8 x)
-      n = snd (canonicalCReLU8 x)
+  let p = fst (canonicalCReLU x)
+      n = snd (canonicalCReLU x)
   in (_-_) p n ＝ x
 canonicalHaarFeatureReconstruct
   (pos 0) = refl
@@ -3213,7 +3213,7 @@ canonicalHaarFeatureReconstruct
 
 canonicalHaarFeatureInjective :
   ∀ {x y} →
-  canonicalCReLU8 x ＝ canonicalCReLU8 y →
+  canonicalCReLU x ＝ canonicalCReLU y →
   x ＝ y
 canonicalHaarFeatureInjective {x} {y} eq =
   trans
@@ -3338,9 +3338,9 @@ canonicalHaarFeaturedTransformer :
   HaarFeaturedLinearTransformer
 canonicalHaarFeaturedTransformer =
   haarFeaturedLinearTransformer
-    identityActivation8
-    identityActivation8
-    identityActivation8
+    identityActivation
+    identityActivation
+    identityActivation
 
 canonicalHaarFeaturedLinearScan :
   HaarAccumulator →
@@ -3380,7 +3380,7 @@ CanonicalFullLearnerState = FullLearnerState ⊤
 CanonicalFullLearnerKernel : Set₁
 CanonicalFullLearnerKernel = FullLearnerKernel ⊤
 
-canonicalPolicyScores : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → QFunction
+canonicalPolicyScores : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → QFunction {A}
 canonicalPolicyScores K s =
   lcbScore
     (lcbKernel K)
@@ -3548,7 +3548,7 @@ canonicalWatkinsTarget-law K s = refl
 
 canonicalQLogControlStep : ∀ {A} → FullLearnerKernel A → FullLearnerState A → SignedQLogControl
 canonicalQLogControlStep K s =
-  signedQLogControl negativeAlpha8 (canonicalQLogBias K s)
+  signedQLogControl qLogControlDefaultCode (canonicalQLogBias K s)
 
 canonicalSignal : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
 canonicalSignal = canonicalWatkinsTarget

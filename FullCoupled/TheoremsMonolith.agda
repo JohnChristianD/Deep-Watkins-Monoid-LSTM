@@ -1269,11 +1269,11 @@ canonicalGRUStatisticalDistinguishability distinct collision = distinct (canonic
 canonicalGRUStatisticalStepConsequence : ∀ (s : C.GRUState) (x : Integer) → canonicalGRUStatisticalEncode (C.gruStep s x) ＝ (C.gruStep s x , (λ _ → C.hiddenState (C.gruStep s x)))
 canonicalGRUStatisticalStepConsequence s x = refl
 
-identityActivation8-injective :
+identityActivation-injective :
   ∀ {x y : Integer} →
-  C.identityActivation8 x ＝ C.identityActivation8 y →
+  C.identityActivation x ＝ C.identityActivation y →
   x ＝ y
-identityActivation8-injective eq = eq
+identityActivation-injective eq = eq
 
 ------------------------------------------------------------------------
 -- Carrier-polymorphic statistical representation.
@@ -1985,19 +1985,19 @@ CanonicalLearnerPermutationInvariant =
   C.runMonoidLSTMCell xs c ＝
   C.runMonoidLSTMCell ys c
 
-canonicalNegativeOne8 : Integer
-canonicalNegativeOne8 = negsuc zero
+canonicalNegativeOne : Integer
+canonicalNegativeOne = negsuc zero
 
 canonicalPermutation-swap :
   CanonicalListPermutation
-    (1 ∷ canonicalNegativeOne8 ∷ [])
-    (canonicalNegativeOne8 ∷ 1 ∷ [])
+    (1 ∷ canonicalNegativeOne ∷ [])
+    (canonicalNegativeOne ∷ 1 ∷ [])
 canonicalPermutation-swap =
-  canonical-perm-swap 1 canonicalNegativeOne8 []
+  canonical-perm-swap 1 canonicalNegativeOne []
 
 canonicalPermutation-left :
   C.runMonoidLSTMCell
-    (1 ∷ canonicalNegativeOne8 ∷ [])
+    (1 ∷ canonicalNegativeOne ∷ [])
     0
   ＝
   0
@@ -2005,7 +2005,7 @@ canonicalPermutation-left = refl
 
 canonicalPermutation-right :
   C.runMonoidLSTMCell
-    (canonicalNegativeOne8 ∷ 1 ∷ [])
+    (canonicalNegativeOne ∷ 1 ∷ [])
     0
   ＝
   1
@@ -2015,21 +2015,21 @@ canonicalZeroInt-not-oneInt :
   ¬ ((pos 0) ＝ (pos 1))
 canonicalZeroInt-not-oneInt ()
 
-canonicalZero8-not-1 :
+canonicalZero-not-1 :
   0 ≢ 1
-canonicalZero8-not-1 eq =
+canonicalZero-not-1 eq =
   canonicalZeroInt-not-oneInt eq
 
 canonicalPermutation-results-distinct :
   C.runMonoidLSTMCell
-    (1 ∷ canonicalNegativeOne8 ∷ [])
+    (1 ∷ canonicalNegativeOne ∷ [])
     0
   ≢
   C.runMonoidLSTMCell
-    (canonicalNegativeOne8 ∷ 1 ∷ [])
+    (canonicalNegativeOne ∷ 1 ∷ [])
     0
 canonicalPermutation-results-distinct eq =
-  canonicalZero8-not-1
+  canonicalZero-not-1
     (trans
       (sym canonicalPermutation-left)
       (trans eq canonicalPermutation-right))
@@ -2039,8 +2039,8 @@ canonicalLearnerPermutationInvariant-impossible :
 canonicalLearnerPermutationInvariant-impossible invariant =
   canonicalPermutation-results-distinct
     (invariant
-      (1 ∷ canonicalNegativeOne8 ∷ [])
-      (canonicalNegativeOne8 ∷ 1 ∷ [])
+      (1 ∷ canonicalNegativeOne ∷ [])
+      (canonicalNegativeOne ∷ 1 ∷ [])
       canonicalPermutation-swap
       0)
 
@@ -2049,15 +2049,15 @@ record CanonicalLearnerPermutationCompositionImpossibilityTheorem : Set₁ where
   field
     permutationWitness :
       CanonicalListPermutation
-        (1 ∷ canonicalNegativeOne8 ∷ [])
-        (canonicalNegativeOne8 ∷ 1 ∷ [])
+        (1 ∷ canonicalNegativeOne ∷ [])
+        (canonicalNegativeOne ∷ 1 ∷ [])
     distinctResults :
       C.runMonoidLSTMCell
-        (1 ∷ canonicalNegativeOne8 ∷ [])
+        (1 ∷ canonicalNegativeOne ∷ [])
         0
       ≢
       C.runMonoidLSTMCell
-        (canonicalNegativeOne8 ∷ 1 ∷ [])
+        (canonicalNegativeOne ∷ 1 ∷ [])
         0
     noGlobalPermutationInvariant :
       CanonicalLearnerPermutationInvariant → ⊥
@@ -6075,8 +6075,8 @@ canonicalHaarFeature-recurrent-step :
   C.gruStep
     s
     ((_-_)
-      (fst (C.canonicalCReLU8 x))
-      (snd (C.canonicalCReLU8 x)))
+      (fst (C.canonicalCReLU x))
+      (snd (C.canonicalCReLU x)))
   ＝
   C.gruStep s x
 canonicalHaarFeature-recurrent-step s x =
@@ -6091,8 +6091,8 @@ canonicalHaarFeature-recurrent-prefix :
     (map
       (λ x →
         (_-_)
-          (fst (C.canonicalCReLU8 x))
-          (snd (C.canonicalCReLU8 x)))
+          (fst (C.canonicalCReLU x))
+          (snd (C.canonicalCReLU x)))
       xs)
     s
   ＝
@@ -6109,8 +6109,8 @@ canonicalHaarFeature-recurrent-prefix (x ∷ xs) s =
       (C.gruStep
         s
         ((_-_)
-          (fst (C.canonicalCReLU8 x))
-          (snd (C.canonicalCReLU8 x)))))
+          (fst (C.canonicalCReLU x))
+          (snd (C.canonicalCReLU x)))))
     (cong
       (C.recurrentListState
         C.canonicalGRURecurrentNetwork
@@ -6124,8 +6124,8 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
       CanonicalIntegerHaarScaledOrthogonalityTheorem
     cReLUInjective :
       ∀ {x y : Integer} →
-      C.canonicalCReLU8 x ＝
-      C.canonicalCReLU8 y →
+      C.canonicalCReLU x ＝
+      C.canonicalCReLU y →
       x ＝ y
     attentionAppend :
       ∀ (accumulator : C.HaarAccumulator)
@@ -6148,8 +6148,8 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
       C.gruStep
         s
         ((_-_)
-          (fst (C.canonicalCReLU8 x))
-          (snd (C.canonicalCReLU8 x)))
+          (fst (C.canonicalCReLU x))
+          (snd (C.canonicalCReLU x)))
       ＝
       C.gruStep s x
     reconstructedPrefix :
@@ -6159,8 +6159,8 @@ record CanonicalHaarRecurrentCompositionTheorem : Set₁ where
         (map
           (λ x →
             (_-_)
-              (fst (C.canonicalCReLU8 x))
-              (snd (C.canonicalCReLU8 x)))
+              (fst (C.canonicalCReLU x))
+              (snd (C.canonicalCReLU x)))
           xs)
         s
       ＝
