@@ -1,5 +1,5 @@
 {-# OPTIONS
---sized-types
+--exact-split
 --no-postfix-projections
 --no-projection-like
 --erased-matches
@@ -11,8 +11,7 @@
 --large-indices
 --no-forced-argument-recursion
 --with-K
---no-guardedness
---injective-type-constructors
+--guardedness
 #-}
 
 ------------------------------------------------------------------------
