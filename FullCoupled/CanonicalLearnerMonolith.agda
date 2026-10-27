@@ -1896,8 +1896,8 @@ scoreList {A} K q c = map (λ a → (scoreA {A = A} q c a , a)) (actionCandidate
 data ComparisonResult : Set where
   less equal greater : ComparisonResult
 
-compareInt8 : Integer → Integer → ComparisonResult
-compareInt8 x y with compare (x) (y)
+compareInteger : Integer → Integer → ComparisonResult
+compareInteger x y with compare (x) (y)
 ... | LT = less
 ... | EQ = equal
 ... | GT = greater
@@ -1909,7 +1909,7 @@ compareNat (suc _) zero = greater
 compareNat (suc m) (suc n) = compareNat m n
 
 scoreBefore : ScoreEntry → ScoreEntry → Bool
-scoreBefore (s₁ , a₁) (s₂ , a₂) with compareInt8 s₁ s₂
+scoreBefore (s₁ , a₁) (s₂ , a₂) with compareInteger s₁ s₂
 ... | less = False
 ... | greater = True
 ... | equal with compareNat a₁ a₂
@@ -2294,8 +2294,8 @@ tsallisQLog2-zero-weight-regression = refl
 -- learner below intentionally does not route policy weights through this API.
 -- Compatibility adapter for a natural/integer code m interpreted as p=m/128.
 -- It computes the same smoothed Tsallis q=2 log, with epsilon = 1/128.
-qLog8 : Integer → RationalCode
-qLog8 x with intCodeMagnitude x
+tsallisQLog2FromPolicyCode : Integer → RationalCode
+tsallisQLog2FromPolicyCode x with intCodeMagnitude x
 ... | zero = (negsuc 127 , zero)
 ... | suc n with natLE 128 (suc n)
 ...   | enabled =
@@ -2305,8 +2305,8 @@ qLog8 x with intCodeMagnitude x
   , suc n
   )
 
-munchausenScale8 : ℕ
-munchausenScale8 = 16
+tsallisQ2BiasScale : ℕ
+tsallisQ2BiasScale = 16
 
 -- The canonical coupling uses the positive magnitude of the signed Tsallis
 -- q=2 log as a surprise bonus. The q-log itself remains signed in RationalCode.
@@ -2315,7 +2315,7 @@ tsallisQ2SurpriseBias q with rationalCodeNumeratorMagnitude q
 ... | zero = 0
 ... | suc n = fromNat
   (rationalCodeDivideMagnitude
-    (munchausenScale8 *ℕ suc n)
+    (tsallisQ2BiasScale *ℕ suc n)
     q)
 
 tsallisQ2SurpriseBias-positive-law :
@@ -2323,20 +2323,20 @@ tsallisQ2SurpriseBias-positive-law :
   tsallisQ2SurpriseBias q ＝
   fromNat
     (rationalCodeDivideMagnitude
-      (munchausenScale8 *ℕ rationalCodeNumeratorMagnitude q)
+      (tsallisQ2BiasScale *ℕ rationalCodeNumeratorMagnitude q)
       q)
 tsallisQ2SurpriseBias-positive-law q
   with rationalCodeNumeratorMagnitude q
 ... | zero = refl
 ... | suc n = refl
 
-qLog2Bias8 : Integer → Integer
-qLog2Bias8 x =
-  tsallisQ2SurpriseBias (qLog8 x)
+tsallisQ2SurpriseFromPolicyCode : Integer → Integer
+tsallisQ2SurpriseFromPolicyCode x =
+  tsallisQ2SurpriseBias (tsallisQLog2FromPolicyCode x)
 
-qLog2Bias8-rare-weight-positive-regression :
-  qLog2Bias8 (fromNat 1) ＝ fromNat 1016
-qLog2Bias8-rare-weight-positive-regression = refl
+tsallisQ2SurpriseFromPolicyCode-rare-weight-positive-regression :
+  tsallisQ2SurpriseFromPolicyCode (fromNat 1) ＝ fromNat 1016
+tsallisQ2SurpriseFromPolicyCode-rare-weight-positive-regression = refl
 
 negativeAlpha8 : Integer
 negativeAlpha8 = fromNat 255
@@ -3003,20 +3003,20 @@ gruInputActionAssociativity :
 gruInputActionAssociativity x y z s = refl
 
 
-gruStateInt8CoordinateCount : ℕ
-gruStateInt8CoordinateCount = 10
+gruStateIntegerCoordinateCount : ℕ
+gruStateIntegerCoordinateCount = 10
 
-criticInt8CoordinateCount : ℕ
-criticInt8CoordinateCount = 2
+criticIntegerCoordinateCount : ℕ
+criticIntegerCoordinateCount = 2
 
 gruPersistentQuotientCoordinateCount : ℕ
 gruPersistentQuotientCoordinateCount = 8
 
-fullLearnerInt8CoordinateCount : ℕ
-fullLearnerInt8CoordinateCount = 24
+fullLearnerIntegerCoordinateCount : ℕ
+fullLearnerIntegerCoordinateCount = 24
 
-fullLearnerInt8CoordinateCount-law : fullLearnerInt8CoordinateCount ＝ 24
-fullLearnerInt8CoordinateCount-law = refl
+fullLearnerIntegerCoordinateCount-law : fullLearnerIntegerCoordinateCount ＝ 24
+fullLearnerIntegerCoordinateCount-law = refl
 
 record F4IntUState : Set where
   constructor f4IntUState
@@ -3314,7 +3314,7 @@ record FullLearnerKernel (A : Set) : Set₁ where
     lcbKernel : LCBCountKernel
     -- Environmental reward comes from the environment/kernel, never from
     -- the agent's own policy probability.
-    observedReward8 : FullLearnerState A → Integer
+    observedReward : FullLearnerState A → Integer
 open FullLearnerKernel public
 
 CanonicalFullLearnerState : Set₁
@@ -3418,27 +3418,27 @@ canonicalPolicy-optimizer-invariant K s o = refl
 
 maxCriticValueList : List Integer → Integer
 maxCriticValueList [] = 0
-maxCriticValueList (x ∷ xs) with compareInt8 x (maxCriticValueList xs)
+maxCriticValueList (x ∷ xs) with compareInteger x (maxCriticValueList xs)
 ... | less = maxCriticValueList xs
 ... | equal = maxCriticValueList xs
 ... | greater = x
 
-maxCriticValue8 : ∀ {A : Set} → ActionSpace A → CriticState A → Integer
-maxCriticValue8 K q = maxCriticValueList (map (λ a → values q a) (actionCandidates K))
+maxCriticValue : ∀ {A : Set} → ActionSpace A → CriticState A → Integer
+maxCriticValue K q = maxCriticValueList (map (λ a → values q a) (actionCandidates K))
 
 canonicalQLogBias : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
-canonicalQLogBias K s = signedRationalCodeBias8 (canonicalPolicyWeightQLog K s)
+canonicalQLogBias K s = tsallisQ2SurpriseBias (canonicalPolicyWeightQLog K s)
 
-canonicalReward8 : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
-canonicalReward8 K s = observedReward8 K s
+canonicalReward : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
+canonicalReward K s = observedReward K s
 
-canonicalReward8-kernel-source-law :
+canonicalReward-kernel-source-law :
   ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
-  canonicalReward8 K s ＝ observedReward8 K s
-canonicalReward8-kernel-source-law K s = refl
+  canonicalReward K s ＝ observedReward K s
+canonicalReward-kernel-source-law K s = refl
 
-canonicalDiscount8 : Integer
-canonicalDiscount8 = 1
+canonicalDiscount : Integer
+canonicalDiscount = 1
 
 canonicalGRUFeedback : ∀ {A} → FullLearnerState A → Integer
 canonicalGRUFeedback s = hiddenState (gru s)
@@ -3469,16 +3469,16 @@ canonicalWatkinsTarget : ∀ {A} → FullLearnerKernel A → FullLearnerState A 
 canonicalWatkinsTarget K s =
   (_+_)
     ((_+_)
-      ((_+_) (canonicalReward8 K s) (canonicalQLogBias K s))
-      ((_*_) canonicalDiscount8 (maxCriticValue8 (actionSpaceK K) (critic (watkins s)))))
+      ((_+_) (canonicalReward K s) (canonicalQLogBias K s))
+      ((_*_) canonicalDiscount (maxCriticValue (actionSpaceK K) (critic (watkins s)))))
     (canonicalEndogenousFeedback K s)
 
 canonicalWatkinsTarget-law : ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
   canonicalWatkinsTarget K s ＝
   (_+_)
     ((_+_)
-      ((_+_) (canonicalReward8 K s) (canonicalQLogBias K s))
-      ((_*_) canonicalDiscount8 (maxCriticValue8 (actionSpaceK K) (critic (watkins s)))))
+      ((_+_) (canonicalReward K s) (canonicalQLogBias K s))
+      ((_*_) canonicalDiscount (maxCriticValue (actionSpaceK K) (critic (watkins s)))))
     (canonicalEndogenousFeedback K s)
 canonicalWatkinsTarget-law K s = refl
 

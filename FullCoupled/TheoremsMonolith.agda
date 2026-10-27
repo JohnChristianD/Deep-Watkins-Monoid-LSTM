@@ -2778,10 +2778,10 @@ record CanonicalAQLoopTheorem : Set₁ where
       (_+_)
         ((_+_)
           ((_+_)
-            (C.canonicalReward8 K s)
+            (C.canonicalReward K s)
             (C.canonicalQLogBias K s))
-          ((_*_) C.canonicalDiscount8
-            (C.maxCriticValue8 (C.actionSpaceK K) (C.critic (C.watkins s)))))
+          ((_*_) C.canonicalDiscount
+            (C.maxCriticValue (C.actionSpaceK K) (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
 
 open CanonicalAQLoopTheorem public
@@ -3688,14 +3688,14 @@ canonicalBiasedWatkinsPositiveQMunchausenL2Target :
 canonicalBiasedWatkinsPositiveQMunchausenL2Target =
   C.canonicalWatkinsTarget
 
-canonical-qLog2Bias8-law :
+canonical-tsallisQ2SurpriseFromPolicyCode-law :
   ∀ x →
-  C.qLog2Bias8 x ＝
+  C.tsallisQ2SurpriseFromPolicyCode x ＝
   fromNat
     (C.rationalCodeDivideMagnitude
-      (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-      (C.qLog8 x))
-canonical-qLog2Bias8-law x with C.rationalCodeNumeratorMagnitude (C.qLog8 x)
+      (C.tsallisQ2BiasScale * C.rationalCodeNumeratorMagnitude (C.tsallisQLog2FromPolicyCode x))
+      (C.tsallisQLog2FromPolicyCode x))
+canonical-tsallisQ2SurpriseFromPolicyCode-law x with C.rationalCodeNumeratorMagnitude (C.tsallisQLog2FromPolicyCode x)
 ... | zero = refl
 ... | suc n = refl
 
@@ -3705,11 +3705,11 @@ record CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem : Set₁ where
   field
     positiveQMunchausenBias :
       ∀ x →
-      C.qLog2Bias8 x ＝
+      C.tsallisQ2SurpriseFromPolicyCode x ＝
       fromNat
         (C.rationalCodeDivideMagnitude
-          (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-          (C.qLog8 x))
+          (C.tsallisQ2BiasScale * C.rationalCodeNumeratorMagnitude (C.tsallisQLog2FromPolicyCode x))
+          (C.tsallisQLog2FromPolicyCode x))
 
     targetDecomposition :
       ∀ K s →
@@ -3717,11 +3717,11 @@ record CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem : Set₁ where
       (_+_)
         ((_+_)
           ((_+_)
-            (C.canonicalReward8 K s)
+            (C.canonicalReward K s)
             (C.canonicalQLogBias K s))
           ((_*_)
-            C.canonicalDiscount8
-            (C.maxCriticValue8 (C.actionSpaceK K) (C.critic (C.watkins s)))))
+            C.canonicalDiscount
+            (C.maxCriticValue (C.actionSpaceK K) (C.critic (C.watkins s)))))
         (C.canonicalEndogenousFeedback K s)
 
     l2ConsumesTarget :
@@ -3738,7 +3738,7 @@ canonical-biased-watkins-positive-q-munchausen-l2-target-theorem :
   CanonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
 canonical-biased-watkins-positive-q-munchausen-l2-target-theorem =
   canonicalBiasedWatkinsPositiveQMunchausenL2TargetTheorem
-    canonical-qLog2Bias8-law
+    canonical-tsallisQ2SurpriseFromPolicyCode-law
     (λ K s → C.canonicalWatkinsTarget-law K s)
     (λ K s → C.canonicalOptimizerStep-qMunchausen-L2 K s)
 
@@ -3748,11 +3748,11 @@ record CanonicalQMunchausenL2PositiveBiasPolarityTheorem : Set₁ where
   field
     qMunchausenBiasPositivePolarity :
       ∀ x →
-      C.qLog2Bias8 x ＝
+      C.tsallisQ2SurpriseFromPolicyCode x ＝
       fromNat
         (C.rationalCodeDivideMagnitude
-          (C.munchausenScale8 * C.rationalCodeNumeratorMagnitude (C.qLog8 x))
-          (C.qLog8 x))
+          (C.tsallisQ2BiasScale * C.rationalCodeNumeratorMagnitude (C.tsallisQLog2FromPolicyCode x))
+          (C.tsallisQLog2FromPolicyCode x))
 
     l2CorrectionNegation :
       ∀ x →
@@ -3770,11 +3770,11 @@ canonicalWatkinsTarget-endogenous-leftInverse :
     (_+_)
       ((_+_)
         ((_+_)
-          (C.canonicalReward8 K (inverse (observe s)))
+          (C.canonicalReward K (inverse (observe s)))
           (C.canonicalQLogBias K (inverse (observe s))))
         ((_*_)
-          C.canonicalDiscount8
-          (C.maxCriticValue8
+          C.canonicalDiscount
+          (C.maxCriticValue
             (C.actionSpaceK K)
             (C.critic
               (C.watkins
@@ -3788,11 +3788,11 @@ canonicalWatkinsTarget-endogenous-leftInverse K observe inverse leftInverse s =
         (_+_)
           ((_+_)
             ((_+_)
-              (C.canonicalReward8 K t)
+              (C.canonicalReward K t)
               (C.canonicalQLogBias K t))
             ((_*_)
-              C.canonicalDiscount8
-              (C.maxCriticValue8
+              C.canonicalDiscount
+              (C.maxCriticValue
                 (C.actionSpaceK K)
                 (C.critic (C.watkins t)))))
           (C.canonicalEndogenousFeedback K t))
@@ -4129,11 +4129,11 @@ record CanonicalEndogenousMinimaxBellmanShapleyUAPTheorem : Set₁ where
       (_+_)
         ((_+_)
           ((_+_)
-            (C.canonicalReward8 K (inverse (observe s)))
+            (C.canonicalReward K (inverse (observe s)))
             (C.canonicalQLogBias K (inverse (observe s))))
           ((_*_)
-            C.canonicalDiscount8
-            (C.maxCriticValue8
+            C.canonicalDiscount
+            (C.maxCriticValue
               (C.actionSpaceK K)
               (C.critic (C.watkins (inverse (observe s))))))
         (C.canonicalEndogenousFeedback K (inverse (observe s))))
