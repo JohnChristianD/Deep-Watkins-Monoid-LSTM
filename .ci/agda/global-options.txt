@@ -1,12 +1,9 @@
---erased-matches
+--erasure
 --no-projection-like
 --two-level
 --confluence-check
 --prop
---sized-types
 --no-forced-argument-recursion
---lossy-unification
---polarity
---cohesion
 --no-postfix-projections
 --experimental-lazy-instances
+--exact-split
