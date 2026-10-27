@@ -3193,6 +3193,9 @@ record FullLearnerKernel (A : Set) : Set₁ where
     watkinsKernel : WatkinsKernel A
     optimizerKernel : F4IntUKernel
     lcbKernel : LCBCountKernel
+    -- Environmental reward comes from the environment/kernel, never from
+    -- the agent's own policy probability.
+    observedReward8 : FullLearnerState A → Integer
 open FullLearnerKernel public
 
 CanonicalFullLearnerState : Set₁
@@ -3308,7 +3311,12 @@ canonicalQLogBias : ∀ {A} → FullLearnerKernel A → FullLearnerState A → I
 canonicalQLogBias K s = qLog2Bias8 (canonicalPolicyWeightCode K s)
 
 canonicalReward8 : ∀ {A} → FullLearnerKernel A → FullLearnerState A → Integer
-canonicalReward8 K s = canonicalPolicyWeightCode K s
+canonicalReward8 K s = observedReward8 K s
+
+canonicalReward8-kernel-source-law :
+  ∀ {A} (K : FullLearnerKernel A) (s : FullLearnerState A) →
+  canonicalReward8 K s ＝ observedReward8 K s
+canonicalReward8-kernel-source-law K s = refl
 
 canonicalDiscount8 : Integer
 canonicalDiscount8 = 1
