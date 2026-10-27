@@ -33,8 +33,8 @@
 --
 -- Numeric contract: recurrent, critic, and update values use unbounded Integer;
 -- action identifiers and counts use ℕ; ratios use exact numerator plus a
--- positive-denominator encoding. There are no machine-byte, Float, or Double
--- state types in the recurrent path. Historical “8” suffixes denote code
+-- positive-denominator encoding. No machine-width integer or floating-point
+-- domain is used for recurrent state. Historical “8” suffixes denote code
 -- scales or legacy interfaces, not an 8-bit storage constraint.
 --
 -- This file intentionally contains definitions and local definitional laws,
@@ -1770,14 +1770,6 @@ record ActionSpace (A : Set) : Set where
     witness : ℕ
 open ActionSpace public
 
--- A witness is the canonical fallback when the declared list is empty.
--- Use this effective action set consistently; otherwise the fallback action
--- can be selected but receive zero weight, and out-of-set actions can get mass.
-actionCandidates : ∀ {A : Set} → ActionSpace A → List ℕ
-actionCandidates K with candidates K
-... | [] = witness K ∷ []
-... | xs = xs
-
 QFunction : ∀ {A : Set} → Set
 QFunction {A} = ℕ → Integer
 
@@ -1801,6 +1793,30 @@ containsAction a [] = disabled
 containsAction a (b ∷ bs) with natEq a b
 ... | enabled = enabled
 ... | disabled = containsAction a bs
+
+-- Preserve the first occurrence of each action. Duplicate candidates would
+-- otherwise be counted repeatedly in sparsemax support normalization, making
+-- policy mass depend on list multiplicity.
+uniqueActionsFrom : List ℕ → List ℕ → List ℕ
+uniqueActionsFrom seen [] = []
+uniqueActionsFrom seen (a ∷ xs) with containsAction a seen
+... | enabled = uniqueActionsFrom seen xs
+... | disabled = a ∷ uniqueActionsFrom (a ∷ seen) xs
+
+uniqueActions : List ℕ → List ℕ
+uniqueActions xs = uniqueActionsFrom [] xs
+
+uniqueActions-regression :
+  uniqueActions (zero ∷ suc zero ∷ zero ∷ suc (suc zero) ∷ suc zero ∷ []) ＝
+  zero ∷ suc zero ∷ suc (suc zero) ∷ []
+uniqueActions-regression = refl
+
+-- A witness is the canonical fallback when the declared list is empty.
+-- The same deduplicated set is used for scores, weights, and critic maxima.
+actionCandidates : ∀ {A : Set} → ActionSpace A → List ℕ
+actionCandidates K with uniqueActions (candidates K)
+... | [] = witness K ∷ []
+... | xs = xs
 
 natLt : ℕ → ℕ → BoolLike
 natLt zero zero = disabled
