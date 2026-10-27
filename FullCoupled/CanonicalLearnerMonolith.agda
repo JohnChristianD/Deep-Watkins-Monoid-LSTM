@@ -2023,10 +2023,36 @@ zero ∸ n = zero
 suc m ∸ zero = suc m
 suc m ∸ suc n = m ∸ n
 
+-- Difference from a common baseline, expressed as Nat.  The caller
+-- supplies scores no smaller than the baseline (the sorted score list's
+-- final element).  The final clause is total for arbitrary inputs.
+integerGap : Integer → Integer → ℕ
+integerGap (pos x) (pos y) = x ∸ y
+integerGap (pos x) (negsuc y) = x + suc y
+integerGap (negsuc x) (negsuc y) = suc y ∸ suc x
+integerGap (negsuc x) (pos y) = zero
+
+minimumScore : List ScoreEntry → Integer
+minimumScore [] = pos 0
+minimumScore ((score , a) ∷ []) = score
+minimumScore (_ ∷ xs) = minimumScore xs
+
+topCodesFrom : ℕ → Integer → List ScoreEntry → List ℕ
+topCodesFrom zero baseline xs = []
+topCodesFrom (suc k) baseline [] = []
+topCodesFrom (suc k) baseline ((score , a) ∷ xs) =
+  integerGap score baseline ∷ topCodesFrom k baseline xs
+
+-- Sparsemax is invariant under adding one common offset to every score.
+-- Shift by the minimum so all subsequent support arithmetic is natural and
+-- exact, without turning negative scores into their absolute magnitudes.
 topCodes : ℕ → List ScoreEntry → List ℕ
-topCodes zero xs = []
-topCodes (suc k) [] = []
-topCodes (suc k) ((x , a) ∷ xs) = intCodeMagnitude x ∷ topCodes k xs
+topCodes k xs = topCodesFrom k (minimumScore xs) xs
+
+sparsemax-negative-scores-regression :
+  topCodes 2 ((negsuc 1 , 0) ∷ (negsuc 3 , 1) ∷ []) ＝
+  2 ∷ 0 ∷ []
+sparsemax-negative-scores-regression = refl
 
 -- Natural-number arithmetic aliases stay local so calculations use this
 -- module's single ℕ source type throughout.
@@ -2059,9 +2085,10 @@ record SparseWeight : Set where
 open SparseWeight public
 
 sparsemaxWeight : ∀ {A : Set} → ActionSpace A → QFunction {A} → CountFunction {A} → ℕ → SparseWeight
-sparsemaxWeight {A} K q c a = sparseWeight (((supportK *ℕ intCodeMagnitude (scoreA {A = A} q c a)) +ℕ sparsemaxTemperature) ∸ scoreSum) (supportK *ℕ sparsemaxTemperature)
+sparsemaxWeight {A} K q c a = sparseWeight (((supportK *ℕ integerGap (scoreA {A = A} q c a) scoreBaseline) +ℕ sparsemaxTemperature) ∸ scoreSum) (supportK *ℕ sparsemaxTemperature)
   where
     scoreEntries = sortScores (scoreList K q c)
+    scoreBaseline = minimumScore scoreEntries
     supportK = supportSize K q c
     scoreSum = sumList (topCodes supportK scoreEntries)
 
