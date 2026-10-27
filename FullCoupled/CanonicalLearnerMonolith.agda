@@ -2248,71 +2248,91 @@ rationalCodeDivideMagnitude : ℕ → RationalCode → ℕ
 rationalCodeDivideMagnitude n (_ , denominatorMinusOne) =
   fst (fractionDivision n (suc denominatorMinusOne))
 
--- Exact rational surrogate for policy surprise. For p = n/d this represents
--- (1-p)/(p + 1/128) = 128(d-n)/(128n+d), without first flooring p to a
--- 0..128 integer. This is not the transcendental logarithm log(p); arithmetic
--- remains exact until the final Integer bias.
-qLogSparseWeight : SparseWeight → RationalCode
-qLogSparseWeight (sparseWeight n dMinusOne) with natLE n (suc dMinusOne)
-... | disabled = fromNatRationalCode zero zero
+-- Exact Tsallis q-log with q = 2, using a normalized pseudocount
+-- epsilon = 1/128 so zero Sparsemax mass remains representable.
+--
+-- For p = n/d define pε = (p + ε)/(1 + ε). The Tsallis q-log is
+-- ln_q(pε) = (pε^(1-q) - 1)/(1-q); at q = 2 this simplifies to
+-- 1 - 1/pε = 128(n-d)/(128n+d).
+-- The returned RationalCode therefore stores the actual signed q-log,
+-- not its positive magnitude and not a fixed-width integer approximation.
+tsallisQLog2 : SparseWeight → RationalCode
+tsallisQLog2 (sparseWeight n dMinusOne) with natLE n (suc dMinusOne)
 ... | enabled =
-  fromNatRationalCode
-    (128 *ℕ ((suc dMinusOne) ∸ n))
-    (((128 *ℕ n) +ℕ suc dMinusOne) ∸ 1)
+  ( negateInteger
+      (fromNat (128 *ℕ ((suc dMinusOne) ∸ n)))
+  , (((128 *ℕ n) +ℕ (suc dMinusOne)) ∸ 1)
+  )
+... | disabled =
+  ( fromNat (128 *ℕ (n ∸ (suc dMinusOne)))
+  , (((128 *ℕ n) +ℕ (suc dMinusOne)) ∸ 1)
+  )
 
-qLogSparseWeight-quarter-regression :
+tsallisQLog2-quarter-regression :
   rationalCodeCrossProductEqual
-    (qLogSparseWeight (sparseWeight 1 3))
-    (fromNatRationalCode 32 10)
-qLogSparseWeight-quarter-regression = refl
+    (tsallisQLog2 (sparseWeight 1 3))
+    (negsuc 31 , 10)
+tsallisQLog2-quarter-regression = refl
 
-qLogSparseWeight-half-regression :
+tsallisQLog2-half-regression :
   rationalCodeCrossProductEqual
-    (qLogSparseWeight (sparseWeight 1 1))
-    (fromNatRationalCode 64 64)
-qLogSparseWeight-half-regression = refl
+    (tsallisQLog2 (sparseWeight 1 1))
+    (negsuc 63 , 64)
+tsallisQLog2-half-regression = refl
 
-qLogSparseWeight-unit-regression :
+tsallisQLog2-unit-regression :
   rationalCodeCrossProductEqual
-    (qLogSparseWeight (sparseWeight 1 zero))
+    (tsallisQLog2 (sparseWeight 1 zero))
     (fromNatRationalCode zero 128)
-qLogSparseWeight-unit-regression = refl
+tsallisQLog2-unit-regression = refl
+
+tsallisQLog2-zero-weight-regression :
+  tsallisQLog2 (sparseWeight zero zero) ＝ (negsuc 127 , zero)
+tsallisQLog2-zero-weight-regression = refl
 
 -- Legacy helper for an explicitly pre-quantized 0..128 code. The canonical
 -- learner below intentionally does not route policy weights through this API.
+-- Compatibility adapter for a natural/integer code m interpreted as p=m/128.
+-- It computes the same smoothed Tsallis q=2 log, with epsilon = 1/128.
 qLog8 : Integer → RationalCode
 qLog8 x with intCodeMagnitude x
-... | zero = fromNatRationalCode 1 zero
-... | suc n = fromNatRationalCode (128 ∸ suc n) (suc n)
+... | zero = (negsuc 127 , zero)
+... | suc n with natLE 128 (suc n)
+...   | enabled =
+  fromNatRationalCode ((suc n) ∸ 128) (suc n)
+...   | disabled =
+  ( negateInteger (fromNat (128 ∸ suc n))
+  , suc n
+  )
 
 munchausenScale8 : ℕ
 munchausenScale8 = 16
 
--- Use the opposite sign of the usual non-positive log-policy correction:
--- this finite rational proxy is a positive surprise/curiosity bonus.
-signedRationalCodeBias8 : RationalCode → Integer
-signedRationalCodeBias8 q with rationalCodeNumeratorMagnitude q
+-- The canonical coupling uses the positive magnitude of the signed Tsallis
+-- q=2 log as a surprise bonus. The q-log itself remains signed in RationalCode.
+tsallisQ2SurpriseBias : RationalCode → Integer
+tsallisQ2SurpriseBias q with rationalCodeNumeratorMagnitude q
 ... | zero = 0
 ... | suc n = fromNat
   (rationalCodeDivideMagnitude
     (munchausenScale8 *ℕ suc n)
     q)
 
-signedRationalCodeBias8-positive-law :
+tsallisQ2SurpriseBias-positive-law :
   ∀ q →
-  signedRationalCodeBias8 q ＝
+  tsallisQ2SurpriseBias q ＝
   fromNat
     (rationalCodeDivideMagnitude
       (munchausenScale8 *ℕ rationalCodeNumeratorMagnitude q)
       q)
-signedRationalCodeBias8-positive-law q
+tsallisQ2SurpriseBias-positive-law q
   with rationalCodeNumeratorMagnitude q
 ... | zero = refl
 ... | suc n = refl
 
 qLog2Bias8 : Integer → Integer
 qLog2Bias8 x =
-  signedRationalCodeBias8 (qLog8 x)
+  tsallisQ2SurpriseBias (qLog8 x)
 
 qLog2Bias8-rare-weight-positive-regression :
   qLog2Bias8 (fromNat 1) ＝ fromNat 1016
@@ -3343,7 +3363,7 @@ canonicalBehaviorAction-law :
   canonicalBehaviorAction K s ＝ canonicalPolicy K s
 canonicalBehaviorAction-law K s = refl
 
-canonicalPolicyWeightQLog K s = qLogSparseWeight (canonicalPolicyWeight K s)
+canonicalPolicyWeightQLog K s = tsallisQLog2 (canonicalPolicyWeight K s)
 
 HardSparse : ∀ {A : Set} → FullLearnerKernel A → FullLearnerState A → Set
 HardSparse {A} K s =
