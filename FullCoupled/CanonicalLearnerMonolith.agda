@@ -2,7 +2,7 @@
 --exact-split
 --no-postfix-projections
 --no-projection-like
---erasured-matches
+--erased-matches
 --two-level
 --confluence-check
 --rewriting
