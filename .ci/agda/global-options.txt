@@ -2,8 +2,6 @@
 --no-projection-like
 --two-level
 --confluence-check
---prop
---no-forced-argument-recursion
 --no-postfix-projections
 --experimental-lazy-instances
 --exact-split
