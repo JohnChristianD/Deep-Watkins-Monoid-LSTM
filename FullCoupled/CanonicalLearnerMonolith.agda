@@ -8,7 +8,6 @@
 --rewriting
 --experimental-lazy-instances
 --lossy-unification
---backtracking-instance-search
 --without-K
 --guardedness
 #-}
@@ -66,10 +65,7 @@ open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Primitive public
--- No dependent-pair syntax is needed in learner semantics; avoid a collision with Haskell pairs.
-open import Agda.Builtin.Size public
--- Coinductive builtin import is omitted: it requires guardedness, disabled above.
--- Sized observation streams use the Agda2HS Thunk interface instead.
+open import Agda.Builtin.Reflection public
 
 -- Preserve the file's established fullwidth equality notation as a purely
 -- definitional alias of Prelude propositional equality. No new axiom or
