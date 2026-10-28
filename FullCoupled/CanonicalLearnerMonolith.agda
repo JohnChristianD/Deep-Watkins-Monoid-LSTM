@@ -8,7 +8,6 @@
 --rewriting
 --experimental-lazy-instances
 --lossy-unification
---backtracking-instance-search
 --guardedness
 #-}
 
