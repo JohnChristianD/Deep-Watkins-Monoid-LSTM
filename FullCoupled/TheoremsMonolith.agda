@@ -2,13 +2,12 @@
 --exact-split
 --no-postfix-projections
 --no-projection-like
---erasured-matches
+--erased-matches
 --two-level
 --confluence-check
 --rewriting
 --experimental-lazy-instances
 --lossy-unification
---backtracking-instance-search
 --guardedness
 #-}
 
