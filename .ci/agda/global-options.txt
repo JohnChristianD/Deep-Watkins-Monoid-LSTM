@@ -5,3 +5,4 @@
 --no-postfix-projections
 --experimental-lazy-instances
 --exact-split
+--guardedness
