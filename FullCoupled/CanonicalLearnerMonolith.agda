@@ -203,17 +203,26 @@ module ConstructiveComputabilityPostulates where
       bergerTotal : (x : BergerInput) → SigmaWitness (BergerOutput x) (bergerRelation x)
   open BergerContinuousChoiceProblem public
 
+  record BergerContinuousSelection
+    (problem : BergerContinuousChoiceProblem) : Set₁ where
+    constructor bergerContinuousSelection
+    field
+      selectedFunction :
+        (x : BergerInput problem) → BergerOutput problem x
+      selectedFunctionIsContinuous :
+        bergerContinuous problem selectedFunction
+      selectedFunctionIsValid :
+        (x : BergerInput problem) →
+        bergerRelation problem x (selectedFunction x)
+  open BergerContinuousSelection public
+
   record BergerContinuousChoice : Set₂ where
     constructor bergerContinuousChoice
     field
       bergerContinuousChoiceLaw :
         (problem : BergerContinuousChoiceProblem) →
         bergerAdmissible problem →
-        SigmaWitness
-          ((x : BergerInput problem) → BergerOutput problem x)
-          (λ choose →
-            (bergerContinuous problem choose) ×
-            ((x : BergerInput problem) → bergerRelation problem x (choose x)))
+        BergerContinuousSelection problem
   open BergerContinuousChoice public
 
   ----------------------------------------------------------------------
