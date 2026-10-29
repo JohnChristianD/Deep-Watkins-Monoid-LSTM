@@ -64,7 +64,9 @@ open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
 open import Agda.Primitive public
-open import Agda.Builtin.Reflection public
+-- Keep reflection names qualified: opening the module imports its primitive `Type`,
+-- which clashes with the canonical learner's universe/type vocabulary.
+import Agda.Builtin.Reflection as Reflection
 
 -- Preserve the file's established fullwidth equality notation as a purely
 -- definitional alias of Prelude propositional equality. No new axiom or
