@@ -75,11 +75,8 @@ infix 4 _＝_
 _＝_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
 _＝_ = _≡_
 
--- Agda2HS's legacy inequality helper is monomorphic in its carrier sort.
--- State constructive inequality polymorphically so Set₁ learner states fit.
-infix 4 _≠_
-_≠_ : ∀ {ℓ : Level} {A : Set ℓ} → A → A → Set ℓ
-x ≠ y = (x ＝ y) → ⊥
+-- Reuse the inequality relation exported by Haskell.Law.Equality. Defining
+-- another _≠_ here clashes with that public import and prevents type-checking.
 
 -- The Agda2HS equality convenience functions use the runtime carrier sort.
 -- These MLTT lemmas must also transport equalities of Set₁ learner states.
@@ -102,10 +99,10 @@ trans refl q = q
 ------------------------------------------------------------------------
 
 module ConstructiveComputabilityPostulates where
-  -- Markov's principle below is restricted to decidable predicates. There is
-  -- no excluded-middle axiom in this module. The outer monolith's Prop-valued
-  -- observational equality/rewrite rules remain limited extensionality; no
-  -- identity-level function-extensionality postulate is added.
+  -- No Markov principle or excluded-middle postulate is assumed here.
+  -- Logical choice principles below are bundled in Set-level records; their
+  -- Prop-valued propositions are data in the interface, not direct Prop
+  -- postulates. Computational rewrite rules remain separate from axioms.
   open import Haskell.Prelude using (Nat; Integer; zero; suc; Bool; True; False; List; []; _∷_; _≡_; refl)
 
   data EmptyComputability : Set where
@@ -149,19 +146,75 @@ module ConstructiveComputabilityPostulates where
   LawOfExcludedMiddle : Prop₁
   LawOfExcludedMiddle = (P : Prop) → PropOr P (PropNeg P)
 
-  -- Richman's countable choice, expressed with proposition-valued witnesses.
-  -- This is distinct from the data-level selector theorem below.
-  record RichmanCountableChoice : Set₃ where
-    constructor richmanCountableChoice
+  -- AC₀₀ is the selected countable-choice interface. It is intentionally
+  -- named independently of Richman's formulation so its interpretation can
+  -- vary by model/topos without silently identifying the two principles.
+  record AC_00 : Set₃ where
+    constructor ac00
     field
-      richmanCountableChoiceLaw :
+      ac00Law :
         {A : Nat → Set} →
         (P : (n : Nat) → A n → Prop) →
         ((n : Nat) → PropExists (P n)) →
         PropExists
           (λ (choose : (n : Nat) → A n) →
             (n : Nat) → P n (choose n))
-  open RichmanCountableChoice public
+  open AC_00 public
+
+  data PropAnd (P Q : Prop) : Prop where
+    propAnd : P → Q → PropAnd P Q
+
+  data PropLess : Nat → Nat → Prop where
+    propLessZero : {n : Nat} → PropLess zero (suc n)
+    propLessSucc : {m n : Nat} → PropLess m n → PropLess (suc m) (suc n)
+
+  data PropDecidable (P : Prop) : Set where
+    propYes : P → PropDecidable P
+    propNo : PropNeg P → PropDecidable P
+
+  -- Arithmetic least-witness principle: for a decidable predicate with a
+  -- witness, select a witness with no smaller witness. This is an explicit
+  -- Set-level assumption over Prop-valued arithmetic predicates.
+  record ArithmeticLeastWitness : Set₃ where
+    constructor arithmeticLeastWitness
+    field
+      arithmeticLeastWitnessLaw :
+        (P : Nat → Prop) →
+        ((n : Nat) → PropDecidable (P n)) →
+        PropExists P →
+        PropExists
+          (λ least →
+            PropAnd
+              (P least)
+              ((n : Nat) → PropLess n least → PropNeg (P n)))
+  open ArithmeticLeastWitness public
+
+  -- Berger continuous choice is parameterized by an explicit selection
+  -- problem. The problem supplies its domain-specific admissibility condition;
+  -- the principle supplies a continuous selector satisfying the relation.
+  record BergerContinuousChoiceProblem : Set₁ where
+    constructor bergerContinuousChoiceProblem
+    field
+      BergerInput : Set
+      BergerOutput : BergerInput → Set
+      bergerRelation : (x : BergerInput) → BergerOutput x → Set
+      bergerContinuous : ((x : BergerInput) → BergerOutput x) → Set
+      bergerAdmissible : Set
+      bergerTotal : (x : BergerInput) → SigmaWitness (BergerOutput x) (bergerRelation x)
+  open BergerContinuousChoiceProblem public
+
+  record BergerContinuousChoice : Set₂ where
+    constructor bergerContinuousChoice
+    field
+      bergerContinuousChoiceLaw :
+        (problem : BergerContinuousChoiceProblem) →
+        bergerAdmissible problem →
+        SigmaWitness
+          ((x : BergerInput problem) → BergerOutput problem x)
+          (λ choose →
+            (bergerContinuous problem choose) ×
+            ((x : BergerInput problem) → bergerRelation problem x (choose x)))
+  open BergerContinuousChoice public
 
   ----------------------------------------------------------------------
   -- Concrete finite-trace register-machine semantics.
@@ -1043,9 +1096,10 @@ module ConstructiveComputabilityPostulates where
   -- RUSS and parametric computability: persistent axiom trust boundary.
   ----------------------------------------------------------------------
 
-  -- Full RUSS profile: Markov's principle + parametric enumerability +
-  -- Richman's countable choice. The separate classical/no-choice profile
-  -- above is deliberately not merged into this package.
+  -- Selected RUSS profile: parametric enumerability + AC₀₀ +
+  -- arithmetic least witness + Berger continuous choice. Markov's principle
+  -- is deliberately absent. The conditional classical profile above remains
+  -- separate and is not silently imported into this bundle.
   --
   -- POSTULATE/REWRITE POLICY: logical assumptions cannot be wholesale turned
   -- into rewrite rules. Agda REWRITE requires a valid equality and a
@@ -1060,15 +1114,13 @@ module ConstructiveComputabilityPostulates where
   record RussianRecursiveMathematicsBasis : Set₄ where
     constructor russianRecursiveMathematicsBasis
     field
-      russMarkov :
-        (P : Nat → Set) →
-        ((n : Nat) → Decidable (P n)) →
-        Neg (Neg (SigmaWitness Nat P)) →
-        SigmaWitness Nat P
-
       russParametricEnumerability : ParametricEnumerability
 
-      russCountableChoice : RichmanCountableChoice
+      russAC00 : AC_00
+
+      russArithmeticLeastWitness : ArithmeticLeastWitness
+
+      russBergerContinuousChoice : BergerContinuousChoice
 
   -- The sole global postulate packages the chosen full-RUSS assumptions.
   -- Public names below are projections from this bundle, not extra
@@ -1076,22 +1128,23 @@ module ConstructiveComputabilityPostulates where
   postulate
     russianRecursiveMathematicsAssumptions : RussianRecursiveMathematicsBasis
 
-  russianMarkovPrinciple :
-    (P : Nat → Set) →
-    ((n : Nat) → Decidable (P n)) →
-    Neg (Neg (SigmaWitness Nat P)) →
-    SigmaWitness Nat P
-  russianMarkovPrinciple =
-    RussianRecursiveMathematicsBasis.russMarkov russianRecursiveMathematicsAssumptions
+  ac00Principle : AC_00
+  ac00Principle =
+    RussianRecursiveMathematicsBasis.russAC00 russianRecursiveMathematicsAssumptions
+
+  arithmeticLeastWitnessPrinciple : ArithmeticLeastWitness
+  arithmeticLeastWitnessPrinciple =
+    RussianRecursiveMathematicsBasis.russArithmeticLeastWitness
+      russianRecursiveMathematicsAssumptions
+
+  bergerContinuousChoicePrinciple : BergerContinuousChoice
+  bergerContinuousChoicePrinciple =
+    RussianRecursiveMathematicsBasis.russBergerContinuousChoice
+      russianRecursiveMathematicsAssumptions
 
   parametricEnumerabilityPrinciple : ParametricEnumerability
   parametricEnumerabilityPrinciple =
     RussianRecursiveMathematicsBasis.russParametricEnumerability
-      russianRecursiveMathematicsAssumptions
-
-  richmanCountableChoicePrinciple : RichmanCountableChoice
-  richmanCountableChoicePrinciple =
-    RussianRecursiveMathematicsBasis.russCountableChoice
       russianRecursiveMathematicsAssumptions
 
   -- Ordinary CT for total Nat-functions follows from the constant family.
@@ -1280,7 +1333,10 @@ module ConstructiveComputabilityPostulates where
 open ConstructiveComputabilityPostulates public using
   ( RussianRecursiveMathematicsBasis
   ; russianRecursiveMathematicsAssumptions
-  ; russianMarkovPrinciple
+  ; ac00Principle
+  ; arithmeticLeastWitnessPrinciple
+  ; bergerContinuousChoicePrinciple
+  ; parametricEnumerabilityPrinciple
   ; extendedChurchThesis0
   ; churchThesis
   ; constructiveCountableChoice
