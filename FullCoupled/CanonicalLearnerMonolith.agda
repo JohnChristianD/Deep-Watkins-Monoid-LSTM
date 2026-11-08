@@ -2,8 +2,9 @@
 --exact-split
 --no-postfix-projections
 --no-projection-like
---erased-matches
---two-level
+--no-fast-reduce
+--with-K
+--polarity
 --confluence-check
 --rewriting
 --experimental-lazy-instances
@@ -63,10 +64,27 @@ open import Haskell.Law.Extensionality public
 open import Haskell.Extra.Erase public
 open import Haskell.Extra.Refinement public
 open import Haskell.Control.Exception public
-open import Agda.Primitive public
--- Keep reflection names qualified: opening the module imports its primitive `Type`,
--- which clashes with the canonical learner's universe/type vocabulary.
-import Agda.Builtin.Reflection as Reflection
+--Required for Polymorphism:
+open import Agda.Primitive using (Level; lsuc; _⊔_) public
+open import Agda.Builtin.Nat public hiding (_<_)
+open import Agda.Builtin.Nat.Properties public
+open import Agda.Builtin.Bool public
+open import Agda.Builtin.List public
+open import Agda.Builtin.Maybe public
+open import Agda.Builtin.Sigma public
+open import Agda.Builtin.Equality public
+open import Agda.Builtin.String public
+open import Agda.Builtin.Equality.Rewrite public
+open import Agda.Builtin.Word using (Word64; primWord64ToNat; primWord64FromNat) public
+open import Agda.Builtin.Word.Properties using (primWord64ToNatInjective) public
+-- Agda 2.8.0.2 has no Agda.Builtin.Tuple module; the product record _×_ below
+-- is the explicit project-owned pair, while Sigma supplies dependent pairs.
+open import Agda.Builtin.Unit public
+open import Agda.Builtin.Strict public
+open import Agda.Builtin.Coinduction public
+import Agda.Builtin.Reflection public
+-- Agda 2.8 has no Agda.Builtin.Empty module; define the empty type locally.
+data ⊥ : Set where
 
 -- Preserve the file's established fullwidth equality notation as a purely
 -- definitional alias of Prelude propositional equality. No new axiom or
