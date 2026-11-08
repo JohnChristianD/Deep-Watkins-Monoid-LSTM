@@ -4,7 +4,6 @@
 --no-projection-like
 --no-fast-reduce
 --with-K
---polarity
 --confluence-check
 --rewriting
 --experimental-lazy-instances
@@ -56,7 +55,6 @@ open import Agda.Primitive using (Level; lsuc; _⊔_) public
 -- modules resolved using type classes
 ------------------------------------------------------------------------
 
-module Prelude where
 
 ------------------------------------------------------------------------
 -- Basics
