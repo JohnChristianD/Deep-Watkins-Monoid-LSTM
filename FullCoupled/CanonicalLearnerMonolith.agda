@@ -1,14 +1,18 @@
 {-# OPTIONS
---exact-split
---no-postfix-projections
---no-projection-like
---no-fast-reduce
---with-K
---confluence-check
---rewriting
 --experimental-lazy-instances
+--sized-types
 --lossy-unification
---guardedness
+--syntactic-equality=1
+--no-eta-equality
+--prop
+--with-K
+--no-fast-reduce
+--no-projection-like
+--erased-quotients
+--erased-funext
+--erased-propext
+--auto-inline
+--exact-split
 #-}
 
 ------------------------------------------------------------------------
