@@ -1,6 +1,6 @@
 {-# OPTIONS
 --experimental-lazy-instances
---sized-types
+--safe
 --lossy-unification
 --syntactic-equality=1
 --no-eta-equality
