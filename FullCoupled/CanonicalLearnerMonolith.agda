@@ -52,6 +52,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 
 --Required for Polymorphism:
 open import Agda.Primitive using (Level; lsuc; _⊔_) public
+open import Haskell.Prelude public
 ------------------------------------------------------------------------
 -- The Agda standard library
 --
