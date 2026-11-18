@@ -225,14 +225,22 @@ invSqrtQ20 v =
     in if ge64 h (lit64 0) then shiftR64 y2 h else shiftL64 y2 (sub64 (lit64 0) h)
 {-# COMPILE AGDA2HS invSqrtQ20 #-}
 
--- Exact O(log dt) Lazy Per-Action L2 = 2^-16 Catchup w/ Consistent Residue
-powQ20Loop : Int64 → Int64 → Int64 → Int64
-powQ20Loop acc base e =
+-- Exact O(log dt) Lazy Per-Action L2 = 2^-16 Catchup w/ Consistent Residue.
+-- Int64 exponents are nonnegative signed 64-bit values at this call site.
+-- A fixed 64-step structural fuel bound makes the bit loop total in Agda;
+-- every positive Int64 reaches zero after at most 63 arithmetic right shifts.
+powQ20LoopFuel : Nat → Int64 → Int64 → Int64 → Int64
+powQ20LoopFuel zero acc base e = acc
+powQ20LoopFuel (suc fuel) acc base e =
   if le64 e (lit64 0) then acc
   else
     let acc'  = if eq64 (and64 e (lit64 1)) (lit64 1) then splitMulQ20 acc base else acc
         base' = splitMulQ20 base base
-    in powQ20Loop acc' base' (shiftR64 e (lit64 1))
+    in powQ20LoopFuel fuel acc' base' (shiftR64 e (lit64 1))
+{-# COMPILE AGDA2HS powQ20LoopFuel #-}
+
+powQ20Loop : Int64 → Int64 → Int64 → Int64
+powQ20Loop acc base e = powQ20LoopFuel 64 acc base e
 {-# COMPILE AGDA2HS powQ20Loop #-}
 
 decayL2Catchup : Int64 → Int64 → Int64 → Int64 → (Int64 × Int64)
