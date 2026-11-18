@@ -15,7 +15,7 @@
 --exact-split
 #-}
 
-module SovereignRationalSEDPhysics where
+module TheoremsMonolith where
 
 
 open import Agda.Builtin.Nat public
