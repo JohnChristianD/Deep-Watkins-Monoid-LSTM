@@ -11,11 +11,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    agda-src = {
-      url = "github:agda/agda/da046d6903b7f587f5add669650e52f378f57834";
-      flake = false;
-    };
-
     luafun = {
       url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
       flake = false;
@@ -26,10 +21,8 @@
     self,
     nixpkgs,
     luafun,
-    agda2hs-upstream,
-    agda-src
-  }:
-    let
+    agda2hs-upstream
+  }:    let
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -60,44 +53,6 @@
         pkgs.writeShellScriptBin "ghc" ''
           exec "${ghcEnv}/bin/ghc" -O2 -fllvm "$@"
         '';
-
-      # Build the Agda CLI from the very same Agda 2.9 source used by upstream
-      # agda2hs, rather than taking pkgs.agda from a possibly older Nixpkgs set.
-      agdaPackageSet = system:
-        let
-          pkgs = pkgsFor system;
-          Agda = (pkgs.haskellPackages.callCabal2nix "Agda" agda-src { }).overrideAttrs (old: {
-            meta = (old.meta or { }) // {
-              mainProgram = "agda";
-            };
-          });
-        in
-        pkgs.callPackage (pkgs.path + "/pkgs/top-level/agda-packages.nix") {
-          inherit Agda;
-        };
-
-      agda2hsTool = system:
-        let
-          upstream = agda2hs-upstream.packages.${system}.agda2hs;
-        in
-        upstream.withPackages {
-          pkgs = [ (agda2hsBaseLib system) ];
-          ghc = optimizedGhc system;
-        };
-
-      agdaEmacs = system:
-        let
-          pkgs = pkgsFor system;
-        in
-        (pkgs.emacsPackagesFor pkgs.emacs).emacsWithPackages (epkgs: [
-          epkgs.agda2-mode
-        ]);
-
-      agdaWithPackages = system:
-        (agdaPackageSet system).agda.withPackages {
-          pkgs = [ (agda2hsBaseLib system) ];
-          ghc = optimizedGhc system;
-        };
 
       luafunModule = system:
         let
@@ -151,7 +106,7 @@
         pkgs.writeShellApplication {
           name = "agda";
           runtimeInputs = [
-            (agdaWithPackages system)
+            (agda2hsTool system)
             pkgs.coreutils
             pkgs.findutils
             (optimizedGhc system)
@@ -159,7 +114,7 @@
           text = ''
             # Keep information-only invocations independent of source compilation.
             if [[ "$#" -eq 1 && ( "$1" == "--version" || "$1" == "-V" || "$1" == "--help" || "$1" == "-h" ) ]]; then
-              exec agda "$@"
+              exec agda2hs --disable-backend "$@"
             fi
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
@@ -173,7 +128,7 @@
             mkdir -p "$agda2hs_base_work/library"
             cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
             chmod -R u+rwX "$agda2hs_base_work/library"
-            if "${agdaWithPackages system}/bin/agda" "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
               status=0
             else
               status=$?
@@ -189,7 +144,7 @@
         pkgs.writeShellApplication {
           name = "agda2hs-agda";
           runtimeInputs = [
-            (agdaWithPackages system)
+            (agda2hsTool system)
             pkgs.coreutils
             pkgs.findutils
             (optimizedGhc system)
@@ -197,7 +152,7 @@
           text = ''
             # Keep information-only invocations independent of source compilation.
             if [[ "$#" -eq 1 && ( "$1" == "--version" || "$1" == "-V" || "$1" == "--help" || "$1" == "-h" ) ]]; then
-              exec agda "$@"
+              exec agda2hs --disable-backend "$@"
             fi
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
@@ -211,7 +166,7 @@
             mkdir -p "$agda2hs_base_work/library"
             cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
             chmod -R u+rwX "$agda2hs_base_work/library"
-            if agda "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
               status=0
             else
               status=$?
@@ -228,7 +183,6 @@
           name = "agda2hs-ci";
           runtimeInputs = [
             (agda2hsTool system)
-            (agdaWithPackages system)
             pkgs.coreutils
             pkgs.findutils
             (optimizedGhc system)
