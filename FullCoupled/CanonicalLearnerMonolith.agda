@@ -1,16 +1,12 @@
 {-# OPTIONS
 --experimental-lazy-instances
---safe
 --lossy-unification
 --syntactic-equality=1
 --no-eta-equality
---prop
 --with-K
 --no-fast-reduce
 --no-projection-like
---erased-quotients
---erased-funext
---erased-propext
+--rewriting
 --auto-inline
 --exact-split
 #-}
@@ -22,33 +18,16 @@
 module FullCoupled.CanonicalLearnerMonolith where
 
 -- Merged external import surface; internal FullCoupled imports remain module-local.
--- Keep imported generic binders out of scope so the canonical module's
--- explicit variable block owns its identifiers without namespace clashes.
+-- The agda2hs base library provides the Haskell-facing Prelude,
+-- including Haskell.Prim's core types, equality, and standard instances.
+-- Keep this pure learner free of the FFI adapters from Csimma's C++ example:
+-- IORef, Ptr, StablePtr, C types, MVar, and CFuture belong at an actual
+-- mutable/foreign-function boundary, which this module does not expose.
 --
--- Csimma's agda2hs/C++ methodology uses Haskell.Prelude plus narrow
--- postulate/FOREIGN AGDA2HS adapters for external Haskell dependencies.
--- This learner has no IORef, pointer, StablePtr, or CFuture boundary, so
--- those FFI-specific toolkit imports do not belong in this pure module.
---
--- Reflection is an Agda type-checker API. It is available to Agda macros;
--- agda2hs does not translate the macro implementation into Haskell.
--- Keep it Agda-side and do not mark reflection declarations COMPILE AGDA2HS.
---
--- Agda's builtin rewrite rules require --rewriting. That option is
--- incompatible with this module's --safe trust boundary, so the
--- Agda.Builtin.Equality.Rewrite module is intentionally not imported here.
-
--- Required for Polymorphism:
-open import Agda.Primitive using (Level; lsuc; _⊔_) public
-open import Haskell.Prim public
+-- Agda 2.9 rewrite rules use builtin equality and require --rewriting.
+-- The repository's global options enable --confluence-check.
 open import Haskell.Prelude public
-open import Haskell.Laws public
-open import Haskell.Prim.Thunk public
-import Agda.Builtin.Reflection
-import Agda.Builtin.Erased.Erased
-open import Agda.Builtin.Erased.Funext public
-open import Agda.Builtin.Erased.Propext public
-open import Agda.Builtin.Erased.Quotient public
+open import Agda.Builtin.Equality.Rewrite
 
 {-# FOREIGN AGDA2HS
 {-# LANGUAGE BangPatterns #-}
