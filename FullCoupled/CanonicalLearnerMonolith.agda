@@ -24,13 +24,28 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 -- Keep imported generic binders out of scope so the canonical module's
 -- explicit variable block owns its identifiers without namespace clashes.
+--
+-- Csimma's agda2hs/C++ methodology uses Haskell.Prelude plus narrow
+-- postulate/FOREIGN AGDA2HS adapters for external Haskell dependencies.
+-- This learner has no IORef, pointer, StablePtr, or CFuture boundary, so
+-- those FFI-specific toolkit imports do not belong in this pure module.
+--
+-- Reflection is an Agda type-checker API. It is available to Agda macros;
+-- agda2hs does not translate the macro implementation into Haskell.
+-- Keep it Agda-side and do not mark reflection declarations COMPILE AGDA2HS.
+--
+-- Agda's builtin rewrite rules require --rewriting. That option is
+-- incompatible with this module's --safe trust boundary, so the
+-- Agda.Builtin.Equality.Rewrite module is intentionally not imported here.
 
---Required for Polymorphism:
+-- Required for Polymorphism:
 open import Agda.Primitive using (Level; lsuc; _⊔_) public
 open import Haskell.Prim public
 open import Haskell.Prelude public
 open import Haskell.Laws public
 open import Haskell.Prim.Thunk public
+import Agda.Builtin.Reflection
+import Agda.Builtin.Erased.Erased
 open import Agda.Builtin.Erased.Funext public
 open import Agda.Builtin.Erased.Propext public
 open import Agda.Builtin.Erased.Quotient public
