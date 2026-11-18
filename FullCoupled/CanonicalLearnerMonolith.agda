@@ -3,10 +3,13 @@
 --lossy-unification
 --syntactic-equality=1
 --no-eta-equality
+--prop
 --with-K
 --no-fast-reduce
 --no-projection-like
---rewriting
+--erased-quotients
+--erased-funext
+--erased-propext
 --auto-inline
 --exact-split
 #-}
@@ -27,7 +30,6 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Agda 2.9 rewrite rules use builtin equality and require --rewriting.
 -- The repository's global options enable --confluence-check.
 open import Haskell.Prelude public
-open import Agda.Builtin.Equality.Rewrite
 
 {-# FOREIGN AGDA2HS
 {-# LANGUAGE BangPatterns #-}
