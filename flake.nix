@@ -54,6 +54,23 @@
           exec "${ghcEnv}/bin/ghc" -O2 -fllvm "$@"
         '';
 
+      agda2hsTool = system:
+        let
+          upstream = agda2hs-upstream.packages.${system}.agda2hs;
+        in
+        upstream.withPackages {
+          pkgs = [ (agda2hsBaseLib system) ];
+          ghc = optimizedGhc system;
+        };
+
+      agdaEmacs = system:
+        let
+          pkgs = pkgsFor system;
+        in
+        (pkgs.emacsPackagesFor pkgs.emacs).emacsWithPackages (epkgs: [
+          epkgs.agda2-mode
+        ]);
+
       luafunModule = system:
         let
           pkgs = pkgsFor system;
