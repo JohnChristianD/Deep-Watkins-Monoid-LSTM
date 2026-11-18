@@ -480,4 +480,61 @@ craftaxRHLLSTMStep s obsCur actTaken rewQ obsNxt isDone =
                                 i   = sub64 m (mul64 k fd)
                                 idx = add64 loAct m
                                 ui  = splitMulQ20 (vAt64 gBins k) (vAt64 featCur i)
-                            in max64 (splitMulQ20 betaStream64 (vAt64 qv idx)) (abs
+                            in max64
+                                  (splitMulQ20
+                                    (powQ20Loop qOne64 betaStream64 dt)
+                                    (vAt64 qv idx))
+                                  (abs64 ui))
+      l2Weights = vGen64 totN (λ j →
+                     if ge64 j loAct then
+                       if lt64 j hiAct then
+                         fst (decayL2Catchup dt (vAt64 qw j) (vAt64 qr j) qOne64)
+                       else vAt64 qw j
+                     else vAt64 qw j)
+      l2Residuals = vGen64 totN (λ j →
+                       if ge64 j loAct then
+                         if lt64 j hiAct then
+                           snd (decayL2Catchup dt (vAt64 qw j) (vAt64 qr j) qOne64)
+                         else vAt64 qr j
+                       else vAt64 qr j)
+      gradStep = λ m →
+                   let k      = binIdx m
+                       i      = sub64 m (mul64 k fd)
+                       signal = splitMulQ20 (vAt64 gBins k) (vAt64 featCur i)
+                       denom  = max64 (vAt64 updV m) (lit64 1)
+                       unit   = clamp64 (mulRecipPade1 signal denom)
+                                 (sub64 (lit64 0) qOne64) qOne64
+                   in splitMulQ20 lrBase64 unit
+      qw' = vGen64 totN (λ j →
+              if ge64 j loAct then
+                if lt64 j hiAct then
+                  add64 (vAt64 l2Weights j) (gradStep (sub64 j loAct))
+                else vAt64 qw j
+              else vAt64 qw j)
+      qv' = vGen64 totN (λ j →
+              if ge64 j loAct then
+                if lt64 j hiAct then
+                  vAt64 updV (sub64 j loAct)
+                else vAt64 qv j
+              else vAt64 qv j)
+      qr' = l2Residuals
+      seen' = vGen64 na (λ a →
+                if eq64 a actTaken then tick else vAt64 (lastSeen s) a)
+  in record
+       { hDim      = hDim s
+       ; fDim      = fDim s
+       ; nAct      = nAct s
+       ; nBins     = nBins s
+       ; stepTick  = tick
+       ; wf        = wf s
+       ; wi        = wi s
+       ; wo        = wo s
+       ; wg        = wg s
+       ; cCell     = cNxt
+       ; qWeights  = qw'
+       ; qVMax     = qv'
+       ; qL2Rem    = qr'
+       ; lastSeen  = seen'
+       ; prngState = prngState s
+       }
+{-# COMPILE AGDA2HS craftaxRHLLSTMStep #-}
