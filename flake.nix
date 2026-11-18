@@ -11,6 +11,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    agda-src = {
+      url = "github:agda/agda/da046d6903b7f587f5add669650e52f378f57834";
+      flake = false;
+    };
+
     luafun = {
       url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
       flake = false;
@@ -21,7 +26,8 @@
     self,
     nixpkgs,
     luafun,
-    agda2hs-upstream
+    agda2hs-upstream,
+    agda-src
   }:
     let
       systems = [
@@ -38,23 +44,33 @@
           inherit system;
         };
 
-      # Use the actual upstream agda2hs package and its Agda 2.9-compatible
-      # base library.  Its upstream Nix expression supplies the GHC package
-      # environment; this thin wrapper adds exactly the requested backend
-      # flags, with LLVM on PATH for GHC's LLVM code generator.
+      # Use upstream agda2hs and its own Agda-2.9 base library.
       agda2hsBaseLib = system:
         agda2hs-upstream.packages.${system}.base-lib;
 
+      # Build the upstream Haskell package set's GHC wrapper with LLVM enabled.
+      # Keep the requested backend/optimization flags to exactly -O2 -fllvm.
       optimizedGhc = system:
         let
           pkgs = pkgsFor system;
-          ghcEnv = pkgs.haskellPackages.ghcWithPackages (ps: [ ps.ieee754 ]);
-          llvm = pkgs.llvmPackages.llvm;
+          ghcEnv = (pkgs.haskellPackages.ghcWithPackages.override {
+            useLLVM = true;
+          }) (ps: [ ps.ieee754 ]);
         in
         pkgs.writeShellScriptBin "ghc" ''
-          export PATH="${pkgs.lib.makeBinPath [ ghcEnv llvm ]}:$PATH"
           exec "${ghcEnv}/bin/ghc" -O2 -fllvm "$@"
         '';
+
+      # Build the Agda CLI from the very same Agda 2.9 source used by upstream
+      # agda2hs, rather than taking pkgs.agda from a possibly older Nixpkgs set.
+      agdaPackageSet = system:
+        let
+          pkgs = pkgsFor system;
+          Agda = pkgs.haskellPackages.callCabal2nix "Agda" agda-src { };
+        in
+        pkgs.callPackage (pkgs.path + "/pkgs/top-level/agda-packages.nix") {
+          inherit Agda;
+        };
 
       agda2hsTool = system:
         let
@@ -74,10 +90,7 @@
         ]);
 
       agdaWithPackages = system:
-        let
-          pkgs = pkgsFor system;
-        in
-        pkgs.agda.withPackages {
+        (agdaPackageSet system).agda.withPackages {
           pkgs = [ (agda2hsBaseLib system) ];
           ghc = optimizedGhc system;
         };
@@ -137,6 +150,7 @@
             (agdaWithPackages system)
             pkgs.coreutils
             pkgs.findutils
+            (optimizedGhc system)
           ];
           text = ''
             # Keep information-only invocations independent of source compilation.
@@ -174,6 +188,7 @@
             (agdaWithPackages system)
             pkgs.coreutils
             pkgs.findutils
+            (optimizedGhc system)
           ];
           text = ''
             # Keep information-only invocations independent of source compilation.
@@ -212,6 +227,7 @@
             (agdaWithPackages system)
             pkgs.coreutils
             pkgs.findutils
+            (optimizedGhc system)
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
@@ -291,6 +307,7 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
+              (optimizedGhc system)
             ];
             shellHook = ''
               export AGDA_COMMAND="agda2hs-agda"
@@ -324,6 +341,7 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
+              (optimizedGhc system)
             ];
             shellHook = ''
               export AGDA_COMMAND="agda2hs-agda"
