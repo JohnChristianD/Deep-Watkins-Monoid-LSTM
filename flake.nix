@@ -66,7 +66,11 @@
       agdaPackageSet = system:
         let
           pkgs = pkgsFor system;
-          Agda = pkgs.haskellPackages.callCabal2nix "Agda" agda-src { };
+          Agda = (pkgs.haskellPackages.callCabal2nix "Agda" agda-src { }).overrideAttrs (old: {
+            meta = (old.meta or { }) // {
+              mainProgram = "agda";
+            };
+          });
         in
         pkgs.callPackage (pkgs.path + "/pkgs/top-level/agda-packages.nix") {
           inherit Agda;
