@@ -1763,12 +1763,36 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
   open MaxwellMidpointStep public
 
   ----------------------------------------------------------------------
-  -- 4. FINITE RATIONAL STOCHASTIC ELECTRODYNAMICS
+  -- 4. FINITE RATIONAL STOCHASTIC ELECTRODYNAMICS: AXIOM INPUT
   --
-  -- The ensemble consists of complete histories, not independent samples
-  -- drawn afresh at each time.  Mean, covariance, stationarity, positive
-  -- mode frequencies, and the finite-band ω^3 density target are explicit.
-  -- A separate Maxwell history is associated with each sample.
+  -- Standard SED core assumptions (Boyer):
+  --
+  --   SED-1. Maxwell's equations hold with point-charge sources.
+  --   SED-2. Charged point particles obey relativistic Lorentz-force
+  --          dynamics.
+  --   SED-3. The source-free Maxwell sector contains classical random
+  --          zero-point radiation with a Lorentz-invariant spectrum and
+  --          energy hbar*omega/2 per normal mode.
+  --
+  -- Constructive scope of this file:
+  --   * Rational coefficients and finite sample weights are explicit.
+  --   * Time and mode labels are Nat-indexed; finite sums use an explicit
+  --     Nat cutoff.
+  --   * Means, covariance, and the omega^3 finite-band law are supplied
+  --     as model data below, not derived from Maxwell's equations.
+  --   * The field-quadratic covariance C_E + C_B = hbar*omega represents
+  --     twice the mode energy, since U=(E^2+B^2)/2 in this normalization.
+  --   * densityNormalization absorbs the rational finite-grid calibration;
+  --     exact pi, c, continuum integrals, and continuum limits are absent.
+  --
+  -- This finite vacuum-side contract does not yet encode point-particle
+  -- Lorentz-force dynamics, a sourced particle/field coupling, or a full
+  -- continuous Lorentz-group action. In particular, an omega^3 law on a
+  -- rational mode grid is not itself a proof of Lorentz invariance.
+  -- No Gaussianity assumption is introduced.
+  --
+  -- Keep assumptions in FiniteSEDVacuumAxioms. Derived finite identities
+  -- and theorems belong in the later sections, outside this record.
   ----------------------------------------------------------------------
 
   record FiniteTimeAction (times : Nat) : Set₁ where
@@ -1880,9 +1904,13 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
             (componentAmplitude N w t m electric? -ℚ
              stochasticMean N t m electric?)))
 
-  -- A finite time-translation action makes stationarity a checkable
-  -- condition on the full temporal covariance kernel.
-  record FiniteSEDVacuum
+  -- A Nat-indexed discrete time-translation action makes temporal
+  -- stationarity an explicit assumption on the covariance kernel. It says
+  -- nothing about spatial homogeneity or Lorentz invariance.
+  -- Axioms are supplied as fields; they are not declared as Agda
+  -- postulates. A concrete finite model must provide witnesses for each
+  -- statistical and spectral assumption.
+  record FiniteSEDVacuumAxioms
     (P : RationalPositivity)
     (samples times modes : Nat) : Set₂ where
     field
@@ -1892,7 +1920,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
         stochasticMean ensemble t m true ≡ 0ℚ
       meanZeroMagnetic : (t : Nat) (m : Nat) →
         stochasticMean ensemble t m false ≡ 0ℚ
-      covarianceStationary :
+      timeTranslationStationary :
         (t u s : Nat) (m n : Nat) (e b : Bool) →
         stochasticCovariance ensemble
           (translateTime timeAction t s)
@@ -1903,6 +1931,9 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
         Positive P (modeFrequency m)
       hbarScale : Rational
       hbarScalePositive : Positive P hbarScale
+      -- With U_mode = (E_mode^2 + B_mode^2)/2, the sum of the
+      -- electric and magnetic variances equals hbar*omega. Thus the
+      -- expected mode energy is hbar*omega/2; no extra factor is missing.
       modeEnergyCovariance : (t : Nat) (m : Nat) →
         (stochasticCovariance ensemble t t m m true true +ℚ
          stochasticCovariance ensemble t t m m false false)
@@ -1924,7 +1955,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
         (densityScale *ℚ
           (modeFrequency m *ℚ
            (modeFrequency m *ℚ modeFrequency m)))
-  open FiniteSEDVacuum public
+  open FiniteSEDVacuumAxioms public
 
   ----------------------------------------------------------------------
   -- CONATURAL INFINITE-HORIZON STATIONARY COVARIANCE ORBIT
@@ -1941,7 +1972,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
 
   covarianceAtShift :
     {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuum P samples times modes) →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
     Nat → Nat → Nat → Nat → Bool → Bool →
     Nat → Rational
   covarianceAtShift V t u m n e b shift =
@@ -1951,17 +1982,17 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
 
   covarianceAtShift-stationary :
     {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuum P samples times modes) →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
     (t u : Nat) (m n : Nat) (e b : Bool) →
     (shift : Nat) →
     covarianceAtShift V t u m n e b shift ≡
     stochasticCovariance (ensemble V) t u m n e b
   covarianceAtShift-stationary V t u m n e b shift =
-    covarianceStationary V t u shift m n e b
+    timeTranslationStationary V t u shift m n e b
 
   covarianceOrbitFromShift :
     {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuum P samples times modes) →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
     (t u : Nat) (m n : Nat) (e b : Bool) →
     Nat → ConatStream Rational
   covarianceOrbitFromShift V t u m n e b initialShift =
@@ -1972,7 +2003,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
 
   covarianceOrbitFromShift-head :
     {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuum P samples times modes) →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
     (t u : Nat) (m n : Nat) (e b : Bool) →
     (shift : Nat) →
     observeStream (covarianceOrbitFromShift V t u m n e b shift) ≡
@@ -1983,7 +2014,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
 
   covarianceOrbitPrefix :
     {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuum P samples times modes) →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
     Nat → (t u : Nat) → (m n : Nat) → Bool → Bool →
     Nat → Rational
   covarianceOrbitPrefix V depth t u m n e b shift =
@@ -2000,7 +2031,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
   -- not an assumed convergence result or an infinite arithmetic oracle.
   covarianceOrbitPrefix-stationary :
     {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuum P samples times modes) →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
     (depth : Nat) → (t u : Nat) →
     (m n : Nat) → (e b : Bool) →
     (shift : Nat) →
@@ -2018,7 +2049,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
 
   infiniteCovarianceHistory :
     {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuum P samples times modes) →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
     (t u : Nat) → (m n : Nat) → Bool → Bool →
     ConatStream Rational
   infiniteCovarianceHistory V t u m n e b =
@@ -2026,7 +2057,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
 
   infiniteCovariancePrefix :
     {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuum P samples times modes) →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
     Nat → (t u : Nat) → (m n : Nat) → Bool → Bool →
     Rational
   infiniteCovariancePrefix V depth t u m n e b =
@@ -2224,7 +2255,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
     (samples times modes : Nat) : Set₃ where
     field
       hodgeMaxwell : MetricHodgeComplex P
-      zpfVacuum : FiniteSEDVacuum P samples times modes
+      zpfVacuum : FiniteSEDVacuumAxioms P samples times modes
       modeBasis : MaxwellModeBasis hodgeMaxwell modes
         (modeFrequency zpfVacuum)
       timeStepSize : Rational
@@ -2273,11 +2304,11 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
   open FiniteSEDVacuumMaxwellWorld public
 
   ----------------------------------------------------------------------
-  -- 7. Q5-A PHYSICAL MOTIVE OVER THE COMPLETE FINITE WORLD
+  -- 7. DERIVED CERTIFICATE BUNDLE OVER THE COMPLETE FINITE WORLD
   --
-  -- This bundles the actual certified properties of a world, including
-  -- the finite Maxwell steps, Hodge splits, SED spectrum and closed-system
-  -- momentum theorem.  It is indexed by the complete world value.
+  -- This is deliberately downstream of the axiom input. It packages
+  -- finite consequences and world-specific certificates; it is not part
+  -- of the SED axiom list. It is indexed by the complete world value.
   ----------------------------------------------------------------------
 
   record FiniteSEDVacuumMotive
@@ -2366,7 +2397,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
     ; magneticMeanZero = meanZeroMagnetic (zpfVacuum W)
     ; electricVarianceNonnegative = λ t m → stochasticVarianceNonnegative (ensemble (zpfVacuum W)) t m true
     ; magneticVarianceNonnegative = λ t m → stochasticVarianceNonnegative (ensemble (zpfVacuum W)) t m false
-    ; covarianceStationarity = covarianceStationary (zpfVacuum W)
+    ; covarianceStationarity = timeTranslationStationary (zpfVacuum W)
     ; covarianceSymmetry = stochasticCovariance-symmetric (ensemble (zpfVacuum W))
     ; conaturalCovariancePrefix = λ depth t u m n e b →
         infiniteCovariancePrefix (zpfVacuum W) depth t u m n e b
