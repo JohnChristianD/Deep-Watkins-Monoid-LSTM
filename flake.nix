@@ -197,7 +197,7 @@
           pkgs = pkgsFor system;
         in
         pkgs.writeShellApplication {
-          name = "agda2hs-ci";
+          name = "agda2hs";
           runtimeInputs = [
             (agda2hsTool system)
             pkgs.coreutils
@@ -217,7 +217,7 @@
             mkdir -p "$agda2hs_base_work/library"
             cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
             chmod -R u+rwX "$agda2hs_base_work/library"
-            if agda2hs "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            if "${agda2hsTool system}/bin/agda2hs" "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_work/library" -i . "$@"; then
               status=0
             else
               status=$?
