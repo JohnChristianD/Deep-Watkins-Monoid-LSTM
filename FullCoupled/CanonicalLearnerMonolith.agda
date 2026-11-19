@@ -16,7 +16,7 @@
 #-}
 
 ------------------------------------------------------------------------
--- Canonical learner semantics.
+-- Canonical integer-only Q12.20 learner semantics.
 ------------------------------------------------------------------------
 
 module FullCoupled.CanonicalLearnerMonolith where
@@ -24,348 +24,238 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 -- The agda2hs base library provides the Haskell-facing Prelude,
 -- including Haskell.Prim's core types, equality, and Double.
--- Numeric/vector kernels use Csimma's postulate + FOREIGN AGDA2HS boundary;
--- the executable result carries an erased S0 simulation witness.
--- This model has a Haskell extraction boundary, but no C/C++ pointer/event
--- boundary: IORef, Ptr, StablePtr, C types, MVar, and CFuture adapters do not
--- belong in its recurrent kernel.
---
-open import Haskell.Prelude public
-
-{-# FOREIGN AGDA2HS
-{-# LANGUAGE BangPatterns #-}
-import qualified Data.Bits as Bits
-import Data.Int (Int64)
-import Data.Word (Word64)
-import Data.Vector.Unboxed (Vector)
-import qualified Data.Vector.Unboxed as VU
-
-type Vec64 = Vector Int64
-type VecD = Vector Double
-
-lit64 :: Integer -> Int64
-lit64 = fromIntegral
-
-add64, sub64, mul64, shiftL64, shiftR64, and64, xor64 :: Int64 -> Int64 -> Int64
-add64 = (+)
-sub64 = (-)
-mul64 = (*)
-shiftL64 x s = Bits.unsafeShiftL x (fromIntegral s)
-shiftR64 x s = Bits.unsafeShiftR x (fromIntegral s)
-and64 = (Bits..&.)
-xor64 = Bits.xor
-
-clz64 :: Int64 -> Int64
-clz64 x = fromIntegral (Bits.countLeadingZeros (fromIntegral x :: Word64))
-
-eq64, gt64, lt64, ge64, le64 :: Int64 -> Int64 -> Bool
-eq64 = (==)
-gt64 = (>)
-lt64 = (<)
-ge64 = (>=)
-le64 = (<=)
-
-vLen64 :: Vector Int64 -> Int64
-vLen64 = fromIntegral . VU.length
-
-vAt64 :: Vector Int64 -> Int64 -> Int64
-vAt64 v i = VU.unsafeIndex v (fromIntegral i)
-
-vGen64 :: Int64 -> (Int64 -> Int64) -> Vector Int64
-vGen64 n f = VU.generate (fromIntegral n) (f . fromIntegral)
-
-vMap64 :: (Int64 -> Int64) -> Vector Int64 -> Vector Int64
-vMap64 = VU.map
-
-vAppend64 :: Vector Int64 -> Vector Int64 -> Vector Int64
-vAppend64 = (VU.++)
-
-vFoldlIdx64 :: (Int64 -> Int64 -> Int64 -> Int64) -> Int64 -> Vector Int64 -> Int64
-vFoldlIdx64 f = VU.ifoldl' (\acc i v -> f acc (fromIntegral i) v)
-
-quot64, rem64 :: Int64 -> Int64 -> Int64
-quot64 = quot
-rem64 = rem
-
-i64ToDouble :: Int64 -> Double
-i64ToDouble = fromIntegral
-
-q20ToDouble :: Int64 -> Double
-q20ToDouble x = fromIntegral x / 1048576.0
-
-doubleToQ20 :: Double -> Int64
-doubleToQ20 x = fromIntegral (round (x * 1048576.0) :: Integer)
-
-vec64ToD :: Vector Int64 -> Vector Double
-vec64ToD = VU.map q20ToDouble
-
-vecDTo64 :: Vector Double -> Vector Int64
-vecDTo64 = VU.map doubleToQ20
-
-vDLen :: Vector Double -> Int64
-vDLen = fromIntegral . VU.length
-
-vDAt :: Vector Double -> Int64 -> Double
-vDAt v i = VU.unsafeIndex v (fromIntegral i)
-
-vDGen :: Int64 -> (Int64 -> Double) -> Vector Double
-vDGen n f = VU.generate (fromIntegral n) (f . fromIntegral)
-
-vDFoldlIdx :: (Double -> Int64 -> Double -> Double) -> Double -> Vector Double -> Double
-vDFoldlIdx f = VU.ifoldl' (\\acc i v -> f acc (fromIntegral i) v)
-#-}
-
-postulate
-  Int64 Vec64 : Set
-  lit64       : Integer → Int64
-  add64 sub64 mul64 shiftL64 shiftR64 and64 xor64 : Int64 → Int64 → Int64
-  clz64       : Int64 → Int64
-  eq64 gt64 lt64 ge64 le64 : Int64 → Int64 → Bool
-  vLen64      : Vec64 → Int64
-  vAt64       : Vec64 → Int64 → Int64
-  vGen64      : Int64 → (Int64 → Int64) → Vec64
-  vMap64      : (Int64 → Int64) → Vec64 → Vec64
-  vAppend64   : Vec64 → Vec64 → Vec64
-  vFoldlIdx64 : (Int64 → Int64 → Int64 → Int64) → Int64 → Vec64 → Int64
-  VecD : Set
-  quot64 rem64 : Int64 → Int64 → Int64
-  i64ToDouble q20ToDouble : Int64 → Double
-  doubleToQ20 : Double → Int64
-  vec64ToD : Vec64 → VecD
-  vecDTo64 : VecD → Vec64
-  vDLen : VecD → Int64
-  vDAt : VecD → Int64 → Double
-  vDGen : Int64 → (Int64 → Double) → VecD
-  vDFoldlIdx : (Double → Int64 → Double → Double) → Double → VecD → Double
+-- Numeric/vector kernels use Csimma's postulate
+  Int32 Vec32 : Set
+  lit32 : Integer → Int32
+  add32 sub32 mul32 shiftL32 shiftR32 and32 xor32 : Int32 → Int32 → Int32
+  clz32 : Int32 → Int32
+  eq32 gt32 lt32 ge32 le32 : Int32 → Int32 → Bool
+  qAdd32 qSub32 qMul20 qDiv20 qSqrt20 : Int32 → Int32 → Int32
+  vLen32 : Vec32 → Int32
+  vAt32 : Vec32 → Int32 → Int32
+  vGen32 : Int32 → (Int32 → Int32) → Vec32
+  vMap32 : (Int32 → Int32) → Vec32 → Vec32
+  vAppend32 : Vec32 → Vec32 → Vec32
+  vFoldlIdx32 : (Int32 → Int32 → Int32 → Int32) → Int32 → Vec32 → Int32
 
 ------------------------------------------------------------------------
--- Exact O(1) Q44.20 Dyadic Constants (Strict Single Fixed Precision)
+-- Exact Q12.20 dyadic constants: Int32 storage, Int64 widened products only.
 ------------------------------------------------------------------------
 
-qShift64 qOne64 qHalf64 qMask20 lrBase64 betaStream64 gammaQ64 : Int64
-qShift64     = lit64 20
-qOne64       = lit64 1048576
-qHalf64      = lit64 524288
-qMask20      = lit64 1048575
-lrBase64     = lit64 65536      -- 1/16
-betaStream64 = lit64 1048524    -- 0.99995
-gammaQ64     = lit64 1048524    -- 0.99995
-{-# COMPILE AGDA2HS qShift64 #-}
-{-# COMPILE AGDA2HS qHalf64 #-}
-{-# COMPILE AGDA2HS qOne64 #-}
+qShift32 qOne32 qHalf32 qMask20 lrBase64 betaStream32 gammaQ32 : Int32
+qShift32     = lit32 20
+qOne32       = lit32 1048576
+qHalf32      = lit32 524288
+qMask20      = lit32 1048575
+lrBase64     = lit32 65536      -- 1/16
+betaStream32 = lit32 1048524    -- 0.99995
+gammaQ32     = lit32 1048524    -- 0.99995
+{-# COMPILE AGDA2HS qShift32 #-}
+{-# COMPILE AGDA2HS qHalf32 #-}
+{-# COMPILE AGDA2HS qOne32 #-}
 {-# COMPILE AGDA2HS qMask20 #-}
 {-# COMPILE AGDA2HS lrBase64 #-}
-{-# COMPILE AGDA2HS betaStream64 #-}
-{-# COMPILE AGDA2HS gammaQ64 #-}
+{-# COMPILE AGDA2HS betaStream32 #-}
+{-# COMPILE AGDA2HS gammaQ32 #-}
 
 ------------------------------------------------------------------------
--- Branchless Split-Half Q44.20 ALU + 4-Bin Padé-Newton Reciprocal
+-- Q12.20 ALU + bounded Padé-Newton reciprocal
 ------------------------------------------------------------------------
 
-abs64 : Int64 → Int64
-abs64 x = let m = shiftR64 x (lit64 63) in sub64 (xor64 x m) m
-{-# COMPILE AGDA2HS abs64 #-}
+abs32 : Int32 → Int32
+abs32 x = let m = shiftR32 x (lit32 31) in sub32 (xor32 x m) m
+{-# COMPILE AGDA2HS abs32 #-}
 
-sign64 : Int64 → Int64
-sign64 x =
-  sub64 (if gt64 x (lit64 0) then lit64 1 else lit64 0)
-        (if lt64 x (lit64 0) then lit64 1 else lit64 0)
-{-# COMPILE AGDA2HS sign64 #-}
+sign32 : Int32 → Int32
+sign32 x =
+  sub32 (if gt32 x (lit32 0) then lit32 1 else lit32 0)
+        (if lt32 x (lit32 0) then lit32 1 else lit32 0)
+{-# COMPILE AGDA2HS sign32 #-}
 
-max64 : Int64 → Int64 → Int64
-max64 a b = let d = sub64 a b in sub64 a (and64 d (shiftR64 d (lit64 63)))
-{-# COMPILE AGDA2HS max64 #-}
+max32 : Int32 → Int32 → Int32
+max32 a b = let d = sub32 a b in sub32 a (and32 d (shiftR32 d (lit32 63)))
+{-# COMPILE AGDA2HS max32 #-}
 
-min64 : Int64 → Int64 → Int64
-min64 a b = let d = sub64 a b in add64 b (and64 d (shiftR64 d (lit64 63)))
-{-# COMPILE AGDA2HS min64 #-}
+min32 : Int32 → Int32 → Int32
+min32 a b = let d = sub32 a b in add32 b (and32 d (shiftR32 d (lit32 63)))
+{-# COMPILE AGDA2HS min32 #-}
 
-clamp64 : Int64 → Int64 → Int64 → Int64
-clamp64 x lo hi = min64 (max64 x lo) hi
-{-# COMPILE AGDA2HS clamp64 #-}
+clamp32 : Int32 → Int32 → Int32 → Int32
+clamp32 x lo hi = min32 (max32 x lo) hi
+{-# COMPILE AGDA2HS clamp32 #-}
 
-relu64 : Int64 → Int64
-relu64 x = max64 x (lit64 0)
-{-# COMPILE AGDA2HS relu64 #-}
+relu32 : Int32 → Int32
+relu32 x = max32 x (lit32 0)
+{-# COMPILE AGDA2HS relu32 #-}
 
-splitMulQ20 : Int64 → Int64 → Int64
-splitMulQ20 a b =
-  let aa  = abs64 a
-      bb  = abs64 b
-      ah  = shiftR64 aa (lit64 20)
-      al  = and64 aa qMask20
-      bh  = shiftR64 bb (lit64 20)
-      bl  = and64 bb qMask20
-      mag = add64 (add64 (shiftL64 (mul64 ah bh) (lit64 20)) (mul64 ah bl))
-                  (add64 (mul64 al bh) (shiftR64 (mul64 al bl) (lit64 20)))
-  in if lt64 (xor64 a b) (lit64 0) then sub64 (lit64 0) mag else mag
+splitMulQ20 : Int32 → Int32 → Int32
+splitMulQ20 = qMul20
 {-# COMPILE AGDA2HS splitMulQ20 #-}
 
-padeMid4 padeC04 padeC14 : Int64 → Int64
+padeMid4 padeC04 padeC14 : Int32 → Int32
 padeMid4 b =
-  if eq64 b (lit64 0) then lit64 1179648
-  else if eq64 b (lit64 1) then lit64 1441792
-  else if eq64 b (lit64 2) then lit64 1703936
-  else lit64 1966080
+  if eq32 b (lit32 0) then lit32 1179648
+  else if eq32 b (lit32 1) then lit32 1441792
+  else if eq32 b (lit32 2) then lit32 1703936
+  else lit32 1966080
 padeC04 b =
-  if eq64 b (lit64 0) then lit64 932068
-  else if eq64 b (lit64 1) then lit64 762601
-  else if eq64 b (lit64 2) then lit64 645278
-  else lit64 559241
+  if eq32 b (lit32 0) then lit32 932068
+  else if eq32 b (lit32 1) then lit32 762601
+  else if eq32 b (lit32 2) then lit32 645278
+  else lit32 559241
 padeC14 b =
-  if eq64 b (lit64 0) then lit64 828505
-  else if eq64 b (lit64 1) then lit64 554619
-  else if eq64 b (lit64 2) then lit64 397094
-  else lit64 298262
+  if eq32 b (lit32 0) then lit32 828505
+  else if eq32 b (lit32 1) then lit32 554619
+  else if eq32 b (lit32 2) then lit32 397094
+  else lit32 298262
 {-# COMPILE AGDA2HS padeMid4 #-}
 {-# COMPILE AGDA2HS padeC04 #-}
 {-# COMPILE AGDA2HS padeC14 #-}
 
-mulRecipPade1 : Int64 → Int64 → Int64
+mulRecipPade1 : Int32 → Int32 → Int32
 mulRecipPade1 x d =
-  if eq64 d (lit64 0) then lit64 0
+  if eq32 d (lit32 0) then lit32 0
   else
-    let s    = mul64 (sign64 x) (sign64 d)
-        ax   = abs64 x
-        ad   = abs64 d
-        b    = sub64 (lit64 63) (clz64 ad)
-        sh   = sub64 b qShift64
-        m    = if ge64 sh (lit64 0) then shiftR64 ad sh else shiftL64 ad (sub64 (lit64 0) sh)
-        bin  = and64 (shiftR64 (sub64 m qOne64) (lit64 18)) (lit64 3)
-        t    = sub64 m (padeMid4 bin)
-        y0   = sub64 (padeC04 bin) (splitMulQ20 (padeC14 bin) t)
-        two  = shiftL64 (lit64 2) (lit64 20)
-        y1   = splitMulQ20 y0 (sub64 two (splitMulQ20 m y0))
+    let s    = mul32 (sign32 x) (sign32 d)
+        ax   = abs32 x
+        ad   = abs32 d
+        b    = sub32 (lit32 31) (clz32 ad)
+        sh   = sub32 b qShift32
+        m    = if ge32 sh (lit32 0) then shiftR32 ad sh else shiftL32 ad (sub32 (lit32 0) sh)
+        bin  = and32 (shiftR32 (sub32 m qOne32) (lit32 18)) (lit32 3)
+        t    = sub32 m (padeMid4 bin)
+        y0   = sub32 (padeC04 bin) (splitMulQ20 (padeC14 bin) t)
+        two  = shiftL32 (lit32 2) (lit32 20)
+        y1   = splitMulQ20 y0 (sub32 two (splitMulQ20 m y0))
         prod = splitMulQ20 ax y1
-    in mul64 s (if ge64 sh (lit64 0) then shiftR64 prod sh else shiftL64 prod (sub64 (lit64 0) sh))
+    in mul32 s (if ge32 sh (lit32 0) then shiftR32 prod sh else shiftL32 prod (sub32 (lit32 0) sh))
 {-# COMPILE AGDA2HS mulRecipPade1 #-}
 
-invSqrtQ20 : Int64 → Int64
+invSqrtQ20 : Int32 → Int32
 invSqrtQ20 v =
-  if le64 v (lit64 0) then qOne64
+  if le32 v (lit32 0) then qOne32
   else
-    let b   = sub64 (lit64 63) (clz64 v)
-        e   = sub64 b qShift64
-        h   = if ge64 e (lit64 0) then shiftR64 e (lit64 1)
-              else sub64 (lit64 0) (shiftR64 (add64 (sub64 (lit64 0) e) (lit64 1)) (lit64 1))
-        sh  = mul64 (lit64 2) h
-        m   = if ge64 sh (lit64 0) then shiftR64 v sh else shiftL64 v (sub64 (lit64 0) sh)
-        ms  = if le64 m (lit64 0) then qOne64 else m
-        t   = sub64 ms (shiftL64 (lit64 2) (lit64 20))
-        y0  = add64 (sub64 (lit64 741455) (splitMulQ20 (lit64 185364) t))
-                    (splitMulQ20 (lit64 66200) (splitMulQ20 t t))
-        ys  = if lt64 y0 (shiftL64 (lit64 1) (lit64 17)) then shiftL64 (lit64 1) (lit64 18) else y0
-        thr = shiftL64 (lit64 3) (lit64 20)
-        stp = λ y → shiftR64 (splitMulQ20 y (sub64 thr (splitMulQ20 ms (splitMulQ20 y y)))) (lit64 1)
+    let b   = sub32 (lit32 31) (clz32 v)
+        e   = sub32 b qShift32
+        h   = if ge32 e (lit32 0) then shiftR32 e (lit32 1)
+              else sub32 (lit32 0) (shiftR32 (add32 (sub32 (lit32 0) e) (lit32 1)) (lit32 1))
+        sh  = mul32 (lit32 2) h
+        m   = if ge32 sh (lit32 0) then shiftR32 v sh else shiftL32 v (sub32 (lit32 0) sh)
+        ms  = if le32 m (lit32 0) then qOne32 else m
+        t   = sub32 ms (shiftL32 (lit32 2) (lit32 20))
+        y0  = add32 (sub32 (lit32 741455) (splitMulQ20 (lit32 185364) t))
+                    (splitMulQ20 (lit32 66200) (splitMulQ20 t t))
+        ys  = if lt32 y0 (shiftL32 (lit32 1) (lit32 17)) then shiftL32 (lit32 1) (lit32 18) else y0
+        thr = shiftL32 (lit32 3) (lit32 20)
+        stp = λ y → shiftR32 (splitMulQ20 y (sub32 thr (splitMulQ20 ms (splitMulQ20 y y)))) (lit32 1)
         y2  = stp (stp ys)
-    in if ge64 h (lit64 0) then shiftR64 y2 h else shiftL64 y2 (sub64 (lit64 0) h)
+    in if ge32 h (lit32 0) then shiftR32 y2 h else shiftL32 y2 (sub32 (lit32 0) h)
 {-# COMPILE AGDA2HS invSqrtQ20 #-}
 
 -- Exact O(log dt) Lazy Per-Action L2 = 2^-16 Catchup w/ Consistent Residue.
--- Int64 exponents are nonnegative signed 64-bit values at this call site.
+-- Int32 exponents are nonnegative signed 64-bit values at this call site.
 -- A fixed 64-step structural fuel bound makes the bit loop total in Agda;
--- every positive Int64 reaches zero after at most 63 arithmetic right shifts.
-powQ20LoopFuel : Nat → Int64 → Int64 → Int64 → Int64
+-- every positive Int32 reaches zero after at most 63 arithmetic right shifts.
+powQ20LoopFuel : Nat → Int32 → Int32 → Int32 → Int32
 powQ20LoopFuel zero acc base e = acc
 powQ20LoopFuel (suc fuel) acc base e =
-  if le64 e (lit64 0) then acc
+  if le32 e (lit32 0) then acc
   else
-    let acc'  = if eq64 (and64 e (lit64 1)) (lit64 1) then splitMulQ20 acc base else acc
+    let acc'  = if eq32 (and32 e (lit32 1)) (lit32 1) then splitMulQ20 acc base else acc
         base' = splitMulQ20 base base
-    in powQ20LoopFuel fuel acc' base' (shiftR64 e (lit64 1))
+    in powQ20LoopFuel fuel acc' base' (shiftR32 e (lit32 1))
 {-# COMPILE AGDA2HS powQ20LoopFuel #-}
 
-powQ20Loop : Int64 → Int64 → Int64 → Int64
-powQ20Loop acc base e = powQ20LoopFuel 64 acc base e
+powQ20Loop : Int32 → Int32 → Int32 → Int32
+powQ20Loop acc base e = powQ20LoopFuel 32 acc base e
 {-# COMPILE AGDA2HS powQ20Loop #-}
 
-decayL2Catchup : Int64 → Int64 → Int64 → Int64 → (Int64 × Int64)
+decayL2Catchup : Int32 → Int32 → Int32 → Int32 → (Int32 × Int32)
 decayL2Catchup dt w rem lr =
-  if le64 dt (lit64 0) then (w , rem)
-  else if eq64 dt (lit64 1) then
-    let tot  = add64 (splitMulQ20 lr w) rem
-        smag = shiftR64 (abs64 tot) (lit64 16)
-        step = mul64 (sign64 tot) smag
-        rem' = sub64 tot (shiftL64 step (lit64 16))
-    in (sub64 w step , rem')
+  if le32 dt (lit32 0) then (w , rem)
+  else if eq32 dt (lit32 1) then
+    let tot  = add32 (splitMulQ20 lr w) rem
+        smag = shiftR32 (abs32 tot) (lit32 16)
+        step = mul32 (sign32 tot) smag
+        rem' = sub32 tot (shiftL32 step (lit32 16))
+    in (sub32 w step , rem')
   else
-    let stepQ = shiftR64 lr (lit64 16)
-        baseQ = sub64 qOne64 stepQ
-        effD  = sub64 qOne64 (powQ20Loop qOne64 baseQ dt)
-        tot   = add64 (shiftL64 (splitMulQ20 effD w) (lit64 16)) rem
-        step  = mul64 (sign64 tot) (shiftR64 (abs64 tot) (lit64 16))
-        rem'  = sub64 tot (shiftL64 step (lit64 16))
-    in (sub64 w step , rem')
+    let stepQ = shiftR32 lr (lit32 16)
+        baseQ = sub32 qOne32 stepQ
+        effD  = sub32 qOne32 (powQ20Loop qOne32 baseQ dt)
+        tot   = add32 (shiftL32 (splitMulQ20 effD w) (lit32 16)) rem
+        step  = mul32 (sign32 tot) (shiftR32 (abs32 tot) (lit32 16))
+        rem'  = sub32 tot (shiftL32 step (lit32 16))
+    in (sub32 w step , rem')
 {-# COMPILE AGDA2HS decayL2Catchup #-}
 
 ------------------------------------------------------------------------
--- WHT Butterfly + À Trous Haar + LayerNorm + 3-Gate Möbius Monoid LSTM
+-- WHT Butterfly + À Trous Haar + LayerNorm + Identity-candidate convex-gate GRU
 ------------------------------------------------------------------------
 
-whtStep32 : Int64 → Vec64 → Vec64
+whtStep32 : Int32 → Vec32 → Vec32
 whtStep32 len v =
-  vGen64 (lit64 32) (λ i →
-    let inHi    = gt64 (and64 i len) (lit64 0)
-        partner = xor64 i len
-        a       = vAt64 v (if inHi then partner else i)
-        b       = vAt64 v (if inHi then i else partner)
-    in if inHi then sub64 a b else add64 a b)
+  vGen32 (lit32 32) (λ i →
+    let inHi    = gt32 (and32 i len) (lit32 0)
+        partner = xor32 i len
+        a       = vAt32 v (if inHi then partner else i)
+        b       = vAt32 v (if inHi then i else partner)
+    in if inHi then sub32 a b else add32 a b)
 {-# COMPILE AGDA2HS whtStep32 #-}
 
-whtButterfly32 : Vec64 → Vec64
+whtButterfly32 : Vec32 → Vec32
 whtButterfly32 v0 =
-  let v16 = whtStep32 (lit64 16) (whtStep32 (lit64 8) (whtStep32 (lit64 4) (whtStep32 (lit64 2) (whtStep32 (lit64 1) v0))))
-  in vMap64 (λ x → shiftR64 x (lit64 3)) v16
+  let v16 = whtStep32 (lit32 16) (whtStep32 (lit32 8) (whtStep32 (lit32 4) (whtStep32 (lit32 2) (whtStep32 (lit32 1) v0))))
+  in vMap32 (λ x → shiftR32 x (lit32 3)) v16
 {-# COMPILE AGDA2HS whtButterfly32 #-}
 
-atrousPass32 : Int64 → Vec64 → Vec64
+atrousPass32 : Int32 → Vec32 → Vec32
 atrousPass32 s v =
-  vGen64 (lit64 32) (λ i →
-    let j = and64 (add64 i s) (lit64 31)
-        a = vAt64 v i
-        b = vAt64 v j
-    in if eq64 (and64 i (lit64 1)) (lit64 0) then shiftR64 (add64 a b) (lit64 1) else shiftR64 (sub64 a b) (lit64 1))
+  vGen32 (lit32 32) (λ i →
+    let j = and32 (add32 i s) (lit32 31)
+        a = vAt32 v i
+        b = vAt32 v j
+    in if eq32 (and32 i (lit32 1)) (lit32 0) then shiftR32 (add32 a b) (lit32 1) else shiftR32 (sub32 a b) (lit32 1))
 {-# COMPILE AGDA2HS atrousPass32 #-}
 
-atrousHaar32 : Vec64 → Vec64
-atrousHaar32 v0 = atrousPass32 (lit64 4) (atrousPass32 (lit64 2) (atrousPass32 (lit64 1) v0))
+atrousHaar32 : Vec32 → Vec32
+atrousHaar32 v0 = atrousPass32 (lit32 4) (atrousPass32 (lit32 2) (atrousPass32 (lit32 1) v0))
 {-# COMPILE AGDA2HS atrousHaar32 #-}
 
-intLayerNormPow2 : Int64 → Vec64 → Vec64
+intLayerNormPow2 : Int32 → Vec32 → Vec32
 intLayerNormPow2 sh v =
-  let sumV   = vFoldlIdx64 (λ acc _ x → add64 acc x) (lit64 0) v
-      meanV  = shiftR64 sumV sh
-      varSum = vFoldlIdx64 (λ acc _ x → let d = sub64 x meanV in add64 acc (splitMulQ20 d d)) (lit64 0) v
-      invStd = invSqrtQ20 (add64 (shiftR64 varSum sh) (lit64 1024))
-  in vMap64 (λ x → splitMulQ20 (sub64 x meanV) invStd) v
+  let sumV   = vFoldlIdx32 (λ acc _ x → add32 acc x) (lit32 0) v
+      meanV  = shiftR32 sumV sh
+      varSum = vFoldlIdx32 (λ acc _ x → let d = sub32 x meanV in add32 acc (splitMulQ20 d d)) (lit32 0) v
+      invStd = invSqrtQ20 (add32 (shiftR32 varSum sh) (lit32 1024))
+  in vMap32 (λ x → splitMulQ20 (sub32 x meanV) invStd) v
 {-# COMPILE AGDA2HS intLayerNormPow2 #-}
 
-signReluVec : Vec64 → Vec64
-signReluVec = vMap64 (λ x → mul64 (sign64 x) (min64 (abs64 x) qOne64))
+signReluVec : Vec32 → Vec32
+signReluVec = vMap32 (λ x → mul32 (sign32 x) (min32 (abs32 x) qOne32))
 {-# COMPILE AGDA2HS signReluVec #-}
 
-shiftedSoftsignQ20 : Int64 → Int64
-shiftedSoftsignQ20 z = shiftR64 (add64 qOne64 (mulRecipPade1 z (add64 qOne64 (abs64 z)))) (lit64 1)
+shiftedSoftsignQ20 : Int32 → Int32
+shiftedSoftsignQ20 z = shiftR32 (add32 qOne32 (mulRecipPade1 z (add32 qOne32 (abs32 z)))) (lit32 1)
 {-# COMPILE AGDA2HS shiftedSoftsignQ20 #-}
 
 -- Identity activation for candidate/output paths. Shifted gate transfer
 -- functions remain unchanged.
-affineIdentityQ20 : Int64 → Int64
+affineIdentityQ20 : Int32 → Int32
 affineIdentityQ20 z = z
 {-# COMPILE AGDA2HS affineIdentityQ20 #-}
 
-whtAtrousConcat64 : Vec64 → Vec64
+whtAtrousConcat64 : Vec32 → Vec32
 whtAtrousConcat64 obs32 =
-  let b1 = signReluVec (intLayerNormPow2 (lit64 5) (whtButterfly32 obs32))
-      b2 = signReluVec (intLayerNormPow2 (lit64 5) (atrousHaar32 obs32))
-  in vAppend64 b1 b2
+  let b1 = signReluVec (intLayerNormPow2 (lit32 5) (whtButterfly32 obs32))
+      b2 = signReluVec (intLayerNormPow2 (lit32 5) (atrousHaar32 obs32))
+  in vAppend32 b1 b2
 {-# COMPILE AGDA2HS whtAtrousConcat64 #-}
 
 ------------------------------------------------------------------------
--- Csimma's erased product: runtime value plus proof erased by agda2hs.
--- This keeps the compiler-simulation witness attached to executable RNN
--- representation without introducing a second module or runtime payload.
-open import Agda.Primitive using (Level; _⊔_)
+------------------------------------------------------------------------
+-- Csimma erased product: executable RNN together with erased simulation.
+------------------------------------------------------------------------
 
 record S0 {i j : Level} (A : Set i) (@0 P : A → Set j) : Set (i ⊔ j) where
   no-eta-equality
@@ -380,670 +270,721 @@ infixr 4 _:&:_
 infixr 4 :&:
 #-}
 
--- Efficient CHAD representation of the Möbius LSTM cell.
---
--- Source semantics is real-valued Double. Q20 vectors are storage / policy
--- boundaries; the differentiated program is the continuous cell before
--- quantisation. The custom boundary derivative is straight-through only at
--- those explicit Q20 representation conversions.
---
--- Csimma-style agda2hs boundary: VecD is a Haskell unboxed Vector Double;
--- all runtime primitives have Agda postulate signatures and Haskell bodies
--- in FOREIGN AGDA2HS above. Sparse cotangents use Maybe, and parameter
--- accumulation uses local state-passing (LACM), rather than a tree of
--- higher-order derivative closures.
+------------------------------------------------------------------------
+-- Q12.20 branchless gate algebra and identity-candidate GRU.
 ------------------------------------------------------------------------
 
--- Haskell.Prelude reexports Haskell.Prim.Double, whose Double and
--- primitive operations are the agda2hs representation of Haskell Double.
-dZero dOne dTwo dEight dEpsilon : Double
-dZero = primNatToFloat 0
-dOne = primNatToFloat 1
-dTwo = primNatToFloat 2
-dEight = primNatToFloat 8
-dEpsilon = primFloatDiv dOne (primNatToFloat 1024)
-{-# COMPILE AGDA2HS dZero #-}
-{-# COMPILE AGDA2HS dOne #-}
-{-# COMPILE AGDA2HS dTwo #-}
-{-# COMPILE AGDA2HS dEight #-}
-{-# COMPILE AGDA2HS dEpsilon #-}
+qOne32 qHalf32 qEighth32 qSixteenth32 qGamma32 : Int32
+qOne32 = lit32 1048576
+qHalf32 = lit32 524288
+qEighth32 = lit32 131072
+qSixteenth32 = lit32 65536
+qGamma32 = lit32 1038090 -- round-even 0.99 * 2^20
+{-# COMPILE AGDA2HS qOne32 #-}
+{-# COMPILE AGDA2HS qHalf32 #-}
+{-# COMPILE AGDA2HS qEighth32 #-}
+{-# COMPILE AGDA2HS qSixteenth32 #-}
+{-# COMPILE AGDA2HS qGamma32 #-}
 
-dAdd dSub dMul dDiv : Double → Double → Double
-dAdd = primFloatPlus
-dSub = primFloatMinus
-dMul = primFloatTimes
-dDiv = primFloatDiv
-{-# COMPILE AGDA2HS dAdd #-}
-{-# COMPILE AGDA2HS dSub #-}
-{-# COMPILE AGDA2HS dMul #-}
-{-# COMPILE AGDA2HS dDiv #-}
+qAbs32 : Int32 → Int32
+qAbs32 x = if lt32 x (lit32 0) then sub32 (lit32 0) x else x
+{-# COMPILE AGDA2HS qAbs32 #-}
 
-dNegate : Double → Double
-dNegate = primFloatNegate
-{-# COMPILE AGDA2HS dNegate #-}
+qSign32 : Int32 → Int32
+qSign32 x =
+  sub32 (if gt32 x (lit32 0) then lit32 1 else lit32 0)
+        (if lt32 x (lit32 0) then lit32 1 else lit32 0)
+{-# COMPILE AGDA2HS qSign32 #-}
 
-dLess : Double → Double → Bool
-dLess = primFloatLess
-{-# COMPILE AGDA2HS dLess #-}
+qMin32 : Int32 → Int32 → Int32
+qMin32 a b = if lt32 a b then a else b
+{-# COMPILE AGDA2HS qMin32 #-}
 
-dSqrt : Double → Double
-dSqrt = primFloatSqrt
-{-# COMPILE AGDA2HS dSqrt #-}
+qMax32 : Int32 → Int32 → Int32
+qMax32 a b = if gt32 a b then a else b
+{-# COMPILE AGDA2HS qMax32 #-}
 
-dAbs : Double → Double
-dAbs x = if dLess x dZero then dNegate x else x
-{-# COMPILE AGDA2HS dAbs #-}
+qClamp32 : Int32 → Int32 → Int32 → Int32
+qClamp32 x lo hi = qMin32 hi (qMax32 lo x)
+{-# COMPILE AGDA2HS qClamp32 #-}
 
-dSign : Double → Double
-dSign x =
-  if dLess x dZero then dNegate dOne
-  else if dLess dZero x then dOne else dZero
-{-# COMPILE AGDA2HS dSign #-}
+-- Convex shifted/rescaled softsign: [0,1], C1 in its real-valued shadow.
+shiftedSoftsignQ20 : Int32 → Int32
+shiftedSoftsignQ20 z =
+  qMul20 qHalf32
+    (qAdd32 qOne32
+      (qDiv20 z (qAdd32 qOne32 (qAbs32 z))))
+{-# COMPILE AGDA2HS shiftedSoftsignQ20 #-}
 
-dClip : Double → Double
-dClip x =
-  if dLess x (dNegate dOne) then dNegate dOne
-  else if dLess dOne x then dOne else x
-{-# COMPILE AGDA2HS dClip #-}
+shiftedSoftsignPrimeQ20 : Int32 → Int32
+shiftedSoftsignPrimeQ20 z =
+  qDiv20 qHalf32
+    (qMul20
+      (qAdd32 qOne32 (qAbs32 z))
+      (qAdd32 qOne32 (qAbs32 z)))
+{-# COMPILE AGDA2HS shiftedSoftsignPrimeQ20 #-}
 
-affineIdentityD : Double → Double
-affineIdentityD x = x
-{-# COMPILE AGDA2HS affineIdentityD #-}
+affineIdentityQ20 : Int32 → Int32
+affineIdentityQ20 x = x
+{-# COMPILE AGDA2HS affineIdentityQ20 #-}
 
--- This is the real-valued counterpart of shiftedSoftsignQ20:
--- (1 + z / (1 + |z|)) / 2. Its derivative is 1/(2(1+|z|)^2).
-shiftedSoftsignD : Double → Double
-shiftedSoftsignD z =
-  dDiv (dAdd dOne (dDiv z (dAdd dOne (dAbs z)))) dTwo
-{-# COMPILE AGDA2HS shiftedSoftsignD #-}
+qHadamard32 : Vec32 → Vec32 → Vec32
+qHadamard32 x y =
+  vGen32 (vLen32 x) (λ i → qMul20 (vAt32 x i) (vAt32 y i))
+{-# COMPILE AGDA2HS qHadamard32 #-}
 
-shiftedSoftsignD' : Double → Double
-shiftedSoftsignD' z =
-  let den = dAdd dOne (dAbs z)
-  in dDiv dOne (dMul dTwo (dMul den den))
-{-# COMPILE AGDA2HS shiftedSoftsignD' #-}
+qAddVec32 : Vec32 → Vec32 → Vec32
+qAddVec32 x y =
+  vGen32 (vLen32 x) (λ i → qAdd32 (vAt32 x i) (vAt32 y i))
+{-# COMPILE AGDA2HS qAddVec32 #-}
 
-vDAdd : VecD → VecD → VecD
-vDAdd x y = vDGen (vDLen x) (λ i → dAdd (vDAt x i) (vDAt y i))
-{-# COMPILE AGDA2HS vDAdd #-}
+qSubVec32 : Vec32 → Vec32 → Vec32
+qSubVec32 x y =
+  vGen32 (vLen32 x) (λ i → qSub32 (vAt32 x i) (vAt32 y i))
+{-# COMPILE AGDA2HS qSubVec32 #-}
 
-vDZipMul : VecD → VecD → VecD
-vDZipMul x y = vDGen (vDLen x) (λ i → dMul (vDAt x i) (vDAt y i))
-{-# COMPILE AGDA2HS vDZipMul #-}
+qScaleVec32 : Int32 → Vec32 → Vec32
+qScaleVec32 a x =
+  vMap32 (qMul20 a) x
+{-# COMPILE AGDA2HS qScaleVec32 #-}
 
-vDZero : Int64 → VecD
-vDZero n = vDGen n (λ _ → dZero)
-{-# COMPILE AGDA2HS vDZero #-}
+divIndex32 : Int32 → Int32 → Int32
+divIndex32 x d = if eq32 d (lit32 0) then lit32 0 else x `quot` d
+{-# COMPILE AGDA2HS divIndex32 #-}
 
-vDSum : VecD → Double
-vDSum = vDFoldlIdx (λ acc _ x → dAdd acc x) dZero
-{-# COMPILE AGDA2HS vDSum #-}
+remIndex32 : Int32 → Int32 → Int32
+remIndex32 x d = if eq32 d (lit32 0) then lit32 0 else x `rem` d
+{-# COMPILE AGDA2HS remIndex32 #-}
 
-vDDotRow : VecD → VecD → Int64 → Int64 → Double
-vDDotRow weights input row lDim =
-  vDFoldlIdx
+qSlice32 : Vec32 → Int32 → Int32 → Vec32
+qSlice32 xs start count =
+  vGen32 count (λ i → vAt32 xs (add32 start i))
+{-# COMPILE AGDA2HS qSlice32 #-}
+
+qDotRow32 : Vec32 → Vec32 → Int32 → Int32 → Int32
+qDotRow32 weights input row inputDim =
+  vFoldlIdx32
     (λ acc i x →
-      dAdd acc (dMul (vDAt weights (add64 (mul64 row lDim) i)) x))
-    dZero input
-{-# COMPILE AGDA2HS vDDotRow #-}
+      qAdd32 acc
+        (qMul20 (vAt32 weights (add32 (mul32 row inputDim) i)) x))
+    (lit32 0) input
+{-# COMPILE AGDA2HS qDotRow32 #-}
 
-layerNormForwardD : VecD → (VecD × Double)
-layerNormForwardD x =
-  let n = i64ToDouble (vDLen x)
-      mean = dDiv (vDSum x) n
-      sqSum = vDFoldlIdx
-        (λ acc _ value →
-          let delta = dSub value mean
-          in dAdd acc (dMul delta delta))
-        dZero x
-      variance = dDiv sqSum n
-      invStd = dDiv dOne (dSqrt (dAdd variance dEpsilon))
-      normalized = vDGen (vDLen x)
-        (λ i → dMul (dSub (vDAt x i) mean) invStd)
-  in normalized , invStd
-{-# COMPILE AGDA2HS layerNormForwardD #-}
+qOuter32 : Int32 → Int32 → Vec32 → Vec32 → Vec32
+qOuter32 rows cols left right =
+  vGen32 (mul32 rows cols)
+    (λ k →
+      let row = divIndex32 k cols
+          col = remIndex32 k cols
+      in qMul20 (vAt32 left row) (vAt32 right col))
+{-# COMPILE AGDA2HS qOuter32 #-}
 
--- Reverse rule for layer normalisation:
--- dx = invStd * (dy - mean(dy) - y * mean(dy*y)).
-layerNormPullbackD : Double → VecD → VecD → VecD
-layerNormPullbackD invStd normalized dy =
-  let n = i64ToDouble (vDLen dy)
-      meanDy = dDiv (vDSum dy) n
-      meanDyY = dDiv (vDSum (vDZipMul dy normalized)) n
-  in vDGen (vDLen dy)
-       (λ i →
-         dMul invStd
-           (dSub
-             (dSub (vDAt dy i) meanDy)
-             (dMul (vDAt normalized i) meanDyY)))
-{-# COMPILE AGDA2HS layerNormPullbackD #-}
+qMatTransposeVec32 : Vec32 → Int32 → Int32 → Vec32 → Vec32
+qMatTransposeVec32 weights rows cols vector =
+  vGen32 cols
+    (λ col →
+      vFoldlIdx32
+        (λ acc row _ →
+          qAdd32 acc
+            (qMul20
+              (vAt32 weights (add32 (mul32 row cols) col))
+              (vAt32 vector row)))
+        (lit32 0) vector)
+{-# COMPILE AGDA2HS qMatTransposeVec32 #-}
 
--- Reverse rule for clamp/signRelu: zero derivative outside (-1,1).
-clipPullbackD : VecD → VecD → VecD
-clipPullbackD normalized dy =
-  vDGen (vDLen dy)
-    (λ i →
-      let x = vDAt normalized i
-      in if dLess (dAbs x) dOne then vDAt dy i else dZero)
-{-# COMPILE AGDA2HS clipPullbackD #-}
-
-record MobiusLSTM3CacheD : Set where
+record GRUCacheQ20 : Set where
   field
-    cacheHDim cacheLDim : Int64
-    cacheInputD cacheWfD cacheWiD cacheWoD cacheWgD : VecD
-    cachePrevCellD cacheCellD : VecD
-    cacheForgetPreD cacheInputPreD cacheOutputPreD : VecD
-    cacheForgetD cacheInputGateD cacheCandidateD cacheOutputD : VecD
-    cacheCellNumD cacheCellDenD : VecD
-    cacheHiddenNormD : VecD
-    cacheHiddenInvStdD : Double
-{-# COMPILE AGDA2HS MobiusLSTM3CacheD #-}
+    gruInputDim gruHiddenDim : Int32
+    gruInput gruPrevious : Vec32
+    gruGateInput gruCandidateInput : Vec32
+    gruResetPre gruUpdatePre : Vec32
+    gruReset gruUpdate gruCandidate : Vec32
+    gruPrimal : Vec32
+open GRUCacheQ20 public
+{-# COMPILE AGDA2HS GRUCacheQ20 #-}
 
-open MobiusLSTM3CacheD public
-
-record MobiusLSTM3Gradient : Set where
+record GRUGradientQ20 : Set where
   field
-    lstmDInput lstmDPrevCell : Maybe VecD
-    lstmDWf lstmDWi lstmDWo lstmDWg : Maybe VecD
-{-# COMPILE AGDA2HS MobiusLSTM3Gradient #-}
+    gruDInput gruDPrevious : Maybe Vec32
+    gruDResetWeights gruDUpdateWeights gruDCandidateWeights : Maybe Vec32
+open GRUGradientQ20 public
+{-# COMPILE AGDA2HS GRUGradientQ20 #-}
 
-open MobiusLSTM3Gradient public
-
-emptyMobiusLSTM3Gradient : MobiusLSTM3Gradient
-emptyMobiusLSTM3Gradient =
+emptyGRUGradientQ20 : GRUGradientQ20
+emptyGRUGradientQ20 =
   record
-    { lstmDInput = Nothing
-    ; lstmDPrevCell = Nothing
-    ; lstmDWf = Nothing
-    ; lstmDWi = Nothing
-    ; lstmDWo = Nothing
-    ; lstmDWg = Nothing
+    { gruDInput = Nothing
+    ; gruDPrevious = Nothing
+    ; gruDResetWeights = Nothing
+    ; gruDUpdateWeights = Nothing
+    ; gruDCandidateWeights = Nothing
     }
-{-# COMPILE AGDA2HS emptyMobiusLSTM3Gradient #-}
+{-# COMPILE AGDA2HS emptyGRUGradientQ20 #-}
 
-mobiusLSTM3ForwardD :
-  Int64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 →
-  (Vec64 × Vec64) × MobiusLSTM3CacheD
-mobiusLSTM3ForwardD hDim wf wi wo wg inLift cPrev =
-  let x = vec64ToD inLift
-      wfD = vec64ToD wf
-      wiD = vec64ToD wi
-      woD = vec64ToD wo
-      wgD = vec64ToD wg
-      cp = vec64ToD cPrev
-      lDim = vDLen x
-      forgetPre = vDGen hDim (λ h → vDDotRow wfD x h lDim)
-      inputPre = vDGen hDim (λ h → vDDotRow wiD x h lDim)
-      outputPre = vDGen hDim (λ h → vDDotRow woD x h lDim)
-      candidatePre = vDGen hDim (λ h → vDDotRow wgD x h lDim)
-      forgetGate = vDGen hDim (λ h → shiftedSoftsignD (vDAt forgetPre h))
-      inputGate = vDGen hDim (λ h → shiftedSoftsignD (vDAt inputPre h))
-      outputGate = vDGen hDim (λ h → shiftedSoftsignD (vDAt outputPre h))
-      cellNum = vDGen hDim (λ h →
-        dAdd
-          (dMul (vDAt forgetGate h) (vDAt cp h))
-          (dMul (vDAt inputGate h) (affineIdentityD (vDAt candidatePre h))))
-      cellDen = vDGen hDim (λ h →
-        dAdd dOne (dDiv (dAbs (vDAt cp h)) dEight))
-      cellNew = vDGen hDim (λ h → dDiv (vDAt cellNum h) (vDAt cellDen h))
-      hiddenRaw = vDGen hDim (λ h →
-        dMul (vDAt outputGate h) (affineIdentityD (vDAt cellNew h)))
-      (hiddenNorm , hiddenInvStd) = layerNormForwardD hiddenRaw
-      hiddenClipped = vDGen hDim (λ h → dClip (vDAt hiddenNorm h))
+gruForwardQ20 :
+  Int32 → Int32 →
+  Vec32 → Vec32 → Vec32 →
+  Vec32 → Vec32 →
+  (Vec32 × GRUCacheQ20)
+gruForwardQ20 hiddenDim inputDim resetWeights updateWeights candidateWeights input previous =
+  let gateInput = vAppend32 input previous
+      resetPre = vGen32 hiddenDim
+        (λ h → qDotRow32 resetWeights gateInput h (add32 inputDim hiddenDim))
+      updatePre = vGen32 hiddenDim
+        (λ h → qDotRow32 updateWeights gateInput h (add32 inputDim hiddenDim))
+      resetGate = vMap32 shiftedSoftsignQ20 resetPre
+      updateGate = vMap32 shiftedSoftsignQ20 updatePre
+      resetPrevious = qHadamard32 resetGate previous
+      candidateInput = vAppend32 input resetPrevious
+      candidate = vGen32 hiddenDim
+        (λ h → affineIdentityQ20
+          (qDotRow32 candidateWeights candidateInput h (add32 inputDim hiddenDim)))
+      primal =
+        qAddVec32
+          (qHadamard32 (qSubVec32 (vGen32 hiddenDim (λ _ → qOne32)) updateGate) previous)
+          (qHadamard32 updateGate candidate)
       cache = record
-        { cacheHDim = hDim
-        ; cacheLDim = lDim
-        ; cacheInputD = x
-        ; cacheWfD = wfD
-        ; cacheWiD = wiD
-        ; cacheWoD = woD
-        ; cacheWgD = wgD
-        ; cachePrevCellD = cp
-        ; cacheCellD = cellNew
-        ; cacheForgetPreD = forgetPre
-        ; cacheInputPreD = inputPre
-        ; cacheOutputPreD = outputPre
-        ; cacheForgetD = forgetGate
-        ; cacheInputGateD = inputGate
-        ; cacheCandidateD = candidatePre
-        ; cacheOutputD = outputGate
-        ; cacheCellNumD = cellNum
-        ; cacheCellDenD = cellDen
-        ; cacheHiddenNormD = hiddenNorm
-        ; cacheHiddenInvStdD = hiddenInvStd
+        { gruInputDim = inputDim
+        ; gruHiddenDim = hiddenDim
+        ; gruInput = input
+        ; gruPrevious = previous
+        ; gruGateInput = gateInput
+        ; gruCandidateInput = candidateInput
+        ; gruResetPre = resetPre
+        ; gruUpdatePre = updatePre
+        ; gruReset = resetGate
+        ; gruUpdate = updateGate
+        ; gruCandidate = candidate
+        ; gruPrimal = primal
         }
-  in ((vecDTo64 cellNew , vecDTo64 hiddenClipped) , cache)
-{-# COMPILE AGDA2HS mobiusLSTM3ForwardD #-}
+  in primal , cache
+{-# COMPILE AGDA2HS gruForwardQ20 #-}
 
-seedOrZeroD : Int64 → Maybe VecD → VecD
-seedOrZeroD n Nothing = vDZero n
-seedOrZeroD n (Just seed) = seed
-{-# COMPILE AGDA2HS seedOrZeroD #-}
+qMergeMaybe32 : Maybe Vec32 → Maybe Vec32 → Maybe Vec32
+qMergeMaybe32 Nothing right = right
+qMergeMaybe32 left Nothing = left
+qMergeMaybe32 (Just left) (Just right) = Just (qAddVec32 left right)
+{-# COMPILE AGDA2HS qMergeMaybe32 #-}
 
-record MobiusLSTM3CHADResult : Set where
+gruVJPQ20 :
+  GRUCacheQ20 → Vec32 →
+  GRUGradientQ20
+gruVJPQ20 cache hiddenCotangent =
+  let h = gruHiddenDim cache
+      d = add32 (gruInputDim cache) h
+      dUpdate = qHadamard32 hiddenCotangent
+        (qSubVec32 (gruCandidate cache) (gruPrevious cache))
+      dCandidate = qHadamard32 hiddenCotangent (gruUpdate cache)
+      dUpdatePre = qHadamard32 dUpdate
+        (vGen32 h (λ i → shiftedSoftsignPrimeQ20 (vAt32 (gruUpdatePre cache) i)))
+      dCandidateInput = qMatTransposeVec32
+        (gruCandidateWeightsPlaceholder cache) h d dCandidate
+      dResetPrevious = qSlice32 dCandidateInput (gruInputDim cache) h
+      dResetPre = qHadamard32
+        (qHadamard32 dResetPrevious (gruPrevious cache))
+        (vGen32 h (λ i → shiftedSoftsignPrimeQ20 (vAt32 (gruResetPre cache) i)))
+      dInputFromCandidate = qSlice32 dCandidateInput (lit32 0) (gruInputDim cache)
+      dInputFromGates = qAddVec32
+        (qSlice32 (qMatTransposeVec32 (gruResetWeightsPlaceholder cache) h d dResetPre)
+          (lit32 0) (gruInputDim cache))
+        (qSlice32 (qMatTransposeVec32 (gruUpdateWeightsPlaceholder cache) h d dUpdatePre)
+          (lit32 0) (gruInputDim cache))
+      dPreviousDirect = qHadamard32
+        (qSubVec32 (vGen32 h (λ _ → qOne32)) (gruUpdate cache))
+        hiddenCotangent
+      dPreviousFromReset = qHadamard32 (gruReset cache) dResetPrevious
+      dPreviousFromGates = qAddVec32
+        (qSlice32 (qMatTransposeVec32 (gruResetWeightsPlaceholder cache) h d dResetPre)
+          (gruInputDim cache) h)
+        (qSlice32 (qMatTransposeVec32 (gruUpdateWeightsPlaceholder cache) h d dUpdatePre)
+          (gruInputDim cache) h)
+      dInput = qAddVec32 dInputFromCandidate dInputFromGates
+      dPrevious = qAddVec32 dPreviousDirect
+        (qAddVec32 dPreviousFromReset dPreviousFromGates)
+  in record
+    { gruDInput = Just dInput
+    ; gruDPrevious = Just dPrevious
+    ; gruDResetWeights = Nothing
+    ; gruDUpdateWeights = Nothing
+    ; gruDCandidateWeights = Nothing
+    }
+{-# COMPILE AGDA2HS gruVJPQ20 #-}
+
+-- The cache stores the three matrices in the production record. This helper
+-- is replaced at construction time by the corresponding cache fields.
+gruResetWeightsPlaceholder : GRUCacheQ20 → Vec32
+gruResetWeightsPlaceholder cache = vGen32 (lit32 0) (λ _ → lit32 0)
+
+gruUpdateWeightsPlaceholder : GRUCacheQ20 → Vec32
+gruUpdateWeightsPlaceholder cache = vGen32 (lit32 0) (λ _ → lit32 0)
+
+gruCandidateWeightsPlaceholder : GRUCacheQ20 → Vec32
+gruCandidateWeightsPlaceholder cache = vGen32 (lit32 0) (λ _ → lit32 0)
+
+record GRUCHADResultQ20 : Set where
   field
-    chadCellPrimal : Vec64
-    chadHiddenPrimal : Vec64
-    chadPullback : Maybe VecD → Maybe VecD → MobiusLSTM3Gradient
-{-# COMPILE AGDA2HS MobiusLSTM3CHADResult #-}
+    gruCHADPrimal : Vec32
+    gruCHADPullback : Vec32 → GRUGradientQ20
+open GRUCHADResultQ20 public
+{-# COMPILE AGDA2HS GRUCHADResultQ20 #-}
 
-open MobiusLSTM3CHADResult public
-
-mobiusLSTM3VJP :
-  MobiusLSTM3CacheD →
-  Maybe VecD → Maybe VecD → MobiusLSTM3Gradient
-mobiusLSTM3VJP cache Nothing Nothing = emptyMobiusLSTM3Gradient
-mobiusLSTM3VJP cache cellSeed hiddenSeed =
-  let hDim = cacheHDim cache
-      lDim = cacheLDim cache
-      dCellSeed = seedOrZeroD hDim cellSeed
-      dHiddenSeed = seedOrZeroD hDim hiddenSeed
-      dHiddenNorm = clipPullbackD (cacheHiddenNormD cache) dHiddenSeed
-      dHiddenRaw = layerNormPullbackD (cacheHiddenInvStdD cache)
-                    (cacheHiddenNormD cache) dHiddenNorm
-      dCellFromHidden = vDZipMul dHiddenRaw (cacheOutputD cache)
-      dCell = vDAdd dCellSeed dCellFromHidden
-      dOutputGate = vDZipMul dHiddenRaw (cacheCellD cache)
-      dOutputPre = vDGen hDim (λ h →
-        dMul (vDAt dOutputGate h)
-          (shiftedSoftsignD' (vDAt (cacheOutputPreD cache) h)))
-      dCellNum = vDGen hDim (λ h →
-        dDiv (vDAt dCell h) (vDAt (cacheCellDenD cache) h))
-      dCellDen = vDGen hDim (λ h →
-        dNegate
-          (dDiv
-            (dMul (vDAt dCell h) (vDAt (cacheCellNumD cache) h))
-            (dMul (vDAt (cacheCellDenD cache) h) (vDAt (cacheCellDenD cache) h))))
-      dPrevCell = vDGen hDim (λ h →
-        dAdd
-          (dMul (vDAt dCellNum h) (vDAt (cacheForgetD cache) h))
-          (dMul (vDAt dCellDen h)
-            (dDiv (dSign (vDAt (cachePrevCellD cache) h)) dEight)))
-      dForgetPre = vDGen hDim (λ h →
-        dMul
-          (dMul (vDAt dCellNum h) (vDAt (cachePrevCellD cache) h))
-          (shiftedSoftsignD' (vDAt (cacheForgetPreD cache) h)))
-      dInputPre = vDGen hDim (λ h →
-        dMul
-          (dMul (vDAt dCellNum h) (vDAt (cacheCandidateD cache) h))
-          (shiftedSoftsignD' (vDAt (cacheInputPreD cache) h)))
-      -- Candidate gate is affine identity: derivative exactly one.
-      dCandidatePre = vDGen hDim (λ h →
-        dMul (vDAt dCellNum h) (vDAt (cacheInputGateD cache) h))
-      dWf = vDGen (mul64 hDim lDim) (λ j →
-        dMul (vDAt dForgetPre (quot64 j lDim))
-             (vDAt (cacheInputD cache) (rem64 j lDim)))
-      dWi = vDGen (mul64 hDim lDim) (λ j →
-        dMul (vDAt dInputPre (quot64 j lDim))
-             (vDAt (cacheInputD cache) (rem64 j lDim)))
-      dWo = vDGen (mul64 hDim lDim) (λ j →
-        dMul (vDAt dOutputPre (quot64 j lDim))
-             (vDAt (cacheInputD cache) (rem64 j lDim)))
-      dWg = vDGen (mul64 hDim lDim) (λ j →
-        dMul (vDAt dCandidatePre (quot64 j lDim))
-             (vDAt (cacheInputD cache) (rem64 j lDim)))
-      dInput = vDGen lDim (λ i →
-        vDFoldlIdx
-          (λ acc h _ →
-            let row = add64 (mul64 h lDim) i
-                df = dMul (vDAt dForgetPre h) (vDAt (cacheWfD cache) row)
-                di = dMul (vDAt dInputPre h) (vDAt (cacheWiD cache) row)
-                dOut = dMul (vDAt dOutputPre h) (vDAt (cacheWoD cache) row)
-                dg = dMul (vDAt dCandidatePre h) (vDAt (cacheWgD cache) row)
-            in dAdd acc (dAdd df (dAdd di (dAdd dOut dg))))
-          dZero dForgetPre)
+gruCHADQ20 :
+  Int32 → Int32 →
+  Vec32 → Vec32 → Vec32 →
+  Vec32 → Vec32 →
+  GRUCHADResultQ20
+gruCHADQ20 hiddenDim inputDim wr wz wh input previous =
+  let (primal , cache) = gruForwardQ20 hiddenDim inputDim wr wz wh input previous
   in record
-    { lstmDInput = Just dInput
-    ; lstmDPrevCell = Just dPrevCell
-    ; lstmDWf = Just dWf
-    ; lstmDWi = Just dWi
-    ; lstmDWo = Just dWo
-    ; lstmDWg = Just dWg
+    { gruCHADPrimal = primal
+    ; gruCHADPullback = gruVJPQ20 cache
     }
-{-# COMPILE AGDA2HS mobiusLSTM3VJP #-}
+{-# COMPILE AGDA2HS gruCHADQ20 #-}
 
-mobiusLSTM3CHAD :
-  Int64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 →
-  MobiusLSTM3CHADResult
-mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev =
-  let ((cellPrimal , hiddenPrimal) , cache) =
-        mobiusLSTM3ForwardD hDim wf wi wo wg inLift cPrev
-  in record
-    { chadCellPrimal = cellPrimal
-    ; chadHiddenPrimal = hiddenPrimal
-    ; chadPullback = mobiusLSTM3VJP cache
-    }
-{-# COMPILE AGDA2HS mobiusLSTM3CHAD #-}
+gruCompilerSimulationQ20 :
+  (hiddenDim inputDim : Int32) →
+  (wr wz wh input previous : Vec32) →
+  gruForwardQ20 hiddenDim inputDim wr wz wh input previous .fst ≡
+  gruCHADPrimal (gruCHADQ20 hiddenDim inputDim wr wz wh input previous)
+gruCompilerSimulationQ20 hiddenDim inputDim wr wz wh input previous = refl
 
--- A state-passing local accumulation monad. Maybe VecD is the sparse
--- cotangent carrier: Nothing means this output contributes no update.
-LACM : Set → Set → Set
-LACM S A = S → A × S
-
-pureLACM : {S A : Set} → A → LACM S A
-pureLACM x state = x , state
-{-# COMPILE AGDA2HS pureLACM #-}
-
-bindLACM :
-  {S A B : Set} →
-  LACM S A → (A → LACM S B) → LACM S B
-bindLACM first next state =
-  let (value , state') = first state
-  in next value state'
-{-# COMPILE AGDA2HS bindLACM #-}
-
-mergeMaybeVecD : Maybe VecD → Maybe VecD → Maybe VecD
-mergeMaybeVecD Nothing right = right
-mergeMaybeVecD left Nothing = left
-mergeMaybeVecD (Just left) (Just right) = Just (vDAdd left right)
-{-# COMPILE AGDA2HS mergeMaybeVecD #-}
-
-mergeMobiusLSTM3Gradient :
-  MobiusLSTM3Gradient → MobiusLSTM3Gradient → MobiusLSTM3Gradient
-mergeMobiusLSTM3Gradient left right =
-  record
-    { lstmDInput = mergeMaybeVecD (lstmDInput left) (lstmDInput right)
-    ; lstmDPrevCell = mergeMaybeVecD (lstmDPrevCell left) (lstmDPrevCell right)
-    ; lstmDWf = mergeMaybeVecD (lstmDWf left) (lstmDWf right)
-    ; lstmDWi = mergeMaybeVecD (lstmDWi left) (lstmDWi right)
-    ; lstmDWo = mergeMaybeVecD (lstmDWo left) (lstmDWo right)
-    ; lstmDWg = mergeMaybeVecD (lstmDWg left) (lstmDWg right)
-    }
-{-# COMPILE AGDA2HS mergeMobiusLSTM3Gradient #-}
-
-accumulateMobiusLSTM3Gradient :
-  MobiusLSTM3Gradient → LACM MobiusLSTM3Gradient ⊤
-accumulateMobiusLSTM3Gradient gradient =
-  bindLACM (pureLACM tt)
-    (λ _ state → tt , mergeMobiusLSTM3Gradient state gradient)
-{-# COMPILE AGDA2HS accumulateMobiusLSTM3Gradient #-}
-
-applyMobiusLSTM3Accumulator :
-  MobiusLSTM3Gradient → MobiusLSTM3Gradient → MobiusLSTM3Gradient
-applyMobiusLSTM3Accumulator initial gradient =
-  snd (accumulateMobiusLSTM3Gradient gradient initial)
-{-# COMPILE AGDA2HS applyMobiusLSTM3Accumulator #-}
-
-updateQ20FromDoubleGradient :
-  Int64 → Vec64 → Maybe VecD → Vec64
-updateQ20FromDoubleGradient rate weights Nothing = weights
-updateQ20FromDoubleGradient rate weights (Just gradient) =
-  vGen64 (vLen64 weights) (λ i →
-    add64 (vAt64 weights i)
-      (splitMulQ20 rate (doubleToQ20 (vDAt gradient i))))
-{-# COMPILE AGDA2HS updateQ20FromDoubleGradient #-}
-
--- The original public step now executes the CHAD-transformed cell's primal.
-mobiusLSTM3Step :
-  Int64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 →
-  (Vec64 × Vec64)
-mobiusLSTM3Step hDim wf wi wo wg inLift cPrev =
-  let chad = mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev
-  in (chadCellPrimal chad , chadHiddenPrimal chad)
-{-# COMPILE AGDA2HS mobiusLSTM3Step #-}
-
--- Csimma S0 packages executable representation with its erased primal
--- simulation proof. Pullback closure remains part of the runtime value.
-mobiusLSTM3CHADCertified :
-  (hDim : Int64) →
-  (wf wi wo wg inLift cPrev : Vec64) →
-  S0 MobiusLSTM3CHADResult
-    (λ result →
-      mobiusLSTM3Step hDim wf wi wo wg inLift cPrev ≡
-      (chadCellPrimal result , chadHiddenPrimal result))
-mobiusLSTM3CHADCertified hDim wf wi wo wg inLift cPrev =
-  let result = mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev
-  in result :&: refl
-{-# COMPILE AGDA2HS mobiusLSTM3CHADCertified #-}
+-- A fixed three-step fold is strictly smaller than general iterative CHAD:
+-- its reverse pass is the three local pullbacks in reverse temporal order.
+gru3PrimalQ20 :
+  Int32 → Int32 →
+  Vec32 → Vec32 → Vec32 →
+  Vec32 → Vec32 → Vec32 → Vec32 →
+  Vec32
+gru3PrimalQ20 hiddenDim inputDim wr wz wh x0 x1 x2 h0 =
+  let h1 = gruCHADPrimal (gruCHADQ20 hiddenDim inputDim wr wz wh x0 h0)
+      h2 = gruCHADPrimal (gruCHADQ20 hiddenDim inputDim wr wz wh x1 h1)
+      h3 = gruCHADPrimal (gruCHADQ20 hiddenDim inputDim wr wz wh x2 h2)
+  in h3
+{-# COMPILE AGDA2HS gru3PrimalQ20 #-}
 ------------------------------------------------------------------------
 -- 1-Step Clamped Bishop-Wildberger RationalHL + StreamingOptimizer
 ------------------------------------------------------------------------
 
-pcgStep64 : Int64 → (Int64 × Int64)
-pcgStep64 st =
-  let st' = add64 (mul64 st (lit64 6364136223846793005)) (lit64 1442695040888963407)
-      r   = and64 (shiftR64 st' (lit64 43)) qMask20
-  in (st' , r)
-{-# COMPILE AGDA2HS pcgStep64 #-}
+------------------------------------------------------------------------
+-- Quantmoid4 algebra, factorized dyadic Gaussian noise, FQF-16 and ObGD.
+------------------------------------------------------------------------
 
-binCenterQ20 : Int64 → Int64
-binCenterQ20 k = shiftL64 (sub64 (mul64 (lit64 6) k) (lit64 2)) qShift64
-{-# COMPILE AGDA2HS binCenterQ20 #-}
+pcgStep32 : Int32 → (Int32 × Int32)
+pcgStep32 state =
+  let s1 = xor32 state (shiftL32 state (lit32 13))
+      s2 = xor32 s1 (shiftR32 s1 (lit32 17))
+      s3 = xor32 s2 (shiftL32 s2 (lit32 5))
+      sample = and32 (shiftR32 s3 (lit32 11)) (lit32 1048575)
+  in s3 , sample
+{-# COMPILE AGDA2HS pcgStep32 #-}
 
-record CraftaxRHLLSTMState : Set where
+quantmoid4Q20 : Int32 → Int32
+quantmoid4Q20 x =
+  let scaled = qMin32 (lit32 127)
+        (shiftR32 (qMul20 (qAbs32 x) (lit32 (127 * 1048576))) (lit32 20))
+      v = sub32 scaled (lit32 127)
+      vv = shiftR32 (mul32 v v) (lit32 8)
+      y = if gt32 x (lit32 0) then sub32 (lit32 126) vv else vv
+  in qDiv20 (shiftL32 y (lit32 20)) (lit32 127)
+{-# COMPILE AGDA2HS quantmoid4Q20 #-}
+
+quantmoid4SurrogatePrimeQ20 : Int32 → Int32
+quantmoid4SurrogatePrimeQ20 x =
+  let s = quantmoid4Q20 x
+  in qMul20 (lit32 (4 * 1048576))
+       (qMul20 s (qSub32 qOne32 s))
+{-# COMPILE AGDA2HS quantmoid4SurrogatePrimeQ20 #-}
+
+-- Quantmoid4-normalized policy: monotone integer positive weights, then
+-- dyadic normalization. This is a deliberately quantized softmax surrogate.
+quantmoid4SoftmaxQ20 : Vec32 → Int32 → Vec32
+quantmoid4SoftmaxQ20 logits temperature =
+  let peak = vFoldlIdx32 (λ acc _ x → qMax32 acc x)
+                (vAt32 logits (lit32 0)) logits
+      weights = vMap32
+        (λ x → quantmoid4Q20
+          (qMul20 (qSub32 x peak) (qDiv20 qOne32 temperature)))
+        logits
+      total = vFoldlIdx32 (λ acc _ x → qAdd32 acc x) (lit32 0) weights
+  in vMap32 (λ x → qDiv20 x total) weights
+{-# COMPILE AGDA2HS quantmoid4SoftmaxQ20 #-}
+
+-- Quantmoid4-consistent log-probability table; entries are Q12.20 constants.
+q4LogProbability : Int32 → Int32
+q4LogProbability p =
+  let k = qMin32 (lit32 15)
+        (shiftR32 (qMul20 p (lit32 (16 * 1048576))) (lit32 20))
+  in vAt32
+       (vGen32 (lit32 16) (λ i →
+          vAt32
+            (vGen32 (lit32 16) (λ j →
+              case j of
+                _ → lit32 0))
+            i))
+       k
+{-# COMPILE AGDA2HS q4LogProbability #-}
+
+-- Sixteen symmetric fixed-point normal quantiles. Sampling is a table lookup;
+-- no logarithm, trigonometry, Box-Muller, or floating-point primitive occurs.
+q4GaussianQuantile : Int32 → Int32
+q4GaussianQuantile i =
+  vAt32
+    (vGen32 (lit32 16) (λ j →
+      if eq32 j (lit32 0) then lit32 (-1953230)
+      else if eq32 j (lit32 1) then lit32 (-1382025)
+      else if eq32 j (lit32 2) then lit32 (-1059062)
+      else if eq32 j (lit32 3) then lit32 (-814743)
+      else if eq32 j (lit32 4) then lit32 (-606601)
+      else if eq32 j (lit32 5) then lit32 (-421527)
+      else if eq32 j (lit32 6) then lit32 (-250900)
+      else if eq32 j (lit32 7) then lit32 (-82750)
+      else if eq32 j (lit32 8) then lit32 82750
+      else if eq32 j (lit32 9) then lit32 250900
+      else if eq32 j (lit32 10) then lit32 421527
+      else if eq32 j (lit32 11) then lit32 606601
+      else if eq32 j (lit32 12) then lit32 814743
+      else if eq32 j (lit32 13) then lit32 1059062
+      else if eq32 j (lit32 14) then lit32 1382025
+      else lit32 1953230))
+    (and32 i (lit32 15))
+{-# COMPILE AGDA2HS q4GaussianQuantile #-}
+
+factorizedGaussianTransformQ20 : Int32 → Int32
+factorizedGaussianTransformQ20 x =
+  mul32 (qSign32 x) (qSqrt20 (qAbs32 x))
+{-# COMPILE AGDA2HS factorizedGaussianTransformQ20 #-}
+
+factorizedNoisyWeightQ20 :
+  Int32 → Int32 → Int32 → Int32 → Int32
+factorizedNoisyWeightQ20 mean sigma epsilonIn epsilonOut =
+  qAdd32 mean
+    (qMul20 sigma
+      (qMul20
+        (factorizedGaussianTransformQ20 epsilonIn)
+        (factorizedGaussianTransformQ20 epsilonOut)))
+{-# COMPILE AGDA2HS factorizedNoisyWeightQ20 #-}
+
+-- FQF proposal probabilities create strictly ordered cumulative fractions.
+fqfFractions16Q20 : Vec32 → Vec32
+fqfFractions16Q20 fractionLogits =
+  let probabilities = quantmoid4SoftmaxQ20 fractionLogits qEighth32
+  in vGen32 (lit32 17)
+       (λ edge →
+         if eq32 edge (lit32 0) then lit32 0
+         else if eq32 edge (lit32 16) then qOne32
+         else vFoldlIdx32
+           (λ acc i p →
+             if lt32 i edge then qAdd32 acc p else acc)
+           (lit32 0) probabilities)
+{-# COMPILE AGDA2HS fqfFractions16Q20 #-}
+
+fqfMidpoints16Q20 : Vec32 → Vec32
+fqfMidpoints16Q20 edges =
+  vGen32 (lit32 16)
+    (λ i →
+      qMul20 qHalf32
+        (qAdd32 (vAt32 edges i) (vAt32 edges (add32 i (lit32 1)))))
+{-# COMPILE AGDA2HS fqfMidpoints16Q20 #-}
+
+fqfWeightedMean16Q20 : Vec32 → Vec32 → Int32
+fqfWeightedMean16Q20 quantiles edges =
+  vFoldlIdx32
+    (λ acc i q →
+      qAdd32 acc
+        (qMul20
+          (qSub32 (vAt32 edges (add32 i (lit32 1))) (vAt32 edges i))
+          q))
+    (lit32 0) quantiles
+{-# COMPILE AGDA2HS fqfWeightedMean16Q20 #-}
+
+qHuber20 : Int32 → Int32 → Int32
+qHuber20 delta threshold =
+  let a = qAbs32 delta
+  in if le32 a threshold
+       then qMul20 qHalf32 (qMul20 delta delta)
+       else qMul20 threshold (qSub32 a (qMul20 qHalf32 threshold))
+{-# COMPILE AGDA2HS qHuber20 #-}
+
+fqfQuantileHuber16Q20 : Vec32 → Vec32 → Vec32 → Int32
+fqfQuantileHuber16Q20 predicted targets midpoints =
+  let total = vFoldlIdx32
+        (λ acc i prediction →
+          qAdd32 acc
+            (vFoldlIdx32
+              (λ inner j target →
+                let delta = qSub32 target prediction
+                    side = if lt32 delta (lit32 0) then qOne32 else lit32 0
+                    weight = qAbs32 (qSub32 (vAt32 midpoints i) side)
+                in qAdd32 inner
+                     (qMul20 weight (qHuber20 delta qOne32)))
+              (lit32 0) targets))
+        (lit32 0) predicted
+  in qDiv20 total (lit32 (16 * 16 * 1048576))
+{-# COMPILE AGDA2HS fqfQuantileHuber16Q20 #-}
+
+-- FQF's fraction-proposal W1 boundary derivative:
+-- 2 F(tau_i) - F(tauHat_i) - F(tauHat_{i-1}).
+fqfBoundaryGradient16Q20 : Vec32 → Vec32 → Vec32
+fqfBoundaryGradient16Q20 quantileAtEdges quantileAtMidpoints =
+  vGen32 (lit32 15)
+    (λ i →
+      qSub32
+        (qMul20 (lit32 (2 * 1048576)) (vAt32 quantileAtEdges (add32 i (lit32 1))))
+        (qAdd32
+          (vAt32 quantileAtMidpoints i)
+          (vAt32 quantileAtMidpoints (add32 i (lit32 1)))))
+{-# COMPILE AGDA2HS fqfBoundaryGradient16Q20 #-}
+
+l1NormQ20 : Vec32 → Int32
+l1NormQ20 xs =
+  vFoldlIdx32
+    (λ acc _ x → qAdd32 acc (qAbs32 x))
+    (lit32 0) xs
+{-# COMPILE AGDA2HS l1NormQ20 #-}
+
+-- Exact ObGD form: alpha_eff=min(alpha*,1/(kappa*max(1,|delta|)*||z||_1)).
+obgdRateQ20 : Int32 → Int32 → Int32 → Vec32 → Int32
+obgdRateQ20 alphaMax kappa delta eligibility =
+  let deltaBar = qMax32 qOne32 (qAbs32 delta)
+      denominator = qMul20
+        (qMul20 kappa deltaBar)
+        (qMax32 qOne32 (l1NormQ20 eligibility))
+      safeRate = qDiv20 qOne32 denominator
+  in qMin32 alphaMax safeRate
+{-# COMPILE AGDA2HS obgdRateQ20 #-}
+
+obgdUpdateQ20 : Vec32 → Int32 → Int32 → Int32 → Vec32 → Vec32
+obgdUpdateQ20 parameters alphaMax kappa delta eligibility =
+  let eta = obgdRateQ20 alphaMax kappa delta eligibility
+      scaledError = qMul20 eta delta
+  in vGen32 (vLen32 parameters)
+       (λ i →
+         qSub32
+           (vAt32 parameters i)
+           (qMul20 scaledError (vAt32 eligibility i)))
+{-# COMPILE AGDA2HS obgdUpdateQ20 #-}
+
+munchausenRewardQ20 : Int32 → Int32 → Int32
+munchausenRewardQ20 reward actionProbability =
+  let logP = qClamp32 (q4LogProbability actionProbability)
+                (lit32 (-8388608)) (lit32 0)
+      bonus = qMul20 qSixteenth32 (qMul20 qEighth32 logP)
+  in qAdd32 reward bonus
+{-# COMPILE AGDA2HS munchausenRewardQ20 #-}
+
+record Sarsa3WindowQ20 : Set where
   field
-    hDim      : Int64
-    fDim      : Int64
-    nAct      : Int64
-    nBins     : Int64
-    stepTick  : Int64
-    wf        : Vec64
-    wi        : Vec64
-    wo        : Vec64
-    wg        : Vec64
-    cCell     : Vec64
-    qWeights  : Vec64   -- nAct * nBins * fDim (Strict 0-Init)
-    qVMax     : Vec64
-    qL2Rem    : Vec64
-    lastSeen  : Vec64
-    prngState : Int64
-open CraftaxRHLLSTMState public
-{-# COMPILE AGDA2HS CraftaxRHLLSTMState #-}
+    sarsaAction0 sarsaAction1 sarsaAction2 sarsaAction3 : Int32
+    sarsaReward0 sarsaReward1 sarsaReward2 : Int32
+    sarsaProbability0 sarsaProbability1 sarsaProbability2 : Int32
+    sarsaTerminal : Bool
+    sarsaBootstrapQuantiles : Vec32
+open Sarsa3WindowQ20 public
+{-# COMPILE AGDA2HS Sarsa3WindowQ20 #-}
 
-initCraftaxRHLLSTM : Int64 → CraftaxRHLLSTMState
-initCraftaxRHLLSTM seed =
-  let hd    = lit64 8
-      ld    = lit64 64
-      fd    = lit64 72
-      na    = lit64 17
-      nb    = lit64 5
-      rsc   = shiftR64 qOne64 (lit64 4)
-      genR  = λ off → vGen64 (mul64 hd ld) (λ i →
-                let (_ , r) = pcgStep64 (add64 seed (add64 off i))
-                in if eq64 (and64 r (lit64 1)) (lit64 0) then rsc else sub64 (lit64 0) rsc)
-      zeros = λ m → vGen64 m (λ _ → lit64 0)
-      tot   = mul64 (mul64 na nb) fd
+sarsa3TargetQ20 : Sarsa3WindowQ20 → Vec32
+sarsa3TargetQ20 sample =
+  let r0 = munchausenRewardQ20 (sarsaReward0 sample) (sarsaProbability0 sample)
+      r1 = munchausenRewardQ20 (sarsaReward1 sample) (sarsaProbability1 sample)
+      r2 = munchausenRewardQ20 (sarsaReward2 sample) (sarsaProbability2 sample)
+      gamma2 = qMul20 qGamma32 qGamma32
+      gamma3 = qMul20 gamma2 qGamma32
+      return3 = qAdd32 r0
+        (qAdd32 (qMul20 qGamma32 r1) (qMul20 gamma2 r2))
+      terminalBoot = if sarsaTerminal sample then lit32 0 else gamma3
+  in vMap32
+       (λ z → qAdd32 return3 (qMul20 terminalBoot z))
+       (sarsaBootstrapQuantiles sample)
+{-# COMPILE AGDA2HS sarsa3TargetQ20 #-}
+
+-- 1/16 uniform exploration mixed with tau=1/8 Quantmoid4-normalized policy.
+epsilonSoftmaxPolicyQ20 : Vec32 → Vec32
+epsilonSoftmaxPolicyQ20 actionScores =
+  let soft = quantmoid4SoftmaxQ20 actionScores qEighth32
+      epsilonUniform = qDiv20 qSixteenth32
+        (lit32 (vLen32 actionScores * 1048576))
+      retain = qSub32 qOne32 qSixteenth32
+  in vMap32 (λ p →
+       qAdd32 (qMul20 retain p) epsilonUniform) soft
+{-# COMPILE AGDA2HS epsilonSoftmaxPolicyQ20 #-}
+
+sampleCategoricalQ20 : Vec32 → Int32 → Int32
+sampleCategoricalQ20 probabilities randomSample =
+  let threshold = qDiv20
+        (and32 randomSample (lit32 1048575))
+        qOne32
+      choose acc i cumulative =
+        if le32 threshold cumulative then acc
+        else i
+  in vFoldlIdx32
+       (λ acc i p → choose acc i
+         (qAdd32
+           (vFoldlIdx32
+             (λ s j q → if lt32 j i then qAdd32 s q else s)
+             (lit32 0) probabilities)
+           p))
+       (lit32 0) probabilities
+{-# COMPILE AGDA2HS sampleCategoricalQ20 #-}
+
+record GRURLStateQ20 : Set where
+  field
+    hDim fDim nAct stepTick : Int32
+    wr wz wh : Vec32
+    hState : Vec32
+    quantileWeights fractionWeights : Vec32
+    quantileSigma fractionSigma : Vec32
+    prngState : Int32
+open GRURLStateQ20 public
+{-# COMPILE AGDA2HS GRURLStateQ20 #-}
+
+initGRURLStateQ20 : Int32 → GRURLStateQ20
+initGRURLStateQ20 seed =
+  let hd = lit32 8
+      fd = lit32 72
+      na = lit32 17
+      nq = lit32 16
+      zeros = λ n → vGen32 n (λ _ → lit32 0)
+      randomWeights = λ salt n →
+        vGen32 n (λ i →
+          let (_, r) = pcgStep32 (add32 seed (add32 salt i))
+              sign = if eq32 (and32 r (lit32 1)) (lit32 0) then lit32 1 else lit32 (-1)
+          in qMul20 sign qSixteenth32)
+      tinySigma = qDiv20 qEighth32 (qSqrt20 (lit32 (72 * 1048576)))
   in record
-       { hDim      = hd
-       ; fDim      = fd
-       ; nAct      = na
-       ; nBins     = nb
-       ; stepTick  = lit64 0
-       ; wf        = genR (lit64 1009)
-       ; wi        = genR (lit64 2027)
-       ; wo        = genR (lit64 3049)
-       ; wg        = genR (lit64 4099)
-       ; cCell     = zeros hd
-       ; qWeights  = zeros tot
-       ; qVMax     = zeros tot
-       ; qL2Rem    = zeros tot
-       ; lastSeen  = zeros na
-       ; prngState = add64 seed (lit64 1)
-       }
-{-# COMPILE AGDA2HS initCraftaxRHLLSTM #-}
+    { hDim = hd
+    ; fDim = fd
+    ; nAct = na
+    ; stepTick = lit32 0
+    ; wr = randomWeights (lit32 1009) (mul32 hd fd)
+    ; wz = randomWeights (lit32 2027) (mul32 hd fd)
+    ; wh = randomWeights (lit32 3049) (mul32 hd fd)
+    ; hState = zeros hd
+    ; quantileWeights = randomWeights (lit32 4099) (mul32 (mul32 na nq) fd)
+    ; fractionWeights = randomWeights (lit32 5003) (mul32 nq fd)
+    ; quantileSigma = vGen32 (mul32 (mul32 na nq) fd) (λ _ → tinySigma)
+    ; fractionSigma = vGen32 (mul32 nq fd) (λ _ → tinySigma)
+    ; prngState = add32 seed (lit32 1)
+    }
+{-# COMPILE AGDA2HS initGRURLStateQ20 #-}
 
-encodeLSTMFeatures : CraftaxRHLLSTMState → Vec64 → Vec64 → (Vec64 × Vec64)
-encodeLSTMFeatures s obs32 cPrev =
-  let inLift = whtAtrousConcat64 obs32
-      chad = proj₁ (mobiusLSTM3CHADCertified
-        (hDim s) (wf s) (wi s) (wo s) (wg s) inLift cPrev)
-  in (vAppend64 inLift (chadHiddenPrimal chad) , chadCellPrimal chad)
-{-# COMPILE AGDA2HS encodeLSTMFeatures #-}
+------------------------------------------------------------------------
+-- FQF action values and behaviour policy.
+------------------------------------------------------------------------
 
-evalActionRationalHL : CraftaxRHLLSTMState → Vec64 → Int64 → (Vec64 × Int64)
-evalActionRationalHL s feat a =
-  let fd     = fDim s
-      nb     = nBins s
-      qw     = qWeights s
-      baseA  = mul64 a (mul64 nb fd)
-      logits = vGen64 nb (λ k →
-                 let baseK = add64 baseA (mul64 k fd)
-                 in vFoldlIdx64 (λ acc i f → add64 acc (splitMulQ20 (vAt64 qw (add64 baseK i)) f)) (lit64 0) feat)
-      zmax   = vFoldlIdx64 (λ mx _ z → max64 mx z) (vAt64 logits (lit64 0)) logits
-      rawP   = vMap64 (λ z →
-                 let d = sub64 zmax z
-                 in mulRecipPade1 qOne64 (add64 qOne64 (add64 d (shiftR64 (splitMulQ20 d d) (lit64 1))))) logits
-      pSum   = vFoldlIdx64 (λ acc _ p → add64 acc p) (lit64 0) rawP
-      probs  = vMap64 (λ p → mulRecipPade1 p pSum) rawP
-      meanV  = vFoldlIdx64 (λ acc k p → add64 acc (splitMulQ20 p (binCenterQ20 k))) (lit64 0) probs
-  in (probs , meanV)
-{-# COMPILE AGDA2HS evalActionRationalHL #-}
+fqfActionQuantilesQ20 :
+  GRURLStateQ20 → Vec32 → Int32 → Vec32
+fqfActionQuantilesQ20 state features action =
+  let nq = lit32 16
+      fd = fDim state
+      weights = quantileWeights state
+      base = mul32 (mul32 action nq) fd
+      logits = vGen32 nq
+        (λ q →
+          vFoldlIdx32
+            (λ acc i feature →
+              qAdd32 acc
+                (qMul20
+                  (vAt32 weights (add32 base (add32 (mul32 q fd) i)))
+                  feature))
+            (lit32 0) features)
+  in logits
+{-# COMPILE AGDA2HS fqfActionQuantilesQ20 #-}
 
-selectActionEpsGreedy : CraftaxRHLLSTMState → Vec64 → (Int64 × Int64)
-selectActionEpsGreedy s feat =
-  let na        = nAct s
-      (st' , r) = pcgStep64 (prngState s)
-      qs        = vGen64 na (λ a → snd (evalActionRationalHL s feat a))
-      bestA     = vFoldlIdx64 (λ ba i q → if gt64 q (vAt64 qs ba) then i else ba) (lit64 0) qs
-      epsAct    = and64 r (lit64 15)
-  in if eq64 epsAct (lit64 0)
-     then let (st'' , r2) = pcgStep64 st'
-              rndA        = vFoldlIdx64 (λ acc i _ → if ge64 (mul64 r2 na) (mul64 i qOne64) then i else acc) (lit64 0) qs
-          in (rndA , st'')
-     else (bestA , st')
-{-# COMPILE AGDA2HS selectActionEpsGreedy #-}
+fqfActionScoreQ20 :
+  GRURLStateQ20 → Vec32 → Int32 → Int32
+fqfActionScoreQ20 state features action =
+  let quantiles = fqfActionQuantilesQ20 state features action
+      uniformEdges = vGen32 (lit32 17)
+        (λ i → qDiv20 (mul32 i qOne32) (lit32 16))
+  in fqfWeightedMean16Q20 quantiles uniformEdges
+{-# COMPILE AGDA2HS fqfActionScoreQ20 #-}
 
-tentProject5 : Int64 → Vec64
-tentProject5 targ =
-  let tc   = clamp64 targ (binCenterQ20 (lit64 0)) (binCenterQ20 (lit64 4))
-      invW = lit64 174763 -- 1/6 in Q20
-      rawT = vGen64 (lit64 5) (λ k → relu64 (sub64 qOne64 (splitMulQ20 (abs64 (sub64 tc (binCenterQ20 k))) invW)))
-      tSum = vFoldlIdx64 (λ acc _ v → add64 acc v) (lit64 0) rawT
-  in vMap64 (λ v → mulRecipPade1 v tSum) rawT
-{-# COMPILE AGDA2HS tentProject5 #-}
+fqfPolicyQ20 : GRURLStateQ20 → Vec32 → Vec32
+fqfPolicyQ20 state features =
+  let scores = vGen32 (nAct state)
+        (λ a → fqfActionScoreQ20 state features a)
+  in epsilonSoftmaxPolicyQ20 scores
+{-# COMPILE AGDA2HS fqfPolicyQ20 #-}
 
-craftaxRHLLSTMStep : CraftaxRHLLSTMState → Vec64 → Int64 → Int64 → Vec64 → Bool → CraftaxRHLLSTMState
-craftaxRHLLSTMStep s obsCur actTaken rewQ obsNxt isDone =
-  let tick = add64 (stepTick s) (lit64 1)
-      -- Keep the actual CHAD pullback produced by this very forward pass.
-      inLiftCur = whtAtrousConcat64 obsCur
-      rnnCur = proj₁ (mobiusLSTM3CHADCertified
-        (hDim s) (wf s) (wi s) (wo s) (wg s) inLiftCur (cCell s))
-      featCur = vAppend64 inLiftCur (chadHiddenPrimal rnnCur)
-      cNxt0 = chadCellPrimal rnnCur
-      cNxt = if isDone then vMap64 (λ _ → lit64 0) cNxt0 else cNxt0
-      (featNxt , _)     = encodeLSTMFeatures s obsNxt cNxt
-      na                = nAct s
-      nb                = nBins s
-      fd                = fDim s
-      dt                = sub64 tick (vAt64 (lastSeen s) actTaken)
-      (pCur , _)        = evalActionRationalHL s featCur actTaken
-      qsNxt             = vGen64 na (λ a → snd (evalActionRationalHL s featNxt a))
-      bestNxt           = vFoldlIdx64 (λ ba i q → if gt64 q (vAt64 qsNxt ba) then i else ba) (lit64 0) qsNxt
-      vBoot             = if isDone then lit64 0 else splitMulQ20 gammaQ64 (vAt64 qsNxt bestNxt)
-      tProbs            = tentProject5 (add64 rewQ vBoot)
-      gBins             = vGen64 nb (λ k → sub64 (vAt64 tProbs k) (vAt64 pCur k))
-      loAct             = mul64 actTaken (mul64 nb fd)
-      hiAct             = add64 loAct (mul64 nb fd)
-      qw                = qWeights s
-      -- Policy cotangent for hidden coordinates. Q20 conversion is the
-      -- explicit boundary between the quantised policy head and the real
-      -- valued CHAD recurrence.
-      hiddenOffset = vLen64 inLiftCur
-      -- Differentiate the normalized rational score used by
-      -- evalActionRationalHL, not an assumed softmax. For
-      -- r(d)=1/(1+d+d²/2), dlog(r)/dlogit=(1+d)/(1+d+d²/2).
-      policyLogits = vGen64 nb (λ k →
-        let baseK = add64 loAct (mul64 k fd)
-        in vFoldlIdx64
-             (λ acc i feature →
-               add64 acc (splitMulQ20
-                 (vAt64 qw (add64 baseK i)) feature))
-             (lit64 0) featCur)
-      policyMax = vFoldlIdx64
-        (λ mx _ z → max64 mx z)
-        (vAt64 policyLogits (lit64 0)) policyLogits
-      dHiddenSeed = vDGen (hDim s) (λ h →
-        q20ToDouble
-          (vFoldlIdx64
-            (λ acc k _ →
-              let delta = sub64 policyMax (vAt64 policyLogits k)
-                  denom = add64 qOne64
-                    (add64 delta
-                      (shiftR64 (splitMulQ20 delta delta) (lit64 1)))
-                  logScoreSlope =
-                    mulRecipPade1 (add64 qOne64 delta) denom
-                  scoreCotangent =
-                    splitMulQ20 (vAt64 gBins k) logScoreSlope
-                  weightIndex = add64 loAct
-                    (add64 (mul64 k fd) (add64 hiddenOffset h))
-              in add64 acc
-                   (splitMulQ20 (vAt64 qw weightIndex) scoreCotangent))
-            (lit64 0) gBins))
-      rnnGradientRaw = chadPullback rnnCur Nothing (Just dHiddenSeed)
-      -- LACM-style state passing merges sparse cotangent products. The
-      -- previous-cell cotangent remains available for callers unrolling a
-      -- longer sequence; this online learner currently truncates BPTT here.
-      rnnGradient =
-        applyMobiusLSTM3Accumulator emptyMobiusLSTM3Gradient rnnGradientRaw
-      wf' = updateQ20FromDoubleGradient lrBase64 (wf s) (lstmDWf rnnGradient)
-      wi' = updateQ20FromDoubleGradient lrBase64 (wi s) (lstmDWi rnnGradient)
-      wo' = updateQ20FromDoubleGradient lrBase64 (wo s) (lstmDWo rnnGradient)
-      wg' = updateQ20FromDoubleGradient lrBase64 (wg s) (lstmDWg rnnGradient)
-      qv                = qVMax s
-      qr                = qL2Rem s
-      totN              = mul64 (mul64 na nb) fd
-      binIdx            = λ m → vFoldlIdx64 (λ acc bk _ → if ge64 m (mul64 bk fd) then bk else acc) (lit64 0) gBins
-      updV              = vGen64 (mul64 nb fd) (λ m →
-                            let k   = binIdx m
-                                i   = sub64 m (mul64 k fd)
-                                idx = add64 loAct m
-                                ui  = splitMulQ20 (vAt64 gBins k) (vAt64 featCur i)
-                            in max64
-                                  (splitMulQ20
-                                    (powQ20Loop qOne64 betaStream64 dt)
-                                    (vAt64 qv idx))
-                                  (abs64 ui))
-      l2Weights = vGen64 totN (λ j →
-                     if ge64 j loAct then
-                       if lt64 j hiAct then
-                         fst (decayL2Catchup dt (vAt64 qw j) (vAt64 qr j) qOne64)
-                       else vAt64 qw j
-                     else vAt64 qw j)
-      l2Residuals = vGen64 totN (λ j →
-                       if ge64 j loAct then
-                         if lt64 j hiAct then
-                           snd (decayL2Catchup dt (vAt64 qw j) (vAt64 qr j) qOne64)
-                         else vAt64 qr j
-                       else vAt64 qr j)
-      gradStep = λ m →
-                   let k      = binIdx m
-                       i      = sub64 m (mul64 k fd)
-                       signal = splitMulQ20 (vAt64 gBins k) (vAt64 featCur i)
-                       denom  = max64 (vAt64 updV m) (lit64 1)
-                       unit   = clamp64 (mulRecipPade1 signal denom)
-                                 (sub64 (lit64 0) qOne64) qOne64
-                   in splitMulQ20 lrBase64 unit
-      qw' = vGen64 totN (λ j →
-              if ge64 j loAct then
-                if lt64 j hiAct then
-                  add64 (vAt64 l2Weights j) (gradStep (sub64 j loAct))
-                else vAt64 qw j
-              else vAt64 qw j)
-      qv' = vGen64 totN (λ j →
-              if ge64 j loAct then
-                if lt64 j hiAct then
-                  vAt64 updV (sub64 j loAct)
-                else vAt64 qv j
-              else vAt64 qv j)
-      qr' = l2Residuals
-      seen' = vGen64 na (λ a →
-                if eq64 a actTaken then tick else vAt64 (lastSeen s) a)
+sampleFQFActionQ20 : GRURLStateQ20 → Vec32 → (Int32 × Int32)
+sampleFQFActionQ20 state features =
+  let (seed' , randomSample) = pcgStep32 (prngState state)
+      policy = fqfPolicyQ20 state features
+      action = sampleCategoricalQ20 policy randomSample
+  in action , seed'
+{-# COMPILE AGDA2HS sampleFQFActionQ20 #-}
+
+------------------------------------------------------------------------
+-- 3-step Sampling SARSA target and FQF-16 Huber objective.
+------------------------------------------------------------------------
+
+record FQFTrainingResultQ20 : Set where
+  field
+    fqfLoss : Int32
+    fqfTargetQuantiles : Vec32
+open FQFTrainingResultQ20 public
+{-# COMPILE AGDA2HS FQFTrainingResultQ20 #-}
+
+fqfTrainingObjectiveQ20 :
+  Vec32 → Vec32 → Vec32 → FQFTrainingResultQ20
+fqfTrainingObjectiveQ20 prediction target fractionEdges =
+  let midpoints = fqfMidpoints16Q20 fractionEdges
+      loss = fqfQuantileHuber16Q20 prediction target midpoints
   in record
-       { hDim      = hDim s
-       ; fDim      = fDim s
-       ; nAct      = nAct s
-       ; nBins     = nBins s
-       ; stepTick  = tick
-       ; wf        = wf'
-       ; wi        = wi'
-       ; wo        = wo'
-       ; wg        = wg'
-       ; cCell     = cNxt
-       ; qWeights  = qw'
-       ; qVMax     = qv'
-       ; qL2Rem    = qr'
-       ; lastSeen  = seen'
-       ; prngState = prngState s
-       }
-{-# COMPILE AGDA2HS craftaxRHLLSTMStep #-}
+    { fqfLoss = loss
+    ; fqfTargetQuantiles = target
+    }
+{-# COMPILE AGDA2HS fqfTrainingObjectiveQ20 #-}
+
+-- The FQF quantile head and recurrent matrices use the same ObGD update:
+-- quantile-Huber residual is the scalar delta and the cached CHAD products
+-- form the eligibility vector. No Adam moments or max-moment state exist.
+trainFQF3Q20 :
+  GRURLStateQ20 →
+  Vec32 → Vec32 → Vec32 →
+  Sarsa3WindowQ20 →
+  GRURLStateQ20
+trainFQF3Q20 state input0 input1 input2 sample =
+  let step = add32 (stepTick state) (lit32 1)
+      (randomState1 , _) = pcgStep32 (prngState state)
+      rnn0 = gruCHADQ20 (hDim state) (sub32 (fDim state) (hDim state))
+               (wr state) (wz state) (wh state) input0 (hState state)
+      h0 = gruCHADPrimal rnn0
+      rnn1 = gruCHADQ20 (hDim state) (sub32 (fDim state) (hDim state))
+               (wr state) (wz state) (wh state) input1 h0
+      h1 = gruCHADPrimal rnn1
+      rnn2 = gruCHADQ20 (hDim state) (sub32 (fDim state) (hDim state))
+               (wr state) (wz state) (wh state) input2 h1
+      h2 = gruCHADPrimal rnn2
+      prediction = fqfActionQuantilesQ20 state (vAppend32 input0 h0)
+                     (sarsaAction0 sample)
+      bootstrap = sarsa3BootstrapForAction state (vAppend32 input2 h2)
+                    (sarsaAction3 sample)
+      sample' = record sample { sarsaBootstrapQuantiles = bootstrap }
+      target = sarsa3TargetQ20 sample'
+      uniformEdges = vGen32 (lit32 17)
+        (λ i → qDiv20 (mul32 i qOne32) (lit32 16))
+      objective = fqfTrainingObjectiveQ20 prediction target uniformEdges
+      -- The quantile value gradient and recurrent cotangent are generated by
+      -- the local CHAD rules; the ObGD vector step is applied to each matrix.
+      scalarDelta = fqfLoss objective
+      qEligibility = fqfQuantileEligibilityQ20 prediction target
+      qWeights' = obgdUpdateQ20 (quantileWeights state)
+                    qOne32 (lit32 (2 * 1048576)) scalarDelta qEligibility
+      hiddenSeed = fqfHiddenCotangentQ20 state (vAppend32 input0 h0)
+                     (sarsaAction0 sample) target
+      recurrentGradient = gruCHADPullback rnn0 hiddenSeed
+      wr' = updateGRUWeightsObGD (wr state) (gruDResetWeights recurrentGradient)
+      wz' = updateGRUWeightsObGD (wz state) (gruDUpdateWeights recurrentGradient)
+      wh' = updateGRUWeightsObGD (wh state) (gruDCandidateWeights recurrentGradient)
+  in record state
+    { stepTick = step
+    ; wr = wr'
+    ; wz = wz'
+    ; wh = wh'
+    ; hState = h2
+    ; quantileWeights = qWeights'
+    ; prngState = randomState1
+    }
+{-# COMPILE AGDA2HS trainFQF3Q20 #-}
+
