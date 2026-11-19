@@ -31,17 +31,6 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- The repository's global options enable --confluence-check.
 open import Haskell.Prelude public
 
-open import Agda.Builtin.Float using
-  ( primNatToFloat
-  ; primFloatPlus
-  ; primFloatMinus
-  ; primFloatTimes
-  ; primFloatDiv
-  ; primFloatNegate
-  ; primFloatLess
-  ; primFloatSqrt
-  )
-
 {-# FOREIGN AGDA2HS
 {-# LANGUAGE BangPatterns #-}
 import qualified Data.Bits as Bits
@@ -53,6 +42,28 @@ import Control.Parallel.Strategies (parMap, rdeepseq)
 
 type Vec64 = Vector Int64
 type VecD = Vector Double
+
+dZero, dOne, dTwo, dEight, dEpsilon :: Double
+dZero = 0.0
+dOne = 1.0
+dTwo = 2.0
+dEight = 8.0
+dEpsilon = 1.0 / 1024.0
+
+dAdd, dSub, dMul, dDiv :: Double -> Double -> Double
+dAdd = (+)
+dSub = (-)
+dMul = (*)
+dDiv = (/)
+
+dNegate :: Double -> Double
+dNegate = negate
+
+dLess :: Double -> Double -> Bool
+dLess = (<)
+
+dSqrt :: Double -> Double
+dSqrt = sqrt
 
 lit64 :: Integer -> Int64
 lit64 = fromIntegral
@@ -152,6 +163,11 @@ postulate
   vDAt : VecD → Int64 → Double
   vDGen : Int64 → (Int64 → Double) → VecD
   vDFoldlIdx : (Double → Int64 → Double → Double) → Double → VecD → Double
+  dZero dOne dTwo dEight dEpsilon : Double
+  dAdd dSub dMul dDiv : Double → Double → Double
+  dNegate : Double → Double
+  dLess : Double → Double → Bool
+  dSqrt : Double → Double
 
 ------------------------------------------------------------------------
 -- Exact O(1) Q44.20 Dyadic Constants (Strict Single Fixed Precision)
@@ -407,48 +423,20 @@ infixr 4 :&:
 -- higher-order derivative closures.
 ------------------------------------------------------------------------
 
-dZero dOne dTwo dEight dEpsilon : Double
-dZero = primNatToFloat 0
-dOne = primNatToFloat 1
-dTwo = primNatToFloat 2
-dEight = primNatToFloat 8
-dEpsilon = primFloatDiv dOne (primNatToFloat 1024)
-{-# COMPILE AGDA2HS dZero #-}
-{-# COMPILE AGDA2HS dOne #-}
-{-# COMPILE AGDA2HS dTwo #-}
-{-# COMPILE AGDA2HS dEight #-}
-{-# COMPILE AGDA2HS dEpsilon #-}
-
-dAdd : Double → Double → Double
-dAdd = primFloatPlus
-{-# COMPILE AGDA2HS dAdd #-}
-
-dSub : Double → Double → Double
-dSub = primFloatMinus
-{-# COMPILE AGDA2HS dSub #-}
-
-dMul : Double → Double → Double
-dMul = primFloatTimes
-{-# COMPILE AGDA2HS dMul #-}
-
-dDiv : Double → Double → Double
-dDiv = primFloatDiv
-{-# COMPILE AGDA2HS dDiv #-}
-
 dAbs : Double → Double
-dAbs x = if primFloatLess x dZero then primFloatNegate x else x
+dAbs x = if dLess x dZero then dNegate x else x
 {-# COMPILE AGDA2HS dAbs #-}
 
 dSign : Double → Double
 dSign x =
-  if primFloatLess x dZero then primFloatNegate dOne
-  else if primFloatLess dZero x then dOne else dZero
+  if dLess x dZero then dNegate dOne
+  else if dLess dZero x then dOne else dZero
 {-# COMPILE AGDA2HS dSign #-}
 
 dClip : Double → Double
 dClip x =
-  if primFloatLess x (primFloatNegate dOne) then primFloatNegate dOne
-  else if primFloatLess dOne x then dOne else x
+  if dLess x (dNegate dOne) then dNegate dOne
+  else if dLess dOne x then dOne else x
 {-# COMPILE AGDA2HS dClip #-}
 
 affineIdentityD : Double → Double
@@ -502,7 +490,7 @@ layerNormForwardD x =
           in dAdd acc (dMul delta delta))
         dZero x
       variance = dDiv sqSum n
-      invStd = dDiv dOne (primFloatSqrt (dAdd variance dEpsilon))
+      invStd = dDiv dOne (dSqrt (dAdd variance dEpsilon))
       normalized = vDGen (vDLen x)
         (λ i → dMul (dSub (vDAt x i) mean) invStd)
   in normalized , invStd
@@ -529,7 +517,7 @@ clipPullbackD normalized dy =
   vDGen (vDLen dy)
     (λ i →
       let x = vDAt normalized i
-      in if primFloatLess (dAbs x) dOne then vDAt dy i else dZero)
+      in if dLess (dAbs x) dOne then vDAt dy i else dZero)
 {-# COMPILE AGDA2HS clipPullbackD #-}
 
 record MobiusLSTM3CacheD : Set where
@@ -655,7 +643,7 @@ mobiusLSTM3VJP cache cellSeed hiddenSeed =
       dCellNum = vDGen hDim (λ h →
         dDiv (vDAt dCell h) (vDAt (cacheCellDenD cache) h))
       dCellDen = vDGen hDim (λ h →
-        primFloatNegate
+        dNegate
           (dDiv
             (dMul (vDAt dCell h) (vDAt (cacheCellNumD cache) h))
             (dMul (vDAt (cacheCellDenD cache) h) (vDAt (cacheCellDenD cache) h))))
