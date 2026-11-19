@@ -308,9 +308,11 @@ shiftedSoftsignQ20 : Int64 → Int64
 shiftedSoftsignQ20 z = shiftR64 (add64 qOne64 (mulRecipPade1 z (add64 qOne64 (abs64 z)))) (lit64 1)
 {-# COMPILE AGDA2HS shiftedSoftsignQ20 #-}
 
-softsignQ20 : Int64 → Int64
-softsignQ20 z = mulRecipPade1 z (add64 qOne64 (abs64 z))
-{-# COMPILE AGDA2HS softsignQ20 #-}
+-- Identity activation for candidate/output paths. Shifted gate transfer
+-- functions remain unchanged.
+affineIdentityQ20 : Int64 → Int64
+affineIdentityQ20 z = z
+{-# COMPILE AGDA2HS affineIdentityQ20 #-}
 
 whtAtrousConcat64 : Vec64 → Vec64
 whtAtrousConcat64 obs32 =
@@ -327,7 +329,7 @@ mobiusLSTM3Step hDim wf wi wo wg inLift cPrev =
                let base = mul64 h lDim
                    ft   = shiftedSoftsignQ20 (dotR wf base)
                    it   = shiftedSoftsignQ20 (dotR wi base)
-                   g    = softsignQ20 (dotR wg base)
+                   g    = affineIdentityQ20 (dotR wg base)
                    cp   = vAt64 cPrev h
                    num  = add64 (splitMulQ20 ft cp) (splitMulQ20 it g)
                    den  = add64 qOne64 (shiftR64 (abs64 cp) (lit64 3))
@@ -335,7 +337,7 @@ mobiusLSTM3Step hDim wf wi wo wg inLift cPrev =
       hNew = vGen64 hDim (λ h →
                let base = mul64 h lDim
                    ot   = shiftedSoftsignQ20 (dotR wo base)
-               in splitMulQ20 ot (softsignQ20 (vAt64 cNew h)))
+               in splitMulQ20 ot (affineIdentityQ20 (vAt64 cNew h)))
   in (cNew , hNew)
 {-# COMPILE AGDA2HS mobiusLSTM3Step #-}
 
