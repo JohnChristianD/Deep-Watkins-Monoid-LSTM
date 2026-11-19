@@ -814,10 +814,9 @@ initCraftaxRHLLSTM seed =
 
 encodeLSTMFeatures : CraftaxRHLLSTMState → Vec64 → Vec64 → (Vec64 × Vec64)
 encodeLSTMFeatures s obs32 cPrev =
-  let inLift        = whtAtrousConcat64 obs32
-      (cNew , hNew) = mobiusLSTM3Step (hDim s) (wf s) (wi s) (wo s) (wg s) inLift cPrev
-      hLift         = signReluVec (intLayerNormPow2 (lit64 3) hNew)
-  in (vAppend64 inLift hLift , cNew)
+  let inLift = whtAtrousConcat64 obs32
+      chad = mobiusLSTM3CHAD (hDim s) (wf s) (wi s) (wo s) (wg s) inLift cPrev
+  in (vAppend64 inLift (chadHiddenPrimal chad) , chadCellPrimal chad)
 {-# COMPILE AGDA2HS encodeLSTMFeatures #-}
 
 evalActionRationalHL : CraftaxRHLLSTMState → Vec64 → Int64 → (Vec64 × Int64)
@@ -864,9 +863,13 @@ tentProject5 targ =
 
 craftaxRHLLSTMStep : CraftaxRHLLSTMState → Vec64 → Int64 → Int64 → Vec64 → Bool → CraftaxRHLLSTMState
 craftaxRHLLSTMStep s obsCur actTaken rewQ obsNxt isDone =
-  let tick              = add64 (stepTick s) (lit64 1)
-      (featCur , cNxt0) = encodeLSTMFeatures s obsCur (cCell s)
-      cNxt              = if isDone then vMap64 (λ _ → lit64 0) cNxt0 else cNxt0
+  let tick = add64 (stepTick s) (lit64 1)
+      -- Keep the actual CHAD pullback produced by this very forward pass.
+      inLiftCur = whtAtrousConcat64 obsCur
+      rnnCur = mobiusLSTM3CHAD (hDim s) (wf s) (wi s) (wo s) (wg s) inLiftCur (cCell s)
+      featCur = vAppend64 inLiftCur (chadHiddenPrimal rnnCur)
+      cNxt0 = chadCellPrimal rnnCur
+      cNxt = if isDone then vMap64 (λ _ → lit64 0) cNxt0 else cNxt0
       (featNxt , _)     = encodeLSTMFeatures s obsNxt cNxt
       na                = nAct s
       nb                = nBins s
@@ -881,6 +884,31 @@ craftaxRHLLSTMStep s obsCur actTaken rewQ obsNxt isDone =
       loAct             = mul64 actTaken (mul64 nb fd)
       hiAct             = add64 loAct (mul64 nb fd)
       qw                = qWeights s
+      -- Policy cotangent for hidden coordinates. Q20 conversion is the
+      -- explicit boundary between the quantised policy head and the real
+      -- valued CHAD recurrence.
+      hiddenOffset = vLen64 inLiftCur
+      dHiddenSeed = vDGen (hDim s) (λ h →
+        q20ToDouble
+          (vFoldlIdx64
+            (λ acc k _ →
+              add64 acc
+                (splitMulQ20
+                  (vAt64 qw
+                    (add64 loAct
+                      (add64 (mul64 k fd) (add64 hiddenOffset h))))
+                  (vAt64 gBins k)))
+            (lit64 0) gBins))
+      rnnGradientRaw = chadPullback rnnCur Nothing (Just dHiddenSeed)
+      -- LACM-style state passing merges sparse cotangent products. The
+      -- previous-cell cotangent remains available for callers unrolling a
+      -- longer sequence; this online learner currently truncates BPTT here.
+      rnnGradient =
+        applyMobiusLSTM3Accumulator emptyMobiusLSTM3Gradient rnnGradientRaw
+      wf' = updateQ20FromDoubleGradient lrBase64 (wf s) (lstmDWf rnnGradient)
+      wi' = updateQ20FromDoubleGradient lrBase64 (wi s) (lstmDWi rnnGradient)
+      wo' = updateQ20FromDoubleGradient lrBase64 (wo s) (lstmDWo rnnGradient)
+      wg' = updateQ20FromDoubleGradient lrBase64 (wg s) (lstmDWg rnnGradient)
       qv                = qVMax s
       qr                = qL2Rem s
       totN              = mul64 (mul64 na nb) fd
@@ -936,10 +964,10 @@ craftaxRHLLSTMStep s obsCur actTaken rewQ obsNxt isDone =
        ; nAct      = nAct s
        ; nBins     = nBins s
        ; stepTick  = tick
-       ; wf        = wf s
-       ; wi        = wi s
-       ; wo        = wo s
-       ; wg        = wg s
+       ; wf        = wf'
+       ; wi        = wi'
+       ; wo        = wo'
+       ; wg        = wg'
        ; cCell     = cNxt
        ; qWeights  = qw'
        ; qVMax     = qv'
