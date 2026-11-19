@@ -3,7 +3,7 @@
 module FullCoupled.EfficientCHADRNN where
 
 -- Haskell-facing recurrent IR. Local JVP/VJP functions are first-class
--- representation data; proof evidence is erased from extracted Haskell.
+-- representation data. Correctness evidence stays in Agda, outside runtime IR.
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.List using (List; []; _∷_)
 open import Agda.Builtin.Nat using (Nat; zero; _+_)
@@ -192,7 +192,6 @@ record MobiusRNN (A T C R : Set) : Set where
   field
     rnnPairing : T → C → R
     rnnSteps   : List (RNNStep A T C)
-    @0 rnnAdjoints : AllAdjoints rnnPairing rnnSteps
 
 open MobiusRNN public
 {-# COMPILE AGDA2HS MobiusRNN #-}
@@ -214,6 +213,7 @@ mobiusRNNCompilerSimulation net =
 mobiusRNNAdjointCorrect :
   {A T C R : Set} →
   (net : MobiusRNN A T C R) →
+  AllAdjoints (rnnPairing net) (rnnSteps net) →
   AdjointLaw (rnnPairing net) (compileMobiusRNN net)
-mobiusRNNAdjointCorrect net =
-  compiledAdjoint (rnnPairing net) (rnnAdjoints net)
+mobiusRNNAdjointCorrect net evidence =
+  compiledAdjoint (rnnPairing net) evidence
