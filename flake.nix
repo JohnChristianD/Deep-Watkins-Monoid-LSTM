@@ -48,7 +48,7 @@
           pkgs = pkgsFor system;
           ghcEnv = (pkgs.haskellPackages.ghcWithPackages.override {
             useLLVM = true;
-          }) (ps: [ ps.ieee754 ]);
+          }) (ps: [ ps.ieee754 ps.vector ]);
         in
         pkgs.writeShellScriptBin "ghc" ''
           exec "${ghcEnv}/bin/ghc" -O2 -fllvm "$@"
