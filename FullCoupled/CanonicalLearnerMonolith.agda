@@ -31,6 +31,17 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- The repository's global options enable --confluence-check.
 open import Haskell.Prelude public
 
+open import Agda.Builtin.Float using
+  ( primNatToFloat
+  ; primFloatPlus
+  ; primFloatMinus
+  ; primFloatTimes
+  ; primFloatDiv
+  ; primFloatNegate
+  ; primFloatLess
+  ; primFloatSqrt
+  )
+
 {-# FOREIGN AGDA2HS
 {-# LANGUAGE BangPatterns #-}
 import qualified Data.Bits as Bits
@@ -39,6 +50,9 @@ import Data.Word (Word64)
 import Data.Vector.Unboxed (Vector)
 import qualified Data.Vector.Unboxed as VU
 import Control.Parallel.Strategies (parMap, rdeepseq)
+
+type Vec64 = Vector Int64
+type VecD = Vector Double
 
 lit64 :: Integer -> Int64
 lit64 = fromIntegral
@@ -82,6 +96,37 @@ vFoldlIdx64 f = VU.ifoldl' (\acc i v -> f acc (fromIntegral i) v)
 
 parSeeds :: (Int64 -> Int64) -> [Int64] -> [Int64]
 parSeeds = parMap rdeepseq
+
+quot64, rem64 :: Int64 -> Int64 -> Int64
+quot64 = quot
+rem64 = rem
+
+i64ToDouble :: Int64 -> Double
+i64ToDouble = fromIntegral
+
+q20ToDouble :: Int64 -> Double
+q20ToDouble x = fromIntegral x / 1048576.0
+
+doubleToQ20 :: Double -> Int64
+doubleToQ20 x = fromIntegral (round (x * 1048576.0) :: Integer)
+
+vec64ToD :: Vector Int64 -> Vector Double
+vec64ToD = VU.map q20ToDouble
+
+vecDTo64 :: Vector Double -> Vector Int64
+vecDTo64 = VU.map doubleToQ20
+
+vDLen :: Vector Double -> Int64
+vDLen = fromIntegral . VU.length
+
+vDAt :: Vector Double -> Int64 -> Double
+vDAt v i = VU.unsafeIndex v (fromIntegral i)
+
+vDGen :: Int64 -> (Int64 -> Double) -> Vector Double
+vDGen n f = VU.generate (fromIntegral n) (f . fromIntegral)
+
+vDFoldlIdx :: (Double -> Int64 -> Double -> Double) -> Double -> Vector Double -> Double
+vDFoldlIdx f = VU.ifoldl' (\\acc i v -> f acc (fromIntegral i) v)
 #-}
 
 postulate
@@ -97,6 +142,16 @@ postulate
   vAppend64   : Vec64 → Vec64 → Vec64
   vFoldlIdx64 : (Int64 → Int64 → Int64 → Int64) → Int64 → Vec64 → Int64
   parSeeds    : (Int64 → Int64) → List Int64 → List Int64
+  VecD : Set
+  quot64 rem64 : Int64 → Int64 → Int64
+  i64ToDouble q20ToDouble : Int64 → Double
+  doubleToQ20 : Double → Int64
+  vec64ToD : Vec64 → VecD
+  vecDTo64 : VecD → Vec64
+  vDLen : VecD → Int64
+  vDAt : VecD → Int64 → Double
+  vDGen : Int64 → (Int64 → Double) → VecD
+  vDFoldlIdx : (Double → Int64 → Double → Double) → Double → VecD → Double
 
 ------------------------------------------------------------------------
 -- Exact O(1) Q44.20 Dyadic Constants (Strict Single Fixed Precision)
@@ -321,25 +376,374 @@ whtAtrousConcat64 obs32 =
   in vAppend64 b1 b2
 {-# COMPILE AGDA2HS whtAtrousConcat64 #-}
 
-mobiusLSTM3Step : Int64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → (Vec64 × Vec64)
+------------------------------------------------------------------------
+-- Efficient CHAD representation of the Möbius LSTM cell.
+--
+-- Source semantics is real-valued Double. Q20 vectors are storage / policy
+-- boundaries; the differentiated program is the continuous cell before
+-- quantisation. The custom boundary derivative is straight-through only at
+-- those explicit Q20 representation conversions.
+--
+-- Csimma-style agda2hs boundary: VecD is a Haskell unboxed Vector Double;
+-- all runtime primitives have Agda postulate signatures and Haskell bodies
+-- in FOREIGN AGDA2HS above. Sparse cotangents use Maybe, and parameter
+-- accumulation uses local state-passing (LACM), rather than a tree of
+-- higher-order derivative closures.
+------------------------------------------------------------------------
+
+dZero dOne dTwo dEight dEpsilon : Double
+dZero = primNatToFloat 0
+dOne = primNatToFloat 1
+dTwo = primNatToFloat 2
+dEight = primNatToFloat 8
+dEpsilon = primFloatDiv dOne (primNatToFloat 1024)
+
+dAdd : Double → Double → Double
+dAdd = primFloatPlus
+
+dSub : Double → Double → Double
+dSub = primFloatMinus
+
+dMul : Double → Double → Double
+dMul = primFloatTimes
+
+dDiv : Double → Double → Double
+dDiv = primFloatDiv
+
+dAbs : Double → Double
+dAbs x = if primFloatLess x dZero then primFloatNegate x else x
+
+dSign : Double → Double
+dSign x =
+  if primFloatLess x dZero then primFloatNegate dOne
+  else if primFloatLess dZero x then dOne else dZero
+
+dClip : Double → Double
+dClip x =
+  if primFloatLess x (primFloatNegate dOne) then primFloatNegate dOne
+  else if primFloatLess dOne x then dOne else x
+
+shiftedSoftsignD : Double → Double
+shiftedSoftsignD z =
+  dDiv (dAdd dOne (dDiv z (dAdd dOne (dAbs z)))) dTwo
+
+shiftedSoftsignD' : Double → Double
+shiftedSoftsignD' z =
+  let den = dAdd dOne (dAbs z)
+  in dDiv dOne (dMul dTwo (dMul den den))
+
+vDAdd : VecD → VecD → VecD
+vDAdd x y = vDGen (vDLen x) (λ i → dAdd (vDAt x i) (vDAt y i))
+
+vDScale : Double → VecD → VecD
+vDScale a x = vDGen (vDLen x) (λ i → dMul a (vDAt x i))
+
+vDZipMul : VecD → VecD → VecD
+vDZipMul x y = vDGen (vDLen x) (λ i → dMul (vDAt x i) (vDAt y i))
+
+vDZero : Int64 → VecD
+vDZero n = vDGen n (λ _ → dZero)
+
+vDSum : VecD → Double
+vDSum = vDFoldlIdx (λ acc _ x → dAdd acc x) dZero
+
+vDDotRow : VecD → VecD → Int64 → Int64 → Double
+vDDotRow weights input row lDim =
+  vDFoldlIdx
+    (λ acc i x →
+      dAdd acc (dMul (vDAt weights (add64 (mul64 row lDim) i)) x))
+    dZero input
+
+layerNormForwardD : VecD → (VecD × Double)
+layerNormForwardD x =
+  let n = i64ToDouble (vDLen x)
+      mean = dDiv (vDSum x) n
+      sqSum = vDFoldlIdx
+        (λ acc _ value →
+          let delta = dSub value mean
+          in dAdd acc (dMul delta delta))
+        dZero x
+      variance = dDiv sqSum n
+      invStd = dDiv dOne (primFloatSqrt (dAdd variance dEpsilon))
+      normalized = vDGen (vDLen x)
+        (λ i → dMul (dSub (vDAt x i) mean) invStd)
+  in normalized , invStd
+
+-- Reverse rule for layer normalisation:
+-- dx = invStd * (dy - mean(dy) - y * mean(dy*y)).
+layerNormPullbackD : Double → VecD → VecD → VecD
+layerNormPullbackD invStd normalized dy =
+  let n = i64ToDouble (vDLen dy)
+      meanDy = dDiv (vDSum dy) n
+      meanDyY = dDiv (vDSum (vDZipMul dy normalized)) n
+  in vDGen (vDLen dy)
+       (λ i →
+         dMul invStd
+           (dSub
+             (dSub (vDAt dy i) meanDy)
+             (dMul (vDAt normalized i) meanDyY)))
+
+clipPullbackD : VecD → VecD → VecD
+clipPullbackD normalized dy =
+  vDGen (vDLen dy)
+    (λ i →
+      let x = vDAt normalized i
+      in if primFloatLess (dAbs x) dOne then vDAt dy i else dZero)
+
+record MobiusLSTM3CacheD : Set where
+  field
+    cacheHDim cacheLDim : Int64
+    cacheInputD cacheWfD cacheWiD cacheWoD cacheWgD : VecD
+    cachePrevCellD cacheCellD : VecD
+    cacheForgetPreD cacheInputPreD cacheOutputPreD : VecD
+    cacheForgetD cacheInputGateD cacheCandidateD cacheOutputD : VecD
+    cacheCellNumD cacheCellDenD cacheHiddenRawD : VecD
+    cacheHiddenNormD : VecD
+    cacheHiddenInvStdD : Double
+
+open MobiusLSTM3CacheD public
+
+record MobiusLSTM3Gradient : Set where
+  field
+    lstmDInput lstmDPrevCell : Maybe VecD
+    lstmDWf lstmDWi lstmDWo lstmDWg : Maybe VecD
+
+open MobiusLSTM3Gradient public
+
+emptyMobiusLSTM3Gradient : MobiusLSTM3Gradient
+emptyMobiusLSTM3Gradient =
+  record
+    { lstmDInput = Nothing
+    ; lstmDPrevCell = Nothing
+    ; lstmDWf = Nothing
+    ; lstmDWi = Nothing
+    ; lstmDWo = Nothing
+    ; lstmDWg = Nothing
+    }
+{-# COMPILE AGDA2HS MobiusLSTM3Gradient #-}
+
+mobiusLSTM3ForwardD :
+  Int64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 →
+  (Vec64 × Vec64) × MobiusLSTM3CacheD
+mobiusLSTM3ForwardD hDim wf wi wo wg inLift cPrev =
+  let x = vec64ToD inLift
+      wfD = vec64ToD wf
+      wiD = vec64ToD wi
+      woD = vec64ToD wo
+      wgD = vec64ToD wg
+      cp = vec64ToD cPrev
+      lDim = vLenD x
+      forgetPre = vDGen hDim (λ h → vDDotRow wfD x h lDim)
+      inputPre = vDGen hDim (λ h → vDDotRow wiD x h lDim)
+      outputPre = vDGen hDim (λ h → vDDotRow woD x h lDim)
+      candidatePre = vDGen hDim (λ h → vDDotRow wgD x h lDim)
+      forgetGate = vDGen hDim (λ h → shiftedSoftsignD (vDAt forgetPre h))
+      inputGate = vDGen hDim (λ h → shiftedSoftsignD (vDAt inputPre h))
+      outputGate = vDGen hDim (λ h → shiftedSoftsignD (vDAt outputPre h))
+      cellNum = vDGen hDim (λ h →
+        dAdd
+          (dMul (vDAt forgetGate h) (vDAt cp h))
+          (dMul (vDAt inputGate h) (vDAt candidatePre h)))
+      cellDen = vDGen hDim (λ h →
+        dAdd dOne (dDiv (dAbs (vDAt cp h)) dEight))
+      cellNew = vDGen hDim (λ h → dDiv (vDAt cellNum h) (vDAt cellDen h))
+      hiddenRaw = vDGen hDim (λ h → dMul (vDAt outputGate h) (vDAt cellNew h))
+      (hiddenNorm , hiddenInvStd) = layerNormForwardD hiddenRaw
+      hiddenClipped = vDGen hDim (λ h → dClip (vDAt hiddenNorm h))
+      cache = record
+        { cacheHDim = hDim
+        ; cacheLDim = lDim
+        ; cacheInputD = x
+        ; cacheWfD = wfD
+        ; cacheWiD = wiD
+        ; cacheWoD = woD
+        ; cacheWgD = wgD
+        ; cachePrevCellD = cp
+        ; cacheCellD = cellNew
+        ; cacheForgetPreD = forgetPre
+        ; cacheInputPreD = inputPre
+        ; cacheOutputPreD = outputPre
+        ; cacheForgetD = forgetGate
+        ; cacheInputGateD = inputGate
+        ; cacheCandidateD = candidatePre
+        ; cacheOutputD = outputGate
+        ; cacheCellNumD = cellNum
+        ; cacheCellDenD = cellDen
+        ; cacheHiddenRawD = hiddenRaw
+        ; cacheHiddenNormD = hiddenNorm
+        ; cacheHiddenInvStdD = hiddenInvStd
+        }
+  in ((vecDTo64 cellNew , vecDTo64 hiddenClipped) , cache)
+
+seedOrZeroD : Int64 → Maybe VecD → VecD
+seedOrZeroD n Nothing = vDZero n
+seedOrZeroD n (Just seed) = seed
+
+record MobiusLSTM3CHADResult : Set where
+  field
+    chadCellPrimal : Vec64
+    chadHiddenPrimal : Vec64
+    chadPullback : Maybe VecD → Maybe VecD → MobiusLSTM3Gradient
+
+open MobiusLSTM3CHADResult public
+{-# COMPILE AGDA2HS MobiusLSTM3CHADResult #-}
+
+mobiusLSTM3VJP :
+  MobiusLSTM3CacheD →
+  Maybe VecD → Maybe VecD → MobiusLSTM3Gradient
+mobiusLSTM3VJP cache Nothing Nothing = emptyMobiusLSTM3Gradient
+mobiusLSTM3VJP cache cellSeed hiddenSeed =
+  let hDim = cacheHDim cache
+      lDim = cacheLDim cache
+      dCellSeed = seedOrZeroD hDim cellSeed
+      dHiddenSeed = seedOrZeroD hDim hiddenSeed
+      dHiddenNorm = clipPullbackD (cacheHiddenNormD cache) dHiddenSeed
+      dHiddenRaw = layerNormPullbackD (cacheHiddenInvStdD cache)
+                    (cacheHiddenNormD cache) dHiddenNorm
+      dCellFromHidden = vDZipMul dHiddenRaw (cacheOutputD cache)
+      dCell = vDAdd dCellSeed dCellFromHidden
+      dOutputGate = vDZipMul dHiddenRaw (cacheCellD cache)
+      dOutputPre = vDGen hDim (λ h →
+        dMul (vDAt dOutputGate h)
+          (shiftedSoftsignD' (vDAt (cacheOutputPreD cache) h)))
+      dCellNum = vDGen hDim (λ h →
+        dDiv (vDAt dCell h) (vDAt (cacheCellDenD cache) h))
+      dCellDen = vDGen hDim (λ h →
+        primFloatNegate
+          (dDiv
+            (dMul (vDAt dCell h) (vDAt (cacheCellNumD cache) h))
+            (dMul (vDAt (cacheCellDenD cache) h) (vDAt (cacheCellDenD cache) h))))
+      dPrevCell = vDGen hDim (λ h →
+        dAdd
+          (dMul (vDAt dCellNum h) (vDAt (cacheForgetD cache) h))
+          (dMul (vDAt dCellDen h)
+            (dDiv (dSign (vDAt (cachePrevCellD cache) h)) dEight)))
+      dForgetPre = vDGen hDim (λ h →
+        dMul
+          (dMul (vDAt dCellNum h) (vDAt (cachePrevCellD cache) h))
+          (shiftedSoftsignD' (vDAt (cacheForgetPreD cache) h)))
+      dInputPre = vDGen hDim (λ h →
+        dMul
+          (dMul (vDAt dCellNum h) (vDAt (cacheCandidateD cache) h))
+          (shiftedSoftsignD' (vDAt (cacheInputPreD cache) h)))
+      -- Candidate gate is affine identity: derivative exactly one.
+      dCandidatePre = vDGen hDim (λ h →
+        dMul (vDAt dCellNum h) (vDAt (cacheInputGateD cache) h))
+      dWf = vDGen (mul64 hDim lDim) (λ j →
+        dMul (vDAt dForgetPre (quot64 j lDim))
+             (vDAt (cacheInputD cache) (rem64 j lDim)))
+      dWi = vDGen (mul64 hDim lDim) (λ j →
+        dMul (vDAt dInputPre (quot64 j lDim))
+             (vDAt (cacheInputD cache) (rem64 j lDim)))
+      dWo = vDGen (mul64 hDim lDim) (λ j →
+        dMul (vDAt dOutputPre (quot64 j lDim))
+             (vDAt (cacheInputD cache) (rem64 j lDim)))
+      dWg = vDGen (mul64 hDim lDim) (λ j →
+        dMul (vDAt dCandidatePre (quot64 j lDim))
+             (vDAt (cacheInputD cache) (rem64 j lDim)))
+      dInput = vDGen lDim (λ i →
+        vDFoldlIdx
+          (λ acc h _ →
+            let row = add64 (mul64 h lDim) i
+                df = dMul (vDAt dForgetPre h) (vDAt (cacheWfD cache) row)
+                di = dMul (vDAt dInputPre h) (vDAt (cacheWiD cache) row)
+                do = dMul (vDAt dOutputPre h) (vDAt (cacheWoD cache) row)
+                dg = dMul (vDAt dCandidatePre h) (vDAt (cacheWgD cache) row)
+            in dAdd acc (dAdd df (dAdd di (dAdd do dg))))
+          dZero dForgetPre)
+  in record
+    { lstmDInput = Just dInput
+    ; lstmDPrevCell = Just dPrevCell
+    ; lstmDWf = Just dWf
+    ; lstmDWi = Just dWi
+    ; lstmDWo = Just dWo
+    ; lstmDWg = Just dWg
+    }
+
+mobiusLSTM3CHAD :
+  Int64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 →
+  MobiusLSTM3CHADResult
+mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev =
+  let ((cellPrimal , hiddenPrimal) , cache) =
+        mobiusLSTM3ForwardD hDim wf wi wo wg inLift cPrev
+  in record
+    { chadCellPrimal = cellPrimal
+    ; chadHiddenPrimal = hiddenPrimal
+    ; chadPullback = mobiusLSTM3VJP cache
+    }
+{-# COMPILE AGDA2HS mobiusLSTM3CHAD #-}
+
+-- A state-passing local accumulation monad. Maybe VecD is the sparse
+-- cotangent carrier: Nothing means this output contributes no update.
+LACM : Set → Set → Set
+LACM S A = S → A × S
+
+pureLACM : {S A : Set} → A → LACM S A
+pureLACM x state = x , state
+
+bindLACM :
+  {S A B : Set} →
+  LACM S A → (A → LACM S B) → LACM S B
+bindLACM first next state =
+  let (value , state') = first state
+  in next value state'
+
+mergeMaybeVecD : Maybe VecD → Maybe VecD → Maybe VecD
+mergeMaybeVecD Nothing right = right
+mergeMaybeVecD left Nothing = left
+mergeMaybeVecD (Just left) (Just right) = Just (vDAdd left right)
+
+mergeMobiusLSTM3Gradient :
+  MobiusLSTM3Gradient → MobiusLSTM3Gradient → MobiusLSTM3Gradient
+mergeMobiusLSTM3Gradient left right =
+  record
+    { lstmDInput = mergeMaybeVecD (lstmDInput left) (lstmDInput right)
+    ; lstmDPrevCell = mergeMaybeVecD (lstmDPrevCell left) (lstmDPrevCell right)
+    ; lstmDWf = mergeMaybeVecD (lstmDWf left) (lstmDWf right)
+    ; lstmDWi = mergeMaybeVecD (lstmDWi left) (lstmDWi right)
+    ; lstmDWo = mergeMaybeVecD (lstmDWo left) (lstmDWo right)
+    ; lstmDWg = mergeMaybeVecD (lstmDWg left) (lstmDWg right)
+    }
+
+accumulateMobiusLSTM3Gradient :
+  MobiusLSTM3Gradient → LACM MobiusLSTM3Gradient ⊤
+accumulateMobiusLSTM3Gradient gradient state =
+  tt , mergeMobiusLSTM3Gradient state gradient
+
+applyMobiusLSTM3Accumulator :
+  MobiusLSTM3Gradient → MobiusLSTM3Gradient → MobiusLSTM3Gradient
+applyMobiusLSTM3Accumulator initial gradient =
+  snd (accumulateMobiusLSTM3Gradient gradient initial)
+
+updateQ20FromDoubleGradient :
+  Int64 → Vec64 → Maybe VecD → Vec64
+updateQ20FromDoubleGradient rate weights Nothing = weights
+updateQ20FromDoubleGradient rate weights (Just gradient) =
+  vGen64 (vLen64 weights) (λ i →
+    add64 (vAt64 weights i)
+      (splitMulQ20 rate (doubleToQ20 (vDAt gradient i))))
+
+-- The original public step now executes the CHAD-transformed cell's primal.
+mobiusLSTM3Step :
+  Int64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 →
+  (Vec64 × Vec64)
 mobiusLSTM3Step hDim wf wi wo wg inLift cPrev =
-  let lDim = vLen64 inLift
-      dotR = λ w base → vFoldlIdx64 (λ acc i x → add64 acc (splitMulQ20 (vAt64 w (add64 base i)) x)) (lit64 0) inLift
-      cNew = vGen64 hDim (λ h →
-               let base = mul64 h lDim
-                   ft   = shiftedSoftsignQ20 (dotR wf base)
-                   it   = shiftedSoftsignQ20 (dotR wi base)
-                   g    = affineIdentityQ20 (dotR wg base)
-                   cp   = vAt64 cPrev h
-                   num  = add64 (splitMulQ20 ft cp) (splitMulQ20 it g)
-                   den  = add64 qOne64 (shiftR64 (abs64 cp) (lit64 3))
-               in mulRecipPade1 num den)
-      hNew = vGen64 hDim (λ h →
-               let base = mul64 h lDim
-                   ot   = shiftedSoftsignQ20 (dotR wo base)
-               in splitMulQ20 ot (affineIdentityQ20 (vAt64 cNew h)))
-  in (cNew , hNew)
+  let chad = mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev
+  in (chadCellPrimal chad , chadHiddenPrimal chad)
 {-# COMPILE AGDA2HS mobiusLSTM3Step #-}
+
+-- Compiler simulation: public recurrent step is exactly the primal projection
+-- of its Efficient-CHAD representation. The pullback remains attached to that
+-- very same forward execution and is consumed by the learner below.
+@0 mobiusLSTM3CompilerSimulation :
+  (hDim : Int64) →
+  (wf wi wo wg inLift cPrev : Vec64) →
+  mobiusLSTM3Step hDim wf wi wo wg inLift cPrev ≡
+  ( chadCellPrimal (mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev)
+  , chadHiddenPrimal (mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev)
+  )
+mobiusLSTM3CompilerSimulation hDim wf wi wo wg inLift cPrev = refl
+
 
 ------------------------------------------------------------------------
 -- 1-Step Clamped Bishop-Wildberger RationalHL + StreamingOptimizer
