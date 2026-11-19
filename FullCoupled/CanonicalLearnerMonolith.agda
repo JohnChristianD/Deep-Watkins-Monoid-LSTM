@@ -397,56 +397,67 @@ dOne = primNatToFloat 1
 dTwo = primNatToFloat 2
 dEight = primNatToFloat 8
 dEpsilon = primFloatDiv dOne (primNatToFloat 1024)
+{-# COMPILE AGDA2HS dZero #-}
+{-# COMPILE AGDA2HS dOne #-}
+{-# COMPILE AGDA2HS dTwo #-}
+{-# COMPILE AGDA2HS dEight #-}
+{-# COMPILE AGDA2HS dEpsilon #-}
 
 dAdd : Double → Double → Double
 dAdd = primFloatPlus
+{-# COMPILE AGDA2HS dAdd #-}
 
 dSub : Double → Double → Double
 dSub = primFloatMinus
+{-# COMPILE AGDA2HS dSub #-}
 
 dMul : Double → Double → Double
 dMul = primFloatTimes
+{-# COMPILE AGDA2HS dMul #-}
 
 dDiv : Double → Double → Double
 dDiv = primFloatDiv
+{-# COMPILE AGDA2HS dDiv #-}
 
 dAbs : Double → Double
-{-# COMPILE AGDA2HS dAbs #-}
 dAbs x = if primFloatLess x dZero then primFloatNegate x else x
+{-# COMPILE AGDA2HS dAbs #-}
 
 dSign : Double → Double
-{-# COMPILE AGDA2HS dSign #-}
 dSign x =
   if primFloatLess x dZero then primFloatNegate dOne
   else if primFloatLess dZero x then dOne else dZero
+{-# COMPILE AGDA2HS dSign #-}
 
 dClip : Double → Double
-{-# COMPILE AGDA2HS dClip #-}
 dClip x =
   if primFloatLess x (primFloatNegate dOne) then primFloatNegate dOne
   else if primFloatLess dOne x then dOne else x
+{-# COMPILE AGDA2HS dClip #-}
 
+affineIdentityD : Double → Double
+affineIdentityD x = x
+{-# COMPILE AGDA2HS affineIdentityD #-}
+
+-- This is the real-valued counterpart of shiftedSoftsignQ20:
+-- (1 + z / (1 + |z|)) / 2. Its derivative is 1/(2(1+|z|)^2).
 shiftedSoftsignD : Double → Double
 shiftedSoftsignD z =
   dDiv (dAdd dOne (dDiv z (dAdd dOne (dAbs z)))) dTwo
+{-# COMPILE AGDA2HS shiftedSoftsignD #-}
 
 shiftedSoftsignD' : Double → Double
 shiftedSoftsignD' z =
   let den = dAdd dOne (dAbs z)
   in dDiv dOne (dMul dTwo (dMul den den))
-{-# COMPILE AGDA2HS shiftedSoftsignD #-}
 {-# COMPILE AGDA2HS shiftedSoftsignD' #-}
 
 vDAdd : VecD → VecD → VecD
 vDAdd x y = vDGen (vDLen x) (λ i → dAdd (vDAt x i) (vDAt y i))
 {-# COMPILE AGDA2HS vDAdd #-}
 
-vDScale : Double → VecD → VecD
-vDScale a x = vDGen (vDLen x) (λ i → dMul a (vDAt x i))
-
 vDZipMul : VecD → VecD → VecD
 vDZipMul x y = vDGen (vDLen x) (λ i → dMul (vDAt x i) (vDAt y i))
-{-# COMPILE AGDA2HS vDScale #-}
 {-# COMPILE AGDA2HS vDZipMul #-}
 
 vDZero : Int64 → VecD
@@ -462,7 +473,6 @@ vDDotRow weights input row lDim =
   vDFoldlIdx
     (λ acc i x →
       dAdd acc (dMul (vDAt weights (add64 (mul64 row lDim) i)) x))
-    dZero input
     dZero input
 {-# COMPILE AGDA2HS vDDotRow #-}
 
@@ -480,7 +490,6 @@ layerNormForwardD x =
       normalized = vDGen (vDLen x)
         (λ i → dMul (dSub (vDAt x i) mean) invStd)
   in normalized , invStd
-  in normalized , invStd
 {-# COMPILE AGDA2HS layerNormForwardD #-}
 
 -- Reverse rule for layer normalisation:
@@ -496,9 +505,9 @@ layerNormPullbackD invStd normalized dy =
            (dSub
              (dSub (vDAt dy i) meanDy)
              (dMul (vDAt normalized i) meanDyY)))
-             (dMul (vDAt normalized i) meanDyY)))
 {-# COMPILE AGDA2HS layerNormPullbackD #-}
 
+-- Reverse rule for clamp/signRelu: zero derivative outside (-1,1).
 clipPullbackD : VecD → VecD → VecD
 clipPullbackD normalized dy =
   vDGen (vDLen dy)
@@ -514,7 +523,7 @@ record MobiusLSTM3CacheD : Set where
     cachePrevCellD cacheCellD : VecD
     cacheForgetPreD cacheInputPreD cacheOutputPreD : VecD
     cacheForgetD cacheInputGateD cacheCandidateD cacheOutputD : VecD
-    cacheCellNumD cacheCellDenD cacheHiddenRawD : VecD
+    cacheCellNumD cacheCellDenD : VecD
     cacheHiddenNormD : VecD
     cacheHiddenInvStdD : Double
 {-# COMPILE AGDA2HS MobiusLSTM3CacheD #-}
@@ -551,7 +560,7 @@ mobiusLSTM3ForwardD hDim wf wi wo wg inLift cPrev =
       woD = vec64ToD wo
       wgD = vec64ToD wg
       cp = vec64ToD cPrev
-      lDim = vLenD x
+      lDim = vDLen x
       forgetPre = vDGen hDim (λ h → vDDotRow wfD x h lDim)
       inputPre = vDGen hDim (λ h → vDDotRow wiD x h lDim)
       outputPre = vDGen hDim (λ h → vDDotRow woD x h lDim)
@@ -562,11 +571,12 @@ mobiusLSTM3ForwardD hDim wf wi wo wg inLift cPrev =
       cellNum = vDGen hDim (λ h →
         dAdd
           (dMul (vDAt forgetGate h) (vDAt cp h))
-          (dMul (vDAt inputGate h) (vDAt candidatePre h)))
+          (dMul (vDAt inputGate h) (affineIdentityD (vDAt candidatePre h))))
       cellDen = vDGen hDim (λ h →
         dAdd dOne (dDiv (dAbs (vDAt cp h)) dEight))
       cellNew = vDGen hDim (λ h → dDiv (vDAt cellNum h) (vDAt cellDen h))
-      hiddenRaw = vDGen hDim (λ h → dMul (vDAt outputGate h) (vDAt cellNew h))
+      hiddenRaw = vDGen hDim (λ h →
+        dMul (vDAt outputGate h) (affineIdentityD (vDAt cellNew h)))
       (hiddenNorm , hiddenInvStd) = layerNormForwardD hiddenRaw
       hiddenClipped = vDGen hDim (λ h → dClip (vDAt hiddenNorm h))
       cache = record
@@ -588,17 +598,14 @@ mobiusLSTM3ForwardD hDim wf wi wo wg inLift cPrev =
         ; cacheOutputD = outputGate
         ; cacheCellNumD = cellNum
         ; cacheCellDenD = cellDen
-        ; cacheHiddenRawD = hiddenRaw
         ; cacheHiddenNormD = hiddenNorm
         ; cacheHiddenInvStdD = hiddenInvStd
         }
-  in ((vecDTo64 cellNew , vecDTo64 hiddenClipped) , cache)
   in ((vecDTo64 cellNew , vecDTo64 hiddenClipped) , cache)
 {-# COMPILE AGDA2HS mobiusLSTM3ForwardD #-}
 
 seedOrZeroD : Int64 → Maybe VecD → VecD
 seedOrZeroD n Nothing = vDZero n
-seedOrZeroD n (Just seed) = seed
 seedOrZeroD n (Just seed) = seed
 {-# COMPILE AGDA2HS seedOrZeroD #-}
 
@@ -607,9 +614,9 @@ record MobiusLSTM3CHADResult : Set where
     chadCellPrimal : Vec64
     chadHiddenPrimal : Vec64
     chadPullback : Maybe VecD → Maybe VecD → MobiusLSTM3Gradient
+{-# COMPILE AGDA2HS MobiusLSTM3CHADResult #-}
 
 open MobiusLSTM3CHADResult public
-{-# COMPILE AGDA2HS MobiusLSTM3CHADResult #-}
 
 mobiusLSTM3VJP :
   MobiusLSTM3CacheD →
@@ -682,9 +689,6 @@ mobiusLSTM3VJP cache cellSeed hiddenSeed =
     ; lstmDWo = Just dWo
     ; lstmDWg = Just dWg
     }
-
-mobiusLSTM3CHAD :
-    }
 {-# COMPILE AGDA2HS mobiusLSTM3VJP #-}
 
 mobiusLSTM3CHAD :
@@ -693,8 +697,6 @@ mobiusLSTM3CHAD :
 mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev =
   let ((cellPrimal , hiddenPrimal) , cache) =
         mobiusLSTM3ForwardD hDim wf wi wo wg inLift cPrev
-  in record
-    { chadCellPrimal = cellPrimal
   in record
     { chadCellPrimal = cellPrimal
     ; chadHiddenPrimal = hiddenPrimal
@@ -709,6 +711,7 @@ LACM S A = S → A × S
 
 pureLACM : {S A : Set} → A → LACM S A
 pureLACM x state = x , state
+{-# COMPILE AGDA2HS pureLACM #-}
 
 bindLACM :
   {S A B : Set} →
@@ -716,16 +719,11 @@ bindLACM :
 bindLACM first next state =
   let (value , state') = first state
   in next value state'
-bindLACM first next state =
-  let (value , state') = first state
-  in next value state'
-{-# COMPILE AGDA2HS pureLACM #-}
 {-# COMPILE AGDA2HS bindLACM #-}
 
 mergeMaybeVecD : Maybe VecD → Maybe VecD → Maybe VecD
 mergeMaybeVecD Nothing right = right
 mergeMaybeVecD left Nothing = left
-mergeMaybeVecD (Just left) (Just right) = Just (vDAdd left right)
 mergeMaybeVecD (Just left) (Just right) = Just (vDAdd left right)
 {-# COMPILE AGDA2HS mergeMaybeVecD #-}
 
@@ -740,15 +738,10 @@ mergeMobiusLSTM3Gradient left right =
     ; lstmDWo = mergeMaybeVecD (lstmDWo left) (lstmDWo right)
     ; lstmDWg = mergeMaybeVecD (lstmDWg left) (lstmDWg right)
     }
-
-accumulateMobiusLSTM3Gradient :
-    }
 {-# COMPILE AGDA2HS mergeMobiusLSTM3Gradient #-}
 
 accumulateMobiusLSTM3Gradient :
   MobiusLSTM3Gradient → LACM MobiusLSTM3Gradient ⊤
-accumulateMobiusLSTM3Gradient gradient state =
-  tt , mergeMobiusLSTM3Gradient state gradient
 accumulateMobiusLSTM3Gradient gradient state =
   tt , mergeMobiusLSTM3Gradient state gradient
 {-# COMPILE AGDA2HS accumulateMobiusLSTM3Gradient #-}
@@ -756,7 +749,6 @@ accumulateMobiusLSTM3Gradient gradient state =
 applyMobiusLSTM3Accumulator :
   MobiusLSTM3Gradient → MobiusLSTM3Gradient → MobiusLSTM3Gradient
 applyMobiusLSTM3Accumulator initial gradient =
-  snd (accumulateMobiusLSTM3Gradient gradient initial)
   snd (accumulateMobiusLSTM3Gradient gradient initial)
 {-# COMPILE AGDA2HS applyMobiusLSTM3Accumulator #-}
 
@@ -766,7 +758,6 @@ updateQ20FromDoubleGradient rate weights Nothing = weights
 updateQ20FromDoubleGradient rate weights (Just gradient) =
   vGen64 (vLen64 weights) (λ i →
     add64 (vAt64 weights i)
-      (splitMulQ20 rate (doubleToQ20 (vDAt gradient i))))
       (splitMulQ20 rate (doubleToQ20 (vDAt gradient i))))
 {-# COMPILE AGDA2HS updateQ20FromDoubleGradient #-}
 
@@ -790,8 +781,6 @@ mobiusLSTM3Step hDim wf wi wo wg inLift cPrev =
   , chadHiddenPrimal (mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev)
   )
 mobiusLSTM3CompilerSimulation hDim wf wi wo wg inLift cPrev = refl
-
-
 ------------------------------------------------------------------------
 -- 1-Step Clamped Bishop-Wildberger RationalHL + StreamingOptimizer
 ------------------------------------------------------------------------
