@@ -22,8 +22,10 @@ module FullCoupled.CanonicalLearnerMonolith where
 
 -- Merged external import surface; internal FullCoupled imports remain module-local.
 -- The agda2hs base library provides the Haskell-facing Prelude,
--- including Haskell.Prim's core types, equality, and standard instances.
--- Keep this pure learner free of the FFI adapters from Csimma's C++ example:
+-- including Haskell.Prim's core types, equality, and Double.
+-- Numeric/vector kernels use Csimma's postulate + FOREIGN AGDA2HS boundary;
+-- the executable result carries an erased S0 simulation witness.
+-- Keep this learner free of the C++ toolkit adapters because it has no such boundary:
 -- IORef, Ptr, StablePtr, C types, MVar, and CFuture belong at an actual
 -- mutable/foreign-function boundary, which this module does not expose.
 --
@@ -746,8 +748,9 @@ mergeMobiusLSTM3Gradient left right =
 
 accumulateMobiusLSTM3Gradient :
   MobiusLSTM3Gradient → LACM MobiusLSTM3Gradient ⊤
-accumulateMobiusLSTM3Gradient gradient state =
-  tt , mergeMobiusLSTM3Gradient state gradient
+accumulateMobiusLSTM3Gradient gradient =
+  bindLACM (pureLACM tt)
+    (λ _ state → tt , mergeMobiusLSTM3Gradient state gradient)
 {-# COMPILE AGDA2HS accumulateMobiusLSTM3Gradient #-}
 
 applyMobiusLSTM3Accumulator :
