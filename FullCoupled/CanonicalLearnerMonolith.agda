@@ -29,8 +29,6 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- IORef, Ptr, StablePtr, C types, MVar, and CFuture belong at an actual
 -- mutable/foreign-function boundary, which this module does not expose.
 --
--- Agda 2.9 rewrite rules use builtin equality and require --rewriting.
--- The repository's global options enable --confluence-check.
 open import Haskell.Prelude public
 
 {-# FOREIGN AGDA2HS
@@ -935,16 +933,35 @@ craftaxRHLLSTMStep s obsCur actTaken rewQ obsNxt isDone =
       -- explicit boundary between the quantised policy head and the real
       -- valued CHAD recurrence.
       hiddenOffset = vLen64 inLiftCur
+      -- Differentiate the normalized rational score used by
+      -- evalActionRationalHL, not an assumed softmax. For
+      -- r(d)=1/(1+d+d²/2), dlog(r)/dlogit=(1+d)/(1+d+d²/2).
+      policyLogits = vGen64 nb (λ k →
+        let baseK = add64 loAct (mul64 k fd)
+        in vFoldlIdx64
+             (λ acc i feature →
+               add64 acc (splitMulQ20
+                 (vAt64 qw (add64 baseK i)) feature))
+             (lit64 0) featCur)
+      policyMax = vFoldlIdx64
+        (λ mx _ z → max64 mx z)
+        (vAt64 policyLogits (lit64 0)) policyLogits
       dHiddenSeed = vDGen (hDim s) (λ h →
         q20ToDouble
           (vFoldlIdx64
             (λ acc k _ →
-              add64 acc
-                (splitMulQ20
-                  (vAt64 qw
-                    (add64 loAct
-                      (add64 (mul64 k fd) (add64 hiddenOffset h))))
-                  (vAt64 gBins k)))
+              let delta = sub64 policyMax (vAt64 policyLogits k)
+                  denom = add64 qOne64
+                    (add64 delta
+                      (shiftR64 (splitMulQ20 delta delta) (lit64 1)))
+                  logScoreSlope =
+                    mulRecipPade1 (add64 qOne64 delta) denom
+                  scoreCotangent =
+                    splitMulQ20 (vAt64 gBins k) logScoreSlope
+                  weightIndex = add64 loAct
+                    (add64 (mul64 k fd) (add64 hiddenOffset h))
+              in add64 acc
+                   (splitMulQ20 (vAt64 qw weightIndex) scoreCotangent))
             (lit64 0) gBins))
       rnnGradientRaw = chadPullback rnnCur Nothing (Just dHiddenSeed)
       -- LACM-style state passing merges sparse cotangent products. The
