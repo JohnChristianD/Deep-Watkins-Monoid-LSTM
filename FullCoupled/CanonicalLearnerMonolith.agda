@@ -377,6 +377,22 @@ whtAtrousConcat64 obs32 =
 {-# COMPILE AGDA2HS whtAtrousConcat64 #-}
 
 ------------------------------------------------------------------------
+-- Csimma's erased product: runtime value plus proof erased by agda2hs.
+-- This keeps the compiler-simulation witness attached to executable RNN
+-- representation without introducing a second module or runtime payload.
+record S0 (A : Set) (@0 P : A → Set) : Set where
+  no-eta-equality
+  constructor _:&:_
+  field
+    proj₁ : A
+    @0 proj₂ : P proj₁
+open S0 public
+infixr 4 _:&:_
+{-# COMPILE AGDA2HS S0 newtype #-}
+{-# FOREIGN AGDA2HS
+infixr 4 :&:
+#-}
+
 -- Efficient CHAD representation of the Möbius LSTM cell.
 --
 -- Source semantics is real-valued Double. Q20 vectors are storage / policy
@@ -770,17 +786,19 @@ mobiusLSTM3Step hDim wf wi wo wg inLift cPrev =
   in (chadCellPrimal chad , chadHiddenPrimal chad)
 {-# COMPILE AGDA2HS mobiusLSTM3Step #-}
 
--- Compiler simulation: public recurrent step is exactly the primal projection
--- of its Efficient-CHAD representation. The pullback remains attached to that
--- very same forward execution and is consumed by the learner below.
-@0 mobiusLSTM3CompilerSimulation :
+-- Csimma S0 packages executable representation with its erased primal
+-- simulation proof. Pullback closure remains part of the runtime value.
+mobiusLSTM3CHADCertified :
   (hDim : Int64) →
   (wf wi wo wg inLift cPrev : Vec64) →
-  mobiusLSTM3Step hDim wf wi wo wg inLift cPrev ≡
-  ( chadCellPrimal (mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev)
-  , chadHiddenPrimal (mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev)
-  )
-mobiusLSTM3CompilerSimulation hDim wf wi wo wg inLift cPrev = refl
+  S0 MobiusLSTM3CHADResult
+    (λ result →
+      mobiusLSTM3Step hDim wf wi wo wg inLift cPrev ≡
+      (chadCellPrimal result , chadHiddenPrimal result))
+mobiusLSTM3CHADCertified hDim wf wi wo wg inLift cPrev =
+  let result = mobiusLSTM3CHAD hDim wf wi wo wg inLift cPrev
+  in result :&: refl
+{-# COMPILE AGDA2HS mobiusLSTM3CHADCertified #-}
 ------------------------------------------------------------------------
 -- 1-Step Clamped Bishop-Wildberger RationalHL + StreamingOptimizer
 ------------------------------------------------------------------------
@@ -851,7 +869,8 @@ initCraftaxRHLLSTM seed =
 encodeLSTMFeatures : CraftaxRHLLSTMState → Vec64 → Vec64 → (Vec64 × Vec64)
 encodeLSTMFeatures s obs32 cPrev =
   let inLift = whtAtrousConcat64 obs32
-      chad = mobiusLSTM3CHAD (hDim s) (wf s) (wi s) (wo s) (wg s) inLift cPrev
+      chad = proj₁ (mobiusLSTM3CHADCertified
+        (hDim s) (wf s) (wi s) (wo s) (wg s) inLift cPrev)
   in (vAppend64 inLift (chadHiddenPrimal chad) , chadCellPrimal chad)
 {-# COMPILE AGDA2HS encodeLSTMFeatures #-}
 
@@ -902,7 +921,8 @@ craftaxRHLLSTMStep s obsCur actTaken rewQ obsNxt isDone =
   let tick = add64 (stepTick s) (lit64 1)
       -- Keep the actual CHAD pullback produced by this very forward pass.
       inLiftCur = whtAtrousConcat64 obsCur
-      rnnCur = mobiusLSTM3CHAD (hDim s) (wf s) (wi s) (wo s) (wg s) inLiftCur (cCell s)
+      rnnCur = proj₁ (mobiusLSTM3CHADCertified
+        (hDim s) (wf s) (wi s) (wo s) (wg s) inLiftCur (cCell s))
       featCur = vAppend64 inLiftCur (chadHiddenPrimal rnnCur)
       cNxt0 = chadCellPrimal rnnCur
       cNxt = if isDone then vMap64 (λ _ → lit64 0) cNxt0 else cNxt0
