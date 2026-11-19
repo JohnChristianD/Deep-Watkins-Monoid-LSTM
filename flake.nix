@@ -140,12 +140,25 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            agda2hs_base_work="$(mktemp -d)"
-            trap 'rm -rf "$agda2hs_base_work"' EXIT
-            mkdir -p "$agda2hs_base_work/library"
-            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
-            chmod -R u+rwX "$agda2hs_base_work/library"
-            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            agda2hs_base_cache="${XDG_CACHE_HOME:-$HOME/.cache}/agda2hs-base/$(basename "$agda2hs_base_root")"
+            if [[ ! -f "$agda2hs_base_cache/.cache-ready" ]]; then
+              agda2hs_base_tmp="${agda2hs_base_cache}.tmp.$"
+              rm -rf "$agda2hs_base_tmp"
+              mkdir -p "$(dirname "$agda2hs_base_cache")" "$agda2hs_base_tmp"
+              cp -RL "$agda2hs_base_root/." "$agda2hs_base_tmp/"
+              chmod -R u+rwX "$agda2hs_base_tmp"
+              touch "$agda2hs_base_tmp/.cache-ready"
+              rm -rf "$agda2hs_base_cache"
+              mv "$agda2hs_base_tmp" "$agda2hs_base_cache"
+            fi
+            agda_version="$(agda2hs --disable-backend --numeric-version)"
+            agda_data_root="${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
+            mkdir -p "$agda_data_root"
+            export Agda_datadir="$agda_data_root"
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              agda2hs --disable-backend --setup
+            fi
+            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
@@ -178,12 +191,25 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            agda2hs_base_work="$(mktemp -d)"
-            trap 'rm -rf "$agda2hs_base_work"' EXIT
-            mkdir -p "$agda2hs_base_work/library"
-            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
-            chmod -R u+rwX "$agda2hs_base_work/library"
-            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            agda2hs_base_cache="${XDG_CACHE_HOME:-$HOME/.cache}/agda2hs-base/$(basename "$agda2hs_base_root")"
+            if [[ ! -f "$agda2hs_base_cache/.cache-ready" ]]; then
+              agda2hs_base_tmp="${agda2hs_base_cache}.tmp.$"
+              rm -rf "$agda2hs_base_tmp"
+              mkdir -p "$(dirname "$agda2hs_base_cache")" "$agda2hs_base_tmp"
+              cp -RL "$agda2hs_base_root/." "$agda2hs_base_tmp/"
+              chmod -R u+rwX "$agda2hs_base_tmp"
+              touch "$agda2hs_base_tmp/.cache-ready"
+              rm -rf "$agda2hs_base_cache"
+              mv "$agda2hs_base_tmp" "$agda2hs_base_cache"
+            fi
+            agda_version="$(agda2hs --disable-backend --numeric-version)"
+            agda_data_root="${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
+            mkdir -p "$agda_data_root"
+            export Agda_datadir="$agda_data_root"
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              agda2hs --disable-backend --setup
+            fi
+            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
@@ -212,12 +238,25 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            agda2hs_base_work="$(mktemp -d)"
-            trap 'rm -rf "$agda2hs_base_work"' EXIT
-            mkdir -p "$agda2hs_base_work/library"
-            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
-            chmod -R u+rwX "$agda2hs_base_work/library"
-            if "${agda2hsTool system}/bin/agda2hs" "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            agda2hs_base_cache="${XDG_CACHE_HOME:-$HOME/.cache}/agda2hs-base/$(basename "$agda2hs_base_root")"
+            if [[ ! -f "$agda2hs_base_cache/.cache-ready" ]]; then
+              agda2hs_base_tmp="${agda2hs_base_cache}.tmp.$"
+              rm -rf "$agda2hs_base_tmp"
+              mkdir -p "$(dirname "$agda2hs_base_cache")" "$agda2hs_base_tmp"
+              cp -RL "$agda2hs_base_root/." "$agda2hs_base_tmp/"
+              chmod -R u+rwX "$agda2hs_base_tmp"
+              touch "$agda2hs_base_tmp/.cache-ready"
+              rm -rf "$agda2hs_base_cache"
+              mv "$agda2hs_base_tmp" "$agda2hs_base_cache"
+            fi
+            agda_version="$(agda2hs --disable-backend --numeric-version)"
+            agda_data_root="${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
+            mkdir -p "$agda_data_root"
+            export Agda_datadir="$agda_data_root"
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              agda2hs --disable-backend --setup
+            fi
+            if "${agda2hsTool system}/bin/agda2hs" "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
