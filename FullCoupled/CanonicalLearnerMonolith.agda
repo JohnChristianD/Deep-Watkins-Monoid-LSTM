@@ -25,9 +25,9 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- including Haskell.Prim's core types, equality, and Double.
 -- Numeric/vector kernels use Csimma's postulate + FOREIGN AGDA2HS boundary;
 -- the executable result carries an erased S0 simulation witness.
--- Keep this learner free of the C++ toolkit adapters because it has no such boundary:
--- IORef, Ptr, StablePtr, C types, MVar, and CFuture belong at an actual
--- mutable/foreign-function boundary, which this module does not expose.
+-- This model has a Haskell extraction boundary, but no C/C++ pointer/event
+-- boundary: IORef, Ptr, StablePtr, C types, MVar, and CFuture adapters do not
+-- belong in its recurrent kernel.
 --
 open import Haskell.Prelude public
 
@@ -38,7 +38,6 @@ import Data.Int (Int64)
 import Data.Word (Word64)
 import Data.Vector.Unboxed (Vector)
 import qualified Data.Vector.Unboxed as VU
-import Control.Parallel.Strategies (parMap, rdeepseq)
 
 type Vec64 = Vector Int64
 type VecD = Vector Double
@@ -105,9 +104,6 @@ vAppend64 = (VU.++)
 vFoldlIdx64 :: (Int64 -> Int64 -> Int64 -> Int64) -> Int64 -> Vector Int64 -> Int64
 vFoldlIdx64 f = VU.ifoldl' (\acc i v -> f acc (fromIntegral i) v)
 
-parSeeds :: (Int64 -> Int64) -> [Int64] -> [Int64]
-parSeeds = parMap rdeepseq
-
 quot64, rem64 :: Int64 -> Int64 -> Int64
 quot64 = quot
 rem64 = rem
@@ -152,7 +148,6 @@ postulate
   vMap64      : (Int64 → Int64) → Vec64 → Vec64
   vAppend64   : Vec64 → Vec64 → Vec64
   vFoldlIdx64 : (Int64 → Int64 → Int64 → Int64) → Int64 → Vec64 → Int64
-  parSeeds    : (Int64 → Int64) → List Int64 → List Int64
   VecD : Set
   quot64 rem64 : Int64 → Int64 → Int64
   i64ToDouble q20ToDouble : Int64 → Double
