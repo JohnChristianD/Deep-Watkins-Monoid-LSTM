@@ -73,13 +73,22 @@ workSteps (s ∷ ss) = stepCost s + workSteps ss
 -- Correctness of compiling a recurrent list into one composed step
 ------------------------------------------------------------------------
 
+cong :
+  {A B : Set} →
+  (f : A → B) →
+  {x y : A} →
+  x ≡ y →
+  f x ≡ f y
+cong f refl = refl
+
 primalSimulation :
   {A T C : Set} →
   (ss : List (RNNStep A T C)) →
   (x : A) →
   runSteps ss x ≡ stepPrimal (compileSteps ss) x
 primalSimulation [] x = refl
-primalSimulation (s ∷ ss) x = refl
+primalSimulation (s ∷ ss) x =
+  primalSimulation ss (stepPrimal s x)
 
 pushSimulation :
   {A T C : Set} →
@@ -88,7 +97,8 @@ pushSimulation :
   (dx : T) →
   pushSteps ss x dx ≡ stepJVP (compileSteps ss) x dx
 pushSimulation [] x dx = refl
-pushSimulation (s ∷ ss) x dx = refl
+pushSimulation (s ∷ ss) x dx =
+  pushSimulation ss (stepPrimal s x) (stepJVP s x dx)
 
 pullSimulation :
   {A T C : Set} →
@@ -97,14 +107,17 @@ pullSimulation :
   (dc : C) →
   pullSteps ss x dc ≡ stepVJP (compileSteps ss) x dc
 pullSimulation [] x dc = refl
-pullSimulation (s ∷ ss) x dc = refl
+pullSimulation (s ∷ ss) x dc =
+  cong (stepVJP s x)
+    (pullSimulation ss (stepPrimal s x) dc)
 
 workSimulation :
   {A T C : Set} →
   (ss : List (RNNStep A T C)) →
   stepCost (compileSteps ss) ≡ workSteps ss
 workSimulation [] = refl
-workSimulation (s ∷ ss) = refl
+workSimulation (s ∷ ss) =
+  cong (λ n → stepCost s + n) (workSimulation ss)
 
 record RNNCompilerSimulation {A T C : Set}
   (ss : List (RNNStep A T C)) : Set where
