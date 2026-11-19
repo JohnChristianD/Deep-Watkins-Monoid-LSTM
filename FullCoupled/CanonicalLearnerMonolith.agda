@@ -505,7 +505,6 @@ clipPullbackD normalized dy =
     (λ i →
       let x = vDAt normalized i
       in if primFloatLess (dAbs x) dOne then vDAt dy i else dZero)
-      in if primFloatLess (dAbs x) dOne then vDAt dy i else dZero)
 {-# COMPILE AGDA2HS clipPullbackD #-}
 
 record MobiusLSTM3CacheD : Set where
@@ -518,7 +517,6 @@ record MobiusLSTM3CacheD : Set where
     cacheCellNumD cacheCellDenD cacheHiddenRawD : VecD
     cacheHiddenNormD : VecD
     cacheHiddenInvStdD : Double
-    cacheHiddenInvStdD : Double
 {-# COMPILE AGDA2HS MobiusLSTM3CacheD #-}
 
 open MobiusLSTM3CacheD public
@@ -527,6 +525,7 @@ record MobiusLSTM3Gradient : Set where
   field
     lstmDInput lstmDPrevCell : Maybe VecD
     lstmDWf lstmDWi lstmDWo lstmDWg : Maybe VecD
+{-# COMPILE AGDA2HS MobiusLSTM3Gradient #-}
 
 open MobiusLSTM3Gradient public
 
@@ -540,10 +539,7 @@ emptyMobiusLSTM3Gradient =
     ; lstmDWo = Nothing
     ; lstmDWg = Nothing
     }
-{-# COMPILE AGDA2HS MobiusLSTM3Gradient #-}
-    }
 {-# COMPILE AGDA2HS emptyMobiusLSTM3Gradient #-}
-{-# COMPILE AGDA2HS MobiusLSTM3Gradient #-}
 
 mobiusLSTM3ForwardD :
   Int64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 → Vec64 →
