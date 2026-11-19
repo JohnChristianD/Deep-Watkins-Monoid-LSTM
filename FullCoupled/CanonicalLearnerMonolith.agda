@@ -43,28 +43,6 @@ import qualified Data.Vector.Unboxed as VU
 type Vec64 = Vector Int64
 type VecD = Vector Double
 
-dZero, dOne, dTwo, dEight, dEpsilon :: Double
-dZero = 0.0
-dOne = 1.0
-dTwo = 2.0
-dEight = 8.0
-dEpsilon = 1.0 / 1024.0
-
-dAdd, dSub, dMul, dDiv :: Double -> Double -> Double
-dAdd = (+)
-dSub = (-)
-dMul = (*)
-dDiv = (/)
-
-dNegate :: Double -> Double
-dNegate = negate
-
-dLess :: Double -> Double -> Bool
-dLess = (<)
-
-dSqrt :: Double -> Double
-dSqrt = sqrt
-
 lit64 :: Integer -> Int64
 lit64 = fromIntegral
 
@@ -159,11 +137,6 @@ postulate
   vDAt : VecD → Int64 → Double
   vDGen : Int64 → (Int64 → Double) → VecD
   vDFoldlIdx : (Double → Int64 → Double → Double) → Double → VecD → Double
-  dZero dOne dTwo dEight dEpsilon : Double
-  dAdd dSub dMul dDiv : Double → Double → Double
-  dNegate : Double → Double
-  dLess : Double → Double → Bool
-  dSqrt : Double → Double
 
 ------------------------------------------------------------------------
 -- Exact O(1) Q44.20 Dyadic Constants (Strict Single Fixed Precision)
@@ -420,6 +393,42 @@ infixr 4 :&:
 -- accumulation uses local state-passing (LACM), rather than a tree of
 -- higher-order derivative closures.
 ------------------------------------------------------------------------
+
+-- Haskell.Prelude reexports Haskell.Prim.Double, whose Double and
+-- primitive operations are the agda2hs representation of Haskell Double.
+dZero dOne dTwo dEight dEpsilon : Double
+dZero = primNatToFloat 0
+dOne = primNatToFloat 1
+dTwo = primNatToFloat 2
+dEight = primNatToFloat 8
+dEpsilon = primFloatDiv dOne (primNatToFloat 1024)
+{-# COMPILE AGDA2HS dZero #-}
+{-# COMPILE AGDA2HS dOne #-}
+{-# COMPILE AGDA2HS dTwo #-}
+{-# COMPILE AGDA2HS dEight #-}
+{-# COMPILE AGDA2HS dEpsilon #-}
+
+dAdd dSub dMul dDiv : Double → Double → Double
+dAdd = primFloatPlus
+dSub = primFloatMinus
+dMul = primFloatTimes
+dDiv = primFloatDiv
+{-# COMPILE AGDA2HS dAdd #-}
+{-# COMPILE AGDA2HS dSub #-}
+{-# COMPILE AGDA2HS dMul #-}
+{-# COMPILE AGDA2HS dDiv #-}
+
+dNegate : Double → Double
+dNegate = primFloatNegate
+{-# COMPILE AGDA2HS dNegate #-}
+
+dLess : Double → Double → Bool
+dLess = primFloatLess
+{-# COMPILE AGDA2HS dLess #-}
+
+dSqrt : Double → Double
+dSqrt = primFloatSqrt
+{-# COMPILE AGDA2HS dSqrt #-}
 
 dAbs : Double → Double
 dAbs x = if dLess x dZero then dNegate x else x
