@@ -23,15 +23,14 @@
 
 (local check-agda-theorem (fn []
   (check-agda-learner)
-  (check-agda "FullCoupled/EfficientCHADRNN.agda")
   (run! "create agda2hs output directory" "mkdir -p build/agda2hs")
-  (run! "extract Efficient CHAD RNN representation"
+  (run! "extract canonical CHAD RNN module"
     (.. "agda2hs "
-        (shell-quote "FullCoupled/EfficientCHADRNN.agda")
+        (shell-quote "FullCoupled/CanonicalLearnerMonolith.agda")
         " -o "
         (shell-quote "build/agda2hs")))
-  (run! "verify extracted Haskell module"
-    "test -s build/agda2hs/FullCoupled/EfficientCHADRNN.hs")
+  (run! "verify extracted canonical Haskell module"
+    "test -s build/agda2hs/FullCoupled/CanonicalLearnerMonolith.hs")
   (check-agda "FullCoupled/TheoremsMonolith.agda")
   (print "theorem-kernel-check=pass-relative-to-imports-postulates-primitives-and-options")))
 
