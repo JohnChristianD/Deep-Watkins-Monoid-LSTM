@@ -1,4 +1,5 @@
 {-# OPTIONS
+--erasure
 --experimental-lazy-instances
 --lossy-unification
 --syntactic-equality=1
@@ -391,7 +392,9 @@ whtAtrousConcat64 obs32 =
 -- Csimma's erased product: runtime value plus proof erased by agda2hs.
 -- This keeps the compiler-simulation witness attached to executable RNN
 -- representation without introducing a second module or runtime payload.
-record S0 (A : Set) (@0 P : A → Set) : Set where
+open import Agda.Primitive using (Level; _⊔_)
+
+record S0 {i j : Level} (A : Set i) (@0 P : A → Set j) : Set (i ⊔ j) where
   no-eta-equality
   constructor _:&:_
   field
