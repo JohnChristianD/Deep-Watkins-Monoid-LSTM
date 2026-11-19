@@ -4,8 +4,6 @@ module FullCoupled.EfficientCHADRNN where
 
 -- Haskell-facing recurrent IR. Local JVP/VJP functions are first-class
 -- representation data; proof evidence is erased from extracted Haskell.
-import Haskell.Prelude
-
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.List using (List; []; _∷_)
 open import Agda.Builtin.Nat using (Nat; zero; _+_)
