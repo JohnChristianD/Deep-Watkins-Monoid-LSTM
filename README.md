@@ -30,7 +30,7 @@ persistent quantized noise duration
 
 The candidate branch is affine in the current observation only. It has no previous-hidden-state term and no candidate activation. The gate is a shifted/rescaled softsign; the hidden-state update is a convex mix followed by MAD-LayerNorm and softsign.
 
-The critic is deterministic. Factorized NoisyNet parameters and noise state belong exclusively to the actor. The selected action is sampled by Gumbel-Max using the same Quantmoid4-normalized policy probabilities returned in `NetworkStep`; the finite log-probability lookup is shared with Munchausen shaping. This keeps sampling and reported policy probability aligned up to the declared lookup/Gumbel quantization.
+The critic is deterministic. Factorized NoisyNet parameters and noise state belong exclusively to the actor. The selected action is sampled by Gumbel-Max using the same Quantmoid4-normalized policy probabilities returned in `NetworkStep`. The Gumbel score uses a range-reduced integer logarithm of those probabilities; the reward-shaping path separately clamps probabilities below `2^-16`. This keeps sampling and reported policy probability aligned up to Q20 and quantized-Gumbel error.
 
 There is **no LSTM** and **no epsilon-greedy selector** in the canonical learner source. The CI source audit rejects either strategy name in this file.
 
@@ -63,7 +63,7 @@ The canonical network exports these composed operations:
 - `networkMunchausenSarsa3Target`: composes Munchausen shaping for all three behavior rewards with the sampled distributional SARSA target.
 - `networkTrainSampleFromTarget`: packages target widths and target quantiles for the learner.
 
-The three-step backup uses the behavior action at the bootstrap state, never an action maximum. Terminal flags shorten the return at the first terminal transition. Munchausen shaping uses `r + alpha * tau * log(pi(a|s))`, with `alpha = 1/16` and `tau = 1/8`. The logarithm is an integer lookup approximation with clamping; its approximation error still needs a numerical bound.
+The three-step backup uses the behavior action at the bootstrap state, never an action maximum. Terminal flags shorten the return at the first terminal transition. Munchausen shaping uses `r + alpha * tau * log(pi(a|s))`, with `alpha = 1/16` and `tau = 1/8`. The logarithm uses a range-reduced fixed-point series; the reward-shaping path clamps probabilities below `2^-16`. A numerical error bound and cross-check against a high-precision reference still need to be added.
 
 ## FQF and quantile-Huber learner
 
