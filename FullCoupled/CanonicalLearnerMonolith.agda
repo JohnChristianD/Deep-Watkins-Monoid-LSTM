@@ -478,6 +478,16 @@ qAddL2GradientRaw gradient weights =
 qAddVec32Raw :: Vec32 -> Vec32 -> Vec32
 qAddVec32Raw = U.zipWith addInt32
 
+-- CHAD sums per-step Int32 directions in Int64 and narrows only once.
+qLiftVec32Raw :: Vec32 -> Vec64
+qLiftVec32Raw = U.map fromIntegral
+
+qAddVec64Raw :: Vec64 -> Vec64 -> Vec64
+qAddVec64Raw = U.zipWith (+)
+
+qNarrowVec64Raw :: Vec64 -> Vec32
+qNarrowVec64Raw = U.map satInt32
+
 qNegVec32Raw :: Vec32 -> Vec32
 qNegVec32Raw = U.map negInt32
 
@@ -817,6 +827,9 @@ qMunchausenReward = qMunchausenRewardRaw
 qSarsa3Target = qSarsa3TargetRaw
 qAddL2Gradient = qAddL2GradientRaw
 qAddVec32 = qAddVec32Raw
+qLiftVec32 = qLiftVec32Raw
+qAddVec64 = qAddVec64Raw
+qNarrowVec64 = qNarrowVec64Raw
 qNegVec32 = qNegVec32Raw
 qScaleVec32 = qScaleVec32Raw
 qTraceAdvance = qTraceAdvanceRaw
@@ -964,6 +977,9 @@ postulate
   qSarsa3Target : Int32 → Int32 → Int32 → Int32 → Int32 → Int32 → Vec32 → Vec32
   qAddL2Gradient : Vec32 → Vec32 → Vec32
   qAddVec32 : Vec32 → Vec32 → Vec32
+  qLiftVec32 : Vec32 → Vec64
+  qAddVec64 : Vec64 → Vec64 → Vec64
+  qNarrowVec64 : Vec64 → Vec32
   qNegVec32 : Vec32 → Vec32
   qScaleVec32 : Int32 → Vec32 → Vec32
   qTraceAdvance : Int32 → Vec32 → Vec32 → Vec32
@@ -1011,6 +1027,9 @@ postulate
 {-# COMPILE AGDA2HS qSarsa3Target #-}
 {-# COMPILE AGDA2HS qAddL2Gradient #-}
 {-# COMPILE AGDA2HS qAddVec32 #-}
+{-# COMPILE AGDA2HS qLiftVec32 #-}
+{-# COMPILE AGDA2HS qAddVec64 #-}
+{-# COMPILE AGDA2HS qNarrowVec64 #-}
 {-# COMPILE AGDA2HS qNegVec32 #-}
 {-# COMPILE AGDA2HS qScaleVec32 #-}
 {-# COMPILE AGDA2HS qTraceAdvance #-}
@@ -1782,10 +1801,10 @@ open NetworkStepCotangent public
 
 networkCHADCell
   : IterativeCHADCell NetworkParams NetworkState NetworkCellInput
-      NetworkStep Vec32 Vec32 NetworkStepCotangent Vec32
+      NetworkStep Vec64 Vec32 NetworkStepCotangent Vec32
 networkCHADCell = mkIterativeCHADCell forward backward
-  (λ p → qZeroVec32 (qVecLength (networkParameterVector p)))
-  qAddVec32
+  (λ p → qLiftVec32 (qZeroVec32 (qVecLength (networkParameterVector p))))
+  qAddVec64
   where
     forward : NetworkParams → NetworkState → NetworkCellInput
             → CHADForwardStep NetworkState NetworkStep
@@ -1804,7 +1823,7 @@ networkCHADCell = mkIterativeCHADCell forward backward
             (networkStepQuantileDirection cotangent)
             futureHidden
       in mkCHADPullbackStep
-           (networkParameterDirection direction)
+           (qLiftVec32 (networkParameterDirection direction))
            (networkPreviousHiddenDirection direction)
            (networkObservationDirection direction)
 {-# COMPILE AGDA2HS networkCHADCell #-}
@@ -1833,7 +1852,7 @@ networkSequenceVJP p initial samples outputDirections finalHiddenDirection =
   in mkNetworkSequencePullback
        (chadFinalState forward)
        (chadOutputs forward)
-       (chadAccumulatedParameterDirection backward)
+       (qNarrowVec64 (chadAccumulatedParameterDirection backward))
        (chadInitialStateDirection backward)
        (chadInputDirections backward)
 {-# COMPILE AGDA2HS networkSequenceVJP #-}
@@ -1914,7 +1933,7 @@ networkTrainSequenceVJP config p initial samples =
   in mkNetworkSequencePullback
        (chadFinalState forward)
        (chadOutputs forward)
-       (chadAccumulatedParameterDirection backward)
+       (qNarrowVec64 (chadAccumulatedParameterDirection backward))
        (chadInitialStateDirection backward)
        (chadInputDirections backward)
 {-# COMPILE AGDA2HS networkTrainSequenceVJP #-}
@@ -1980,7 +1999,7 @@ networkTrainPass config state sample =
         oneFrameTrace oneFrameCotangent
         (qZeroVec32 (gruHiddenDim (networkGRUParams p)))
       regularizedDirection = l2Gradient
-        (chadAccumulatedParameterDirection reversePass)
+        (qNarrowVec64 (chadAccumulatedParameterDirection reversePass))
         (networkParameterVector p)
       nextTrace = qTraceAdvance (networkTrainTraceDecay config)
         (networkTrainObgdTrace state) regularizedDirection
