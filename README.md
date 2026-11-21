@@ -67,7 +67,7 @@ The three-step backup uses the behavior action at the bootstrap state, never an 
 
 ## FQF and quantile-Huber learner
 
-The critic fixes the fraction/value count at 16. The fraction head is normalized into positive widths, cumulative widths give quantile midpoints, and the value head gives action-specific quantile estimates. The pairwise quantile-Huber loss and its descent direction are implemented in the integer kernel.
+The critic fixes the fraction/value count at 16. The fraction head is normalized into positive widths, cumulative widths give quantile midpoints, and the value head gives action-specific quantile estimates. The pairwise quantile-Huber loss and descent direction are implemented in the integer kernel. Each target atom's contribution is weighted by its FQF fraction width; the loss averages over predicted quantiles and integrates over the target distribution.
 
 The FQF fraction-proposal direction follows the structure of Proposition 1 in the FQF paper: each interior boundary uses the difference between twice the quantile value at the boundary and its neighboring midpoint quantile values. Since this project has discrete learned quantile samples rather than an exact inverse-CDF oracle, the boundary value is obtained by piecewise-linear interpolation between adjacent midpoint estimates. That is an explicit numerical surrogate, not an exact symbolic inverse-CDF gradient. [Fully Parameterized Quantile Function](https://proceedings.neurips.cc/paper_files/paper/2019/hash/f471223d1a1614b58a7dc45c9d01df19-Abstract.html).
 
@@ -81,9 +81,9 @@ The canonical learner now connects the network's GRU, actor and FQF pullbacks th
 - `iterativeCHADForward` stores the finite primal trace; `iterativeCHADBackward` traverses that trace in reverse, passes the hidden-state cotangent between frames, and merges parameter directions.
 - Parameter cotangents are lifted to Int64 vectors during the reverse scan and narrowed once after the complete unroll. This avoids the non-associativity introduced by saturating Int32 addition at every time step.
 
-The Agda work-count model proves that an unroll of length `n` has exactly `n` forward-cell frames, `n` reverse-cell applications and `n` parameter-accumulator merges. With dense parameter dimension `P), those vector merges cost `O(nP)`; the saved primal trace is linear in horizon and per-step state/input/output storage. This is a bound for the explicit scan and dense vector representation here, not a theorem about every CHAD program.
+The Agda work-count model proves that an unroll of length `n` has exactly `n` forward-cell frames, `n` reverse-cell applications and `n` parameter-accumulator merges. With dense parameter dimension `P`, those vector merges cost `O(nP)`; the saved primal trace is linear in horizon and per-step state/input/output storage. This is a bound for the explicit scan and dense vector representation here, not a theorem about every CHAD program.
 
-The implementation is an iterative, state-passed CHAD-style scan for this learner. It is not a general source-to-source CHAD compiler, and the FFI kernels' smooth-shadow VJPs do not yet have a machine-checked derivative-correctness theorem. Integer rounding, saturation, table lookups, factorized noise samples and Gumbel-Max selection are discrete boundaries; pullbacks differentiate the declared smooth Q20 shadow while holding those sampled/discrete choices fixed.
+The implementation is an iterative, state-passed CHAD-style scan for this learner. It is not a general source-to-source CHAD compiler, and the FFI kernels' smooth-shadow VJPs do not yet have a machine-checked derivative-correctness theorem. Integer rounding, saturation, quantized noise tables, factorized noise samples and Gumbel-Max selection are discrete boundaries; pullbacks differentiate the declared smooth Q20 shadow while holding those sampled/discrete choices fixed.
 
 Research context: [Unraveling the Iterative CHAD](https://arxiv.org/abs/2505.15002), [Efficient CHAD](https://arxiv.org/abs/2307.05738).
 
@@ -92,7 +92,7 @@ Research context: [Unraveling the Iterative CHAD](https://arxiv.org/abs/2505.150
 The learner includes:
 
 - `qTraceAdvance`: decayed eligibility/update-direction trace.
-- `l2Gradient`: an update direction with coefficient `16 / 2^20 = 1/2^16), pointing toward zero.
+- `l2Gradient`: an update direction with coefficient `16 / 2^20 = 1/2^16`, pointing toward zero.
 - `qObgdEffectiveStep` and `qObgdUpdate`: a conservative Q20 step bound based on the configured curvature factor, residual magnitude and L1 trace norm.
 - `networkTrainSequenceVJP`: full finite-horizon reverse-mode pass over chronological training samples.
 - `networkTrainSequenceUTD2`: two updates per sample with one-step truncated BPTT; recurrent and noise time advance once per environment sample.
@@ -104,14 +104,14 @@ Training samples and target distributions are supplied by the caller. The module
 
 ## Verification and trust boundary
 
-CI typechecks the Agda modules, extracts the canonical module with Agda2HS, typechecks the generated Haskell module with GHC, audits for forbidden LSTM/epsilon-greedy paths and checks that the composed network/CHAD/UTD2 entry points exist. A green extraction/typecheck verifies the declared Agda and Haskell interfaces; it does not establish numerical parity or the mathematical correctness of every foreign kernel.
+CI typechecks the Agda modules, extracts the canonical module with Agda2HS, typechecks the generated Haskell module with GHC, audits for forbidden LSTM/epsilon-greedy paths, floating-point runtime types, explicit fixed-width type bridges and the composed network/CHAD/UTD2 entry points. A green extraction/typecheck verifies the declared Agda and Haskell interfaces; it does not establish numerical parity or the mathematical correctness of every foreign kernel.
 
 Still needed for a verified training claim:
 
 - property tests for saturating arithmetic, ties-to-even rounding, fixed-point division and Quantmoid4 reference vectors;
 - finite-difference/reference tests for GRU, MAD-LayerNorm, actor, quantile-value and FQF fraction pullbacks;
 - actor-noise isolation, selected-action probability and Gumbel sampling distribution checks;
-- terminal/bootstrap alignment and Munchausen lookup-error bounds;
+- terminal/bootstrap alignment and integer-log approximation error bounds;
 - ObGD step-bound tests and extracted-Haskell runtime parity tests;
 - an end-to-end chronological training run on a documented data set.
 
