@@ -1659,14 +1659,14 @@ record IterativeCHADCell
 open IterativeCHADCell public
 {-# COMPILE AGDA2HS IterativeCHADCell #-}
 
-data CHADTrace (S X Y : Set) : Nat → Set where
+data CHADTrace (S X Y : Set) : (@0 n : Nat) → Set where
   chadEmpty : CHADTrace S X Y zero
   chadCons : ∀ {@0 n} → S → X → Y → CHADTrace S X Y n
           → CHADTrace S X Y (suc n)
 
 {-# COMPILE AGDA2HS CHADTrace #-}
 
-record CHADForwardResult (S X Y : Set) (n : Nat) : Set where
+record CHADForwardResult (S X Y : Set) (@0 n : Nat) : Set where
   constructor mkCHADForwardResult
   field
     chadFinalState : S
@@ -1676,7 +1676,7 @@ record CHADForwardResult (S X Y : Set) (n : Nat) : Set where
 open CHADForwardResult public
 {-# COMPILE AGDA2HS CHADForwardResult #-}
 
-record CHADBackwardResult (DP DS DX : Set) (n : Nat) : Set where
+record CHADBackwardResult (DP DS DX : Set) (@0 n : Nat) : Set where
   constructor mkCHADBackwardResult
   field
     chadAccumulatedParameterDirection : DP
@@ -1735,8 +1735,6 @@ chadTraceLength-correct
 chadTraceLength-correct chadEmpty = refl
 chadTraceLength-correct (chadCons state input output rest)
   rewrite chadTraceLength-correct rest = refl
-{-# COMPILE AGDA2HS chadTraceLength #-}
-{-# COMPILE AGDA2HS chadTraceLength-correct #-}
 
 ------------------------------------------------------------------------
 -- The composed network is an iterative CHAD cell
@@ -1789,7 +1787,7 @@ networkCHADCell = mkIterativeCHADCell forward backward
            (networkObservationDirection direction)
 {-# COMPILE AGDA2HS networkCHADCell #-}
 
-record NetworkSequencePullback (n : Nat) : Set where
+record NetworkSequencePullback (@0 n : Nat) : Set where
   constructor mkNetworkSequencePullback
   field
     networkSequenceFinalState : NetworkState
@@ -2004,7 +2002,7 @@ networkTrainSequenceUTD2 config state (VCons sample samples) =
 -- two parameter updates; recurrent/noise time advances once per chunk.
 ------------------------------------------------------------------------
 
-record NetworkTrainChunkResult (n : Nat) : Set where
+record NetworkTrainChunkResult (@0 n : Nat) : Set where
   constructor mkNetworkTrainChunkResult
   field
     networkTrainChunkNextState : NetworkTrainState
