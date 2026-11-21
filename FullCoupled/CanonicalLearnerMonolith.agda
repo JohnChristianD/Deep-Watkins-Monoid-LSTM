@@ -1766,7 +1766,7 @@ data CHADInputDirections (DX : Set) : Set where
 
 {-# COMPILE AGDA2HS CHADInputDirections #-}
 
-record CHADBackwardResult (DP DS DX : Set) (@0 n : Nat) : Set where
+record CHADBackwardResult (DP DS DX : Set) : Set where
   constructor mkCHADBackwardResult
   field
     chadAccumulatedParameterDirection : DP
@@ -1813,7 +1813,7 @@ iterativeCHADBackwardAcc
   → IterativeCHADCell P S X Y DP DS DY DX
   → P → CHADFramesRev S X Y DY → DS → DP
   → CHADInputDirections DX
-  → CHADBackwardResult DP DS DX zero
+  → CHADBackwardResult DP DS DX
 iterativeCHADBackwardAcc cell p chadFramesEmpty stateDirection
     parameterDirection inputDirections =
   mkCHADBackwardResult parameterDirection stateDirection inputDirections
@@ -1835,7 +1835,7 @@ iterativeCHADBackward
   : ∀ {P S X Y DP DS DY DX n}
   → IterativeCHADCell P S X Y DP DS DY DX
   → P → CHADTrace S X Y n → Vec DY n → DS
-  → CHADBackwardResult DP DS DX n
+  → CHADBackwardResult DP DS DX
 iterativeCHADBackward cell p trace outputDirections terminalDirection =
   iterativeCHADBackwardAcc cell p
     (chadReverseFrames trace outputDirections)
