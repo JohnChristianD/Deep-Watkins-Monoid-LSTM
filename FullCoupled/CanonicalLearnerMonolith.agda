@@ -1006,7 +1006,7 @@ postulate
   qLinearRowsVJP : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
   qFactorizedNoisyLinearVJP
     : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32
-    → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+    → Vec32 → Vec32 → Vec32 → Vec32
   qSoftsignVJP : Vec32 → Vec32 → Vec32
   qShiftedGateVJP : Vec32 → Vec32 → Vec32
   qConvexMixVJP : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
