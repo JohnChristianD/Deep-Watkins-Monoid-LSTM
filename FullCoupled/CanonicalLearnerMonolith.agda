@@ -2048,6 +2048,79 @@ networkTrainSequenceUTD2 config state (VCons sample samples) =
 
 
 ------------------------------------------------------------------------
+-- Multi-step CHAD unroll updates
+--
+-- These update once per unroll, twice for UTD=2. For UTD=2 per individual
+-- transition use networkTrainSequenceUTD2 above (one-step truncation).
+------------------------------------------------------------------------
+
+record NetworkTrainChunkResult (@0 n : Nat) : Set where
+  constructor mkNetworkTrainChunkResult
+  field
+    networkTrainChunkNextState : NetworkTrainState
+    networkTrainChunkOutputs : Vec NetworkStep n
+    networkTrainChunkDirection : Vec32
+    networkTrainChunkEffectiveAlpha : Int32
+
+open NetworkTrainChunkResult public
+{-# COMPILE AGDA2HS NetworkTrainChunkResult #-}
+
+networkTrainChunkPass
+  : ∀ {n}
+  → NetworkTrainConfig → NetworkTrainState
+  → Vec NetworkTrainSample (suc n)
+  → NetworkTrainChunkResult (suc n)
+networkTrainChunkPass config state samples =
+  let p = networkTrainParams state
+      pullback = networkTrainSequenceVJP config p
+        (networkTrainRuntimeState state) samples
+      direction = l2Gradient
+        (networkSequenceParameterDirection pullback)
+        (networkParameterVector p)
+      nextTrace = qTraceAdvance (networkTrainTraceDecay config)
+        (networkTrainObgdTrace state) direction
+      (updatedParameters, effectiveAlpha) = qObgdUpdate
+        (networkTrainObgdAlpha config)
+        (networkTrainObgdKappa config)
+        int32OneQ20
+        (networkParameterVector p)
+        nextTrace
+      p' = networkWithParameterVector p updatedParameters
+      state' = mkNetworkTrainState p'
+        (networkSequenceFinalState pullback) nextTrace
+  in mkNetworkTrainChunkResult state'
+       (networkSequenceOutputs pullback) direction effectiveAlpha
+{-# COMPILE AGDA2HS networkTrainChunkPass #-}
+
+networkTrainChunkUTD2
+  : ∀ {n}
+  → NetworkTrainConfig → NetworkTrainState
+  → Vec NetworkTrainSample (suc n)
+  → NetworkTrainChunkResult (suc n)
+networkTrainChunkUTD2 config state samples =
+  let first = networkTrainChunkPass config state samples
+      firstState = networkTrainChunkNextState first
+      secondInput = mkNetworkTrainState
+        (networkTrainParams firstState)
+        (networkTrainRuntimeState state)
+        (networkTrainObgdTrace firstState)
+  in networkTrainChunkPass config secondInput samples
+{-# COMPILE AGDA2HS networkTrainChunkUTD2 #-}
+
+networkTrainChunksUTD2
+  : ∀ {m n}
+  → NetworkTrainConfig → NetworkTrainState
+  → Vec (Vec NetworkTrainSample (suc n)) m
+  → NetworkTrainState
+networkTrainChunksUTD2 config state VNil = state
+networkTrainChunksUTD2 config state (VCons samples rest) =
+  let result = networkTrainChunkUTD2 config state samples
+  in networkTrainChunksUTD2 config
+       (networkTrainChunkNextState result) rest
+{-# COMPILE AGDA2HS networkTrainChunksUTD2 #-}
+
+
+------------------------------------------------------------------------
 -- Full-unroll CHAD training. Each non-empty chronological chunk receives
 -- two parameter updates; recurrent/noise time advances once per chunk.
 ------------------------------------------------------------------------
