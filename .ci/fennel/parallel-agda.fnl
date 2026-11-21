@@ -55,7 +55,10 @@
              " > " (shell-quote entry.log) " 2>&1")})
     (ipairs entries)))
 
-(local launch (lanes.gen "*" (fn [command] (os.execute command))))
+(local launch
+  (lanes.gen "*" (fn [command]
+    (local status (os.execute command))
+    status)))
 (local tasks [])
 (local jobs [])
 (each [entry commands]

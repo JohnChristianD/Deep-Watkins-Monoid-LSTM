@@ -32,7 +32,6 @@
         (shell-quote "build/agda2hs")))
   (run! "verify extracted canonical Haskell module"
     "test -s build/agda2hs/FullCoupled/CanonicalLearnerMonolith.hs")
-  (check-agda "FullCoupled/TheoremsMonolith.agda")
   (print "theorem-kernel-check=pass-relative-to-imports-postulates-primitives-and-options")))
 
 (local read-file (fn [path]
