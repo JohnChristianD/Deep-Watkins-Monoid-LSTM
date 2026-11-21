@@ -899,19 +899,16 @@ evalActionRationalHL s feat a =
   in (probs , meanV)
 {-# COMPILE AGDA2HS evalActionRationalHL #-}
 
-selectActionEpsGreedy : CraftaxRHLLSTMState → Vec64 → (Int64 × Int64)
-selectActionEpsGreedy s feat =
-  let na        = nAct s
-      (st' , r) = pcgStep64 (prngState s)
-      qs        = vGen64 na (λ a → snd (evalActionRationalHL s feat a))
-      bestA     = vFoldlIdx64 (λ ba i q → if gt64 q (vAt64 qs ba) then i else ba) (lit64 0) qs
-      epsAct    = and64 r (lit64 15)
-  in if eq64 epsAct (lit64 0)
-     then let (st'' , r2) = pcgStep64 st'
-              rndA        = vFoldlIdx64 (λ acc i _ → if ge64 (mul64 r2 na) (mul64 i qOne64) then i else acc) (lit64 0) qs
-          in (rndA , st'')
-     else (bestA , st')
-{-# COMPILE AGDA2HS selectActionEpsGreedy #-}
+selectActionGreedy : CraftaxRHLLSTMState → Vec64 → (Int64 × Int64)
+selectActionGreedy s feat =
+  let na = nAct s
+      qs = vGen64 na (λ a → snd (evalActionRationalHL s feat a))
+      bestA =
+        vFoldlIdx64
+          (λ ba i q → if gt64 q (vAt64 qs ba) then i else ba)
+          (lit64 0) qs
+  in (bestA , prngState s)
+{-# COMPILE AGDA2HS selectActionGreedy #-}
 
 tentProject5 : Int64 → Vec64
 tentProject5 targ =
