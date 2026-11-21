@@ -69,7 +69,7 @@ The three-step backup uses the behavior action at the bootstrap state, never an 
 
 The critic fixes the fraction/value count at 16. The fraction head is normalized into positive widths, cumulative widths give quantile midpoints, and the value head gives action-specific quantile estimates. The pairwise quantile-Huber loss and its descent direction are implemented in the integer kernel.
 
-The FQF fraction-proposal direction follows the structure of Proposition 1 in the FQF paper: each interior boundary uses the difference between twice the quantile value at the boundary and its neighboring midpoint quantile values. Since this project has discrete learned quantile samples rather than an exact inverse-CDF oracle, the boundary value is obtained by piecewise-linear interpolation between adjacent midpoint estimates. That is an explicit numerical surrogate, not an exact symbolic inverse-CDF gradient. [Fully Parameterized Quantile Function](https://proceedings.neurips.cc/paper/2019/hash/f8e6d2d2f0cda6f4a9f8b4d85d9a6d3a-Abstract.html).
+The FQF fraction-proposal direction follows the structure of Proposition 1 in the FQF paper: each interior boundary uses the difference between twice the quantile value at the boundary and its neighboring midpoint quantile values. Since this project has discrete learned quantile samples rather than an exact inverse-CDF oracle, the boundary value is obtained by piecewise-linear interpolation between adjacent midpoint estimates. That is an explicit numerical surrogate, not an exact symbolic inverse-CDF gradient. [Fully Parameterized Quantile Function](https://proceedings.neurips.cc/paper_files/paper/2019/hash/f471223d1a1614b58a7dc45c9d01df19-Abstract.html).
 
 ## Iterative CHAD integration
 
@@ -85,7 +85,7 @@ The Agda work-count model proves that an unroll of length `n` has exactly `n` fo
 
 The implementation is an iterative, state-passed CHAD-style scan for this learner. It is not a general source-to-source CHAD compiler, and the FFI kernels' smooth-shadow VJPs do not yet have a machine-checked derivative-correctness theorem. Integer rounding, saturation, table lookups, factorized noise samples and Gumbel-Max selection are discrete boundaries; pullbacks differentiate the declared smooth Q20 shadow while holding those sampled/discrete choices fixed.
 
-Research context: [Unraveling the Iterative CHAD](https://arxiv.org/abs/2307.096ଟ), [Efficient CHAD](https://arxiv.org/abs/2305.045 ??).
+Research context: [Unraveling the Iterative CHAD](https://arxiv.org/abs/2505.15002), [Efficient CHAD](https://arxiv.org/abs/2307.05738).
 
 ## ObGD and sequential UTD=2 updates
 
