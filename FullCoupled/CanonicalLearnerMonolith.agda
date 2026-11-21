@@ -810,6 +810,25 @@ qGumbelMaxSelect = qGumbelMaxSelectRaw
 qMunchausenReward = qMunchausenRewardRaw
 qSarsa3Target = qSarsa3TargetRaw
 qAddL2Gradient = qAddL2GradientRaw
+qAddVec32 = qAddVec32Raw
+qNegVec32 = qNegVec32Raw
+qScaleVec32 = qScaleVec32Raw
+qTraceAdvance = qTraceAdvanceRaw
+qLogProbabilityCotangent = qLogProbabilityCotangentRaw
+qEmbedActionCotangent = qEmbedActionCotangentRaw
+qLinearRowsVJP = qLinearRowsVJPRaw
+qFactorizedNoisyLinearVJP = qFactorizedNoisyLinearVJPRaw
+qSoftsignVJP = qSoftsignVJPRaw
+qShiftedGateVJP = qShiftedGateVJPRaw
+qConvexMixVJP = qConvexMixVJPRaw
+qMadLayerNormVJP = qMadLayerNormVJPRaw
+q4SoftmaxVJP = q4SoftmaxVJPRaw
+qQuantileHuberLoss = qQuantileHuberLossRaw
+qQuantileHuberDirection = qQuantileHuberDirectionRaw
+qFQFFractionLogitDirection = qFQFFractionLogitDirectionRaw
+qVecMean = qVecMeanRaw
+qObgdEffectiveStep = qObgdEffectiveStepRaw
+qObgdUpdate = qObgdUpdateRaw
 #-}
 
 -- Fixed-width machine integers have no native Agda builtin counterpart.
