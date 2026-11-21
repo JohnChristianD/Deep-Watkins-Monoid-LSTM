@@ -127,7 +127,6 @@ import qualified Data.Int
 import qualified Data.Word
 import qualified Data.Bits as Bits
 import qualified Data.Vector.Unboxed as U
-import Data.List (foldl')
 
 type Vec8 = U.Vector Int8
 type Vec32 = U.Vector Int32
@@ -201,7 +200,7 @@ qShiftedGateRaw x =
 -- The C1 training shadow is a separate object and is not this discrete kernel.
 qQuantmoid4Raw :: Int32 -> Int32
 qQuantmoid4Raw x =
-  let magnitude = min 127 (roundDivEven (abs (fromIntegral x) * 127) qOneRaw)
+  let magnitude = min 127 (quot (abs (fromIntegral x) * 127) qOneRaw)
       v = magnitude - 127
       vv = quot (v * v) 256
       output = if x > 0 then 126 - vv else vv
