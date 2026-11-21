@@ -1873,6 +1873,56 @@ networkTrainStepCotangents config
        (networkTrainStepCotangents config samples decisions)
 {-# COMPILE AGDA2HS networkTrainStepCotangents #-}
 
+-- Full finite-horizon BPTT over a chronological unroll: one forward trace,
+-- then one reverse iterative-CHAD scan carrying shared parameter cotangents.
+networkTrainSequenceVJP
+  : ∀ {n}
+  → NetworkTrainConfig → NetworkParams → NetworkState
+  → Vec NetworkTrainSample n → NetworkSequencePullback n
+networkTrainSequenceVJP config p initial samples =
+  let forward = iterativeCHADForward networkCHADCell p initial
+        (networkTrainCellInputs samples)
+      outputDirections = networkTrainStepCotangents config
+        samples (chadOutputs forward)
+      backward = iterativeCHADBackward networkCHADCell p
+        (chadTrace forward) outputDirections
+        (qZeroVec32 (gruHiddenDim (networkGRUParams p)))
+  in mkNetworkSequencePullback
+       (chadFinalState forward)
+       (chadOutputs forward)
+       (chadAccumulatedParameterDirection backward)
+       (chadInitialStateDirection backward)
+       (chadInputDirections backward)
+{-# COMPILE AGDA2HS networkTrainSequenceVJP #-}
+
+networkTrainCellInputs
+  : ∀ {n} → Vec NetworkTrainSample n → Vec NetworkCellInput n
+networkTrainCellInputs = mapVec (λ sample →
+  mkNetworkCellInput
+    (networkTrainObservation sample) (networkTrainAction sample))
+{-# COMPILE AGDA2HS networkTrainCellInputs #-}
+
+networkTrainStepCotangents
+  : ∀ {n}
+  → NetworkTrainConfig
+  → Vec NetworkTrainSample n → Vec NetworkStep n
+  → Vec NetworkStepCotangent n
+networkTrainStepCotangents config VNil VNil = VNil
+networkTrainStepCotangents config
+  (VCons sample samples) (VCons decision decisions) =
+  let distribution = networkSelectedActionDistribution decision
+      advantage = subInt32
+        (qVecMean (networkTrainTargetQuantiles sample))
+        (rawQ20 (networkSelectedActionValue decision))
+      quantileDirection = qQuantileHuberDirection
+        (networkTrainHuberKappa config)
+        (fqfMidpoints distribution)
+        (networkTrainTargetQuantiles sample)
+        (fqfValues distribution)
+  in VCons (mkNetworkStepCotangent advantage quantileDirection)
+       (networkTrainStepCotangents config samples decisions)
+{-# COMPILE AGDA2HS networkTrainStepCotangents #-}
+
 -- Full finite-horizon BPTT: one forward trace, then one reverse iterative
 -- CHAD traversal. Hidden-state cotangents cross every recurrent boundary;
 -- actor RNG and the sampled discrete actions remain exogenous.
