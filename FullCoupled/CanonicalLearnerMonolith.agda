@@ -696,9 +696,11 @@ q4SoftmaxVJPRaw temperature logits probabilities probabilityCotangent
            if i == maxIndex then subInt32 x (satInt32 correction) else x)
            centeredCot
 
-qQuantileHuberLossRaw :: Int32 -> Vec32 -> Vec32 -> Vec32 -> Int32
-qQuantileHuberLossRaw kappa midpoints targets predictions
-  | n == 0 = 0
+-- Targets are weighted FQF atoms: each target atom contributes according
+-- to its own fraction width, while the predicted quantile axis is averaged.
+qQuantileHuberLossRaw :: Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32 -> Int32
+qQuantileHuberLossRaw kappa midpoints targetWidths targets predictions
+  | predictedN == 0 || targetN == 0 = 0
   | otherwise =
       let k = max 1 (fromIntegral kappa) :: Int64
           huberOverKappa delta =
@@ -708,34 +710,43 @@ qQuantileHuberLossRaw kappa midpoints targets predictions
                   else roundDivEven (k * (d - roundDivEven k 2)) qOneRaw
             in satInt32 (roundDivEven (huber * qOneRaw) k)
           total = U.ifoldl' (\acc j prediction ->
-            let tau = fromIntegral (U.unsafeIndex midpoints j)
+            let tau = U.unsafeIndex midpoints j
                 inner = U.ifoldl' (\subtotal i target ->
-                  let delta = subInt32 target prediction
-                      weight = if delta < 0 then subInt32 (fromIntegral qOneRaw) (satInt32 tau) else satInt32 tau
-                      term = qMulRaw weight (huberOverKappa delta)
-                  in subtotal + fromIntegral term)
+                  let targetWidth = if i < U.length targetWidths
+                        then U.unsafeIndex targetWidths i else 0
+                      delta = subInt32 target prediction
+                      quantileWeight = if delta < 0
+                        then subInt32 (fromIntegral qOneRaw) tau else tau
+                      pointLoss = qMulRaw quantileWeight (huberOverKappa delta)
+                      weightedLoss = qMulRaw targetWidth pointLoss
+                  in subtotal + fromIntegral weightedLoss)
                   (0 :: Int64) targets
             in acc + inner)
             (0 :: Int64) predictions
-      in satInt32 (roundDivEven total (fromIntegral n))
+      in satInt32 (roundDivEven total (fromIntegral predictedN))
   where
-    n = minimum [U.length midpoints, U.length targets, U.length predictions]
+    predictedN = min (U.length midpoints) (U.length predictions)
+    targetN = min (U.length targetWidths) (U.length targets)
 
-qQuantileHuberDirectionRaw :: Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
-qQuantileHuberDirectionRaw kappa midpoints targets predictions =
-  let n = minimum [U.length midpoints, U.length targets, U.length predictions]
+qQuantileHuberDirectionRaw
+  :: Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+qQuantileHuberDirectionRaw kappa midpoints targetWidths targets predictions =
+  let predictedN = min (U.length midpoints) (U.length predictions)
+      targetN = min (U.length targetWidths) (U.length targets)
       k = max 1 kappa
-  in U.generate n (\j ->
+  in U.generate predictedN (\j ->
        let tau = U.unsafeIndex midpoints j
-           total = U.ifoldl' (\acc _ target ->
-             let delta = subInt32 target (U.unsafeIndex predictions j)
+           total = U.ifoldl' (\acc i target ->
+             let targetWidth = if i < targetN then U.unsafeIndex targetWidths i else 0
+                 delta = subInt32 target (U.unsafeIndex predictions j)
                  clipped = max (negInt32 k) (min k delta)
-                 weight = if delta < 0
-                   then subInt32 (fromIntegral qOneRaw) tau
-                   else tau
-             in acc + fromIntegral (qMulRaw weight (qDivRaw clipped k)))
+                 quantileWeight = if delta < 0
+                   then subInt32 (fromIntegral qOneRaw) tau else tau
+                 pointDirection = qMulRaw quantileWeight (qDivRaw clipped k)
+                 weightedDirection = qMulRaw targetWidth pointDirection
+             in acc + fromIntegral weightedDirection)
              (0 :: Int64) targets
-       in satInt32 (roundDivEven total (fromIntegral (max 1 n))))
+       in satInt32 total)
 
 qFQFBoundaryGradientRaw :: Vec32 -> Vec32 -> Vec32 -> Vec32
 qFQFBoundaryGradientRaw widths midpoints values =
@@ -1012,8 +1023,8 @@ postulate
   qConvexMixVJP : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
   qMadLayerNormVJP : Vec32 → Vec32 → Vec32
   q4SoftmaxVJP : Int32 → Vec32 → Vec32 → Vec32 → Vec32
-  qQuantileHuberLoss : Int32 → Vec32 → Vec32 → Vec32 → Int32
-  qQuantileHuberDirection : Int32 → Vec32 → Vec32 → Vec32 → Vec32
+  qQuantileHuberLoss : Int32 → Vec32 → Vec32 → Vec32 → Vec32 → Int32
+  qQuantileHuberDirection : Int32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
   qFQFFractionLogitDirection : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
   qVecMean : Vec32 → Int32
   qObgdEffectiveStep : Int32 → Int32 → Int32 → Vec32 → Int32
@@ -2000,6 +2011,7 @@ networkTrainStepCotangents config
       quantileDirection = qQuantileHuberDirection
         (networkTrainHuberKappa config)
         (fqfMidpoints distribution)
+        (networkTrainTargetWidths sample)
         (networkTrainTargetQuantiles sample)
         (fqfValues distribution)
   in VCons (mkNetworkStepCotangent advantage quantileDirection)
@@ -2069,11 +2081,13 @@ networkTrainPass config state sample =
       quantileLoss = qQuantileHuberLoss
         (networkTrainHuberKappa config)
         (fqfMidpoints distribution)
+        (networkTrainTargetWidths sample)
         (networkTrainTargetQuantiles sample)
         (fqfValues distribution)
       quantileDirection = qQuantileHuberDirection
         (networkTrainHuberKappa config)
         (fqfMidpoints distribution)
+        (networkTrainTargetWidths sample)
         (networkTrainTargetQuantiles sample)
         (fqfValues distribution)
       advantage = subInt32
