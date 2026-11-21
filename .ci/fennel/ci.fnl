@@ -18,7 +18,18 @@
     (.. (shell-quote agda-command) " --trace-imports=0 -i . " (shell-quote path)))))
 
 (local check-agda-learner (fn []
-  (check-agda "FullCoupled/CanonicalLearnerMonolith.agda")
+  (local source "FullCoupled/CanonicalLearnerMonolith.agda")
+  (check-agda source)
+  (run! "forbid LSTM and epsilon-greedy source paths"
+    (.. "if grep -Eiq 'lstm|epsilon[ _-]?greedy' "
+        (shell-quote source)
+        "; then echo 'forbidden recurrent/action selector found' >&2; exit 1; fi"))
+  (run! "require composed network, CHAD, and UTD2 entry points"
+    (.. "for symbol in networkStep networkStepVJP networkSequenceVJP "
+        "networkTrainSequenceVJP networkTrainStepUTD2 networkTrainChunkUTD2 "
+        "qQuantileHuberLoss qFQFFractionLogitDirection qObgdUpdate; do "
+        "grep -Fq \"$symbol\" " (shell-quote source)
+        " || exit 1; done"))
   (print "learner-kernel-check=pass-relative-to-declared-trust-surface")))
 
 (local check-agda-theorem (fn []
@@ -32,6 +43,9 @@
         (shell-quote "build/agda2hs")))
   (run! "verify extracted canonical Haskell module"
     "test -s build/agda2hs/FullCoupled/CanonicalLearnerMonolith.hs")
+  (run! "create GHC typecheck output directory" "mkdir -p build/ghc")
+  (run! "GHC typecheck extracted canonical module"
+    "ghc -fno-code -fforce-recomp -i./build/agda2hs -odir build/ghc -hidir build/ghc build/agda2hs/FullCoupled/CanonicalLearnerMonolith.hs")
   (print "theorem-kernel-check=pass-relative-to-imports-postulates-primitives-and-options")))
 
 (local read-file (fn [path]
