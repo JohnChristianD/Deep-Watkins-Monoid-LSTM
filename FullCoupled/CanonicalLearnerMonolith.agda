@@ -23,6 +23,10 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- The learner has no C pointer, IORef, StablePtr, MVar, or CFuture API.
 ------------------------------------------------------------------------
 
+-- Import boundary: these are the only Csimma Agda2HS base modules
+-- needed by this pure kernel. Haskell.Prelude is intentionally omitted
+-- to keep the source import surface narrow, not because it is "slow".
+-- Agda built-ins below are not Csimma library imports.
 open import Agda.Primitive using (Level; _⊔_)
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Agda.Builtin.Nat using (Nat; zero; suc)
