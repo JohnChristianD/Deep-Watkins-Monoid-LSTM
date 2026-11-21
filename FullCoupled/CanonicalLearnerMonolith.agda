@@ -319,6 +319,12 @@ qSlice32Raw start count xs =
 qVecLengthRaw :: Vec32 -> Int32
 qVecLengthRaw = fromIntegral . U.length
 
+qAppend32Raw :: Vec32 -> Vec32 -> Vec32
+qAppend32Raw = (U.++)
+
+qZeroVec32Raw :: Int32 -> Vec32
+qZeroVec32Raw n = U.replicate (max 0 (fromIntegral n)) 0
+
 pcgAdvanceRaw :: Word64 -> Word64
 pcgAdvanceRaw state = state * 6364136223846793005 + 1442695040888963407
 
@@ -498,6 +504,8 @@ q4Softmax = q4SoftmaxRaw
 qPrefixMidpoints = qPrefixMidpointsRaw
 qSlice32 = qSlice32Raw
 qVecLength = qVecLengthRaw
+qAppend32 = qAppend32Raw
+qZeroVec32 = qZeroVec32Raw
 qNormalNoiseVec = qNormalNoiseVecRaw
 qNoiseDuration = qNoiseDurationRaw
 qWord64Next = pcgAdvanceRaw
@@ -508,6 +516,10 @@ qSarsa3Target = qSarsa3TargetRaw
 qAddL2Gradient = qAddL2GradientRaw
 #-}
 
+-- Fixed-width machine integers have no native Agda builtin counterpart.
+-- Declare opaque Agda types and map them explicitly to Haskell's Data.Int and
+-- Data.Word representations through Agda2HS. Int8 is only the optional packed
+-- Stockfish-style inference-weight path; Q12.20 masters use Int32.
 postulate
   Int32 Int64 Word32 Word64 Int8 : Set
   Vec32 Vec64 Vec8 : Set
@@ -616,6 +628,8 @@ postulate
   qPrefixMidpoints : Vec32 → Vec32
   qSlice32 : Int32 → Int32 → Vec32 → Vec32
   qVecLength : Vec32 → Int32
+  qAppend32 : Vec32 → Vec32 → Vec32
+  qZeroVec32 : Int32 → Vec32
   qNormalNoiseVec : Word64 → Int32 → Vec32
   qNoiseDuration : Word64 → Int32
   qWord64Next : Word64 → Word64
@@ -642,6 +656,8 @@ postulate
 {-# COMPILE AGDA2HS qPrefixMidpoints #-}
 {-# COMPILE AGDA2HS qSlice32 #-}
 {-# COMPILE AGDA2HS qVecLength #-}
+{-# COMPILE AGDA2HS qAppend32 #-}
+{-# COMPILE AGDA2HS qZeroVec32 #-}
 {-# COMPILE AGDA2HS qNormalNoiseVec #-}
 {-# COMPILE AGDA2HS qNoiseDuration #-}
 {-# COMPILE AGDA2HS qWord64Next #-}
@@ -818,3 +834,92 @@ l2Gradient : Vec32 → Vec32 → Vec32
 l2Gradient = qAddL2Gradient
 {-# COMPILE AGDA2HS l2Gradient #-}
 
+------------------------------------------------------------------------
+-- Composed recurrent actor-critic network
+--
+-- Observation -> state-independent-candidate GRU -> [observation, hidden]
+-- features -> actor-only factorized NoisyNet -> discrete Gumbel-Max action.
+-- A separate deterministic FQF critic evaluates that sampled action.
+------------------------------------------------------------------------
+
+record NetworkParams : Set where
+  constructor mkNetworkParams
+  field
+    networkGRUParams : GRUParams
+    networkFQFParams : FQFParams
+    networkActorParams : ActorParams
+
+open NetworkParams public
+{-# COMPILE AGDA2HS NetworkParams #-}
+
+record NetworkState : Set where
+  constructor mkNetworkState
+  field
+    networkHiddenState : Vec32
+    networkActorNoiseState : ActorNoiseState
+
+open NetworkState public
+{-# COMPILE AGDA2HS NetworkState #-}
+
+record NetworkStep : Set where
+  constructor mkNetworkStep
+  field
+    networkNextState : NetworkState
+    networkFeatureVector : Vec32
+    networkPolicyProbabilities : Vec32
+    networkSelectedAction : Int32
+    networkSelectedActionDistribution : FQFOutput
+    networkSelectedActionValue : Q20
+
+open NetworkStep public
+{-# COMPILE AGDA2HS NetworkStep #-}
+
+-- Dimension invariant:
+-- actorFeatureDim == fqfFeatureDim == gruInputDim + gruHiddenDim.
+-- Weight arrays must match the row-major dimensions declared by each head.
+networkInitialState : NetworkParams → Word64 → NetworkState
+networkInitialState p seed =
+  let gru = networkGRUParams p
+      actor = networkActorParams p
+      hidden = qZeroVec32 (gruHiddenDim gru)
+      noise = actorNoiseInit seed (actorFeatureDim actor) (actorActionCount actor)
+  in mkNetworkState hidden noise
+{-# COMPILE AGDA2HS networkInitialState #-}
+
+-- One causal recurrent inference step. The noise state is consumed only by
+-- the actor and advanced after selection; GRU and FQF critic remain deterministic.
+networkStep : NetworkParams → NetworkState → Vec32 → NetworkStep
+networkStep p state observation =
+  let gru = networkGRUParams p
+      critic = networkFQFParams p
+      actor = networkActorParams p
+      hidden' = gruStep gru observation (networkHiddenState state)
+      features = qAppend32 observation hidden'
+      actorNoise = networkActorNoiseState state
+      logits = actorLogits actor actorNoise features
+      probabilities = q4Softmax 131072 logits
+      action = qGumbelMaxSelect (actorNoiseSeed actorNoise) 131072 logits
+      distribution = fqfForward critic features action
+      actionValue = fqfActionMean distribution
+      nextNoise = actorNoiseAdvance
+        (actorFeatureDim actor) (actorActionCount actor) actorNoise
+      nextState = mkNetworkState hidden' nextNoise
+  in mkNetworkStep nextState features probabilities action distribution actionValue
+{-# COMPILE AGDA2HS networkStep #-}
+
+-- The bootstrap distribution must come from the behavior action sampled at
+-- step three. This deliberately exposes no max-Q or greedy-backup operation.
+networkSarsa3Target
+  : Q20 → Q20 → Q20
+  → Int32 → Int32 → Int32
+  → NetworkStep → Vec32
+networkSarsa3Target r0 r1 r2 terminal0 terminal1 terminal2 bootstrap =
+  sarsa3Target r0 r1 r2 terminal0 terminal1 terminal2
+    (fqfValues (networkSelectedActionDistribution bootstrap))
+{-# COMPILE AGDA2HS networkSarsa3Target #-}
+
+networkMunchausenReward : Q20 → NetworkStep → Q20
+networkMunchausenReward reward decision =
+  munchausenReward reward
+    (networkPolicyProbabilities decision) (networkSelectedAction decision)
+{-# COMPILE AGDA2HS networkMunchausenReward #-}

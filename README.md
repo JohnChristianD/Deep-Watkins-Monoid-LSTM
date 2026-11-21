@@ -38,6 +38,20 @@ These width choices are the learner's explicit fixed-point design. Viktor Csimma
 
 No floating-point types, literals, conversions, or floating-point arithmetic are used by the learner kernels. `Haskell.Prelude` remains the standard Agda2HS programming surface; unused Prelude facilities are not part of the learner's extracted runtime operations.
 
+## Composed executable network
+
+`NetworkParams`, `NetworkState`, and `NetworkStep` assemble the individual components into one causal recurrent inference step:
+
+1. The state-independent-candidate GRU consumes the observation and prior hidden state.
+2. The observation and new hidden state are concatenated.
+3. The actor-only factorized NoisyNet head computes policy logits, Quantmoid4-normalized probabilities, and a discrete Gumbel-Max sampled action at temperature 1/8.
+4. The deterministic FQF critic evaluates that sampled action and returns its quantile distribution and mean value.
+5. The actor noise persistence counter advances; critic and recurrent computations never receive actor noise.
+
+`networkSarsa3Target` uses the distribution associated with the behavior action sampled at the third step. `networkMunchausenReward` applies the signed log-policy shaping term to the selected action. There is no epsilon-greedy selector and no LSTM implementation.
+
+This provides a composed **forward network and target-construction path**. It does not yet provide a complete training loop: quantile-Huber gradients, learned FQF fraction gradients, CHAD pullbacks, ObGD updates, UTD=2 sequencing, and end-to-end training verification remain outstanding.
+
 ## Recurrent cell
 
 For input vector (x_t) and previous hidden state (h_{t-1}):
@@ -64,7 +78,7 @@ G_t = r_t + gamma r_(t+1) + gamma^2 r_(t+2)
 
 The bootstrap distribution is evaluated at the action actually sampled by the actor at step three. Earlier termination shortens the return. No action maximum appears in the target. This avoids the classic max-selection mechanism behind Q-learning's maximization bias, but does not guarantee an unbiased estimate.
 
-The current source constructs the distributional three-step target. Quantile-Huber loss, its gradients, and the complete optimizer-driven update remain outstanding.
+The composed `networkStep` runs the GRU, actor and deterministic critic in one causal transition. The bootstrap distribution is taken from the behavior action sampled by that step. Quantile-Huber loss, its gradients, and the complete optimizer-driven update remain outstanding.
 
 ## Actor, noise and Munchausen shaping
 
