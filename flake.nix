@@ -11,16 +11,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    luafun = {
-      url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
-      flake = false;
-    };
   };
 
   outputs = {
     self,
     nixpkgs,
-    luafun,
     agda2hs-upstream
   }:    let
       systems = [
@@ -48,7 +43,7 @@
           pkgs = pkgsFor system;
           ghcEnv = (pkgs.haskellPackages.ghcWithPackages.override {
             useLLVM = true;
-          }) (ps: [ ps.ieee754 ]);
+          }) (ps: [ ps.ieee754 ps.vector ]);
         in
         pkgs.writeShellScriptBin "ghc" ''
           exec "${ghcEnv}/bin/ghc" -O2 -fllvm "$@"
@@ -71,36 +66,12 @@
           epkgs.agda2-mode
         ]);
 
-      luafunModule = system:
-        let
-          pkgs = pkgsFor system;
-          lua = pkgs.luajit;
-        in
-        pkgs.luajitPackages.buildLuaPackage {
-          pname = "luafun";
-          version = "scm-1";
-          src = luafun;
-          dontBuild = true;
-          installPhase = ''
-            runHook preInstall
-            install -Dm0644 fun.lua "$out/share/lua/${lua.luaversion}/fun.lua"
-            runHook postInstall
-          '';
-          meta = {
-            description = "High-performance functional programming library for Lua";
-            homepage = "https://luafun.github.io/";
-            license = pkgs.lib.licenses.mit;
-          };
-        };
-
       fennelJitEnv = system:
         let
           pkgs = pkgsFor system;
-          luafunPkg = luafunModule system;
         in
         pkgs.luajit.withPackages (ps: [
           ps.fennel
-          luafunPkg
         ]);
 
       fennelRuntime = system:
@@ -140,12 +111,25 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            agda2hs_base_work="$(mktemp -d)"
-            trap 'rm -rf "$agda2hs_base_work"' EXIT
-            mkdir -p "$agda2hs_base_work/library"
-            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
-            chmod -R u+rwX "$agda2hs_base_work/library"
-            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            agda2hs_base_cache="''${XDG_CACHE_HOME:-$HOME/.cache}/agda2hs-base/$(basename "$agda2hs_base_root")"
+            if [[ ! -f "$agda2hs_base_cache/.cache-source" ]] || [[ "$(cat "$agda2hs_base_cache/.cache-source" 2>/dev/null || true)" != "$agda2hs_base_root" ]]; then
+              agda2hs_base_tmp="''${agda2hs_base_cache}.tmp"
+              rm -rf "$agda2hs_base_tmp"
+              mkdir -p "$(dirname "$agda2hs_base_cache")" "$agda2hs_base_tmp"
+              cp -RL "$agda2hs_base_root/." "$agda2hs_base_tmp/"
+              chmod -R u+rwX "$agda2hs_base_tmp"
+              printf '%s\n' "$agda2hs_base_root" > "$agda2hs_base_tmp/.cache-source"
+              rm -rf "$agda2hs_base_cache"
+              mv "$agda2hs_base_tmp" "$agda2hs_base_cache"
+            fi
+            agda_version="$(agda2hs --disable-backend --numeric-version)"
+            agda_data_root="''${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
+            mkdir -p "$agda_data_root"
+            export Agda_datadir="$agda_data_root"
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              agda2hs --disable-backend --setup
+            fi
+            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
@@ -178,12 +162,25 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            agda2hs_base_work="$(mktemp -d)"
-            trap 'rm -rf "$agda2hs_base_work"' EXIT
-            mkdir -p "$agda2hs_base_work/library"
-            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
-            chmod -R u+rwX "$agda2hs_base_work/library"
-            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            agda2hs_base_cache="''${XDG_CACHE_HOME:-$HOME/.cache}/agda2hs-base/$(basename "$agda2hs_base_root")"
+            if [[ ! -f "$agda2hs_base_cache/.cache-source" ]] || [[ "$(cat "$agda2hs_base_cache/.cache-source" 2>/dev/null || true)" != "$agda2hs_base_root" ]]; then
+              agda2hs_base_tmp="''${agda2hs_base_cache}.tmp"
+              rm -rf "$agda2hs_base_tmp"
+              mkdir -p "$(dirname "$agda2hs_base_cache")" "$agda2hs_base_tmp"
+              cp -RL "$agda2hs_base_root/." "$agda2hs_base_tmp/"
+              chmod -R u+rwX "$agda2hs_base_tmp"
+              printf '%s\n' "$agda2hs_base_root" > "$agda2hs_base_tmp/.cache-source"
+              rm -rf "$agda2hs_base_cache"
+              mv "$agda2hs_base_tmp" "$agda2hs_base_cache"
+            fi
+            agda_version="$(agda2hs --disable-backend --numeric-version)"
+            agda_data_root="''${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
+            mkdir -p "$agda_data_root"
+            export Agda_datadir="$agda_data_root"
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              agda2hs --disable-backend --setup
+            fi
+            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
@@ -212,12 +209,25 @@
               exit 1
             fi
             agda2hs_base_root="$(dirname "$agda2hs_base_lib")"
-            agda2hs_base_work="$(mktemp -d)"
-            trap 'rm -rf "$agda2hs_base_work"' EXIT
-            mkdir -p "$agda2hs_base_work/library"
-            cp -RL "$agda2hs_base_root/." "$agda2hs_base_work/library/"
-            chmod -R u+rwX "$agda2hs_base_work/library"
-            if "${agda2hsTool system}/bin/agda2hs" "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_work/library" -i . "$@"; then
+            agda2hs_base_cache="''${XDG_CACHE_HOME:-$HOME/.cache}/agda2hs-base/$(basename "$agda2hs_base_root")"
+            if [[ ! -f "$agda2hs_base_cache/.cache-source" ]] || [[ "$(cat "$agda2hs_base_cache/.cache-source" 2>/dev/null || true)" != "$agda2hs_base_root" ]]; then
+              agda2hs_base_tmp="''${agda2hs_base_cache}.tmp"
+              rm -rf "$agda2hs_base_tmp"
+              mkdir -p "$(dirname "$agda2hs_base_cache")" "$agda2hs_base_tmp"
+              cp -RL "$agda2hs_base_root/." "$agda2hs_base_tmp/"
+              chmod -R u+rwX "$agda2hs_base_tmp"
+              printf '%s\n' "$agda2hs_base_root" > "$agda2hs_base_tmp/.cache-source"
+              rm -rf "$agda2hs_base_cache"
+              mv "$agda2hs_base_tmp" "$agda2hs_base_cache"
+            fi
+            agda_version="$(agda2hs --disable-backend --numeric-version)"
+            agda_data_root="''${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
+            mkdir -p "$agda_data_root"
+            export Agda_datadir="$agda_data_root"
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              agda2hs --disable-backend --setup
+            fi
+            if "${agda2hsTool system}/bin/agda2hs" "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
@@ -274,7 +284,7 @@
       devShells = forAllSystems (system:
         let pkgs = pkgsFor system;
         in {
-          agda-ci = pkgs.mkShellNoCC {
+          agda-ci = pkgs.mkShell {
             packages = [
               (agdaCommand system)
               (agda2hsCommand system)
@@ -282,10 +292,28 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
+              pkgs.luajitPackages.luarocks-nix
+              pkgs.stdenv.cc
+              pkgs.gnumake
               (optimizedGhc system)
             ];
             shellHook = ''
               export AGDA_COMMAND="agda2hs-agda"
+              export NIX_BUILD_CORES=2
+              export MAKEFLAGS="-j2"
+              export LUAROCKS_TREE="$PWD/.luarocks"
+              export LUA_PATH="$LUAROCKS_TREE/share/lua/5.1/?.lua;$LUAROCKS_TREE/share/lua/5.1/?/init.lua;;"
+              export LUA_CPATH="$LUAROCKS_TREE/lib/lua/5.1/?.so;;"
+              # LuaRocks probes system paths unless given Nix pthread headers/libs.
+              export PTHREAD_DIR="${pkgs.glibc.dev}"
+              export PTHREAD_LIBDIR="${pkgs.glibc}/lib"
+              mkdir -p "$LUAROCKS_TREE"
+              if ! luarocks --tree "$LUAROCKS_TREE" show lanes >/dev/null 2>&1; then
+                luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.2-0 PTHREAD_DIR="$PTHREAD_DIR" PTHREAD_LIBDIR="$PTHREAD_LIBDIR"
+              fi
+              if ! luarocks --tree "$LUAROCKS_TREE" show fun >/dev/null 2>&1; then
+                luarocks --tree "$LUAROCKS_TREE" install fun 0.1.3-1
+              fi
             '';
           };
 
