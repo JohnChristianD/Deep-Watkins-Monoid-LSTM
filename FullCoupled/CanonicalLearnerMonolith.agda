@@ -757,7 +757,7 @@ qObgdEffectiveStepRaw alpha kappa delta trace =
   let l1 = satInt32 (U.foldl' (\acc x -> acc + abs (fromIntegral x)) (0 :: Int64) trace)
       deltaBar = max (fromIntegral qOneRaw) (abs (fromIntegral delta))
       magnitude = qMulRaw (qMulRaw (max 1 kappa) (satInt32 deltaBar)) l1
-      safeStep = qDivRaw (fromIntegral qOneRaw) magnitude
+      safeStep = if l1 == 0 then max 0 alpha else qDivRaw (fromIntegral qOneRaw) magnitude
   in max 0 (min alpha safeStep)
 
 qObgdUpdateRaw :: Int32 -> Int32 -> Int32 -> Vec32 -> Vec32 -> (Vec32, Int32)
