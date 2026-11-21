@@ -13,6 +13,8 @@
 --erased-propext
 --auto-inline
 --exact-split
+--rewriting
+--confluence-check
 #-}
 
 module FullCoupled.CanonicalLearnerMonolith where
@@ -28,10 +30,13 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- to keep the source import surface narrow, not because it is "slow".
 -- Agda built-ins below are not Csimma library imports.
 open import Agda.Primitive using (Level; _⊔_)
-open import Agda.Builtin.Equality using (_≡_; refl)
-open import Agda.Builtin.Nat using (Nat; zero; suc)
-open import Haskell.Prim using (⊥)
-open import Haskell.Prim.Tuple using (_×_; _,_)
+open import Agda.Builtin.Equality public
+open import Agda.Builtin.Nat public
+open import Haskell.Prim public
+open import Haskell.Prim.Tuple public
+open import Agda.Builtin.Erased.Funext public
+open import Agda.Builtin.Erased.Propext public
+open import Agda.Builtin.Erased.Quotient public
 
 ------------------------------------------------------------------------
 -- Erased proof packaging
