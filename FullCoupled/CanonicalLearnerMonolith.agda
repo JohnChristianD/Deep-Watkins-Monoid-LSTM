@@ -158,6 +158,9 @@ int32Zero = 0
 int32OneQ20 :: Int32
 int32OneQ20 = 1048576
 
+int32Sixteen :: Int32
+int32Sixteen = 16
+
 addInt32 :: Int32 -> Int32 -> Int32
 addInt32 x y = satInt32 (fromIntegral x + fromIntegral y)
 
@@ -956,27 +959,6 @@ postulate
   qVecMean : Vec32 → Int32
   qObgdEffectiveStep : Int32 → Int32 → Int32 → Vec32 → Int32
   qObgdUpdate : Int32 → Int32 → Int32 → Vec32 → Vec32 → Vec32 × Int32
-  qAddVec32 : Vec32 → Vec32 → Vec32
-  qNegVec32 : Vec32 → Vec32
-  qScaleVec32 : Int32 → Vec32 → Vec32
-  qTraceAdvance : Int32 → Vec32 → Vec32 → Vec32
-  qLogProbabilityCotangent : Int32 → Vec32 → Vec32
-  qEmbedActionCotangent : Int32 → Int32 → Int32 → Vec32 → Vec32
-  qLinearRowsVJP : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
-  qFactorizedNoisyLinearVJP
-    : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32
-    → Vec32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
-  qSoftsignVJP : Vec32 → Vec32 → Vec32
-  qShiftedGateVJP : Vec32 → Vec32 → Vec32
-  qConvexMixVJP : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
-  qMadLayerNormVJP : Vec32 → Vec32 → Vec32
-  q4SoftmaxVJP : Int32 → Vec32 → Vec32 → Vec32 → Vec32
-  qQuantileHuberLoss : Int32 → Vec32 → Vec32 → Vec32 → Int32
-  qQuantileHuberDirection : Int32 → Vec32 → Vec32 → Vec32 → Vec32
-  qFQFFractionLogitDirection : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
-  qVecMean : Vec32 → Int32
-  qObgdEffectiveStep : Int32 → Int32 → Int32 → Vec32 → Int32
-  qObgdUpdate : Int32 → Int32 → Int32 → Vec32 → Vec32 → Vec32 × Int32
   fqfMeanQ20 : Vec32 → Vec32 → Int32
   qIndex32 : Vec32 → Int32 → Int32
   int32GreaterThanOne : Int32 → Bool
@@ -1003,25 +985,6 @@ postulate
 {-# COMPILE AGDA2HS qMunchausenReward #-}
 {-# COMPILE AGDA2HS qSarsa3Target #-}
 {-# COMPILE AGDA2HS qAddL2Gradient #-}
-{-# COMPILE AGDA2HS qAddVec32 #-}
-{-# COMPILE AGDA2HS qNegVec32 #-}
-{-# COMPILE AGDA2HS qScaleVec32 #-}
-{-# COMPILE AGDA2HS qTraceAdvance #-}
-{-# COMPILE AGDA2HS qLogProbabilityCotangent #-}
-{-# COMPILE AGDA2HS qEmbedActionCotangent #-}
-{-# COMPILE AGDA2HS qLinearRowsVJP #-}
-{-# COMPILE AGDA2HS qFactorizedNoisyLinearVJP #-}
-{-# COMPILE AGDA2HS qSoftsignVJP #-}
-{-# COMPILE AGDA2HS qShiftedGateVJP #-}
-{-# COMPILE AGDA2HS qConvexMixVJP #-}
-{-# COMPILE AGDA2HS qMadLayerNormVJP #-}
-{-# COMPILE AGDA2HS q4SoftmaxVJP #-}
-{-# COMPILE AGDA2HS qQuantileHuberLoss #-}
-{-# COMPILE AGDA2HS qQuantileHuberDirection #-}
-{-# COMPILE AGDA2HS qFQFFractionLogitDirection #-}
-{-# COMPILE AGDA2HS qVecMean #-}
-{-# COMPILE AGDA2HS qObgdEffectiveStep #-}
-{-# COMPILE AGDA2HS qObgdUpdate #-}
 {-# COMPILE AGDA2HS qAddVec32 #-}
 {-# COMPILE AGDA2HS qNegVec32 #-}
 {-# COMPILE AGDA2HS qScaleVec32 #-}
