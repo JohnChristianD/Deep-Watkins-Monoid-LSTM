@@ -153,6 +153,27 @@ roundDivEven n d =
 qOneRaw :: Int64
 qOneRaw = 1048576
 
+int32Zero :: Int32
+int32Zero = 0
+
+int32OneQ20 :: Int32
+int32OneQ20 = 1048576
+
+addInt32 :: Int32 -> Int32 -> Int32
+addInt32 x y = satInt32 (fromIntegral x + fromIntegral y)
+
+subInt32 :: Int32 -> Int32 -> Int32
+subInt32 x y = satInt32 (fromIntegral x - fromIntegral y)
+
+mulQ20Int32 :: Int32 -> Int32 -> Int32
+mulQ20Int32 = qMulRaw
+
+negInt32 :: Int32 -> Int32
+negInt32 x = satInt32 (negate (fromIntegral x))
+
+absInt32 :: Int32 -> Int32
+absInt32 x = satInt32 (abs (fromIntegral x))
+
 qMulRaw :: Int32 -> Int32 -> Int32
 qMulRaw x y =
   satInt32 (roundDivEven (fromIntegral x * fromIntegral y) qOneRaw)
@@ -184,7 +205,7 @@ qQuantmoid4Raw x =
       v = magnitude - 127
       vv = quot (v * v) 256
       output = if x > 0 then 126 - vv else vv
-  in satInt32 (roundDivEven (output * qOneRaw) 126)
+  in satInt32 (roundDivEven (output * qOneRaw) 127)
 
 qLinearRowsRaw :: Int32 -> Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
 qLinearRowsRaw rows cols weights bias input =
@@ -315,6 +336,8 @@ normalTableRaw = U.fromList [-1953204, -1382021, -1059062, -813589, -607174, -42
 gumbelTableRaw :: Vec32
 gumbelTableRaw = U.fromList [-1303301, -903532, -648633, -438929, -249398, -68827, 109563, 290966, 480289, 683080, 906615, 1161749, 1466888, 1858654, 2430921, 3617486]
 
+-- Sixteen-bin lognormal persistence quantiles (median 4, sigma 1/2),
+-- precomputed offline from the quantized-normal table. No runtime exp/log.
 durationTableRaw :: Vec32
 durationTableRaw = U.fromList [2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 7, 8, 10]
 
@@ -414,6 +437,12 @@ qMunchausenRewardRaw reward probability =
       tau = 131072 :: Int32
       shaping = qMulRaw (qMulRaw alpha tau) (qLogProbRaw probability)
   in satInt32 (fromIntegral reward + fromIntegral shaping)
+
+divQ20Int32 :: Int32 -> Int32 -> Div32Result
+divQ20Int32 _ 0 = Div32ByZero
+divQ20Int32 x y =
+  Div32Quotient
+    (satInt32 (roundDivEven (fromIntegral x * qOneRaw) (fromIntegral y)))
 
 qSarsa3TargetRaw
   :: Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> Vec32 -> Vec32
