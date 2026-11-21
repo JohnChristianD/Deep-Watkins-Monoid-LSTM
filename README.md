@@ -45,7 +45,17 @@ The canonical Agda file follows the standard Agda2HS base-library convention and
 
     open import Haskell.Prelude public
 
-It also imports `Agda.Primitive` for universe levels. The Prelude re-exports the base definitions used by this module, including propositional equality, builtin `Nat`, products, and primitive proof types. Separate imports of `Agda.Builtin.Equality`, `Agda.Builtin.Nat`, `Haskell.Prim`, and `Haskell.Prim.Tuple` are redundant and have been removed.
+It imports `Agda.Primitive` only for universe levels, and retains the Agda 2.9 erased-logic builtin modules enabled by this file's options:
+
+    open import Agda.Builtin.Erased.Funext public
+    open import Agda.Builtin.Erased.Propext public
+    open import Agda.Builtin.Erased.Quotient public
+
+The rewrite extension is explicit:
+
+    open import Agda.Builtin.Equality.Rewrite public
+
+This is the intended split: Csimma-faithful Agda2HS programming surface (`Haskell.Prelude`), minimal universe support, plus this project's Agda 2.9 erased-logic and rewrite additions. The Prelude re-exports the base definitions used here, including builtin `Nat`, products, and primitive proof types. Separate imports of `Agda.Builtin.Equality`, `Agda.Builtin.Nat`, `Haskell.Prim`, and `Haskell.Prim.Tuple` would duplicate that surface and remain excluded.
 
 ### Why Haskell.Prelude belongs here
 
@@ -69,9 +79,11 @@ Faithfulness means following Csimma's Agda2HS conventions and importing modules 
 
 | Module family | Decision |
 | --- | --- |
-| `Haskell.Prelude` | Imported; standard Agda2HS programming surface. |
+| `Haskell.Prelude` | Imported; standard Agda2HS programming surface used in Csimma's examples. |
 | `Haskell.Prim`, `Haskell.Prim.Tuple` | Re-exported through Prelude; no duplicate direct imports. |
 | `Agda.Primitive` | Direct import for universe levels. |
+| `Agda.Builtin.Erased.Funext`, `Propext`, `Quotient` | Retained as the Agda 2.9 erased-logic additions paired with this module's `--erased-funext`, `--erased-propext`, and `--erased-quotients` options. |
+| `Agda.Builtin.Equality.Rewrite` | Retained for the explicit rewrite extension and local rewrite rules. |
 | `Haskell.Data.IORef` | Not used; learner kernel remains pure. |
 | `Haskell.Foreign.Ptr`, `StablePtr`, `Storable` | Not used; no pointer lifetime or marshalling API. |
 | `Haskell.Foreign.C.Types`, `Tool.Foreign` | Not used; fixed-width arithmetic primitives are supplied in the narrow Agda2HS foreign block. |
