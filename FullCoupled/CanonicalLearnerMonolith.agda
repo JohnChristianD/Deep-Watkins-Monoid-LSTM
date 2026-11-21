@@ -429,21 +429,39 @@ qGumbelMaxSelectRaw seed temperature logits
             (minBound :: Int64,0) probabilities
       in fromIntegral bestIndex
 
-qMunchausenLogTableRaw :: Vec32
-qMunchausenLogTableRaw = U.fromList [-4360905, -3634087, -3208927, -2907270, -2673287, -2482109, -2320470, -2180452, -2056948, -1946470, -1846530, -1755292, -1671361, -1593653, -1521309, -1453635, -1390065, -1330131, -1273437, -1219652, -1168492, -1119712, -1073101, -1028474, -985669, -944543, -904970, -866835, -830039, -794491, -760108, -726817, -694551, -663248, -632852, -603313, -574583, -546619, -519382, -492835, -466942, -441674, -417001, -392895, -369330, -346284, -323733, -301657, -280036, -258852, -238087, -217726, -197752, -178152, -158912, -140018, -121458, -103222, -85297, -67674, -50341, -33291, -16513, 0]
-
+-- Integer range-reduced log on Q12.20 probabilities. Normalize p into
+-- [1,2), then use ln(m)=2*(y+y^3/3+...+y^11/11), y=(m-1)/(m+1).
+-- The residual series is below a few Q20 units because 0 <= y <= 1/3.
 qLogProbRaw :: Int32 -> Int32
 qLogProbRaw probability =
-  let p = max 16 (min 1048576 probability)
-      scaled = roundDivEven (fromIntegral p * 64) qOneRaw
-      index = max 1 (min 64 (fromIntegral scaled))
-  in U.unsafeIndex qMunchausenLogTableRaw (index - 1)
+  let positive = max 1 (min 1048576 probability)
+      normalize value exponent
+        | value >= 1048576 = (value, exponent)
+        | otherwise = normalize (value * 2) (exponent - 1)
+      (mantissa, exponent) = normalize positive (0 :: Int64)
+      y = qDivRaw (mantissa - 1048576) (mantissa + 1048576)
+      y2 = qMulRaw y y
+      y3 = qMulRaw y y2
+      y5 = qMulRaw y3 y2
+      y7 = qMulRaw y5 y2
+      y9 = qMulRaw y7 y2
+      y11 = qMulRaw y9 y2
+      series = fromIntegral y
+        + quot (fromIntegral y3) 3
+        + quot (fromIntegral y5) 5
+        + quot (fromIntegral y7) 7
+        + quot (fromIntegral y9) 9
+        + quot (fromIntegral y11) 11
+  in satInt32 (2 * series + exponent * 726817)
 
 qMunchausenRewardRaw :: Int32 -> Int32 -> Int32
 qMunchausenRewardRaw reward probability =
   let alpha = 65536 :: Int32
       tau = 131072 :: Int32
-      shaping = qMulRaw (qMulRaw alpha tau) (qLogProbRaw probability)
+      -- Bound the shaping correction below 2^-16; policy sampling uses the
+      -- unclipped logarithm above so its categorical probabilities stay aligned.
+      boundedLogProbability = qLogProbRaw (max 16 probability)
+      shaping = qMulRaw (qMulRaw alpha tau) boundedLogProbability
   in satInt32 (fromIntegral reward + fromIntegral shaping)
 
 divQ20Int32 :: Int32 -> Int32 -> Div32Result
