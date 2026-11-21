@@ -41,41 +41,45 @@ No floating-point values belong in the learner runtime. This is a boundary requi
 
 ## Agda2HS import policy
 
-The canonical Agda file currently imports:
+The canonical Agda file follows the standard Agda2HS base-library convention and explicitly opens:
 
-| Import | Purpose |
+    open import Haskell.Prelude public
+
+It also imports `Agda.Primitive` for universe levels. The Prelude re-exports the base definitions used by this module, including propositional equality, builtin `Nat`, products, and primitive proof types. Separate imports of `Agda.Builtin.Equality`, `Agda.Builtin.Nat`, `Haskell.Prim`, and `Haskell.Prim.Tuple` are redundant and have been removed.
+
+### Why Haskell.Prelude belongs here
+
+Viktor Csimma's Agdalache/Agda2HS examples follow the normal Agda2HS approach: use `Haskell.Prelude` as the shared Agda/Haskell sublanguage. Agda2HS documentation describes its base Prelude as the intended companion library. This repository now follows that convention.
+
+The Prelude exposes a broad set of Haskell facilities, including numeric and IO-related definitions. Their presence in the Agda import scope does not mean the learner evaluates floating-point values or performs IO. The learner's numeric representation remains signed Q12.20 over `Int32`, with widened `Int64` intermediates. No `Double`, floating literal, float conversion, or IO operation is used by the canonical learner. The extraction configuration records the repository's Prelude policy in `.ci/agda/agda2hs.yaml`.
+
+There is no evidence that importing `Haskell.Prelude` makes generated learner arithmetic slower. The previous decision to omit it departed from the normal Agda2HS convention and is corrected here.
+
+### Agda.Builtin.Nat is compatible and not a Peano runtime penalty
+
+`Haskell.Prelude` re-exports `Nat`, `zero`, and `suc` from `Agda.Builtin.Nat`. This is compatible with Agda2HS: the Agda2HS base library is built around Agda's builtin Nat and maps it to Haskell's `Numeric.Natural.Natural`. The extracted Haskell representation is an arbitrary-precision natural-number type, not a linked Peano constructor chain.
+
+Agda's builtin Nat also receives special treatment by the Agda type checker/compiler for efficient arithmetic. Here, Nat is used only as the length index of `Vec`, and that index is explicitly erased with `@0`. The vector's runtime representation therefore carries no Nat length and performs no runtime Peano traversal for length bookkeeping. Import it through `Haskell.Prelude`, rather than opening the builtin module a second time.
+
+For fixed-point learner arithmetic, Nat is not the numeric representation: signed values remain `Int32` and widened intermediates remain `Int64`.
+
+### Relevant Csimma module families
+
+Faithfulness means following Csimma's Agda2HS conventions and importing modules for responsibilities the code actually uses. It does not mean importing every GUI integration module into a pure learner.
+
+| Module family | Decision |
 | --- | --- |
-| Agda.Primitive | Universe levels for erased proof packaging. |
-| Agda.Builtin.Equality | Propositional equality and its constructor. |
-| Agda.Builtin.Nat | Length index and constructors for erased-length vectors. |
-| Haskell.Prim | Empty type used by the relation contradiction. |
-| Haskell.Prim.Tuple | Product type used by the pair alias. |
+| `Haskell.Prelude` | Imported; standard Agda2HS programming surface. |
+| `Haskell.Prim`, `Haskell.Prim.Tuple` | Re-exported through Prelude; no duplicate direct imports. |
+| `Agda.Primitive` | Direct import for universe levels. |
+| `Haskell.Data.IORef` | Not used; learner kernel remains pure. |
+| `Haskell.Foreign.Ptr`, `StablePtr`, `Storable` | Not used; no pointer lifetime or marshalling API. |
+| `Haskell.Foreign.C.Types`, `Tool.Foreign` | Not used; fixed-width arithmetic primitives are supplied in the narrow Agda2HS foreign block. |
+| `Haskell.Control.Concurrent.MVar`, `CFuture`, `Haskell.GHC.Conc` | Not used by the pure learner. |
+| `Platform.Posix`, `Platform.Win32` | Not used; no platform-specific learner interface. |
+| `Tool.ErasureProduct`, `Tool.PropositionalEquality`, `Tool.Relation` | Relevant erased-proof and relation patterns are represented in the canonical monolith; GUI/backend application modules are not runtime dependencies. |
 
-The two Haskell.* modules are Agda2HS base-library imports reused from Viktor Csimma's Agda2HS ecosystem. The other imports are Agda built-ins. The foreign Haskell block names Data.Int.Int32 and Data.Int.Int64 and defines the narrow arithmetic primitives used by this module.
-
-### Why Haskell.Prelude is omitted
-
-**Import confinement and floating-point exposure—not a measured runtime-speed issue.**
-
-Viktor Csimma's Agdalache application modules do use Haskell.Prelude; its presence in those examples is not evidence that it is slow. In the pinned Agda2HS base library, the Prelude is a broad convenience surface that re-exports general-purpose primitives, including floating-point and IO-related facilities. The canonical learner needs only a handful of proof and product primitives, so importing the whole Prelude would widen its source-level dependency surface without supplying a needed operation.
-
-Agda2HS extraction omits unused imported Haskell entities from generated output. Consequently, a broad Prelude import does not, by itself, prove slower generated code. A broad import can affect Agda's dependency/typechecking surface, but this repository has no benchmark establishing a Prelude slowdown. The project makes no such performance claim and does not attribute one to Csimma.
-
-The policy is to reuse **all relevant** Csimma Agda2HS patterns, not indiscriminately import every module used by his GUI/FFI applications:
-
-| Csimma module family | Decision for this pure learner |
-| --- | --- |
-| Haskell.Prim | Import the empty type needed by relation proofs. |
-| Haskell.Prim.Tuple | Import products where the learner uses them. |
-| Haskell.Prelude | Omit; current code needs no broad Prelude re-export. |
-| Haskell.Data.IORef | Omit; no mutable IO reference in the pure kernel. |
-| Haskell.Foreign.Ptr, StablePtr, Storable | Omit; no pointer lifetime or marshalling boundary. |
-| Haskell.Foreign.C.Types, Tool.Foreign | Omit; no C ABI adapter is declared. |
-| Haskell.Control.Concurrent.MVar, CFuture, Haskell.GHC.Conc | Omit; learner state is not shared mutable concurrent state. |
-| Platform.Posix, Platform.Win32 | Omit; the learner kernel is platform-independent. |
-| Tool.ErasureProduct, Tool.PropositionalEquality, Tool.Relation | Reuse relevant definitions/patterns in the canonical monolith; do not add application modules as runtime dependencies. |
-
-This is a complete decision policy, not a maximal import count. Add a module only when the canonical source actually uses the responsibility it provides.
+Agdalache is a C++ Qt application toolkit around an Agda/Agda2HS backend; Agda2HS itself extracts readable Haskell. It is not a C++/OCaml/Rocq extraction backend. C++ integration belongs at an application adapter; the canonical learner source targets Agda2HS/Haskell.
 
 ## Planned learner contract
 

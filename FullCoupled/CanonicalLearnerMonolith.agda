@@ -25,15 +25,12 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- The learner has no C pointer, IORef, StablePtr, MVar, or CFuture API.
 ------------------------------------------------------------------------
 
--- Import boundary: these are the only Csimma Agda2HS base modules
--- needed by this pure kernel. Haskell.Prelude is intentionally omitted
--- to keep the source import surface narrow, not because it is "slow".
--- Agda built-ins below are not Csimma library imports.
+-- Follow the standard Agda2HS base-library convention used in Viktor
+-- Csimma's examples: Haskell.Prelude is the shared Agda/Haskell surface.
+-- It re-exports equality, builtin Nat, products, and primitive proof types.
+-- Vec's Nat index is erased, so no runtime length or Peano traversal remains.
 open import Agda.Primitive using (Level; _⊔_)
-open import Agda.Builtin.Equality public
-open import Agda.Builtin.Nat public
-open import Haskell.Prim public
-open import Haskell.Prim.Tuple public
+open import Haskell.Prelude public
 open import Agda.Builtin.Erased.Funext public
 open import Agda.Builtin.Erased.Propext public
 open import Agda.Builtin.Erased.Quotient public
