@@ -279,23 +279,33 @@ powQ20Loop : Int64 → Int64 → Int64 → Int64
 powQ20Loop acc base e = powQ20LoopFuel 64 acc base e
 {-# COMPILE AGDA2HS powQ20Loop #-}
 
+decayL2Single : Int64 → Int64 → Int64 → (Int64 × Int64)
+decayL2Single w rem lr =
+  let tot  = add64 (splitMulQ20 lr w) rem
+      smag = shiftR64 (abs64 tot) (lit64 16)
+      step = mul64 (sign64 tot) smag
+      rem' = sub64 tot (shiftL64 step (lit64 16))
+  in (sub64 w step , rem')
+{-# COMPILE AGDA2HS decayL2Single #-}
+
+decayL2Many : Int64 → Int64 → Int64 → Int64 → (Int64 × Int64)
+decayL2Many dt w rem lr =
+  let stepQ = shiftR64 lr (lit64 16)
+      baseQ = sub64 qOne64 stepQ
+      effD  = sub64 qOne64 (powQ20Loop qOne64 baseQ dt)
+      tot   = add64 (shiftL64 (splitMulQ20 effD w) (lit64 16)) rem
+      step  = mul64 (sign64 tot) (shiftR64 (abs64 tot) (lit64 16))
+      rem'  = sub64 tot (shiftL64 step (lit64 16))
+  in (sub64 w step , rem')
+{-# COMPILE AGDA2HS decayL2Many #-}
+
 decayL2Catchup : Int64 → Int64 → Int64 → Int64 → (Int64 × Int64)
 decayL2Catchup dt w rem lr =
   if le64 dt (lit64 0) then (w , rem)
-  else if eq64 dt (lit64 1) then
-    let tot  = add64 (splitMulQ20 lr w) rem
-        smag = shiftR64 (abs64 tot) (lit64 16)
-        step = mul64 (sign64 tot) smag
-        rem' = sub64 tot (shiftL64 step (lit64 16))
-    in (sub64 w step , rem')
   else
-    let stepQ = shiftR64 lr (lit64 16)
-        baseQ = sub64 qOne64 stepQ
-        effD  = sub64 qOne64 (powQ20Loop qOne64 baseQ dt)
-        tot   = add64 (shiftL64 (splitMulQ20 effD w) (lit64 16)) rem
-        step  = mul64 (sign64 tot) (shiftR64 (abs64 tot) (lit64 16))
-        rem'  = sub64 tot (shiftL64 step (lit64 16))
-    in (sub64 w step , rem')
+    (if eq64 dt (lit64 1)
+     then decayL2Single w rem lr
+     else decayL2Many dt w rem lr)
 {-# COMPILE AGDA2HS decayL2Catchup #-}
 
 ------------------------------------------------------------------------
