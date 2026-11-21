@@ -11,16 +11,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    luafun = {
-      url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
-      flake = false;
-    };
   };
 
   outputs = {
     self,
     nixpkgs,
-    luafun,
     agda2hs-upstream
   }:    let
       systems = [
@@ -71,36 +66,12 @@
           epkgs.agda2-mode
         ]);
 
-      luafunModule = system:
-        let
-          pkgs = pkgsFor system;
-          lua = pkgs.luajit;
-        in
-        pkgs.luajitPackages.buildLuaPackage {
-          pname = "luafun";
-          version = "scm-1";
-          src = luafun;
-          dontBuild = true;
-          installPhase = ''
-            runHook preInstall
-            install -Dm0644 fun.lua "$out/share/lua/${lua.luaversion}/fun.lua"
-            runHook postInstall
-          '';
-          meta = {
-            description = "High-performance functional programming library for Lua";
-            homepage = "https://luafun.github.io/";
-            license = pkgs.lib.licenses.mit;
-          };
-        };
-
       fennelJitEnv = system:
         let
           pkgs = pkgsFor system;
-          luafunPkg = luafunModule system;
         in
         pkgs.luajit.withPackages (ps: [
           ps.fennel
-          luafunPkg
         ]);
 
       fennelRuntime = system:
@@ -313,7 +284,7 @@
       devShells = forAllSystems (system:
         let pkgs = pkgsFor system;
         in {
-          agda-ci = pkgs.mkShellNoCC {
+          agda-ci = pkgs.mkShell {
             packages = [
               (agdaCommand system)
               (agda2hsCommand system)
@@ -321,10 +292,25 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
+              pkgs.luajitPackages.luarocks
+              pkgs.stdenv.cc
+              pkgs.gnumake
               (optimizedGhc system)
             ];
             shellHook = ''
               export AGDA_COMMAND="agda2hs-agda"
+              export NIX_BUILD_CORES=2
+              export MAKEFLAGS="-j2"
+              export LUAROCKS_TREE="$PWD/.luarocks"
+              export LUA_PATH="$LUAROCKS_TREE/share/lua/5.1/?.lua;$LUAROCKS_TREE/share/lua/5.1/?/init.lua;;"
+              export LUA_CPATH="$LUAROCKS_TREE/lib/lua/5.1/?.so;;"
+              mkdir -p "$LUAROCKS_TREE"
+              if ! luarocks --tree "$LUAROCKS_TREE" show lanes >/dev/null 2>&1; then
+                luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.3-1
+              fi
+              if ! luarocks --tree "$LUAROCKS_TREE" show luafun >/dev/null 2>&1; then
+                luarocks --tree "$LUAROCKS_TREE" install luafun 0.1.5-1
+              fi
             '';
           };
 

@@ -22,7 +22,8 @@
   (print "learner-kernel-check=pass-relative-to-declared-trust-surface")))
 
 (local check-agda-theorem (fn []
-  (check-agda-learner)
+  (run! "parallel typecheck of both Agda monoliths"
+    "fennel .ci/fennel/parallel-agda.fnl")
   (run! "create agda2hs output directory" "mkdir -p build/agda2hs")
   (run! "extract canonical CHAD RNN module"
     (.. "agda2hs "

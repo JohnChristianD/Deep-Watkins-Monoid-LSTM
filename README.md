@@ -1,220 +1,175 @@
 # Deep Watkins Monoid LSTM
 
-A single-file Agda2HS learner kernel, with a fixed-point runtime boundary and erased proof support.
+An Agda2HS research project for a proof-oriented, fixed-point recurrent reinforcement-learning kernel. Agda owns the typed learner semantics; Agda2HS extracts the executable Haskell boundary.
 
-> **Development status:** the repository is in an active refactor. The canonical Agda module now contains the confined proof surface, an erased-length vector, and a Q12.20 integer arithmetic boundary. The complete recurrent learner and its training algorithm are still under development. This repository does not yet claim a verified GRU, CHAD transform, FQF-SARSA update, actor, or optimizer.
+## Status
 
-## Design goals
+**Active refactor; not a completed learner.** The canonical module currently provides:
 
-- Keep runtime learner semantics in `FullCoupled/CanonicalLearnerMonolith.agda`.
-- Use Agda for types, total definitions, erased invariants, and proof structure.
-- Extract Haskell with the pinned Agda2HS toolchain.
-- Keep runtime numeric values in signed Q12.20 backed by `Data.Int.Int32`.
-- Widen products and division numerators to `Int64`.
-- Round fixed-point results to nearest, ties to even.
-- Saturate results at the `Int32` bounds.
-- Keep `Float` and `Double` out of the learner source and extracted learner module.
-- Keep IO, pointer, callback, and concurrency adapters outside the pure learner.
+- erased proof packaging and equality/relation support;
+- an erased-length vector with map and zip;
+- an opaque Q12.20 wrapper backed by signed Int32;
+- saturating addition, subtraction, negation, and absolute value;
+- Q12.20 multiplication and division with round-to-nearest, ties-to-even;
+- an explicit divide-by-zero result.
 
-## Current module
+The recurrent GRU, Quantmoid4, CHAD transform, FQF quantile learner, three-step SARSA, actor, Munchausen shaping, ObGD optimizer, end-to-end proofs, and runtime tests remain unimplemented. They must not be described as completed features.
 
-`FullCoupled/CanonicalLearnerMonolith.agda` is the canonical implementation file.
+The foreign arithmetic declarations are trusted postulates from Agda's perspective. Agda checks their types; it does not prove the Haskell bodies correct. The fixed-point implementation still needs executable reference tests and extracted-Haskell parity checks.
 
-It currently contains:
+## Canonical source and numeric boundary
 
-| Component | Current state |
+All runtime learner work belongs in:
+
+    FullCoupled/CanonicalLearnerMonolith.agda
+
+The theorem file remains a separate verification target:
+
+    FullCoupled/TheoremsMonolith.agda
+
+The intended runtime representation is signed Q12.20:
+
+- scale: 2^20 = 1,048,576;
+- raw storage: signed 32-bit integer;
+- representable interval: [-2048, 2047.99999904632568359375];
+- widened intermediates: signed 64-bit integer;
+- narrowing: explicit saturation;
+- multiplication and division: round-to-nearest, ties-to-even;
+- division by zero: represented by Q20DivByZero.
+
+No floating-point values belong in the learner runtime. This is a boundary requirement, not a claim that every library in the development toolchain must be free of floating-point support.
+
+## Agda2HS import policy
+
+The canonical Agda file currently imports:
+
+| Import | Purpose |
 | --- | --- |
-| Narrow proof imports | Implemented |
-| Erased `S0` witness packaging | Implemented |
-| Equality and relation support | Implemented |
-| Erased-length `Vec` | Implemented |
-| Q12.20 `Int32` representation | Implemented |
-| Saturating add and subtract | Implemented |
-| Q12.20 multiply with ties-to-even rounding | Implemented |
-| Saturating negate and absolute value | Implemented |
-| Q12.20 division with explicit divide-by-zero result | Implemented |
-| Quantmoid4 integer kernel and smooth CHAD shadow | Planned |
-| State-independent-candidate GRU | Planned |
-| Three-step sampled SARSA | Planned |
-| 16-fraction FQF and quantile-Huber loss | Planned |
-| Actor-only factorized NoisyNet | Planned |
-| Munchausen reward shaping | Planned |
-| ObGD update and its vector-gradient bound | Planned |
-| End-to-end CHAD and runtime parity proofs | Planned |
+| Agda.Primitive | Universe levels for erased proof packaging. |
+| Agda.Builtin.Equality | Propositional equality and its constructor. |
+| Agda.Builtin.Nat | Length index and constructors for erased-length vectors. |
+| Haskell.Prim | Empty type used by the relation contradiction. |
+| Haskell.Prim.Tuple | Product type used by the pair alias. |
 
-The foreign Haskell arithmetic functions are trusted postulates from Agda's point of view. The Agda type checker checks their types, not their runtime bodies. Add reference tests and extracted-Haskell parity checks before treating these functions as verified.
+The two Haskell.* modules are Agda2HS base-library imports reused from Viktor Csimma's Agda2HS ecosystem. The other imports are Agda built-ins. The foreign Haskell block names Data.Int.Int32 and Data.Int.Int64 and defines the narrow arithmetic primitives used by this module.
 
-## Fixed-point format
+### Why Haskell.Prelude is omitted
 
-Q12.20 stores a signed integer `raw` with scale `2^20`.
+**Import confinement and floating-point exposure—not a measured runtime-speed issue.**
 
-```text
-value = raw / 1,048,576
-raw range = [-2,147,483,648, 2,147,483,647]
-value range = [-2,048, 2,047.99999904632568359375]
-```
+Viktor Csimma's Agdalache application modules do use Haskell.Prelude; its presence in those examples is not evidence that it is slow. In the pinned Agda2HS base library, the Prelude is a broad convenience surface that re-exports general-purpose primitives, including floating-point and IO-related facilities. The canonical learner needs only a handful of proof and product primitives, so importing the whole Prelude would widen its source-level dependency surface without supplying a needed operation.
 
-Addition and subtraction widen to `Int64`, then saturate to `Int32`.
+Agda2HS extraction omits unused imported Haskell entities from generated output. Consequently, a broad Prelude import does not, by itself, prove slower generated code. A broad import can affect Agda's dependency/typechecking surface, but this repository has no benchmark establishing a Prelude slowdown. The project makes no such performance claim and does not attribute one to Csimma.
 
-Multiplication computes the `Int64` product, divides by `2^20) using round-to-nearest, ties-to-even, then saturates.
+The policy is to reuse **all relevant** Csimma Agda2HS patterns, not indiscriminately import every module used by his GUI/FFI applications:
 
-Division scales the numerator by `2^20), applies the same rounding rule, and saturates. Division by zero returns `Q20DivByZero`.
+| Csimma module family | Decision for this pure learner |
+| --- | --- |
+| Haskell.Prim | Import the empty type needed by relation proofs. |
+| Haskell.Prim.Tuple | Import products where the learner uses them. |
+| Haskell.Prelude | Omit; current code needs no broad Prelude re-export. |
+| Haskell.Data.IORef | Omit; no mutable IO reference in the pure kernel. |
+| Haskell.Foreign.Ptr, StablePtr, Storable | Omit; no pointer lifetime or marshalling boundary. |
+| Haskell.Foreign.C.Types, Tool.Foreign | Omit; no C ABI adapter is declared. |
+| Haskell.Control.Concurrent.MVar, CFuture, Haskell.GHC.Conc | Omit; learner state is not shared mutable concurrent state. |
+| Platform.Posix, Platform.Win32 | Omit; the learner kernel is platform-independent. |
+| Tool.ErasureProduct, Tool.PropositionalEquality, Tool.Relation | Reuse relevant definitions/patterns in the canonical monolith; do not add application modules as runtime dependencies. |
 
-## Import policy
+This is a complete decision policy, not a maximal import count. Add a module only when the canonical source actually uses the responsibility it provides.
 
-The canonical module uses the small Agda2HS and Agda proof surface needed by this pure learner:
+## Planned learner contract
 
-- `Agda.Primitive` supplies universe levels for erased proof packaging.
-- `Agda.Builtin.Equality` supplies propositional equality.
-- `Haskell.Prim` supplies the empty type used by relation proofs.
-- `Haskell.Prim.Tuple` supplies product types.
-- `Data.Int.Int32` and `Data.Int.Int64` enter only through the narrow `FOREIGN AGDA2HS` block.
+The intended implementation, once completed and proved, has these constraints.
 
-The erased `S0`, equality helpers, and relation support follow the relevant patterns in Viktor Csimma's [Agdalache](https://github.com/viktorcsimma/agdalache) source. The learner does not depend on Agdalache as a package, and its GUI-specific runtime adapters are not part of this module.
+### Recurrent core
 
-### Why the canonical module omits Haskell.Prelude
-
-The omission is about import confinement and the no-floating-point contract. It is **not** based on a claim that Viktor Csimma says `Haskell.Prelude` is slow.
-
-Csimma's Agdalache examples use `Haskell.Prelude` in application state, interaction, and foreign-boundary modules. The pinned Agda2HS `Haskell.Prelude` itself re-exports a broad set of modules, including `Haskell.Prim.Double`, `Haskell.Prim.IO`, and numeric classes with a `Double` instance. That surface is broader than this learner needs.
-
-Agda2HS documentation says unused imports are omitted from generated Haskell. Therefore, importing the broad Prelude does not by itself establish a runtime performance penalty. A broad Agda import can still enlarge the type-checking dependency graph, but this repository has no benchmark showing that `Haskell.Prelude` is slow.
-
-The canonical module therefore uses selected proof imports and a small fixed-width FFI boundary. It does not import Csimma's `IORef`, `Ptr`, `StablePtr`, C-type, `Storable`, `MVar`, `CFuture`, GHC-concurrency, or platform adapters. Those modules solve mutable GUI state and C/C++ callback integration. The learner has no such boundary.
-
-## Learner specification
-
-The planned learner keeps the runtime model integer-only.
-
-### Recurrent model
-
-- Use a state-independent-candidate GRU.
-- Compute the candidate from the current feature projection only.
-- Use a shifted and rescaled softsign update gate in `[0, 1]).
-- Mix the previous hidden state and candidate with complementary gate weights.
-- Apply the specified outer softsign.
-- Differentiate a separate C1 dyadic shadow with CHAD. The rounded integer forward kernel is discrete and is not itself C1.
+- State-independent candidate: current feature projection only, with no recurrent-state term in the candidate.
+- Shifted/rescaled softsign update gate in [0,1].
+- Convex mix of previous hidden state and candidate, followed by the required outer softsign.
+- Integer Quantmoid4 forward kernel with a separately specified continuous dyadic shadow for CHAD. The rounded integer forward function is discrete; it is not itself C1.
 
 ### Critic and return
 
-- Use three-step sampled on-policy SARSA.
-- Set `gamma = 0.99` and `lambda = 0`.
-- Bootstrap with the action sampled by the behavior policy at the third step.
-- Shorten the return at earlier termination.
-- Keep samples chronological. Do not shuffle or decorrelate replay sequences.
-- Use 16 learned FQF quantile fractions and 16 quantile values per action.
-- Train quantile values with quantile-Huber loss.
+- Three-step sampled on-policy SARSA, gamma = 0.99, lambda = 0.
+- Bootstrap from the action sampled at the third step; shorten the return on earlier termination.
+- Preserve chronological contiguous samples. No replay shuffling or decorrelation.
+- Sixteen learned FQF fractions and sixteen quantile values per action, trained with quantile-Huber loss.
+- No max-Q bootstrap, Double-Q target, dueling decomposition, ensemble, target network, or categorical five-bin projection in this iteration.
 
-SARSA avoids the `max_a Q(s,a)` selection step in the bootstrap. This reduces the classic maximization-bias mechanism in Q-learning. It does not guarantee unbiased estimates.
+SARSA removes the max_a Q(s,a) selection from the bootstrap and therefore avoids that particular maximization-bias mechanism of Q-learning. It does not guarantee unbiased value estimates.
 
-### Actor and exploration
+### Actor and reward shaping
 
-- Keep the critic deterministic.
-- Apply factorized NoisyNet only to the actor policy head.
-- Generate noise with integer-only quantized distributions and explicit range bounds.
-- Use integer Q4-softmax with temperature `tau = 1/8`.
-- Do not add epsilon-greedy exploration.
-- Use canonical Munchausen shaping:
-  `rM = r + alpha * tau * log(pi(a|s))`.
-- Use `alpha = 1/16` and `tau = 1/8`.
-- Approximate log-probabilities with a bounded integer lookup or dyadic kernel.
+- Factorized NoisyNet belongs to the actor policy head only. The critic and recurrent state remain deterministic.
+- Integer Q4-softmax with temperature tau = 1/8; no epsilon-greedy branch.
+- Canonical Munchausen shaping: rM = r + alpha * tau * log(pi(a|s)), with alpha = 1/16 and tau = 1/8.
+- Integer log and softmax approximation errors require explicit bounds.
 
-Munchausen shaping is policy-dependent reward shaping. It is not a general overestimation correction. Bound the error from the integer log and softmax approximations separately.
+Munchausen shaping is policy-dependent reward shaping, not a universal overestimation correction.
 
-### Optimizer and differentiation
+### Differentiation and optimization
 
-- Use ObGD without Adamax or momentum.
-- Justify its effective-step bound for the aggregate quantile-Huber gradient.
-- Use sparse cotangent products and state-passing accumulation.
-- Prove the primal/VJP relation for the smooth dyadic shadow.
-- Prove the three-step cotangent accumulation bounds.
-- State the cost model and prove the claimed bound.
-- Separate shadow correctness from fixed-point quantization error.
+- Sparse cotangent products and state-passing accumulation.
+- CHAD VJP derived from the declared smooth dyadic shadow, not from a discontinuous rounded integer map.
+- Compose the fixed three-step pullback directly; reserve iterative CHAD for genuinely variable-length control flow.
+- ObGD without Adamax or momentum; prove the effective-step bound for the aggregate quantile-Huber gradient.
+- Prove primal/VJP simulation, cotangent laws, three-step overflow bounds, and the stated cost bound.
 
-## Viktor Csimma import inventory
+## Development environment and parallel typechecking
 
-The inventory below distinguishes the reusable proof pattern from adapters that belong to other applications.
+The agda-ci Nix development shell provides the pinned Agda2HS/Agda toolchain, GHC, Fennel, LuaJIT, and LuaRocks. On shell entry, LuaRocks installs pinned lanes and luafun rocks into the ignored project-local .luarocks/ tree. Lanes runs the two independent Agda typechecks concurrently; LuaFun supplies the functional iterator used to construct the worker jobs.
 
-| Csimma source family | Learner decision |
-| --- | --- |
-| `Tool.ErasureProduct` | Reuse the erased `S0` pattern in the canonical file. |
-| `Tool.PropositionalEquality` | Reuse the minimal erased equality helpers. |
-| `Tool.Relation` | Reuse the small relation vocabulary and empty-type contradiction. |
-| `Haskell.Prelude` | Excluded from the canonical import surface because it exposes unused floating-point and IO APIs. |
-| `Haskell.Data.IORef` | Excluded. The learner kernel is pure. |
-| `Haskell.Foreign.Ptr` | Excluded. No pointer-valued learner interface exists. |
-| `Haskell.Foreign.StablePtr` | Excluded. No stable-pointer lifetime exists. |
-| `Haskell.Foreign.C.Types` | Excluded. The learner does not expose a C ABI. |
-| `Haskell.Foreign.Storable` | Excluded. No pointer marshalling exists. |
-| `Tool.Foreign` | Excluded. No C/C++ function adapter is required. |
-| `Haskell.Control.Concurrent.MVar` | Excluded. No shared mutable state is required. |
-| `Haskell.Control.Concurrent.CFuture` | Excluded. No asynchronous C callback exists. |
-| `Haskell.GHC.Conc` | Excluded. Runtime concurrency is outside the learner. |
-| `Platform.Posix` and `Platform.Win32` | Excluded. The learner is platform-independent. |
+The parallel checker gives each Agda invocation a separate temporary source workspace and uses --local-interfaces. This isolates local .agdai writes between workers. The worker count is two; Nix and Make are also configured for two build jobs. Actual CPU availability remains controlled by the host.
 
-“Full coverage” means every import family has an explicit decision. It does not mean importing modules whose runtime responsibilities do not exist in this project.
+Typecheck both Agda monoliths concurrently:
 
-## Build and verification
+    nix develop --quiet .#agda-ci -c fennel .ci/fennel/parallel-agda.fnl
 
-The Nix flake pins Agda2HS, Agda, GHC, and the Agda2HS base library.
+Run the full CI lane:
 
-Run the canonical Agda type check:
+    nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All
 
-```sh
-nix develop --quiet .#agda-ci -c agda2hs-agda --trace-imports=0 -i . FullCoupled/CanonicalLearnerMonolith.agda
-```
+The full lane typechecks both Agda files concurrently, extracts the canonical Agda module, checks the RUSS trust inventory, and renders the static Pages artifact.
 
-Run Agda2HS extraction and inspect the generated Haskell:
+## Verification still required
 
-```sh
-nix develop --quiet .#agda-ci -c agda2hs FullCoupled/CanonicalLearnerMonolith.agda -o build/agda2hs
-```
+Before treating the learner as complete, add and run:
 
-Run the repository's full CI lane:
-
-```sh
-nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All
-```
-
-The CI lane checks the canonical Agda module, extracts it, checks the theorem monolith, audits RUSS trust declarations, and renders the static Pages site.
-
-Before merging the learner, add and run tests for:
-
-1. Q12.20 extrema, saturating arithmetic, negative rounding ties, and division by zero.
-2. Quantmoid4 knots, monotonicity, saturation, and shadow discrepancy.
-3. GRU candidate independence, gate range, and CHAD primal/VJP correspondence.
-4. Three-step SARSA termination, truncation, and sampled-action bootstrap.
-5. FQF fraction positivity, strict ordering, normalization, and quantile-Huber gradients.
-6. Actor-noise isolation from the deterministic critic.
-7. Munchausen sign and integer log approximation bounds.
-8. ObGD's vector-gradient step bound.
+1. Q12.20 extrema, saturation, negative rounding ties, and divide-by-zero tests.
+2. Quantmoid4 knot, monotonicity, saturation, and shadow-discrepancy tests.
+3. GRU candidate-independence, gate-range, and CHAD primal/VJP checks.
+4. Three-step SARSA terminal, truncation, and sampled-action-bootstrap tests.
+5. FQF fraction positivity, strict ordering, normalization, and quantile-Huber gradient checks.
+6. Actor-noise isolation from critic and recurrent state.
+7. Munchausen sign and integer-log error bounds.
+8. ObGD vector-gradient step-bound proof.
 9. Extracted-Haskell scans for floating-point types, literals, imports, and conversions.
+10. End-to-end parity checks for the trusted fixed-point Haskell primitives.
 
-A successful type check or extraction does not prove the FFI arithmetic bodies or the full learner correct.
+A successful Agda typecheck or Agda2HS extraction is necessary but does not establish the correctness of foreign arithmetic bodies or the missing learner.
 
-## Repository layout
+## Repository map
 
-```text
-.
-├── .ci/
-│   ├── agda/
-│   │   ├── agda2hs.yaml
-│   │   └── global-options.txt
-│   └── fennel/
-│       ├── ci.fnl
-│       ├── pages.fnl
-│       ├── palette_css.fnl
-│       └── russ_audit.fnl
-├── .github/workflows/github-pages.yml
-├── FullCoupled/
-│   ├── CanonicalLearnerMonolith.agda
-│   └── TheoremsMonolith.agda
-├── site/site.less
-├── flake.nix
-├── index.html
-└── README.md
-```
+    .
+    ├── .ci/
+    │   ├── agda/
+    │   │   ├── agda2hs.yaml
+    │   │   └── global-options.txt
+    │   └── fennel/
+    │       ├── ci.fnl
+    │       ├── parallel-agda.fnl
+    │       ├── pages.fnl
+    │       ├── palette_css.fnl
+    │       └── russ_audit.fnl
+    ├── .github/workflows/github-pages.yml
+    ├── FullCoupled/
+    │   ├── CanonicalLearnerMonolith.agda
+    │   └── TheoremsMonolith.agda
+    ├── flake.nix
+    ├── index.html
+    ├── site.css
+    └── README.md
 
 ## License
 
-See [LICENSE](LICENSE).
+See LICENSE.
