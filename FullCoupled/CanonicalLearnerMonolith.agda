@@ -302,7 +302,7 @@ q4SoftmaxRaw temperature logits
       in U.imap (\i x ->
            if i + 1 == n
              then satInt32 (qOneRaw - prefixTotal)
-             else satInt32 (roundDivEven (fromIntegral x * qOneRaw) total))
+             else satInt32 (quot (fromIntegral x * qOneRaw) total))
            unnormalised
 
 qPrefixMidpointsRaw :: Vec32 -> Vec32
@@ -417,16 +417,16 @@ qGumbelMaxSelectRaw :: Word64 -> Int32 -> Vec32 -> Int32
 qGumbelMaxSelectRaw seed temperature logits
   | U.null logits = 0
   | otherwise =
-      let tau = max 1 temperature
-          score i z =
+      let probabilities = q4SoftmaxRaw temperature logits
+          score i probability =
             let state = seed + fromIntegral i * 1442695040888963407
                 index = fromIntegral (Bits..&. (pcgWord32Raw state) 15)
                 g = U.unsafeIndex gumbelTableRaw index
-            in fromIntegral (qDivRaw z tau) + fromIntegral g :: Int64
-          (_,bestIndex) = U.ifoldl' (\(best,bestI) i z ->
-            let candidate = score i z
+            in fromIntegral (qLogProbRaw probability) + fromIntegral g :: Int64
+          (_,bestIndex) = U.ifoldl' (\(best,bestI) i probability ->
+            let candidate = score i probability
             in if candidate > best then (candidate,i) else (best,bestI))
-            (minBound :: Int64,0) logits
+            (minBound :: Int64,0) probabilities
       in fromIntegral bestIndex
 
 qMunchausenLogTableRaw :: Vec32
@@ -770,7 +770,7 @@ qObgdEffectiveStepRaw alpha kappa delta trace =
       inverse x = satInt32 (quot (qOneRaw * qOneRaw) (max 1 x))
       multiplyDown x y =
         satInt32 (quot (fromIntegral x * fromIntegral y) qOneRaw)
-      inverseKappa = inverse (fromIntegral (max 1 kappa))
+      inverseKappa = inverse (fromIntegral (max qOneRaw kappa))
       inverseDelta = inverse deltaBar
       inverseTrace = inverse l1
       safeStep = multiplyDown (multiplyDown inverseKappa inverseDelta) inverseTrace
