@@ -1260,3 +1260,632 @@ networkMunchausenReward reward decision =
   munchausenReward reward
     (networkPolicyProbabilities decision) (networkSelectedAction decision)
 {-# COMPILE AGDA2HS networkMunchausenReward #-}
+
+
+------------------------------------------------------------------------
+-- Shared reverse-mode kernels
+--
+-- These VJPs differentiate the smooth Q20 shadow. Integer rounding,
+-- saturation, table quantization, actor noise samples, and Gumbel-Max
+-- selection are treated as fixed/discrete boundaries.
+------------------------------------------------------------------------
+
+record LinearCotangent : Set where
+  constructor mkLinearCotangent
+  field
+    linearWeightCotangent : Vec32
+    linearBiasCotangent : Vec32
+    linearInputCotangent : Vec32
+
+open LinearCotangent public
+{-# COMPILE AGDA2HS LinearCotangent #-}
+
+linearRowsVJP
+  : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32
+  → LinearCotangent
+linearRowsVJP rows cols weights bias input outputDirection =
+  let packed = qLinearRowsVJP rows cols weights bias input outputDirection
+      weightCount = qVecLength weights
+      biasCount = qVecLength bias
+      inputStart = addInt32 weightCount biasCount
+  in mkLinearCotangent
+       (qSlice32 0 weightCount packed)
+       (qSlice32 weightCount biasCount packed)
+       (qSlice32 inputStart cols packed)
+{-# COMPILE AGDA2HS linearRowsVJP #-}
+
+record NoisyLinearCotangent : Set where
+  constructor mkNoisyLinearCotangent
+  field
+    noisyMuWeightCotangent : Vec32
+    noisySigmaWeightCotangent : Vec32
+    noisyMuBiasCotangent : Vec32
+    noisySigmaBiasCotangent : Vec32
+    noisyInputCotangent : Vec32
+
+open NoisyLinearCotangent public
+{-# COMPILE AGDA2HS NoisyLinearCotangent #-}
+
+noisyLinearVJP
+  : Int32 → Int32
+  → Vec32 → Vec32 → Vec32 → Vec32
+  → Vec32 → Vec32 → Vec32 → Vec32
+  → NoisyLinearCotangent
+noisyLinearVJP rows cols muWeights sigmaWeights muBias sigmaBias
+  input inputNoise outputNoise outputDirection =
+  let packed = qFactorizedNoisyLinearVJP rows cols
+        muWeights sigmaWeights muBias sigmaBias
+        input inputNoise outputNoise outputDirection
+      muWeightCount = qVecLength muWeights
+      sigmaWeightCount = qVecLength sigmaWeights
+      muBiasCount = qVecLength muBias
+      sigmaBiasCount = qVecLength sigmaBias
+      sigmaWeightStart = muWeightCount
+      muBiasStart = addInt32 sigmaWeightStart sigmaWeightCount
+      sigmaBiasStart = addInt32 muBiasStart muBiasCount
+      inputStart = addInt32 sigmaBiasStart sigmaBiasCount
+  in mkNoisyLinearCotangent
+       (qSlice32 0 muWeightCount packed)
+       (qSlice32 sigmaWeightStart sigmaWeightCount packed)
+       (qSlice32 muBiasStart muBiasCount packed)
+       (qSlice32 sigmaBiasStart sigmaBiasCount packed)
+       (qSlice32 inputStart cols packed)
+{-# COMPILE AGDA2HS noisyLinearVJP #-}
+
+record GRUCotangent : Set where
+  constructor mkGRUCotangent
+  field
+    gruGateWeightCotangent : Vec32
+    gruGateBiasCotangent : Vec32
+    gruCandidateWeightCotangent : Vec32
+    gruCandidateBiasCotangent : Vec32
+    gruPreviousCotangent : Vec32
+    gruInputCotangent : Vec32
+
+open GRUCotangent public
+{-# COMPILE AGDA2HS GRUCotangent #-}
+
+gruStepVJP : GRUParams → Vec32 → Vec32 → Vec32 → GRUCotangent
+gruStepVJP p input previous outputDirection =
+  let hiddenDim = gruHiddenDim p
+      inputDim = gruInputDim p
+      gatePre = qLinearRowsQ20 hiddenDim inputDim
+        (gruGateWeights p) (gruGateBias p) input
+      gate = qShiftedGateVec gatePre
+      candidate = qLinearRowsQ20 hiddenDim inputDim
+        (gruCandidateWeights p) (gruCandidateBias p) input
+      mixed = qConvexMix gate previous candidate
+      normalized = qMadLayerNorm mixed
+      normalizedDirection = qSoftsignVJP normalized outputDirection
+      mixedDirection = qMadLayerNormVJP mixed normalizedDirection
+      mixDirections = qConvexMixVJP gate previous candidate mixedDirection
+      gateDirection = qShiftedGateVJP gatePre
+        (qSlice32 0 hiddenDim mixDirections)
+      previousDirection = qSlice32 hiddenDim hiddenDim mixDirections
+      candidateDirection = qSlice32 (hiddenDim + hiddenDim) hiddenDim mixDirections
+      gateLinear = linearRowsVJP hiddenDim inputDim
+        (gruGateWeights p) (gruGateBias p) input gateDirection
+      candidateLinear = linearRowsVJP hiddenDim inputDim
+        (gruCandidateWeights p) (gruCandidateBias p) input candidateDirection
+  in mkGRUCotangent
+       (linearWeightCotangent gateLinear)
+       (linearBiasCotangent gateLinear)
+       (linearWeightCotangent candidateLinear)
+       (linearBiasCotangent candidateLinear)
+       previousDirection
+       (qAddVec32 (linearInputCotangent gateLinear)
+                  (linearInputCotangent candidateLinear))
+{-# COMPILE AGDA2HS gruStepVJP #-}
+
+record ActorCotangent : Set where
+  constructor mkActorCotangent
+  field
+    actorMuWeightCotangent : Vec32
+    actorSigmaWeightCotangent : Vec32
+    actorMuBiasCotangent : Vec32
+    actorSigmaBiasCotangent : Vec32
+    actorFeatureCotangent : Vec32
+
+open ActorCotangent public
+{-# COMPILE AGDA2HS ActorCotangent #-}
+
+actorLogProbabilityVJP
+  : ActorParams → ActorNoiseState → Vec32 → Int32 → Int32
+  → ActorCotangent
+actorLogProbabilityVJP p noise features action advantage =
+  let logits = actorLogits p noise features
+      probabilities = q4Softmax 131072 logits
+      logProbabilityDirection = qLogProbabilityCotangent action probabilities
+      logitsDirection = q4SoftmaxVJP 131072 logits probabilities
+        logProbabilityDirection
+      scaledDirection = qScaleVec32 advantage logitsDirection
+      linear = noisyLinearVJP
+        (actorActionCount p) (actorFeatureDim p)
+        (actorMuWeights p) (actorSigmaWeights p)
+        (actorMuBias p) (actorSigmaBias p)
+        features (actorInputFactors noise) (actorOutputFactors noise)
+        scaledDirection
+  in mkActorCotangent
+       (noisyMuWeightCotangent linear)
+       (noisySigmaWeightCotangent linear)
+       (noisyMuBiasCotangent linear)
+       (noisySigmaBiasCotangent linear)
+       (noisyInputCotangent linear)
+{-# COMPILE AGDA2HS actorLogProbabilityVJP #-}
+
+record FQFCotangent : Set where
+  constructor mkFQFCotangent
+  field
+    fqfFractionWeightCotangent : Vec32
+    fqfFractionBiasCotangent : Vec32
+    fqfQuantileWeightCotangent : Vec32
+    fqfQuantileBiasCotangent : Vec32
+    fqfFeatureCotangent : Vec32
+
+open FQFCotangent public
+{-# COMPILE AGDA2HS FQFCotangent #-}
+
+fqfActionVJP
+  : FQFParams → Vec32 → Int32 → Vec32 → FQFCotangent
+fqfActionVJP p features action quantileDirection =
+  let quantileCount = int32Sixteen
+      fractionLogits = qLinearRowsQ20 quantileCount (fqfFeatureDim p)
+        (fqfFractionWeights p) (fqfFractionBias p) features
+      widths = q4Softmax 1048576 fractionLogits
+      midpoints = qPrefixMidpoints widths
+      quantileRows = fqfActionCount p * quantileCount
+      allValues = qLinearRowsQ20 quantileRows (fqfFeatureDim p)
+        (fqfQuantileWeights p) (fqfQuantileBias p) features
+      selectedValues = qSlice32 (action * quantileCount)
+        quantileCount allValues
+      allValueDirection = qEmbedActionCotangent action quantileCount
+        (fqfActionCount p) quantileDirection
+      quantileLinear = linearRowsVJP quantileRows (fqfFeatureDim p)
+        (fqfQuantileWeights p) (fqfQuantileBias p)
+        features allValueDirection
+      -- Boundary proposal uses the piecewise-linear quantile shadow.
+      fractionDirection = qFQFFractionLogitDirection
+        fractionLogits widths midpoints selectedValues
+      fractionLinear = linearRowsVJP quantileCount (fqfFeatureDim p)
+        (fqfFractionWeights p) (fqfFractionBias p)
+        features fractionDirection
+  in mkFQFCotangent
+       (linearWeightCotangent fractionLinear)
+       (linearBiasCotangent fractionLinear)
+       (linearWeightCotangent quantileLinear)
+       (linearBiasCotangent quantileLinear)
+       (qAddVec32 (linearInputCotangent fractionLinear)
+                  (linearInputCotangent quantileLinear))
+{-# COMPILE AGDA2HS fqfActionVJP #-}
+
+record NetworkPullback : Set where
+  constructor mkNetworkPullback
+  field
+    networkParameterDirection : Vec32
+    networkPreviousHiddenDirection : Vec32
+    networkObservationDirection : Vec32
+
+open NetworkPullback public
+{-# COMPILE AGDA2HS NetworkPullback #-}
+
+-- Pullback for one selected behavior action. Policy-gradient, FQF quantile,
+-- and fraction-proposal directions meet at one shared feature cotangent.
+networkStepVJP
+  : NetworkParams → NetworkState → Vec32 → Int32 → Int32 → Vec32 → Vec32
+  → NetworkPullback
+networkStepVJP p state observation action actorAdvantage quantileDirection
+  futureHiddenDirection =
+  let gru = networkGRUParams p
+      critic = networkFQFParams p
+      actor = networkActorParams p
+      hidden' = gruStep gru observation (networkHiddenState state)
+      features = qAppend32 observation hidden'
+      actorDirection = actorLogProbabilityVJP actor
+        (networkActorNoiseState state) features action actorAdvantage
+      criticDirection = fqfActionVJP critic features action quantileDirection
+      featureDirection = qAddVec32
+        (actorFeatureCotangent actorDirection)
+        (fqfFeatureCotangent criticDirection)
+      observationCount = qVecLength observation
+      hiddenCount = qVecLength hidden'
+      directObservationDirection = qSlice32 0 observationCount featureDirection
+      hiddenOutputDirection = qAddVec32
+        (qSlice32 observationCount hiddenCount featureDirection)
+        futureHiddenDirection
+      recurrentDirection = gruStepVJP gru observation
+        (networkHiddenState state) hiddenOutputDirection
+      gruParameters = qAppend32
+        (gruGateWeightCotangent recurrentDirection)
+        (qAppend32 (gruGateBiasCotangent recurrentDirection)
+          (qAppend32 (gruCandidateWeightCotangent recurrentDirection)
+                     (gruCandidateBiasCotangent recurrentDirection)))
+      criticParameters = qAppend32
+        (fqfFractionWeightCotangent criticDirection)
+        (qAppend32 (fqfFractionBiasCotangent criticDirection)
+          (qAppend32 (fqfQuantileWeightCotangent criticDirection)
+                     (fqfQuantileBiasCotangent criticDirection)))
+      actorParameters = qAppend32
+        (actorMuWeightCotangent actorDirection)
+        (qAppend32 (actorSigmaWeightCotangent actorDirection)
+          (qAppend32 (actorMuBiasCotangent actorDirection)
+                     (actorSigmaBiasCotangent actorDirection)))
+  in mkNetworkPullback
+       (qAppend32 gruParameters (qAppend32 criticParameters actorParameters))
+       (gruPreviousCotangent recurrentDirection)
+       (qAddVec32 directObservationDirection
+                  (gruInputCotangent recurrentDirection))
+{-# COMPILE AGDA2HS networkStepVJP #-}
+
+------------------------------------------------------------------------
+-- Parameter vector: one canonical order for CHAD and ObGD
+------------------------------------------------------------------------
+
+networkParameterVector : NetworkParams → Vec32
+networkParameterVector p =
+  let gru = networkGRUParams p
+      critic = networkFQFParams p
+      actor = networkActorParams p
+  in qAppend32 (gruGateWeights gru)
+       (qAppend32 (gruGateBias gru)
+         (qAppend32 (gruCandidateWeights gru)
+           (qAppend32 (gruCandidateBias gru)
+             (qAppend32 (fqfFractionWeights critic)
+               (qAppend32 (fqfFractionBias critic)
+                 (qAppend32 (fqfQuantileWeights critic)
+                   (qAppend32 (fqfQuantileBias critic)
+                     (qAppend32 (actorMuWeights actor)
+                       (qAppend32 (actorSigmaWeights actor)
+                         (qAppend32 (actorMuBias actor)
+                                    (actorSigmaBias actor)))))))))))
+{-# COMPILE AGDA2HS networkParameterVector #-}
+
+networkWithParameterVector : NetworkParams → Vec32 → NetworkParams
+networkWithParameterVector p flat =
+  let gru = networkGRUParams p
+      critic = networkFQFParams p
+      actor = networkActorParams p
+      gwN = qVecLength (gruGateWeights gru)
+      gbN = qVecLength (gruGateBias gru)
+      cwN = qVecLength (gruCandidateWeights gru)
+      cbN = qVecLength (gruCandidateBias gru)
+      fwN = qVecLength (fqfFractionWeights critic)
+      fbN = qVecLength (fqfFractionBias critic)
+      qwN = qVecLength (fqfQuantileWeights critic)
+      qbN = qVecLength (fqfQuantileBias critic)
+      awN = qVecLength (actorMuWeights actor)
+      asN = qVecLength (actorSigmaWeights actor)
+      abN = qVecLength (actorMuBias actor)
+      axN = qVecLength (actorSigmaBias actor)
+      o1 = gwN
+      o2 = o1 + gbN
+      o3 = o2 + cwN
+      o4 = o3 + cbN
+      o5 = o4 + fwN
+      o6 = o5 + fbN
+      o7 = o6 + qwN
+      o8 = o7 + qbN
+      o9 = o8 + awN
+      o10 = o9 + asN
+      o11 = o10 + abN
+      o12 = o11 + axN
+      gru' = mkGRUParams (gruInputDim gru) (gruHiddenDim gru)
+        (qSlice32 0 gwN flat) (qSlice32 o1 gbN flat)
+        (qSlice32 o2 cwN flat) (qSlice32 o3 cbN flat)
+      critic' = mkFQFParams (fqfFeatureDim critic) (fqfActionCount critic)
+        (qSlice32 o4 fwN flat) (qSlice32 o5 fbN flat)
+        (qSlice32 o6 qwN flat) (qSlice32 o7 qbN flat)
+      actor' = mkActorParams (actorFeatureDim actor) (actorActionCount actor)
+        (qSlice32 o8 awN flat) (qSlice32 o9 asN flat)
+        (qSlice32 o10 abN flat) (qSlice32 o11 axN flat)
+  in mkNetworkParams gru' critic' actor'
+{-# COMPILE AGDA2HS networkWithParameterVector #-}
+
+------------------------------------------------------------------------
+-- Finite iterative CHAD: forward trace and state-passed reverse scan
+------------------------------------------------------------------------
+
+record CHADForwardStep (S Y : Set) : Set where
+  constructor mkCHADForwardStep
+  field
+    chadNextState : S
+    chadOutput : Y
+
+open CHADForwardStep public
+{-# COMPILE AGDA2HS CHADForwardStep #-}
+
+record CHADPullbackStep (DP DS DX : Set) : Set where
+  constructor mkCHADPullbackStep
+  field
+    chadParameterDirection : DP
+    chadPreviousStateDirection : DS
+    chadInputDirection : DX
+
+open CHADPullbackStep public
+{-# COMPILE AGDA2HS CHADPullbackStep #-}
+
+record IterativeCHADCell
+  (P S X Y DP DS DY DX : Set) : Set where
+  constructor mkIterativeCHADCell
+  field
+    chadForwardCell : P → S → X → CHADForwardStep S Y
+    chadPullbackCell : P → S → X → Y → DS → DY → CHADPullbackStep DP DS DX
+    chadZeroParameterDirection : P → DP
+    chadAddParameterDirections : DP → DP → DP
+
+open IterativeCHADCell public
+{-# COMPILE AGDA2HS IterativeCHADCell #-}
+
+data CHADTrace (S X Y : Set) : Nat → Set where
+  chadEmpty : CHADTrace S X Y zero
+  chadCons : ∀ {@0 n} → S → X → Y → CHADTrace S X Y n
+          → CHADTrace S X Y (suc n)
+
+{-# COMPILE AGDA2HS CHADTrace #-}
+
+record CHADForwardResult (S X Y : Set) (n : Nat) : Set where
+  constructor mkCHADForwardResult
+  field
+    chadFinalState : S
+    chadOutputs : Vec Y n
+    chadTrace : CHADTrace S X Y n
+
+open CHADForwardResult public
+{-# COMPILE AGDA2HS CHADForwardResult #-}
+
+record CHADBackwardResult (DP DS DX : Set) (n : Nat) : Set where
+  constructor mkCHADBackwardResult
+  field
+    chadAccumulatedParameterDirection : DP
+    chadInitialStateDirection : DS
+    chadInputDirections : Vec DX n
+
+open CHADBackwardResult public
+{-# COMPILE AGDA2HS CHADBackwardResult #-}
+
+iterativeCHADForward
+  : ∀ {P S X Y DP DS DY DX n}
+  → IterativeCHADCell P S X Y DP DS DY DX
+  → P → S → Vec X n → CHADForwardResult S X Y n
+iterativeCHADForward cell p state VNil =
+  mkCHADForwardResult state VNil chadEmpty
+iterativeCHADForward cell p state (VCons input inputs) =
+  let step = chadForwardCell cell p state input
+      rest = iterativeCHADForward cell p (chadNextState step) inputs
+  in mkCHADForwardResult
+       (chadFinalState rest)
+       (VCons (chadOutput step) (chadOutputs rest))
+       (chadCons state input (chadOutput step) (chadTrace rest))
+{-# COMPILE AGDA2HS iterativeCHADForward #-}
+
+iterativeCHADBackward
+  : ∀ {P S X Y DP DS DY DX n}
+  → IterativeCHADCell P S X Y DP DS DY DX
+  → P → CHADTrace S X Y n → Vec DY n → DS
+  → CHADBackwardResult DP DS DX n
+iterativeCHADBackward cell p chadEmpty VNil terminalDirection =
+  mkCHADBackwardResult (chadZeroParameterDirection cell p)
+    terminalDirection VNil
+iterativeCHADBackward cell p
+  (chadCons state input output rest)
+  (VCons outputDirection outputDirections) terminalDirection =
+  let restResult = iterativeCHADBackward cell p rest
+        outputDirections terminalDirection
+      local = chadPullbackCell cell p state input output
+        (chadInitialStateDirection restResult) outputDirection
+  in mkCHADBackwardResult
+       (chadAddParameterDirections cell
+         (chadParameterDirection local)
+         (chadAccumulatedParameterDirection restResult))
+       (chadPreviousStateDirection local)
+       (VCons (chadInputDirection local) (chadInputDirections restResult))
+{-# COMPILE AGDA2HS iterativeCHADBackward #-}
+
+chadTraceLength : ∀ {S X Y n} → CHADTrace S X Y n → Nat
+chadTraceLength chadEmpty = zero
+chadTraceLength (chadCons state input output rest) =
+  suc (chadTraceLength rest)
+
+chadTraceLength-correct
+  : ∀ {S X Y n} (trace : CHADTrace S X Y n)
+  → chadTraceLength trace ≡ n
+chadTraceLength-correct chadEmpty = refl
+chadTraceLength-correct (chadCons state input output rest)
+  rewrite chadTraceLength-correct rest = refl
+{-# COMPILE AGDA2HS chadTraceLength #-}
+{-# COMPILE AGDA2HS chadTraceLength-correct #-}
+
+------------------------------------------------------------------------
+-- The composed network is an iterative CHAD cell
+------------------------------------------------------------------------
+
+record NetworkCellInput : Set where
+  constructor mkNetworkCellInput
+  field
+    networkCellObservation : Vec32
+    networkCellAction : Int32
+
+open NetworkCellInput public
+{-# COMPILE AGDA2HS NetworkCellInput #-}
+
+record NetworkStepCotangent : Set where
+  constructor mkNetworkStepCotangent
+  field
+    networkStepActorAdvantage : Int32
+    networkStepQuantileDirection : Vec32
+
+open NetworkStepCotangent public
+{-# COMPILE AGDA2HS NetworkStepCotangent #-}
+
+networkCHADCell
+  : IterativeCHADCell NetworkParams NetworkState NetworkCellInput
+      NetworkStep Vec32 Vec32 NetworkStepCotangent Vec32
+networkCHADCell = mkIterativeCHADCell forward backward
+  (λ p → qZeroVec32 (qVecLength (networkParameterVector p)))
+  qAddVec32
+  where
+    forward : NetworkParams → NetworkState → NetworkCellInput
+            → CHADForwardStep NetworkState NetworkStep
+    forward p state sample =
+      let step = networkStepForAction p state
+            (networkCellObservation sample) (networkCellAction sample)
+      in mkCHADForwardStep (networkNextState step) step
+
+    backward : NetworkParams → NetworkState → NetworkCellInput
+             → NetworkStep → Vec32 → NetworkStepCotangent
+             → CHADPullbackStep Vec32 Vec32 Vec32
+    backward p state sample step futureHidden cotangent =
+      let direction = networkStepVJP p state
+            (networkCellObservation sample) (networkCellAction sample)
+            (networkStepActorAdvantage cotangent)
+            (networkStepQuantileDirection cotangent)
+            futureHidden
+      in mkCHADPullbackStep
+           (networkParameterDirection direction)
+           (networkPreviousHiddenDirection direction)
+           (networkObservationDirection direction)
+{-# COMPILE AGDA2HS networkCHADCell #-}
+
+record NetworkSequencePullback (n : Nat) : Set where
+  constructor mkNetworkSequencePullback
+  field
+    networkSequenceFinalState : NetworkState
+    networkSequenceOutputs : Vec NetworkStep n
+    networkSequenceParameterDirection : Vec32
+    networkSequenceInitialHiddenDirection : Vec32
+    networkSequenceObservationDirections : Vec Vec32 n
+
+open NetworkSequencePullback public
+{-# COMPILE AGDA2HS NetworkSequencePullback #-}
+
+networkSequenceVJP
+  : ∀ {n}
+  → NetworkParams → NetworkState
+  → Vec NetworkCellInput n → Vec NetworkStepCotangent n
+  → Vec32 → NetworkSequencePullback n
+networkSequenceVJP p initial samples outputDirections finalHiddenDirection =
+  let forward = iterativeCHADForward networkCHADCell p initial samples
+      backward = iterativeCHADBackward networkCHADCell p
+        (chadTrace forward) outputDirections finalHiddenDirection
+  in mkNetworkSequencePullback
+       (chadFinalState forward)
+       (chadOutputs forward)
+       (chadAccumulatedParameterDirection backward)
+       (chadInitialStateDirection backward)
+       (chadInputDirections backward)
+{-# COMPILE AGDA2HS networkSequenceVJP #-}
+
+------------------------------------------------------------------------
+-- Sequential UTD=2 training with one behavior action per observation
+--
+-- The sample action is supplied by the collector. Each observation causes
+-- two parameter updates, while recurrent state and actor-noise time advance
+-- exactly once. The smooth pullback feeds an ObGD-bounded gradient trace.
+------------------------------------------------------------------------
+
+record NetworkTrainConfig : Set where
+  constructor mkNetworkTrainConfig
+  field
+    networkTrainHuberKappa : Int32
+    networkTrainObgdAlpha : Int32
+    networkTrainObgdKappa : Int32
+    networkTrainTraceDecay : Int32
+
+open NetworkTrainConfig public
+{-# COMPILE AGDA2HS NetworkTrainConfig #-}
+
+record NetworkTrainSample : Set where
+  constructor mkNetworkTrainSample
+  field
+    networkTrainObservation : Vec32
+    networkTrainAction : Int32
+    networkTrainTargetQuantiles : Vec32
+
+open NetworkTrainSample public
+{-# COMPILE AGDA2HS NetworkTrainSample #-}
+
+record NetworkTrainState : Set where
+  constructor mkNetworkTrainState
+  field
+    networkTrainParams : NetworkParams
+    networkTrainRuntimeState : NetworkState
+    networkTrainObgdTrace : Vec32
+
+open NetworkTrainState public
+{-# COMPILE AGDA2HS NetworkTrainState #-}
+
+record NetworkTrainResult : Set where
+  constructor mkNetworkTrainResult
+  field
+    networkTrainNextState : NetworkTrainState
+    networkTrainLastStep : NetworkStep
+    networkTrainTDAdvantage : Int32
+    networkTrainEffectiveAlpha : Int32
+
+open NetworkTrainResult public
+{-# COMPILE AGDA2HS NetworkTrainResult #-}
+
+networkTrainInitialState : NetworkParams → NetworkState → NetworkTrainState
+networkTrainInitialState p runtime =
+  mkNetworkTrainState p runtime
+    (qZeroVec32 (qVecLength (networkParameterVector p)))
+{-# COMPILE AGDA2HS networkTrainInitialState #-}
+
+networkTrainPass
+  : NetworkTrainConfig → NetworkTrainState → NetworkTrainSample
+  → NetworkTrainResult
+networkTrainPass config state sample =
+  let p = networkTrainParams state
+      runtime = networkTrainRuntimeState state
+      decision = networkStepForAction p runtime
+        (networkTrainObservation sample) (networkTrainAction sample)
+      distribution = networkSelectedActionDistribution decision
+      quantileDirection = qQuantileHuberDirection
+        (networkTrainHuberKappa config)
+        (fqfMidpoints distribution)
+        (networkTrainTargetQuantiles sample)
+        (fqfValues distribution)
+      advantage = subInt32
+        (qVecMean (networkTrainTargetQuantiles sample))
+        (rawQ20 (networkSelectedActionValue decision))
+      pullback = networkStepVJP p runtime
+        (networkTrainObservation sample) (networkTrainAction sample)
+        advantage quantileDirection
+        (qZeroVec32 (gruHiddenDim (networkGRUParams p)))
+      nextTrace = qTraceAdvance (networkTrainTraceDecay config)
+        (networkTrainObgdTrace state) (networkParameterDirection pullback)
+      (updatedParameters, effectiveAlpha) = qObgdUpdate
+        (networkTrainObgdAlpha config)
+        (networkTrainObgdKappa config)
+        int32OneQ20
+        (networkParameterVector p)
+        nextTrace
+      p' = networkWithParameterVector p updatedParameters
+      state' = mkNetworkTrainState p' (networkNextState decision) nextTrace
+  in mkNetworkTrainResult state' decision advantage effectiveAlpha
+{-# COMPILE AGDA2HS networkTrainPass #-}
+
+-- Re-evaluate the same transition under the first updated parameters, but
+-- retain the original recurrent/noise state so environment time advances once.
+networkTrainStepUTD2
+  : NetworkTrainConfig → NetworkTrainState → NetworkTrainSample
+  → NetworkTrainResult
+networkTrainStepUTD2 config state sample =
+  let first = networkTrainPass config state sample
+      firstState = networkTrainNextState first
+      secondInput = mkNetworkTrainState
+        (networkTrainParams firstState)
+        (networkTrainRuntimeState state)
+        (networkTrainObgdTrace firstState)
+  in networkTrainPass config secondInput sample
+{-# COMPILE AGDA2HS networkTrainStepUTD2 #-}
+
+networkTrainSequenceUTD2
+  : ∀ {n}
+  → NetworkTrainConfig → NetworkTrainState
+  → Vec NetworkTrainSample n → NetworkTrainState
+networkTrainSequenceUTD2 config state VNil = state
+networkTrainSequenceUTD2 config state (VCons sample samples) =
+  let result = networkTrainStepUTD2 config state sample
+  in networkTrainSequenceUTD2 config
+       (networkTrainNextState result) samples
+{-# COMPILE AGDA2HS networkTrainSequenceUTD2 #-}
