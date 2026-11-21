@@ -1299,6 +1299,28 @@ networkSarsa3Target r0 r1 r2 terminal0 terminal1 terminal2 bootstrap =
     (fqfValues (networkSelectedActionDistribution bootstrap))
 {-# COMPILE AGDA2HS networkSarsa3Target #-}
 
+record DistributionalTarget : Set where
+  constructor mkDistributionalTarget
+  field
+    distributionalTargetWidths : Vec32
+    distributionalTargetValues : Vec32
+
+open DistributionalTarget public
+{-# COMPILE AGDA2HS DistributionalTarget #-}
+
+-- A scalar n-step reward shift preserves the bootstrap quantile fractions.
+networkSarsa3DistributionalTarget
+  : Q20 → Q20 → Q20
+  → Int32 → Int32 → Int32
+  → NetworkStep → DistributionalTarget
+networkSarsa3DistributionalTarget r0 r1 r2 terminal0 terminal1 terminal2 bootstrap =
+  let bootstrapDistribution = networkSelectedActionDistribution bootstrap
+      targetValues = sarsa3Target r0 r1 r2 terminal0 terminal1 terminal2
+        (fqfValues bootstrapDistribution)
+  in mkDistributionalTarget
+       (fqfWidths bootstrapDistribution) targetValues
+{-# COMPILE AGDA2HS networkSarsa3DistributionalTarget #-}
+
 networkMunchausenReward : Q20 → NetworkStep → Q20
 networkMunchausenReward reward decision =
   munchausenReward reward
@@ -1840,6 +1862,7 @@ record NetworkTrainSample : Set where
   field
     networkTrainObservation : Vec32
     networkTrainAction : Int32
+    networkTrainTargetWidths : Vec32
     networkTrainTargetQuantiles : Vec32
 
 open NetworkTrainSample public
@@ -1862,7 +1885,8 @@ networkTrainStepCotangents config
   (VCons sample samples) (VCons decision decisions) =
   let distribution = networkSelectedActionDistribution decision
       advantage = subInt32
-        (qVecMean (networkTrainTargetQuantiles sample))
+        (fqfMeanQ20 (networkTrainTargetWidths sample)
+          (networkTrainTargetQuantiles sample))
         (rawQ20 (networkSelectedActionValue decision))
       quantileDirection = qQuantileHuberDirection
         (networkTrainHuberKappa config)
@@ -1944,7 +1968,8 @@ networkTrainPass config state sample =
         (networkTrainTargetQuantiles sample)
         (fqfValues distribution)
       advantage = subInt32
-        (qVecMean (networkTrainTargetQuantiles sample))
+        (fqfMeanQ20 (networkTrainTargetWidths sample)
+          (networkTrainTargetQuantiles sample))
         (rawQ20 (networkSelectedActionValue decision))
       cellInput = mkNetworkCellInput
         (networkTrainObservation sample) (networkTrainAction sample)
