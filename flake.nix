@@ -292,7 +292,7 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
-              pkgs.luajitPackages.luarocks
+              pkgs.luajitPackages.luarocks-nix
               pkgs.stdenv.cc
               pkgs.gnumake
               (optimizedGhc system)

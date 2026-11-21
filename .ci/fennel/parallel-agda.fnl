@@ -1,4 +1,5 @@
-(local lanes (require :lanes))
+(local lanes-module (require :lanes))
+(local lanes ((. lanes-module :configure)))
 (local fun (require :fun))
 
 (local shell-quote (fn [value]
@@ -58,7 +59,7 @@
 (local launch
   (lanes.gen "*" (fn [command]
     (local status (os.execute command))
-    status)))
+    (or status -1))))
 (local tasks [])
 (local jobs [])
 (each [entry commands]
