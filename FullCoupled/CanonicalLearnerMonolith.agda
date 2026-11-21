@@ -457,6 +457,27 @@ int32GreaterThanOne x = x > 1
 
 int32Decrement :: Int32 -> Int32
 int32Decrement x = max 0 (x - 1)
+
+-- Agda postulates below are backed by these Haskell-side implementations.
+qLinearRowsQ20 = qLinearRowsRaw
+qLinearRowsI8Q20 = qLinearRowsInt8Raw
+qShiftedGateVec = qShiftedGateVecRaw
+qSoftsignVec = qSoftsignVecRaw
+qQuantmoid4Vec = qQuantmoid4VecRaw
+qConvexMix = qConvexMixRaw
+qMadLayerNorm = qMadLayerNormRaw
+q4Softmax = q4SoftmaxRaw
+qPrefixMidpoints = qPrefixMidpointsRaw
+qSlice32 = qSlice32Raw
+qVecLength = qVecLengthRaw
+qNormalNoiseVec = qNormalNoiseVecRaw
+qNoiseDuration = qNoiseDurationRaw
+qWord64Next = pcgAdvanceRaw
+qFactorizedNoisyLinear = qFactorizedNoisyLinearRaw
+qGumbelMaxSelect = qGumbelMaxSelectRaw
+qMunchausenReward = qMunchausenRewardRaw
+qSarsa3Target = qSarsa3TargetRaw
+qAddL2Gradient = qAddL2GradientRaw
 #-}
 
 postulate
@@ -722,7 +743,7 @@ actorNoiseInit seed inputDim actionCount =
 actorNoiseAdvance : Int32 → Int32 → ActorNoiseState → ActorNoiseState
 actorNoiseAdvance inputDim actionCount n =
   if int32GreaterThanOne (actorNoiseRemaining n)
-  then mkActorNoiseState (actorNoiseSeed n)
+  then mkActorNoiseState (qWord64Next (actorNoiseSeed n))
          (int32Decrement (actorNoiseRemaining n))
          (actorInputFactors n) (actorOutputFactors n)
   else actorNoiseInit (actorNoiseSeed n) inputDim actionCount
