@@ -1244,6 +1244,25 @@ networkStep p state observation =
   in mkNetworkStep nextState features probabilities action distribution actionValue
 {-# COMPILE AGDA2HS networkStep #-}
 
+-- Evaluation for an externally supplied behavior action. The recurrent
+-- transition and actor-noise clock advance once, independent of action source.
+networkStepForAction : NetworkParams → NetworkState → Vec32 → Int32 → NetworkStep
+networkStepForAction p state observation action =
+  let gru = networkGRUParams p
+      critic = networkFQFParams p
+      actor = networkActorParams p
+      hidden' = gruStep gru observation (networkHiddenState state)
+      features = qAppend32 observation hidden'
+      actorNoise = networkActorNoiseState state
+      probabilities = actorProbabilities actor actorNoise features
+      distribution = fqfForward critic features action
+      actionValue = fqfActionMean distribution
+      nextNoise = actorNoiseAdvance
+        (actorFeatureDim actor) (actorActionCount actor) actorNoise
+      nextState = mkNetworkState hidden' nextNoise
+  in mkNetworkStep nextState features probabilities action distribution actionValue
+{-# COMPILE AGDA2HS networkStepForAction #-}
+
 -- The bootstrap distribution must come from the behavior action sampled at
 -- step three. This deliberately exposes no max-Q or greedy-backup operation.
 networkSarsa3Target
