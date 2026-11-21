@@ -44,7 +44,8 @@
     :log (.. temp-root "/theorem.log")}])
 
 (local commands
-  (fun.map
+  (fun.totable
+   (fun.map
     (fn [entry]
       {:name entry.name
        :log entry.log
@@ -54,7 +55,7 @@
              " --local-interfaces --trace-imports=0 -i . "
              (shell-quote entry.module)
              " > " (shell-quote entry.log) " 2>&1")})
-    (ipairs entries)))
+    (ipairs entries))))
 
 (local launch
   (lanes.gen "*" (fn [command]
