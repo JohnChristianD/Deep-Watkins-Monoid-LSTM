@@ -25,6 +25,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 
 open import Agda.Primitive using (Level; _⊔_)
 open import Agda.Builtin.Equality using (_≡_; refl)
+open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Haskell.Prim using (⊥)
 open import Haskell.Prim.Tuple using (_×_; _,_)
 
@@ -80,9 +81,9 @@ data _⊎_ {i j : Level} (A : Set i) (B : Set j) : Set (i ⊔ j) where
 -- Erased-length vectors
 ------------------------------------------------------------------------
 
-data Vec (A : Set) : (@0 n : Agda.Builtin.Nat.Nat) → Set where
-  VNil  : Vec A 0
-  VCons : ∀ {@0 n} → A → Vec A n → Vec A (Agda.Builtin.Nat.suc n)
+data Vec (A : Set) : (@0 n : Nat) → Set where
+  VNil  : Vec A zero
+  VCons : ∀ {@0 n} → A → Vec A n → Vec A (suc n)
 
 {-# COMPILE AGDA2HS Vec #-}
 
@@ -127,11 +128,11 @@ roundDivEven n d =
        GT -> q + step
        EQ -> if even q then q else q + step
 
-zeroInt32 :: Int32
-zeroInt32 = 0
+int32Zero :: Int32
+int32Zero = 0
 
-oneQ20Int32 :: Int32
-oneQ20Int32 = 1048576
+int32OneQ20 :: Int32
+int32OneQ20 = 1048576
 
 addInt32 :: Int32 -> Int32 -> Int32
 addInt32 x y = satInt32 (fromIntegral x + fromIntegral y)
@@ -148,8 +149,6 @@ negInt32 x = satInt32 (negate (fromIntegral x))
 
 absInt32 :: Int32 -> Int32
 absInt32 x = satInt32 (abs (fromIntegral x))
-
-data Div32Result = Div32ByZero | Div32Quotient Int32
 
 divQ20Int32 :: Int32 -> Int32 -> Div32Result
 divQ20Int32 _ 0 = Div32ByZero
