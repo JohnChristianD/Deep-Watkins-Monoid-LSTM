@@ -469,9 +469,10 @@ qSarsa3TargetRaw reward0 reward1 reward2 terminal0 terminal1 terminal2 bootstrap
   in U.map (\q -> satInt32 (base + fromIntegral (qMulRaw boot q))) bootstrap
 
 qAddL2GradientRaw :: Vec32 -> Vec32 -> Vec32
+-- Input is an update direction, so L2 decay points toward zero.
 qAddL2GradientRaw gradient weights =
   U.zipWith (\g w ->
-    satInt32 (fromIntegral g + fromIntegral (qMulRaw 16 w)))
+    satInt32 (fromIntegral g - fromIntegral (qMulRaw 16 w)))
     gradient weights
 
 qAddVec32Raw :: Vec32 -> Vec32 -> Vec32
@@ -754,11 +755,16 @@ qVecMeanRaw xs
 
 qObgdEffectiveStepRaw :: Int32 -> Int32 -> Int32 -> Vec32 -> Int32
 qObgdEffectiveStepRaw alpha kappa delta trace =
-  let l1 = satInt32 (U.foldl' (\acc x -> acc + abs (fromIntegral x)) (0 :: Int64) trace)
-      deltaBar = max (fromIntegral qOneRaw) (abs (fromIntegral delta))
-      magnitude = qMulRaw (qMulRaw (max 1 kappa) (satInt32 deltaBar)) l1
-      safeStep = if l1 == 0 then max 0 alpha else qDivRaw (fromIntegral qOneRaw) magnitude
-  in max 0 (min alpha safeStep)
+  let l1 = U.foldl' (\acc x -> acc + abs (fromIntegral x)) (0 :: Int64) trace
+      deltaBar = max qOneRaw (abs (fromIntegral delta))
+      inverse x = satInt32 (quot (qOneRaw * qOneRaw) (max 1 x))
+      multiplyDown x y =
+        satInt32 (quot (fromIntegral x * fromIntegral y) qOneRaw)
+      inverseKappa = inverse (fromIntegral (max 1 kappa))
+      inverseDelta = inverse deltaBar
+      inverseTrace = inverse l1
+      safeStep = multiplyDown (multiplyDown inverseKappa inverseDelta) inverseTrace
+  in if l1 == 0 then max 0 alpha else max 0 (min alpha safeStep)
 
 qObgdUpdateRaw :: Int32 -> Int32 -> Int32 -> Vec32 -> Vec32 -> (Vec32, Int32)
 qObgdUpdateRaw alpha kappa delta weights trace =
@@ -1857,6 +1863,7 @@ record NetworkTrainResult : Set where
     networkTrainNextState : NetworkTrainState
     networkTrainLastStep : NetworkStep
     networkTrainTDAdvantage : Int32
+    networkTrainQuantileHuberLoss : Int32
     networkTrainEffectiveAlpha : Int32
 
 open NetworkTrainResult public
@@ -1877,6 +1884,11 @@ networkTrainPass config state sample =
       decision = networkStepForAction p runtime
         (networkTrainObservation sample) (networkTrainAction sample)
       distribution = networkSelectedActionDistribution decision
+      quantileLoss = qQuantileHuberLoss
+        (networkTrainHuberKappa config)
+        (fqfMidpoints distribution)
+        (networkTrainTargetQuantiles sample)
+        (fqfValues distribution)
       quantileDirection = qQuantileHuberDirection
         (networkTrainHuberKappa config)
         (fqfMidpoints distribution)
@@ -1889,8 +1901,10 @@ networkTrainPass config state sample =
         (networkTrainObservation sample) (networkTrainAction sample)
         advantage quantileDirection
         (qZeroVec32 (gruHiddenDim (networkGRUParams p)))
+      regularizedDirection = l2Gradient
+        (networkParameterDirection pullback) (networkParameterVector p)
       nextTrace = qTraceAdvance (networkTrainTraceDecay config)
-        (networkTrainObgdTrace state) (networkParameterDirection pullback)
+        (networkTrainObgdTrace state) regularizedDirection
       (updatedParameters, effectiveAlpha) = qObgdUpdate
         (networkTrainObgdAlpha config)
         (networkTrainObgdKappa config)
@@ -1899,7 +1913,7 @@ networkTrainPass config state sample =
         nextTrace
       p' = networkWithParameterVector p updatedParameters
       state' = mkNetworkTrainState p' (networkNextState decision) nextTrace
-  in mkNetworkTrainResult state' decision advantage effectiveAlpha
+  in mkNetworkTrainResult state' decision advantage quantileLoss effectiveAlpha
 {-# COMPILE AGDA2HS networkTrainPass #-}
 
 -- Re-evaluate the same transition under the first updated parameters, but
