@@ -702,7 +702,7 @@ qQuantileHuberLossRaw :: Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32 -> Int32
 qQuantileHuberLossRaw kappa midpoints targetWidths targets predictions
   | predictedN == 0 || targetN == 0 = 0
   | otherwise =
-      let k = max 1 (fromIntegral kappa) :: Int64
+      let k = max (fromIntegral qOneRaw) (fromIntegral kappa) :: Int64
           huberOverKappa delta =
             let d = abs (fromIntegral delta) :: Int64
                 huber = if d <= k
@@ -733,7 +733,7 @@ qQuantileHuberDirectionRaw
 qQuantileHuberDirectionRaw kappa midpoints targetWidths targets predictions =
   let predictedN = min (U.length midpoints) (U.length predictions)
       targetN = min (U.length targetWidths) (U.length targets)
-      k = max 1 kappa
+      k = max (fromIntegral qOneRaw) kappa
   in U.generate predictedN (\j ->
        let tau = U.unsafeIndex midpoints j
            total = U.ifoldl' (\acc i target ->
@@ -746,7 +746,7 @@ qQuantileHuberDirectionRaw kappa midpoints targetWidths targets predictions =
                  weightedDirection = qMulRaw targetWidth pointDirection
              in acc + fromIntegral weightedDirection)
              (0 :: Int64) targets
-       in satInt32 total)
+       in satInt32 (roundDivEven total (fromIntegral (max 1 predictedN))))
 
 qFQFBoundaryGradientRaw :: Vec32 -> Vec32 -> Vec32 -> Vec32
 qFQFBoundaryGradientRaw widths midpoints values =
