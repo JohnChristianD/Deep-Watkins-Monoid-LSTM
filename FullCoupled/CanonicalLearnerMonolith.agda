@@ -527,7 +527,7 @@ qLinearRowsVJPRaw rows cols weights bias input outputCotangent =
 
 qFactorizedNoisyLinearVJPRaw
   :: Int32 -> Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
-  -> Vec32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+  -> Vec32 -> Vec32 -> Vec32 -> Vec32
   -> Vec32
 qFactorizedNoisyLinearVJPRaw rows cols muWeights sigmaWeights muBias sigmaBias
     input inputNoise outputNoise outputCotangent =
@@ -703,7 +703,7 @@ qQuantileHuberDirectionRaw kappa midpoints targets predictions =
                    else tau
              in acc + fromIntegral (qMulRaw weight (qDivRaw clipped k)))
              (0 :: Int64) targets
-       in negInt32 (satInt32 (roundDivEven total (fromIntegral (max 1 n)))))
+       in satInt32 (roundDivEven total (fromIntegral (max 1 n))))
 
 qFQFBoundaryGradientRaw :: Vec32 -> Vec32 -> Vec32 -> Vec32
 qFQFBoundaryGradientRaw widths midpoints values =
@@ -944,6 +944,27 @@ postulate
   qLinearRowsVJP : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
   qFactorizedNoisyLinearVJP
     : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32
+    → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+  qSoftsignVJP : Vec32 → Vec32 → Vec32
+  qShiftedGateVJP : Vec32 → Vec32 → Vec32
+  qConvexMixVJP : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+  qMadLayerNormVJP : Vec32 → Vec32 → Vec32
+  q4SoftmaxVJP : Int32 → Vec32 → Vec32 → Vec32 → Vec32
+  qQuantileHuberLoss : Int32 → Vec32 → Vec32 → Vec32 → Int32
+  qQuantileHuberDirection : Int32 → Vec32 → Vec32 → Vec32 → Vec32
+  qFQFFractionLogitDirection : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+  qVecMean : Vec32 → Int32
+  qObgdEffectiveStep : Int32 → Int32 → Int32 → Vec32 → Int32
+  qObgdUpdate : Int32 → Int32 → Int32 → Vec32 → Vec32 → Vec32 × Int32
+  qAddVec32 : Vec32 → Vec32 → Vec32
+  qNegVec32 : Vec32 → Vec32
+  qScaleVec32 : Int32 → Vec32 → Vec32
+  qTraceAdvance : Int32 → Vec32 → Vec32 → Vec32
+  qLogProbabilityCotangent : Int32 → Vec32 → Vec32
+  qEmbedActionCotangent : Int32 → Int32 → Int32 → Vec32 → Vec32
+  qLinearRowsVJP : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+  qFactorizedNoisyLinearVJP
+    : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32
     → Vec32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
   qSoftsignVJP : Vec32 → Vec32 → Vec32
   qShiftedGateVJP : Vec32 → Vec32 → Vec32
@@ -982,6 +1003,25 @@ postulate
 {-# COMPILE AGDA2HS qMunchausenReward #-}
 {-# COMPILE AGDA2HS qSarsa3Target #-}
 {-# COMPILE AGDA2HS qAddL2Gradient #-}
+{-# COMPILE AGDA2HS qAddVec32 #-}
+{-# COMPILE AGDA2HS qNegVec32 #-}
+{-# COMPILE AGDA2HS qScaleVec32 #-}
+{-# COMPILE AGDA2HS qTraceAdvance #-}
+{-# COMPILE AGDA2HS qLogProbabilityCotangent #-}
+{-# COMPILE AGDA2HS qEmbedActionCotangent #-}
+{-# COMPILE AGDA2HS qLinearRowsVJP #-}
+{-# COMPILE AGDA2HS qFactorizedNoisyLinearVJP #-}
+{-# COMPILE AGDA2HS qSoftsignVJP #-}
+{-# COMPILE AGDA2HS qShiftedGateVJP #-}
+{-# COMPILE AGDA2HS qConvexMixVJP #-}
+{-# COMPILE AGDA2HS qMadLayerNormVJP #-}
+{-# COMPILE AGDA2HS q4SoftmaxVJP #-}
+{-# COMPILE AGDA2HS qQuantileHuberLoss #-}
+{-# COMPILE AGDA2HS qQuantileHuberDirection #-}
+{-# COMPILE AGDA2HS qFQFFractionLogitDirection #-}
+{-# COMPILE AGDA2HS qVecMean #-}
+{-# COMPILE AGDA2HS qObgdEffectiveStep #-}
+{-# COMPILE AGDA2HS qObgdUpdate #-}
 {-# COMPILE AGDA2HS qAddVec32 #-}
 {-# COMPILE AGDA2HS qNegVec32 #-}
 {-# COMPILE AGDA2HS qScaleVec32 #-}
