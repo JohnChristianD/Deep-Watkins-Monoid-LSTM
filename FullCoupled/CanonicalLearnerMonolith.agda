@@ -471,6 +471,299 @@ qAddL2GradientRaw gradient weights =
     satInt32 (fromIntegral g + fromIntegral (qMulRaw 16 w)))
     gradient weights
 
+qAddVec32Raw :: Vec32 -> Vec32 -> Vec32
+qAddVec32Raw = U.zipWith addInt32
+
+qNegVec32Raw :: Vec32 -> Vec32
+qNegVec32Raw = U.map negInt32
+
+qScaleVec32Raw :: Int32 -> Vec32 -> Vec32
+qScaleVec32Raw scalar = U.map (qMulRaw scalar)
+
+qTraceAdvanceRaw :: Int32 -> Vec32 -> Vec32 -> Vec32
+qTraceAdvanceRaw decay previous gradient =
+  U.generate (max (U.length previous) (U.length gradient)) (\i ->
+    let old = if i < U.length previous then U.unsafeIndex previous i else 0
+        new = if i < U.length gradient then U.unsafeIndex gradient i else 0
+    in addInt32 (qMulRaw decay old) new)
+
+qLogProbabilityCotangentRaw :: Int32 -> Vec32 -> Vec32
+qLogProbabilityCotangentRaw action probabilities =
+  U.imap (\i p ->
+    if i == max 0 (fromIntegral action)
+      then qDivRaw (fromIntegral qOneRaw) p
+      else 0) probabilities
+
+qEmbedActionCotangentRaw :: Int32 -> Int32 -> Int32 -> Vec32 -> Vec32
+qEmbedActionCotangentRaw action quantiles actions cotangent =
+  let start = max 0 (fromIntegral action) * max 0 (fromIntegral quantiles)
+      total = max 0 (fromIntegral actions) * max 0 (fromIntegral quantiles)
+  in U.generate total (\i ->
+       if i >= start && i < start + U.length cotangent
+         then U.unsafeIndex cotangent (i - start)
+         else 0)
+
+qLinearRowsVJPRaw
+  :: Int32 -> Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+qLinearRowsVJPRaw rows cols weights bias input outputCotangent =
+  let outN = max 0 (fromIntegral rows)
+      inN = max 0 (fromIntegral cols)
+      gradWeights = U.generate (outN * inN) (\ix ->
+        let row = if inN == 0 then 0 else quot ix inN
+            col = if inN == 0 then 0 else rem ix inN
+            dy = if row < U.length outputCotangent then U.unsafeIndex outputCotangent row else 0
+            x = if col < U.length input then U.unsafeIndex input col else 0
+        in qMulRaw dy x)
+      gradBias = U.generate outN (\row ->
+        if row < U.length outputCotangent then U.unsafeIndex outputCotangent row else 0)
+      gradInput = U.generate inN (\col ->
+        let total = U.ifoldl' (\acc row dy ->
+              let ix = row * inN + col
+                  w = if ix < U.length weights then U.unsafeIndex weights ix else 0
+              in acc + fromIntegral (qMulRaw w dy))
+              (0 :: Int64) outputCotangent
+        in satInt32 total)
+  in qAppend32Raw gradWeights (qAppend32Raw gradBias gradInput)
+
+qFactorizedNoisyLinearVJPRaw
+  :: Int32 -> Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+  -> Vec32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+  -> Vec32
+qFactorizedNoisyLinearVJPRaw rows cols muWeights sigmaWeights muBias sigmaBias
+    input inputNoise outputNoise outputCotangent =
+  let outN = max 0 (fromIntegral rows)
+      inN = max 0 (fromIntegral cols)
+      gradMuWeights = U.generate (outN * inN) (\ix ->
+        let row = if inN == 0 then 0 else quot ix inN
+            col = if inN == 0 then 0 else rem ix inN
+            dy = if row < U.length outputCotangent then U.unsafeIndex outputCotangent row else 0
+            x = if col < U.length input then U.unsafeIndex input col else 0
+        in qMulRaw dy x)
+      gradSigmaWeights = U.generate (outN * inN) (\ix ->
+        let row = if inN == 0 then 0 else quot ix inN
+            col = if inN == 0 then 0 else rem ix inN
+            dy = if row < U.length outputCotangent then U.unsafeIndex outputCotangent row else 0
+            x = if col < U.length input then U.unsafeIndex input col else 0
+            ei = if col < U.length inputNoise then qFactorRaw (U.unsafeIndex inputNoise col) else 0
+            eo = if row < U.length outputNoise then qFactorRaw (U.unsafeIndex outputNoise row) else 0
+        in qMulRaw (qMulRaw dy (qMulRaw ei eo)) x)
+      gradMuBias = U.generate outN (\row ->
+        if row < U.length outputCotangent then U.unsafeIndex outputCotangent row else 0)
+      gradSigmaBias = U.generate outN (\row ->
+        let dy = if row < U.length outputCotangent then U.unsafeIndex outputCotangent row else 0
+            eo = if row < U.length outputNoise then qFactorRaw (U.unsafeIndex outputNoise row) else 0
+        in qMulRaw dy eo)
+      gradInput = U.generate inN (\col ->
+        let total = U.ifoldl' (\acc row dy ->
+              let ix = row * inN + col
+                  mu = if ix < U.length muWeights then U.unsafeIndex muWeights ix else 0
+                  sigma = if ix < U.length sigmaWeights then U.unsafeIndex sigmaWeights ix else 0
+                  ei = if col < U.length inputNoise then qFactorRaw (U.unsafeIndex inputNoise col) else 0
+                  eo = if row < U.length outputNoise then qFactorRaw (U.unsafeIndex outputNoise row) else 0
+                  noisy = addInt32 mu (qMulRaw sigma (qMulRaw ei eo))
+              in acc + fromIntegral (qMulRaw noisy dy))
+              (0 :: Int64) outputCotangent
+        in satInt32 total)
+  in qAppend32Raw gradMuWeights
+       (qAppend32Raw gradSigmaWeights
+         (qAppend32Raw gradMuBias
+           (qAppend32Raw gradSigmaBias gradInput)))
+
+qSoftsignVJPRaw :: Vec32 -> Vec32 -> Vec32
+qSoftsignVJPRaw preactivation outputCotangent =
+  U.zipWith (\x dy ->
+    let denominator = satInt32 (qOneRaw + abs (fromIntegral x))
+        inverse = qDivRaw (fromIntegral qOneRaw) denominator
+        derivative = qMulRaw inverse inverse
+    in qMulRaw dy derivative)
+    preactivation outputCotangent
+
+qShiftedGateVJPRaw :: Vec32 -> Vec32 -> Vec32
+qShiftedGateVJPRaw preactivation outputCotangent =
+  U.zipWith (\x dy ->
+    let denominator = satInt32 (qOneRaw + 4 * abs (fromIntegral x))
+        inverse = qDivRaw (fromIntegral qOneRaw) denominator
+        derivative = qMulRaw 2097152 (qMulRaw inverse inverse)
+    in qMulRaw dy derivative)
+    preactivation outputCotangent
+
+qConvexMixVJPRaw :: Vec32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+qConvexMixVJPRaw gate previous candidate outputCotangent =
+  let n = minimum [U.length gate, U.length previous, U.length candidate, U.length outputCotangent]
+      gateCot = U.generate n (\i ->
+        let g = U.unsafeIndex gate i
+            old = U.unsafeIndex previous i
+            new = U.unsafeIndex candidate i
+            dy = U.unsafeIndex outputCotangent i
+        in qMulRaw dy (subInt32 old new))
+      previousCot = U.generate n (\i ->
+        qMulRaw (U.unsafeIndex outputCotangent i) (U.unsafeIndex gate i))
+      candidateCot = U.generate n (\i ->
+        let g = U.unsafeIndex gate i
+        in qMulRaw (U.unsafeIndex outputCotangent i) (subInt32 (fromIntegral qOneRaw) g))
+  in qAppend32Raw gateCot (qAppend32Raw previousCot candidateCot)
+
+qMadLayerNormVJPRaw :: Vec32 -> Vec32 -> Vec32
+qMadLayerNormVJPRaw values outputCotangent
+  | U.null values || U.null outputCotangent = U.replicate (U.length values) 0
+  | otherwise =
+      let n = fromIntegral (U.length values) :: Int64
+          sumX = U.foldl' (\acc x -> acc + fromIntegral x) 0 values
+          mean = satInt32 (roundDivEven sumX n)
+          centered = U.map (\x -> subInt32 x mean) values
+          madSum = U.foldl' (\acc x -> acc + abs (fromIntegral x)) 0 centered
+          mad = satInt32 (roundDivEven madSum n)
+          denominator = satInt32 (fromIntegral mad + 256)
+          dot = U.ifoldl' (\acc i c ->
+                   let dy = if i < U.length outputCotangent then U.unsafeIndex outputCotangent i else 0
+                   in acc + fromIntegral (qMulRaw dy c))
+                 (0 :: Int64) centered
+          averageDot = satInt32 (roundDivEven dot n)
+          correction = qDivRaw (qDivRaw averageDot denominator) denominator
+          uncentered = U.imap (\i c ->
+            let dy = if i < U.length outputCotangent then U.unsafeIndex outputCotangent i else 0
+                direct = qDivRaw dy denominator
+                signedCorrection
+                  | c > 0 = correction
+                  | c < 0 = negInt32 correction
+                  | otherwise = 0
+            in subInt32 direct signedCorrection) centered
+          meanCot = satInt32 (roundDivEven
+            (U.foldl' (\acc x -> acc + fromIntegral x) 0 uncentered) n)
+      in U.map (\x -> subInt32 x meanCot) uncentered
+
+qQuantmoid4DerivativeRaw :: Int32 -> Int32
+qQuantmoid4DerivativeRaw x
+  | abs (fromIntegral x) >= qOneRaw = 0
+  | otherwise = qMulRaw 1040384 (subInt32 (fromIntegral qOneRaw) (absInt32 x))
+
+q4SoftmaxVJPRaw :: Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+q4SoftmaxVJPRaw temperature logits probabilities probabilityCotangent
+  | U.null logits = U.empty
+  | otherwise =
+      let t = max 1 temperature
+          maximumLogit = U.maximum logits
+          scaled = U.map (\z ->
+            qDivRaw (subInt32 z maximumLogit) t) logits
+          unnormalised = U.map qQuantmoid4Raw scaled
+          total = U.foldl' (\acc q -> acc + fromIntegral q) (0 :: Int64) unnormalised
+          expected = U.ifoldl' (\acc i p ->
+            let dp = if i < U.length probabilityCotangent then U.unsafeIndex probabilityCotangent i else 0
+            in acc + fromIntegral (qMulRaw p dp))
+            (0 :: Int64) probabilities
+          centeredCot = U.imap (\i dp ->
+            let expectedQ20 = satInt32 expected
+                q = U.unsafeIndex unnormalised i
+                qPrime = qQuantmoid4DerivativeRaw (U.unsafeIndex scaled i)
+                normalizedCot = qDivRaw (subInt32 dp expectedQ20) (satInt32 total)
+            in qDivRaw (qMulRaw qPrime normalizedCot) t)
+            probabilities
+          maxIndex = U.maxIndex logits
+          correction = U.foldl' (\acc x -> acc + fromIntegral x) (0 :: Int64) centeredCot
+      in U.imap (\i x ->
+           if i == maxIndex then subInt32 x (satInt32 correction) else x)
+           centeredCot
+
+qQuantileHuberLossRaw :: Int32 -> Vec32 -> Vec32 -> Vec32 -> Int32
+qQuantileHuberLossRaw kappa midpoints targets predictions
+  | n == 0 = 0
+  | otherwise =
+      let k = max 1 (fromIntegral kappa) :: Int64
+          huberOverKappa delta =
+            let d = abs (fromIntegral delta) :: Int64
+                huber = if d <= k
+                  then roundDivEven (d * d) (2 * qOneRaw)
+                  else roundDivEven (k * (d - roundDivEven k 2)) qOneRaw
+            in satInt32 (roundDivEven (huber * qOneRaw) k)
+          total = U.ifoldl' (\acc j prediction ->
+            let tau = fromIntegral (U.unsafeIndex midpoints j)
+                inner = U.ifoldl' (\subtotal i target ->
+                  let delta = subInt32 target prediction
+                      weight = if delta < 0 then subInt32 (fromIntegral qOneRaw) (satInt32 tau) else satInt32 tau
+                      term = qMulRaw weight (huberOverKappa delta)
+                  in subtotal + fromIntegral term)
+                  (0 :: Int64) targets
+            in acc + inner)
+            (0 :: Int64) predictions
+      in satInt32 (roundDivEven total (fromIntegral n))
+  where
+    n = minimum [U.length midpoints, U.length targets, U.length predictions]
+
+qQuantileHuberDirectionRaw :: Int32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+qQuantileHuberDirectionRaw kappa midpoints targets predictions =
+  let n = minimum [U.length midpoints, U.length targets, U.length predictions]
+      k = max 1 kappa
+  in U.generate n (\j ->
+       let tau = U.unsafeIndex midpoints j
+           total = U.ifoldl' (\acc _ target ->
+             let delta = subInt32 target (U.unsafeIndex predictions j)
+                 clipped = max (negInt32 k) (min k delta)
+                 weight = if delta < 0
+                   then subInt32 (fromIntegral qOneRaw) tau
+                   else tau
+             in acc + fromIntegral (qMulRaw weight (qDivRaw clipped k)))
+             (0 :: Int64) targets
+       in negInt32 (satInt32 (roundDivEven total (fromIntegral (max 1 n)))))
+
+qFQFBoundaryGradientRaw :: Vec32 -> Vec32 -> Vec32 -> Vec32
+qFQFBoundaryGradientRaw widths midpoints values =
+  let n = minimum [U.length widths, U.length midpoints, U.length values]
+      boundary i = satInt32 (U.ifoldl' (\acc j width ->
+                    if j < i then acc + fromIntegral width else acc)
+                    (0 :: Int64) widths)
+  in U.generate n (\i ->
+       if i == 0 || i + 1 >= n
+         then 0
+         else
+           let leftMid = U.unsafeIndex midpoints (i - 1)
+               rightMid = U.unsafeIndex midpoints i
+               leftValue = U.unsafeIndex values (i - 1)
+               rightValue = U.unsafeIndex values i
+               gap = subInt32 rightMid leftMid
+               position = qDivRaw (subInt32 (boundary i) leftMid) gap
+               atBoundary = addInt32 leftValue
+                 (qMulRaw position (subInt32 rightValue leftValue))
+           in subInt32 (qMulRaw 2097152 atBoundary)
+                (addInt32 leftValue rightValue))
+
+qFQFWidthCotangentRaw :: Vec32 -> Vec32
+qFQFWidthCotangentRaw boundaryCotangent =
+  U.generate (U.length boundaryCotangent) (\j ->
+    let total = U.ifoldl' (\acc i x ->
+          if i > j then acc + fromIntegral x else acc)
+          (0 :: Int64) boundaryCotangent
+    in satInt32 total)
+
+qFQFFractionLogitDirectionRaw
+  :: Vec32 -> Vec32 -> Vec32 -> Vec32 -> Vec32
+qFQFFractionLogitDirectionRaw logits widths midpoints values =
+  let boundaryCotangent = qFQFBoundaryGradientRaw widths midpoints values
+      widthCotangent = qFQFWidthCotangentRaw boundaryCotangent
+  in qNegVec32Raw (q4SoftmaxVJPRaw 1048576 logits widths widthCotangent)
+
+qVecMeanRaw :: Vec32 -> Int32
+qVecMeanRaw xs
+  | U.null xs = 0
+  | otherwise =
+      satInt32 (roundDivEven
+        (U.foldl' (\acc x -> acc + fromIntegral x) 0 xs)
+        (fromIntegral (U.length xs)))
+
+qObgdEffectiveStepRaw :: Int32 -> Int32 -> Int32 -> Vec32 -> Int32
+qObgdEffectiveStepRaw alpha kappa delta trace =
+  let l1 = satInt32 (U.foldl' (\acc x -> acc + abs (fromIntegral x)) (0 :: Int64) trace)
+      deltaBar = max (fromIntegral qOneRaw) (abs (fromIntegral delta))
+      magnitude = qMulRaw (qMulRaw (max 1 kappa) (satInt32 deltaBar)) l1
+      safeStep = qDivRaw (fromIntegral qOneRaw) magnitude
+  in max 0 (min alpha safeStep)
+
+qObgdUpdateRaw :: Int32 -> Int32 -> Int32 -> Vec32 -> Vec32 -> (Vec32, Int32)
+qObgdUpdateRaw alpha kappa delta weights trace =
+  let effectiveAlpha = qObgdEffectiveStepRaw alpha kappa delta trace
+      scaledError = qMulRaw effectiveAlpha delta
+      updated = U.zipWith (\w z -> addInt32 w (qMulRaw scaledError z)) weights trace
+  in (updated, effectiveAlpha)
+
 fqfMeanQ20 :: Vec32 -> Vec32 -> Int32
 fqfMeanQ20 widths values
   | U.null values = 0
@@ -522,6 +815,7 @@ qAddL2Gradient = qAddL2GradientRaw
 -- Stockfish-style inference-weight path; Q12.20 masters use Int32.
 postulate
   Int32 Int64 Word32 Word64 Int8 : Set
+  int32Sixteen : Int32
   Vec32 Vec64 Vec8 : Set
   int32Zero : Int32
   int32OneQ20 : Int32
@@ -538,6 +832,7 @@ postulate
 {-# COMPILE AGDA2HS mulQ20Int32 #-}
 {-# COMPILE AGDA2HS negInt32 #-}
 {-# COMPILE AGDA2HS absInt32 #-}
+{-# COMPILE AGDA2HS int32Sixteen #-}
 
 {-# COMPILE AGDA2HS Int32 existing #-}
 {-# COMPILE AGDA2HS Int64 existing #-}
@@ -640,6 +935,27 @@ postulate
   qMunchausenReward : Int32 → Int32 → Int32
   qSarsa3Target : Int32 → Int32 → Int32 → Int32 → Int32 → Int32 → Vec32 → Vec32
   qAddL2Gradient : Vec32 → Vec32 → Vec32
+  qAddVec32 : Vec32 → Vec32 → Vec32
+  qNegVec32 : Vec32 → Vec32
+  qScaleVec32 : Int32 → Vec32 → Vec32
+  qTraceAdvance : Int32 → Vec32 → Vec32 → Vec32
+  qLogProbabilityCotangent : Int32 → Vec32 → Vec32
+  qEmbedActionCotangent : Int32 → Int32 → Int32 → Vec32 → Vec32
+  qLinearRowsVJP : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+  qFactorizedNoisyLinearVJP
+    : Int32 → Int32 → Vec32 → Vec32 → Vec32 → Vec32
+    → Vec32 → Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+  qSoftsignVJP : Vec32 → Vec32 → Vec32
+  qShiftedGateVJP : Vec32 → Vec32 → Vec32
+  qConvexMixVJP : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+  qMadLayerNormVJP : Vec32 → Vec32 → Vec32
+  q4SoftmaxVJP : Int32 → Vec32 → Vec32 → Vec32 → Vec32
+  qQuantileHuberLoss : Int32 → Vec32 → Vec32 → Vec32 → Int32
+  qQuantileHuberDirection : Int32 → Vec32 → Vec32 → Vec32 → Vec32
+  qFQFFractionLogitDirection : Vec32 → Vec32 → Vec32 → Vec32 → Vec32
+  qVecMean : Vec32 → Int32
+  qObgdEffectiveStep : Int32 → Int32 → Int32 → Vec32 → Int32
+  qObgdUpdate : Int32 → Int32 → Int32 → Vec32 → Vec32 → Vec32 × Int32
   fqfMeanQ20 : Vec32 → Vec32 → Int32
   qIndex32 : Vec32 → Int32 → Int32
   int32GreaterThanOne : Int32 → Bool
@@ -666,6 +982,25 @@ postulate
 {-# COMPILE AGDA2HS qMunchausenReward #-}
 {-# COMPILE AGDA2HS qSarsa3Target #-}
 {-# COMPILE AGDA2HS qAddL2Gradient #-}
+{-# COMPILE AGDA2HS qAddVec32 #-}
+{-# COMPILE AGDA2HS qNegVec32 #-}
+{-# COMPILE AGDA2HS qScaleVec32 #-}
+{-# COMPILE AGDA2HS qTraceAdvance #-}
+{-# COMPILE AGDA2HS qLogProbabilityCotangent #-}
+{-# COMPILE AGDA2HS qEmbedActionCotangent #-}
+{-# COMPILE AGDA2HS qLinearRowsVJP #-}
+{-# COMPILE AGDA2HS qFactorizedNoisyLinearVJP #-}
+{-# COMPILE AGDA2HS qSoftsignVJP #-}
+{-# COMPILE AGDA2HS qShiftedGateVJP #-}
+{-# COMPILE AGDA2HS qConvexMixVJP #-}
+{-# COMPILE AGDA2HS qMadLayerNormVJP #-}
+{-# COMPILE AGDA2HS q4SoftmaxVJP #-}
+{-# COMPILE AGDA2HS qQuantileHuberLoss #-}
+{-# COMPILE AGDA2HS qQuantileHuberDirection #-}
+{-# COMPILE AGDA2HS qFQFFractionLogitDirection #-}
+{-# COMPILE AGDA2HS qVecMean #-}
+{-# COMPILE AGDA2HS qObgdEffectiveStep #-}
+{-# COMPILE AGDA2HS qObgdUpdate #-}
 {-# COMPILE AGDA2HS fqfMeanQ20 #-}
 {-# COMPILE AGDA2HS qIndex32 #-}
 {-# COMPILE AGDA2HS int32GreaterThanOne #-}
@@ -711,7 +1046,6 @@ record FQFParams : Set where
   field
     fqfFeatureDim : Int32
     fqfActionCount : Int32
-    fqfQuantileCount : Int32
     fqfFractionWeights : Vec32
     fqfFractionBias : Vec32
     fqfQuantileWeights : Vec32
@@ -732,7 +1066,7 @@ open FQFOutput public
 
 fqfForward : FQFParams → Vec32 → Int32 → FQFOutput
 fqfForward p features action =
-  let n = fqfQuantileCount p
+  let n = int32Sixteen
       logits = qLinearRowsQ20 n (fqfFeatureDim p)
         (fqfFractionWeights p) (fqfFractionBias p) features
       widths = q4Softmax 1048576 logits
