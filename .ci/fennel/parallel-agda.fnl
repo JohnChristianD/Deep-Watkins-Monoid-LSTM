@@ -71,7 +71,7 @@
 (each [task tasks]
   (table.insert statuses (task:join)))
 
-(local failed false)
+(var failed false)
 (each [index entry (ipairs jobs)]
   (local status (. statuses index))
   (os.execute (.. "cat " (shell-quote entry.log)))
