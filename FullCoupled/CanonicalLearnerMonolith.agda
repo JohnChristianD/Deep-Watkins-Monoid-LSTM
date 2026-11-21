@@ -1897,12 +1897,17 @@ networkTrainPass config state sample =
       advantage = subInt32
         (qVecMean (networkTrainTargetQuantiles sample))
         (rawQ20 (networkSelectedActionValue decision))
-      pullback = networkStepVJP p runtime
+      cellInput = mkNetworkCellInput
         (networkTrainObservation sample) (networkTrainAction sample)
-        advantage quantileDirection
+      outputCotangent = mkNetworkStepCotangent advantage quantileDirection
+      oneFrameTrace = chadCons runtime cellInput decision chadEmpty
+      oneFrameCotangent = VCons outputCotangent VNil
+      reversePass = iterativeCHADBackward networkCHADCell p
+        oneFrameTrace oneFrameCotangent
         (qZeroVec32 (gruHiddenDim (networkGRUParams p)))
       regularizedDirection = l2Gradient
-        (networkParameterDirection pullback) (networkParameterVector p)
+        (chadAccumulatedParameterDirection reversePass)
+        (networkParameterVector p)
       nextTrace = qTraceAdvance (networkTrainTraceDecay config)
         (networkTrainObgdTrace state) regularizedDirection
       (updatedParameters, effectiveAlpha) = qObgdUpdate
