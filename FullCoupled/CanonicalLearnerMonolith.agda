@@ -1760,52 +1760,88 @@ record CHADForwardResult (S X Y : Set) (@0 n : Nat) : Set where
 open CHADForwardResult public
 {-# COMPILE AGDA2HS CHADForwardResult #-}
 
+data CHADInputDirections (DX : Set) : Set where
+  chadNoInputDirections : CHADInputDirections DX
+  chadInputDirectionCons : DX → CHADInputDirections DX → CHADInputDirections DX
+
+{-# COMPILE AGDA2HS CHADInputDirections #-}
+
 record CHADBackwardResult (DP DS DX : Set) (@0 n : Nat) : Set where
   constructor mkCHADBackwardResult
   field
     chadAccumulatedParameterDirection : DP
     chadInitialStateDirection : DS
-    chadInputDirections : Vec DX n
+    chadInputDirections : CHADInputDirections DX
 
 open CHADBackwardResult public
 {-# COMPILE AGDA2HS CHADBackwardResult #-}
 
-iterativeCHADForward
-  : ∀ {P S X Y DP DS DY DX n}
+data CHADFramesRev (S X Y DY : Set) : Set where
+  chadFramesEmpty : CHADFramesRev S X Y DY
+  chadFramesCons
+    : S → X → Y → DY → CHADFramesRev S X Y DY
+    → CHADFramesRev S X Y DY
+
+{-# COMPILE AGDA2HS CHADFramesRev #-}
+
+-- One chronological traversal conses each frame onto the front, producing
+-- newest-to-oldest frames and their matching output cotangents.
+chadReverseFramesAcc
+  : ∀ {S X Y DY n}
+  → CHADTrace S X Y n → Vec DY n
+  → CHADFramesRev S X Y DY → CHADFramesRev S X Y DY
+chadReverseFramesAcc chadEmpty VNil acc = acc
+chadReverseFramesAcc
+  (chadCons state input output rest)
+  (VCons outputDirection outputDirections) acc =
+  chadReverseFramesAcc rest outputDirections
+    (chadFramesCons state input output outputDirection acc)
+
+chadReverseFrames
+  : ∀ {S X Y DY n}
+  → CHADTrace S X Y n → Vec DY n → CHADFramesRev S X Y DY
+chadReverseFrames trace directions =
+  chadReverseFramesAcc trace directions chadFramesEmpty
+{-# COMPILE AGDA2HS chadReverseFrames #-}
+
+-- Tail-position reverse scan. The parameter cotangent is threaded as an
+-- explicit state accumulator; recurrent cotangents travel in the same pass.
+-- The additive parameter operation is intended as a commutative cotangent
+-- monoid operation (the network instance uses widened Int64 vector addition).
+iterativeCHADBackwardAcc
+  : ∀ {P S X Y DP DS DY DX}
   → IterativeCHADCell P S X Y DP DS DY DX
-  → P → S → Vec X n → CHADForwardResult S X Y n
-iterativeCHADForward cell p state VNil =
-  mkCHADForwardResult state VNil chadEmpty
-iterativeCHADForward cell p state (VCons input inputs) =
-  let step = chadForwardCell cell p state input
-      rest = iterativeCHADForward cell p (chadNextState step) inputs
-  in mkCHADForwardResult
-       (chadFinalState rest)
-       (VCons (chadOutput step) (chadOutputs rest))
-       (chadCons state input (chadOutput step) (chadTrace rest))
-{-# COMPILE AGDA2HS iterativeCHADForward #-}
+  → P → CHADFramesRev S X Y DY → DS → DP
+  → CHADInputDirections DX
+  → CHADBackwardResult DP DS DX zero
+iterativeCHADBackwardAcc cell p chadFramesEmpty stateDirection
+    parameterDirection inputDirections =
+  mkCHADBackwardResult parameterDirection stateDirection inputDirections
+iterativeCHADBackwardAcc cell p
+    (chadFramesCons state input output outputDirection rest)
+    stateDirection parameterDirection inputDirections =
+  let local = chadPullbackCell cell p state input output
+        stateDirection outputDirection
+      accumulatedParameters = chadAddParameterDirections cell
+        (chadParameterDirection local) parameterDirection
+      accumulatedInputs = chadInputDirectionCons
+        (chadInputDirection local) inputDirections
+  in iterativeCHADBackwardAcc cell p rest
+       (chadPreviousStateDirection local)
+       accumulatedParameters accumulatedInputs
+{-# COMPILE AGDA2HS iterativeCHADBackwardAcc #-}
 
 iterativeCHADBackward
   : ∀ {P S X Y DP DS DY DX n}
   → IterativeCHADCell P S X Y DP DS DY DX
   → P → CHADTrace S X Y n → Vec DY n → DS
   → CHADBackwardResult DP DS DX n
-iterativeCHADBackward cell p chadEmpty VNil terminalDirection =
-  mkCHADBackwardResult (chadZeroParameterDirection cell p)
-    terminalDirection VNil
-iterativeCHADBackward cell p
-  (chadCons state input output rest)
-  (VCons outputDirection outputDirections) terminalDirection =
-  let restResult = iterativeCHADBackward cell p rest
-        outputDirections terminalDirection
-      local = chadPullbackCell cell p state input output
-        (chadInitialStateDirection restResult) outputDirection
-  in mkCHADBackwardResult
-       (chadAddParameterDirections cell
-         (chadParameterDirection local)
-         (chadAccumulatedParameterDirection restResult))
-       (chadPreviousStateDirection local)
-       (VCons (chadInputDirection local) (chadInputDirections restResult))
+iterativeCHADBackward cell p trace outputDirections terminalDirection =
+  iterativeCHADBackwardAcc cell p
+    (chadReverseFrames trace outputDirections)
+    terminalDirection
+    (chadZeroParameterDirection cell p)
+    chadNoInputDirections
 {-# COMPILE AGDA2HS iterativeCHADBackward #-}
 
 chadTraceLength : ∀ {S X Y n} → CHADTrace S X Y n → Nat
@@ -1928,7 +1964,7 @@ record NetworkSequencePullback (@0 n : Nat) : Set where
     networkSequenceOutputs : Vec NetworkStep n
     networkSequenceParameterDirection : Vec32
     networkSequenceInitialHiddenDirection : Vec32
-    networkSequenceObservationDirections : Vec Vec32 n
+    networkSequenceObservationDirections : CHADInputDirections Vec32
 
 open NetworkSequencePullback public
 {-# COMPILE AGDA2HS NetworkSequencePullback #-}
