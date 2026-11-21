@@ -37,10 +37,23 @@ open import Haskell.Prim.Tuple public
 open import Agda.Builtin.Erased.Funext public
 open import Agda.Builtin.Erased.Propext public
 open import Agda.Builtin.Erased.Quotient public
+open import Agda.Builtin.Equality.Rewrite public
 
 ------------------------------------------------------------------------
 -- Erased proof packaging
 ------------------------------------------------------------------------
+
+postulate
+  S : Set
+  F : Set → Set → Set
+  G : (Set → Set) → Set → Set → Set
+  rewF : (A : Set) → F A A ≡ S
+  rewG : (A : Set → Set) (X Y : Set) → G A X Y ≡ F (A X) (A Y)
+{-# REWRITE rewF rewG #-}
+
+test : (A : Set → Set) → G A _ _
+test A x = {!!}
+
 
 record S0 {i j : Level} (A : Set i) (@0 P : A → Set j) : Set (i ⊔ j) where
   no-eta-equality
