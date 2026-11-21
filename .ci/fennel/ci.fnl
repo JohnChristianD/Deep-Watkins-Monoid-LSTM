@@ -21,13 +21,24 @@
   (local source "FullCoupled/CanonicalLearnerMonolith.agda")
   (check-agda source)
   (run! "forbid LSTM and epsilon-greedy source paths"
-    (.. "if grep -Eiq 'lstm|epsilon[ _-]?greedy' "
+    (.. "if grep -Eiq 'lstm|epsilon[ _-]?greedy|e[_-]?z[ _-]?greedy' "
         (shell-quote source)
         "; then echo 'forbidden recurrent/action selector found' >&2; exit 1; fi"))
+  (run! "forbid floating-point runtime types"
+    (.. "if grep -Eiq '(^|[^[:alnum:]_])(Float|Double|Float32|Float64)([^[:alnum:]_]|$)' "
+        (shell-quote source)
+        "; then echo 'floating-point runtime type found' >&2; exit 1; fi"))
+  (run! "require explicit Agda fixed-width representations"
+    (.. "for width in Int32 Int64 Word32 Word64; do "
+        "grep -Fq \"COMPILE AGDA2HS $width existing\" " (shell-quote source)
+        " || exit 1; done"))
   (run! "require composed network, CHAD, and UTD2 entry points"
     (.. "for symbol in networkStep networkStepVJP networkSequenceVJP "
+        "networkMunchausenSarsa3Target networkTrainSampleFromTarget "
         "networkTrainSequenceVJP networkTrainStepUTD2 networkTrainChunkUTD2 "
-        "qQuantileHuberLoss qFQFFractionLogitDirection qObgdUpdate; do "
+        "iterativeCHAD-forward-count iterativeCHAD-reverse-count "
+        "iterativeCHAD-merge-count qQuantileHuberLoss "
+        "qFQFFractionLogitDirection qObgdUpdate; do "
         "grep -Fq \"$symbol\" " (shell-quote source)
         " || exit 1; done"))
   (print "learner-kernel-check=pass-relative-to-declared-trust-surface")))
