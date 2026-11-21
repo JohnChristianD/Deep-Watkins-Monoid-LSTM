@@ -1340,6 +1340,20 @@ networkSarsa3DistributionalTarget r0 r1 r2 terminal0 terminal1 terminal2 bootstr
        (fqfWidths bootstrapDistribution) targetValues
 {-# COMPILE AGDA2HS networkSarsa3DistributionalTarget #-}
 
+-- Stitch the policy correction and sampled SARSA target in one operation.
+-- Each reward is shaped by the policy distribution at its own behavior step.
+networkMunchausenSarsa3Target
+  : Q20 → NetworkStep → Q20 → NetworkStep → Q20 → NetworkStep
+  → Int32 → Int32 → Int32 → NetworkStep → DistributionalTarget
+networkMunchausenSarsa3Target r0 d0 r1 d1 r2 d2
+    terminal0 terminal1 terminal2 bootstrap =
+  networkSarsa3DistributionalTarget
+    (networkMunchausenReward r0 d0)
+    (networkMunchausenReward r1 d1)
+    (networkMunchausenReward r2 d2)
+    terminal0 terminal1 terminal2 bootstrap
+{-# COMPILE AGDA2HS networkMunchausenSarsa3Target #-}
+
 networkMunchausenReward : Q20 → NetworkStep → Q20
 networkMunchausenReward reward decision =
   munchausenReward reward
@@ -1886,6 +1900,14 @@ record NetworkTrainSample : Set where
 
 open NetworkTrainSample public
 {-# COMPILE AGDA2HS NetworkTrainSample #-}
+
+networkTrainSampleFromTarget
+  : Vec32 → Int32 → DistributionalTarget → NetworkTrainSample
+networkTrainSampleFromTarget observation action target =
+  mkNetworkTrainSample observation action
+    (distributionalTargetWidths target)
+    (distributionalTargetValues target)
+{-# COMPILE AGDA2HS networkTrainSampleFromTarget #-}
 
 networkTrainCellInputs
   : ∀ {n} → Vec NetworkTrainSample n → Vec NetworkCellInput n
