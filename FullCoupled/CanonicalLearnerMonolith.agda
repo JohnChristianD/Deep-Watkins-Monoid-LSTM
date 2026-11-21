@@ -1792,6 +1792,56 @@ chadTraceLength-correct (chadCons state input output rest)
   rewrite chadTraceLength-correct rest = refl
 
 ------------------------------------------------------------------------
+-- Exact structural work count for this iterative CHAD scan
+--
+-- Each recorded frame induces one forward cell, one pullback cell, and one
+-- parameter-accumulator merge. Thus the scan has exactly n reverse cell
+-- applications and n parameter merges. With dense Vec32 parameter dimension
+-- P, these merges cost O(nP); stored primal trace is O(n(S+X+Y)).
+------------------------------------------------------------------------
+
+record IterativeCHADWork (@0 n : Nat) : Set where
+  constructor mkIterativeCHADWork
+  field
+    chadForwardCellCalls : Nat
+    chadReverseCellCalls : Nat
+    chadParameterMerges : Nat
+
+open IterativeCHADWork public
+{-# COMPILE AGDA2HS IterativeCHADWork #-}
+
+iterativeCHADWork : ∀ {S X Y n} → CHADTrace S X Y n → IterativeCHADWork n
+iterativeCHADWork chadEmpty = mkIterativeCHADWork zero zero zero
+iterativeCHADWork (chadCons state input output rest) =
+  let work = iterativeCHADWork rest
+  in mkIterativeCHADWork
+       (suc (chadForwardCellCalls work))
+       (suc (chadReverseCellCalls work))
+       (suc (chadParameterMerges work))
+{-# COMPILE AGDA2HS iterativeCHADWork #-}
+
+iterativeCHAD-forward-count
+  : ∀ {S X Y n} (trace : CHADTrace S X Y n)
+  → chadForwardCellCalls (iterativeCHADWork trace) ≡ n
+iterativeCHAD-forward-count chadEmpty = refl
+iterativeCHAD-forward-count (chadCons state input output rest)
+  rewrite iterativeCHAD-forward-count rest = refl
+
+iterativeCHAD-reverse-count
+  : ∀ {S X Y n} (trace : CHADTrace S X Y n)
+  → chadReverseCellCalls (iterativeCHADWork trace) ≡ n
+iterativeCHAD-reverse-count chadEmpty = refl
+iterativeCHAD-reverse-count (chadCons state input output rest)
+  rewrite iterativeCHAD-reverse-count rest = refl
+
+iterativeCHAD-merge-count
+  : ∀ {S X Y n} (trace : CHADTrace S X Y n)
+  → chadParameterMerges (iterativeCHADWork trace) ≡ n
+iterativeCHAD-merge-count chadEmpty = refl
+iterativeCHAD-merge-count (chadCons state input output rest)
+  rewrite iterativeCHAD-merge-count rest = refl
+
+------------------------------------------------------------------------
 -- The composed network is an iterative CHAD cell
 ------------------------------------------------------------------------
 
