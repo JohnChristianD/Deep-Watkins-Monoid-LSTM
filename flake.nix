@@ -306,10 +306,10 @@
               export LUA_CPATH="$LUAROCKS_TREE/lib/lua/5.1/?.so;;"
               mkdir -p "$LUAROCKS_TREE"
               if ! luarocks --tree "$LUAROCKS_TREE" show lanes >/dev/null 2>&1; then
-                luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.3-1
+                luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.2-0
               fi
-              if ! luarocks --tree "$LUAROCKS_TREE" show luafun >/dev/null 2>&1; then
-                luarocks --tree "$LUAROCKS_TREE" install luafun 0.1.5-1
+              if ! luarocks --tree "$LUAROCKS_TREE" show fun >/dev/null 2>&1; then
+                luarocks --tree "$LUAROCKS_TREE" install fun 0.1.3-1
               fi
             '';
           };

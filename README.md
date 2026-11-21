@@ -117,7 +117,7 @@ Munchausen shaping is policy-dependent reward shaping, not a universal overestim
 
 ## Development environment and parallel typechecking
 
-The agda-ci Nix development shell provides the pinned Agda2HS/Agda toolchain, GHC, Fennel, LuaJIT, and LuaRocks. On shell entry, LuaRocks installs pinned lanes and luafun rocks into the ignored project-local .luarocks/ tree. Lanes runs the two independent Agda typechecks concurrently; LuaFun supplies the functional iterator used to construct the worker jobs.
+The agda-ci Nix development shell provides the pinned Agda2HS/Agda toolchain, GHC, Fennel, LuaJIT, and LuaRocks. On shell entry, LuaRocks installs the pinned lanes and Lua Fun (fun) rocks into the ignored project-local .luarocks/ tree. Lanes runs the two independent Agda typechecks concurrently; Lua Fun supplies the functional iterator used to construct the worker jobs.
 
 The parallel checker gives each Agda invocation a separate temporary source workspace and uses --local-interfaces. This isolates local .agdai writes between workers. The worker count is two; Nix and Make are also configured for two build jobs. Actual CPU availability remains controlled by the host.
 
