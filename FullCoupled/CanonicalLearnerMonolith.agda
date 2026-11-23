@@ -5,14 +5,13 @@
 --syntactic-equality=1
 --no-eta-equality
 --prop
---with-K
+--cubical=erased
 --no-fast-reduce
 --no-projection-like
 --erased-quotients
 --erased-propext
 --auto-inline
 --exact-split
---rewriting
 --confluence-check
 #-}
 
@@ -31,7 +30,6 @@ module FullCoupled.CanonicalLearnerMonolith where
 open import Agda.Primitive using (Level; _⊔_)
 open import Agda.Builtin.Erased.Propext public
 open import Agda.Builtin.Erased.Quotient public
-open import Agda.Builtin.Equality.Rewrite public
 open import Haskell.Prelude public
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
