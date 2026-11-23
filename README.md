@@ -37,9 +37,10 @@ target  = r_t                                      terminal
 ```
 
 The terminal branch does not bootstrap. The same sampled next action is used
-for the SARSA target. The action-head dimensions are represented as ordinary
-lists at this stage; callers must supply matching non-empty actor and critic
-weight lists.
+for the SARSA target. Action heads use a non-empty paired structure: the first
+action has one actor weight and one critic weight, and remaining actions are
+supplied as pairs. The Agda type prevents empty heads and actor/critic length
+mismatches.
 
 FQF is postponed. DeepSets has been removed. There is no LSTM, epsilon-greedy
 selector, Munchausen return, or multi-step target in this version.
