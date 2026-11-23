@@ -1,3 +1,17 @@
+{-# OPTIONS
+--cubical=erased
+--erased-propext
+--erased-quotient
+--lossy-unification
+--syntactic-equality=1
+--no-eta-equality
+--no-projection-like
+--no-fast-reduce
+--exact-split
+--rewriting
+--confluence-check
+#-}
+
 ------------------------------------------------------------------------
 -- Pure fixed-point learner kernel.
 -- Recurrent state is explicit input/output; Lua owns orchestration only.
@@ -6,6 +20,15 @@
 open import Haskell.Prelude public
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
+open import Agda.Builtin.Equality.Rewrite public
+
+postulate
+  S : Set
+  F : Set → Set → Set
+  G : (Set → Set) → Set → Set → Set
+  rewF : (A : Set) → F A A ≡ S
+  rewG : (A : Set → Set) (X Y : Set) → G A X Y ≡ F (A X) (A Y)
+{-# REWRITE rewF rewG #-}
 
 -- Runtime contract: Q12.20 values use Int32; widened products use Int64.
 
