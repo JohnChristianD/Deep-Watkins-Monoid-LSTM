@@ -290,6 +290,36 @@ policyScoreFactors action total = go zero
           score = if active then qSub selected normalizer else 0
       in score ∷ go (suc index) logits preferences
 
+record ActionHead : Set where
+  constructor MkActionHead
+  field
+    actionActorWeight : StreamW
+    actionCriticWeight : StreamW
+open ActionHead public
+
+-- Each action owns one actor/critic pair; empty and mismatched heads are unrepresentable.
+record NonEmptyActionHeads : Set where
+  constructor MkActionHeads
+  field
+    firstActionHead : ActionHead
+    remainingActionHeads : List ActionHead
+open NonEmptyActionHeads public
+
+actionActorWeights : NonEmptyActionHeads -> List StreamW
+actionActorWeights (MkActionHeads first rest) =
+  actionActorWeight first ∷ mapList actionActorWeight rest
+
+actionCriticWeights : NonEmptyActionHeads -> List StreamW
+actionCriticWeights (MkActionHeads first rest) =
+  actionCriticWeight first ∷ mapList actionCriticWeight rest
+
+nthActionHead : Nat -> NonEmptyActionHeads -> ActionHead
+nthActionHead zero (MkActionHeads first rest) = first
+nthActionHead (suc n) (MkActionHeads first (next ∷ rest)) =
+  nthActionHead n (MkActionHeads next rest)
+nthActionHead (suc n) (MkActionHeads first []) = first
+
+
 dropOne : {A : Set} -> List A -> List A
 dropOne [] = []
 dropOne (x ∷ xs) = xs
@@ -329,35 +359,6 @@ updateAllActionHeads action actorDeltas td hidden learningRate
 ------------------------------------------------------------------------
 -- Recurrent actor-critic state and forward step
 ------------------------------------------------------------------------
-
-record ActionHead : Set where
-  constructor MkActionHead
-  field
-    actionActorWeight : StreamW
-    actionCriticWeight : StreamW
-open ActionHead public
-
--- Each action owns one actor/critic pair; empty and mismatched heads are unrepresentable.
-record NonEmptyActionHeads : Set where
-  constructor MkActionHeads
-  field
-    firstActionHead : ActionHead
-    remainingActionHeads : List ActionHead
-open NonEmptyActionHeads public
-
-actionActorWeights : NonEmptyActionHeads -> List StreamW
-actionActorWeights (MkActionHeads first rest) =
-  actionActorWeight first ∷ mapList actionActorWeight rest
-
-actionCriticWeights : NonEmptyActionHeads -> List StreamW
-actionCriticWeights (MkActionHeads first rest) =
-  actionCriticWeight first ∷ mapList actionCriticWeight rest
-
-nthActionHead : Nat -> NonEmptyActionHeads -> ActionHead
-nthActionHead zero (MkActionHeads first rest) = first
-nthActionHead (suc n) (MkActionHeads first (next ∷ rest)) =
-  nthActionHead n (MkActionHeads next rest)
-nthActionHead (suc n) (MkActionHeads first []) = first
 
 record NetworkState : Set where
   constructor MkNetworkState
