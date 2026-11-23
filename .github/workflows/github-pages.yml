@@ -39,9 +39,10 @@ jobs:
           path: |
             _build
             .cache
-          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '**/*.agda') }}
+            .luarocks
+          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/yue/*.yue', '**/*.agda') }}
           restore-keys: |
-            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml') }}-
+            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/yue/*.yue') }}-
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
@@ -49,8 +50,14 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All 2>&1 \
-            | sed '/^copying path .* from .*$/d'
+          nix develop --quiet .#agda-ci -c bash -euo pipefail -c '
+            mkdir -p build/yue
+            for source in .ci/yue/*.yue; do
+              module=$(basename "$source" .yue)
+              yue --target 5.1 -o "build/yue/$module.lua" "$source"
+            done
+            exec luajit build/yue/ci.lua All
+          ' 2>&1 | sed '/^copying path .* from .*$/d'
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
