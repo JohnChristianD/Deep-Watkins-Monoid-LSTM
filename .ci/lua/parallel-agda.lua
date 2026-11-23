@@ -22,40 +22,46 @@ local function run_checked(label, command)
   end
 end
 
-local function make_temp_root()
-  local pipe = assert(io.popen("mktemp -d", "r"), "mktemp is required")
-  local root = pipe:read("*l")
-  pipe:close()
-  assert(root and root ~= "", "mktemp did not return a directory")
-  return root
-end
-
 local function make_entry(root, name, module, source_path)
   local work_root = root .. "/" .. name
   local module_path = work_root .. "/" .. module
   local log_path = root .. "/" .. name .. ".log"
+  local parent = module:match("(.+)/[^/]+$")
+  local module_dir = parent and (work_root .. "/" .. parent) or work_root
 
   return {
     name = name,
     root = work_root,
     module = module,
     module_path = module_path,
+    module_dir = module_dir,
     source_path = source_path,
     log = log_path
   }
 end
 
-local function command_for(entry, agda_command)
+local function copy_if_changed(source, destination)
+  return "if ! cmp -s " .. shell_quote(source) .. " " .. shell_quote(destination)
+    .. "; then cp " .. shell_quote(source) .. " " .. shell_quote(destination) .. "; fi"
+end
+
+local function command_for(entry, agda_command, profile_flag)
   return "cd " .. shell_quote(entry.root)
-    .. " && " .. shell_quote(agda_command)
+    .. " && " .. shell_quote(agda_command) .. profile_flag
     .. " --local-interfaces --trace-imports=0 -i . "
     .. shell_quote(entry.module)
     .. " > " .. shell_quote(entry.log) .. " 2>&1"
 end
 
 local function main()
-  local temp_root = make_temp_root()
+  -- Keep independent local-interface caches under .cache so CI can restore them.
+  -- Copy only changed source files: unchanged mtimes preserve Agda's cache hits.
+  local cache_root = os.getenv("AGDA_WORKER_CACHE") or ".cache/agda-workers"
   local agda_command = os.getenv("AGDA_COMMAND") or "agda2hs-agda"
+  local profile = os.getenv("AGDA_PROFILE")
+  local profile_flag = profile and profile ~= ""
+    and (" --profile=" .. shell_quote(profile) .. " +RTS -s -RTS")
+    or ""
 
   local entries = {
     {
@@ -71,21 +77,21 @@ local function main()
   }
 
   local jobs = fun.totable(fun.map(function(entry)
-    local job = make_entry(temp_root, entry.name, entry.module, entry.source)
-    job.command = command_for(job, agda_command)
+    local job = make_entry(cache_root, entry.name, entry.module, entry.source)
+    job.command = command_for(job, agda_command, profile_flag)
     return job
   end, entries))
 
+  local setup_commands = fun.totable(fun.map(function(job)
+    return "mkdir -p " .. shell_quote(job.module_dir)
+      .. " && " .. copy_if_changed(".agda-lib", job.root .. "/.agda-lib")
+      .. " && " .. copy_if_changed(job.source_path, job.module_path)
+  end, jobs))
+
   run_checked(
-    "create isolated workspaces",
-    "mkdir -p " .. shell_quote(jobs[1].root) .. "/FullCoupled "
-      .. shell_quote(jobs[2].root)
-      .. " && cp .agda-lib " .. shell_quote(jobs[1].root)
-      .. " && cp " .. shell_quote(jobs[1].source_path)
-      .. " " .. shell_quote(jobs[1].module_path)
-      .. " && cp .agda-lib " .. shell_quote(jobs[2].root)
-      .. " && cp " .. shell_quote(jobs[2].source_path)
-      .. " " .. shell_quote(jobs[2].module_path)
+    "prepare persistent isolated workspaces",
+    "mkdir -p " .. shell_quote(cache_root)
+      .. " && " .. table.concat(setup_commands, " && ")
   )
 
   local launch = lanes.gen("*", function(command)
@@ -107,13 +113,11 @@ local function main()
     }
   end, fun.range(1, #jobs)))
 
-  os.execute("rm -rf " .. shell_quote(temp_root))
-
   local failed = fun.any(function(outcome)
     if outcome.failed then
       io.stderr:write(
         "parallel-agda=failed: " .. outcome.name
-          .. " (status " .. tostring(outcome.status) .. ")\n"
+          .. " (status " .. tostring(outcome.status) .. ")\\n"
       )
     end
     return outcome.failed
@@ -123,7 +127,10 @@ local function main()
     os.exit(1)
   end
 
-  print("parallel-agda=pass; workers=2; isolated-local-interfaces=true")
+  print(
+    "parallel-agda=pass; workers=" .. tostring(#jobs)
+      .. "; persistent-local-interface-cache=true"
+  )
 end
 
 main()
