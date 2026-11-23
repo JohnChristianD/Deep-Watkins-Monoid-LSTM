@@ -114,26 +114,20 @@ checkPages = ->
   os.remove(baseCss)
   print("static-pages=generated; less-css=validated; browser-JavaScript=none")
 
+fun = require("fun")
+
 actions = {
-  AgdaLearner: ->
-    checkAgdaTheorem()
-    checkAgdaLearner()
-  AgdaTheorem: checkAgdaTheorem
-  RUSS: ->
-    checkAgdaTheorem()
-    checkRussAudit()
-  Pages: checkPages
-  All: ->
-    checkAgdaTheorem()
-    checkAgdaLearner()
-    checkRussAudit()
-    checkPages()
+  AgdaLearner: { checkAgdaTheorem, checkAgdaLearner }
+  AgdaTheorem: { checkAgdaTheorem }
+  RUSS: { checkAgdaTheorem, checkRussAudit }
+  Pages: { checkPages }
+  All: { checkAgdaTheorem, checkAgdaLearner, checkRussAudit, checkPages }
 }
 
 lane = arg[1] or ""
-action = actions[lane]
-if action
-  action()
+steps = actions[lane]
+if steps
+  fun.each((step) -> step(), steps)
 else
-  io.stderr:write("usage: ci.lua AgdaLearner|AgdaTheorem|RUSS|Pages|All\n")
+  io.stderr:write("usage: ci.lua AgdaLearner|AgdaTheorem|RUSS|Pages|All\\n")
   os.exit(2)
