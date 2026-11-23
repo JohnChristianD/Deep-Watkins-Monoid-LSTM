@@ -11,7 +11,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 --
 -- One recurrent feature unit, a categorical actor head, and per-action
 -- scalar Q values. The policy is a normalized positive linear preference
--- model. FQF and DeepSets are deliberately outside this version.
+-- model. The implementation is intentionally small and scalar.
 ------------------------------------------------------------------------
 
 open import Haskell.Prelude public
@@ -138,6 +138,7 @@ record CellCache : Set where
     cellGate : Int32
     cellCandidateInput : Int32
     cellCandidate : Int32
+    cellMixPre : Int32
     cellHiddenAfter : Int32
 open CellCache public
 
@@ -149,18 +150,20 @@ cellForward raw hidden inputWeight candidateWeight gateWeight =
       gate = qHardSigmoid gateInput
       candidateInput = qAdd feature (qMul candidateWeight hidden)
       candidate = qRelu candidateInput
-      hiddenAfter =
+      mixPre =
         qAdd
           (qMul (qSub qOne gate) hidden)
           (qMul gate candidate)
+      hiddenAfter = qRelu mixPre
   in MkCellCache
        raw hidden preFeature feature gateInput gate
-       candidateInput candidate hiddenAfter
+       candidateInput candidate mixPre hiddenAfter
 
 record CellPullback : Set where
   constructor MkCellPullback
   field
     cellHiddenCotangent : Int32
+    cellInputCotangent : Int32
     cellInputWeightCotangent : Int32
     cellCandidateWeightCotangent : Int32
     cellGateWeightCotangent : Int32
@@ -170,31 +173,34 @@ open CellPullback public
 -- ReLU contributes its indicator derivative; Softsign is used only by
 -- the input feature map and has its own derivative.
 cellPullback :
-  Int32 -> Int32 -> CellCache -> Int32 -> CellPullback
-cellPullback inputWeight candidateWeight cache hiddenCotangent =
+  Int32 -> Int32 -> Int32 -> CellCache -> Int32 -> CellPullback
+cellPullback inputWeight candidateWeight gateWeight cache hiddenCotangent =
   let gate = cellGate cache
       hidden = cellHiddenBefore cache
       candidate = cellCandidate cache
-      candidateCotangent = qMul hiddenCotangent gate
+      mixCotangent = if 0 < cellMixPre cache then hiddenCotangent else 0
+      candidateCotangent = qMul mixCotangent gate
       candidateInputCotangent =
         if 0 < cellCandidateInput cache then candidateCotangent else 0
-      gateCotangent = qMul hiddenCotangent (qSub candidate hidden)
+      gateCotangent = qMul mixCotangent (qSub candidate hidden)
       gateInputCotangent =
         qMul gateCotangent (qHardSigmoidGrad (cellGateInput cache))
       featureCotangent = qAdd candidateInputCotangent gateInputCotangent
       preFeatureCotangent =
         qMul featureCotangent (qSoftsignGrad (cellPreFeature cache))
+      inputCotangent = qMul preFeatureCotangent inputWeight
       inputWeightCotangent = qMul preFeatureCotangent (cellRaw cache)
       candidateWeightCotangent = qMul candidateInputCotangent hidden
       gateWeightCotangent = qMul gateInputCotangent hidden
       hiddenCotangentBefore =
         qAdd
-          (qMul hiddenCotangent (qSub qOne gate))
+          (qMul mixCotangent (qSub qOne gate))
           (qAdd
             (qMul candidateInputCotangent candidateWeight)
-            (qMul gateInputCotangent inputWeight))
+            (qMul gateInputCotangent gateWeight))
   in MkCellPullback
        hiddenCotangentBefore
+       inputCotangent
        inputWeightCotangent
        candidateWeightCotangent
        gateWeightCotangent
@@ -413,6 +419,7 @@ networkTrainStepSARSA observation currentDraw reward nextObservation nextDraw te
           (streamWeight (networkGateWeight state))
       pullback =
         cellPullback
+          (streamWeight (networkInputWeight state))
           (streamWeight (networkCandidateWeight state))
           (streamWeight (networkGateWeight state))
           cache hiddenCotangent
@@ -459,6 +466,7 @@ record CHADGradient : Set where
   constructor MkCHADGradient
   field
     initialHiddenCotangent : Int32
+    sequenceInputCotangents : List Int32
     inputWeightGradient64 : Int64
     candidateWeightGradient64 : Int64
     gateWeightGradient64 : Int64
@@ -474,31 +482,35 @@ open CHADResult public
 chadForward :
   List (Int32 × Int32) -> Int32 -> Int32 -> Int32 -> Int32 ->
   (Int32 × List CHADFrame)
-chadForward [] hidden inputWeight candidateWeight gateWeight =
-  (hidden , [])
-chadForward ((observation , localCotangent) ∷ rest)
-    hidden inputWeight candidateWeight gateWeight =
-  let cache = cellForward observation hidden inputWeight candidateWeight gateWeight
-      (finalHidden , reverseFrames) =
-        chadForward rest (cellHiddenAfter cache) inputWeight candidateWeight gateWeight
-  in (finalHidden , MkCHADFrame cache localCotangent ∷ reverseFrames)
+chadForward frames hidden inputWeight candidateWeight gateWeight =
+  go frames hidden []
+  where
+    go : List (Int32 × Int32) -> Int32 -> List CHADFrame ->
+         (Int32 × List CHADFrame)
+    go [] current reverseFrames = (current , reverseFrames)
+    go ((observation , localCotangent) ∷ rest) current reverseFrames =
+      let cache = cellForward observation current inputWeight candidateWeight gateWeight
+      in go rest (cellHiddenAfter cache)
+           (MkCHADFrame cache localCotangent ∷ reverseFrames)
 
 chadBackward :
   Int32 -> Int32 -> Int32 -> List CHADFrame -> Int32 -> CHADGradient
 chadBackward inputWeight candidateWeight gateWeight frames finalCotangent =
-  go frames finalCotangent 0 0 0
+  go frames finalCotangent [] 0 0 0
   where
     go :
-      List CHADFrame -> Int32 -> Int64 -> Int64 -> Int64 -> CHADGradient
-    go [] future inputAcc candidateAcc gateAcc =
-      MkCHADGradient future inputAcc candidateAcc gateAcc
+      List CHADFrame -> Int32 -> List Int32 ->
+      Int64 -> Int64 -> Int64 -> CHADGradient
+    go [] future inputCotangents inputAcc candidateAcc gateAcc =
+      MkCHADGradient future inputCotangents inputAcc candidateAcc gateAcc
     go (MkCHADFrame cache localCotangent ∷ rest)
-        future inputAcc candidateAcc gateAcc =
+        future inputCotangents inputAcc candidateAcc gateAcc =
       let totalCotangent = qAdd future localCotangent
           pullback =
-            cellPullback candidateWeight gateWeight cache totalCotangent
+            cellPullback inputWeight candidateWeight gateWeight cache totalCotangent
       in go rest
            (cellHiddenCotangent pullback)
+           (cellInputCotangent pullback ∷ inputCotangents)
            (inputAcc + fromIntegral (cellInputWeightCotangent pullback))
            (candidateAcc + fromIntegral (cellCandidateWeightCotangent pullback))
            (gateAcc + fromIntegral (cellGateWeightCotangent pullback))
