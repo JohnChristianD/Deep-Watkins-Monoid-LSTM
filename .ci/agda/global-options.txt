@@ -1,8 +1,4 @@
 --erasure
---no-projection-like
---two-level
---confluence-check
 --no-postfix-projections
---experimental-lazy-instances
 --exact-split
 --guardedness
