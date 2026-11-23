@@ -1,51 +1,13 @@
-{-# OPTIONS
---experimental-lazy-instances
---lossy-unification
---syntactic-equality=1
---no-eta-equality
---prop
---cubical=erased
---no-fast-reduce
---no-projection-like
---erased-quotients
---erased-propext
---auto-inline
---exact-split
---confluence-check
---rewriting
-#-}
-
-module FullCoupled.CanonicalLearnerMonolith where
-
 ------------------------------------------------------------------------
--- The small proof surface follows the relevant Agdalache patterns:
--- erased S0 witnesses, propositional equality, and relation support.
--- The learner has no C pointer, IORef, StablePtr, MVar, or CFuture API.
+-- Pure fixed-point learner kernel.
+-- Recurrent state is explicit input/output; Lua owns orchestration only.
 ------------------------------------------------------------------------
 
--- Follow the standard Agda2HS base-library convention used in Viktor
--- Csimma's examples: Haskell.Prelude is the shared Agda/Haskell surface.
--- It re-exports equality, builtin Nat, products, and primitive proof types.
--- Vec's Nat index is erased, so no runtime length or Peano traversal remains.
-open import Agda.Primitive using (Level; _⊔_)
-open import Agda.Builtin.Erased.Propext public
-open import Agda.Builtin.Erased.Quotient public
 open import Haskell.Prelude public
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
-open import Agda.Buitlin.Cubical public
-open import Agda.Builtin.Equality.Rewrite public
 
-postulate
-  S : Set
-  F : Set → Set → Set
-  G : (Set → Set) → Set → Set → Set
-  rewF : (A : Set) → F A A ≡ S
-  rewG : (A : Set → Set) (X Y : Set) → G A X Y ≡ F (A X) (A Y)
-{-# REWRITE rewF rewG #-}
-
--- Csimma Performance Rule: keep runtime hot loops strictly in unboxed Int32/Int64
--- with zero runtime Nat/Fin/unsafeCoerce; place C++ FFI boundary in a separate thin .hs shim.
+-- Runtime contract: Q12.20 values use Int32; widened products use Int64.
 
 qShift : Int
 qShift = 20
@@ -138,27 +100,6 @@ gruChadStep x h wRec uGate dH lr =
       uNew = uGate + qmul lr duG - shiftR uGate 16
   in (hNxt , dh0 , wNew , uNew)
 
--- State-Dependent ReLU-LSTM (QM4 gate) + ObGD + Huber + L2=1/2^16 Full Step (#1 AlphaRank Base)
-lstmObgdStep : Int32 -> List Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> Int32 × Int32 × Int32
-lstmObgdStep wEnt es c h uGate wOut tgt lr =
-  let (xDs , _) = deepSetsStepChad wEnt es qOne
-      uIn   = xDs + qmul uGate h
-      g     = quantmoid4Q20 uIn
-      cLin  = qmul g c + qmul g xDs
-      cNxt  = if 0 < cLin then cLin else 0
-      hNxt  = softsignQ20 (qmul g cNxt)
-      qPred = qmul wOut hNxt
-      err   = tgt - qPred
-      dk    = if qOne < err then qOne else if err < (- qOne) then (- qOne) else err
-      mObgd = qmul (shiftL lr 1) (abs32 hNxt)
-      sEff  = if qOne < mObgd then qdivSafe lr mObgd else lr
-      wNew  = wOut + qmul sEff (qmul dk hNxt) - shiftR wOut 16
-  in (cNxt , hNxt , wNew)
-
--- Pure @0 erased specification (zero runtime overhead!)
-@0 lstmReLUInvariant : (c h ug x : Int32) -> let z = qmul (quantmoid4Q20 (x + qmul ug h)) c + qmul (quantmoid4Q20 (x + qmul ug h)) x in ((0 < z) ≡ true) -> (if 0 < z then z else 0) ≡ z
-lstmReLUInvariant c h ug x eq rewrite eq = refl
-
 {-# COMPILE AGDA2HS qShift #-}
 {-# COMPILE AGDA2HS qOne #-}
 {-# COMPILE AGDA2HS abs32 #-}
@@ -171,4 +112,3 @@ lstmReLUInvariant c h ug x eq rewrite eq = refl
 {-# COMPILE AGDA2HS max32List #-}
 {-# COMPILE AGDA2HS deepSetsStepChad #-}
 {-# COMPILE AGDA2HS gruChadStep #-}
-{-# COMPILE AGDA2HS lstmObgdStep #-}
