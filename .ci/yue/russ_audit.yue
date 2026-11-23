@@ -16,7 +16,9 @@ trim = (value) ->
   (string.gsub(string.gsub(value, "^%s+", ""), "%s+$", ""))
 
 countPostulateBlocks = (source) ->
-  lines = string.gmatch(source .. "\n", "(.-)\n")
+  lines = {}
+  for line in string.gmatch(source .. "\\n", "(.-)\\n")
+    table.insert(lines, line)
   fun.foldl((count, line) ->
     cleaned = trim(line)
     if cleaned == "postulate" or string.match(cleaned, "^postulate%s+")
