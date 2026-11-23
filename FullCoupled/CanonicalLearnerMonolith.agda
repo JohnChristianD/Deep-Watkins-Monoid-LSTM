@@ -516,13 +516,41 @@ chadBackward inputWeight candidateWeight gateWeight frames finalCotangent =
            (gateAcc + fromIntegral (cellGateWeightCotangent pullback))
 
 iterativeCHAD :
-  List (Int32 × Int32) -> Int32 -> Int32 -> Int32 -> Int32 -> CHADResult
-iterativeCHAD frames initialHidden inputWeight candidateWeight gateWeight =
+  List (Int32 × Int32) -> Int32 -> Int32 -> Int32 -> Int32 -> Int32 ->
+  CHADResult
+iterativeCHAD frames initialHidden inputWeight candidateWeight gateWeight finalCotangent =
   let (finalHidden , reverseFrames) =
         chadForward frames initialHidden inputWeight candidateWeight gateWeight
       gradient =
-        chadBackward inputWeight candidateWeight gateWeight reverseFrames 0
+        chadBackward inputWeight candidateWeight gateWeight reverseFrames finalCotangent
   in MkCHADResult finalHidden gradient
+
+-- The caller supplies one local hidden-state cotangent per time step,
+-- normally obtained from the categorical actor and scalar SARSA critic loss.
+networkSequenceVJP :
+  List (Int32 × Int32) -> Int32 -> NetworkState -> CHADResult
+networkSequenceVJP frames finalCotangent state =
+  iterativeCHAD
+    frames
+    (networkHidden state)
+    (streamWeight (networkInputWeight state))
+    (streamWeight (networkCandidateWeight state))
+    (streamWeight (networkGateWeight state))
+    finalCotangent
+
+networkApplySequenceGradient :
+  Int32 -> NetworkState -> CHADGradient -> NetworkState
+networkApplySequenceGradient learningRate state gradient =
+  MkNetworkState
+    (networkHidden state)
+    (streamStep (networkInputWeight state)
+      (qFrom64 (inputWeightGradient64 gradient)) qOne learningRate)
+    (streamStep (networkCandidateWeight state)
+      (qFrom64 (candidateWeightGradient64 gradient)) qOne learningRate)
+    (streamStep (networkGateWeight state)
+      (qFrom64 (gateWeightGradient64 gradient)) qOne learningRate)
+    (networkActorWeights state)
+    (networkCriticWeights state)
 
 ------------------------------------------------------------------------
 -- Small executable checks for Q8.24 scaling and SARSA terminal behavior
@@ -594,6 +622,8 @@ sarsaTerminalDoesNotBootstrap =
 {-# COMPILE AGDA2HS chadForward #-}
 {-# COMPILE AGDA2HS chadBackward #-}
 {-# COMPILE AGDA2HS iterativeCHAD #-}
+{-# COMPILE AGDA2HS networkSequenceVJP #-}
+{-# COMPILE AGDA2HS networkApplySequenceGradient #-}
 {-# COMPILE AGDA2HS q24OneTimesOne #-}
 {-# COMPILE AGDA2HS q24HalfTimesHalf #-}
 {-# COMPILE AGDA2HS sarsaTerminalDoesNotBootstrap #-}
