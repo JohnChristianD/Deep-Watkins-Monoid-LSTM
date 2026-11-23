@@ -1,5 +1,4 @@
 {-# OPTIONS
---erasure
 --experimental-lazy-instances
 --lossy-unification
 --syntactic-equality=1
@@ -13,6 +12,7 @@
 --auto-inline
 --exact-split
 --confluence-check
+--rewriting
 #-}
 
 module FullCoupled.CanonicalLearnerMonolith where
@@ -33,6 +33,16 @@ open import Agda.Builtin.Erased.Quotient public
 open import Haskell.Prelude public
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
+open import Agda.Buitlin.Cubical public
+open import Agda.Builtin.Equality.Rewrite public
+
+postulate
+  S : Set
+  F : Set → Set → Set
+  G : (Set → Set) → Set → Set → Set
+  rewF : (A : Set) → F A A ≡ S
+  rewG : (A : Set → Set) (X Y : Set) → G A X Y ≡ F (A X) (A Y)
+{-# REWRITE rewF rewG #-}
 
 -- Csimma Performance Rule: keep runtime hot loops strictly in unboxed Int32/Int64
 -- with zero runtime Nat/Fin/unsafeCoerce; place C++ FFI boundary in a separate thin .hs shim.
