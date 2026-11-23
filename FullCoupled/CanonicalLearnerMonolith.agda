@@ -305,7 +305,7 @@ updateOneActionHead selected actorDelta td hidden learningRate head =
 
 updateRemainingActionHeads :
   Nat -> Nat -> List ActionHead -> List Int32 ->
-  Int32 -> Int32 -> List ActionHead
+  Int32 -> Int32 -> Int32 -> List ActionHead
 updateRemainingActionHeads action index [] factors td hidden learningRate = []
 updateRemainingActionHeads action index (head ∷ rest) [] td hidden learningRate =
   updateOneActionHead (natEqual action index) 0 td hidden learningRate head
