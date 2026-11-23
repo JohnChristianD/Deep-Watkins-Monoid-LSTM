@@ -237,11 +237,6 @@ nthQ zero (x ∷ xs) = x
 nthQ (suc n) (x ∷ xs) = nthQ n xs
 nthQ n [] = 0
 
-nthStream : Nat -> List StreamW -> StreamW
-nthStream zero (x ∷ xs) = x
-nthStream (suc n) (x ∷ xs) = nthStream n xs
-nthStream n [] = MkSW 0 0
-
 natEqual : Nat -> Nat -> Bool
 natEqual zero zero = true
 natEqual zero (suc n) = false
@@ -295,27 +290,74 @@ policyScoreFactors action total = go zero
           score = if active then qSub selected normalizer else 0
       in score ∷ go (suc index) logits preferences
 
-updateActorWeights :
-  List StreamW -> List Int32 -> Int32 -> Int32 -> List StreamW
-updateActorWeights [] factors hidden learningRate = []
-updateActorWeights (weight ∷ weights) [] hidden learningRate =
-  weight ∷ updateActorWeights weights [] hidden learningRate
-updateActorWeights (weight ∷ weights) (factor ∷ factors) hidden learningRate =
-  streamStep weight factor hidden learningRate
-    ∷ updateActorWeights weights factors hidden learningRate
+dropOne : {A : Set} -> List A -> List A
+dropOne [] = []
+dropOne (x ∷ xs) = xs
 
-updateCriticWeights :
-  Nat -> List StreamW -> Int32 -> Int32 -> Int32 -> List StreamW
-updateCriticWeights action [] td hidden learningRate = []
-updateCriticWeights action (weight ∷ weights) td hidden learningRate =
-  if natEqual action zero
-  then streamStep weight td hidden learningRate
-       ∷ mapList (λ w -> w) weights
-  else weight ∷ updateCriticWeights (pred action) weights td hidden learningRate
+updateOneActionHead :
+  Bool -> Int32 -> Int32 -> Int32 -> Int32 -> ActionHead -> ActionHead
+updateOneActionHead selected actorDelta td hidden learningRate head =
+  MkActionHead
+    (streamStep (actionActorWeight head) actorDelta hidden learningRate)
+    (if selected
+     then streamStep (actionCriticWeight head) td hidden learningRate
+     else actionCriticWeight head)
+
+updateRemainingActionHeads :
+  Nat -> Nat -> List ActionHead -> List Int32 ->
+  Int32 -> Int32 -> List ActionHead
+updateRemainingActionHeads action index [] factors td hidden learningRate = []
+updateRemainingActionHeads action index (head ∷ rest) [] td hidden learningRate =
+  updateOneActionHead (natEqual action index) 0 td hidden learningRate head
+    ∷ updateRemainingActionHeads action (suc index) rest [] td hidden learningRate
+updateRemainingActionHeads action index (head ∷ rest) (factor ∷ factors)
+    td hidden learningRate =
+  updateOneActionHead (natEqual action index) factor td hidden learningRate head
+    ∷ updateRemainingActionHeads action (suc index) rest factors td hidden learningRate
+
+updateAllActionHeads :
+  Nat -> List Int32 -> Int32 -> Int32 -> Int32 -> NonEmptyActionHeads ->
+  NonEmptyActionHeads
+updateAllActionHeads action actorDeltas td hidden learningRate
+    (MkActionHeads first rest) =
+  MkActionHeads
+    (updateOneActionHead (natEqual action zero) (nthQ zero actorDeltas)
+      td hidden learningRate first)
+    (updateRemainingActionHeads action (suc zero) rest (dropOne actorDeltas)
+      td hidden learningRate)
 
 ------------------------------------------------------------------------
 -- Recurrent actor-critic state and forward step
 ------------------------------------------------------------------------
+
+record ActionHead : Set where
+  constructor MkActionHead
+  field
+    actionActorWeight : StreamW
+    actionCriticWeight : StreamW
+open ActionHead public
+
+-- Each action owns one actor/critic pair; empty and mismatched heads are unrepresentable.
+record NonEmptyActionHeads : Set where
+  constructor MkActionHeads
+  field
+    firstActionHead : ActionHead
+    remainingActionHeads : List ActionHead
+open NonEmptyActionHeads public
+
+actionActorWeights : NonEmptyActionHeads -> List StreamW
+actionActorWeights (MkActionHeads first rest) =
+  actionActorWeight first ∷ mapList actionActorWeight rest
+
+actionCriticWeights : NonEmptyActionHeads -> List StreamW
+actionCriticWeights (MkActionHeads first rest) =
+  actionCriticWeight first ∷ mapList actionCriticWeight rest
+
+nthActionHead : Nat -> NonEmptyActionHeads -> ActionHead
+nthActionHead zero (MkActionHeads first rest) = first
+nthActionHead (suc n) (MkActionHeads first (next ∷ rest)) =
+  nthActionHead n (MkActionHeads next rest)
+nthActionHead (suc n) (MkActionHeads first []) = first
 
 record NetworkState : Set where
   constructor MkNetworkState
@@ -324,8 +366,7 @@ record NetworkState : Set where
     networkInputWeight : StreamW
     networkCandidateWeight : StreamW
     networkGateWeight : StreamW
-    networkActorWeights : List StreamW
-    networkCriticWeights : List StreamW
+    networkActionHeads : NonEmptyActionHeads
 open NetworkState public
 
 record NetworkOutput : Set where
@@ -346,16 +387,25 @@ record NetworkTrainingResult : Set where
     trainedTDError : Int32
 open NetworkTrainingResult public
 
+pairedActionHeads : List (Int32 × Int32) -> List ActionHead
+pairedActionHeads [] = []
+pairedActionHeads ((actorWeight , criticWeight) ∷ rest) =
+  MkActionHead (MkSW actorWeight 0) (MkSW criticWeight 0)
+    ∷ pairedActionHeads rest
+
 networkInitialState :
-  Int32 -> Int32 -> Int32 -> List Int32 -> List Int32 -> NetworkState
-networkInitialState inputWeight candidateWeight gateWeight actorWeights criticWeights =
+  Int32 -> Int32 -> Int32 -> Int32 -> Int32 ->
+  List (Int32 × Int32) -> NetworkState
+networkInitialState inputWeight candidateWeight gateWeight
+    firstActorWeight firstCriticWeight remainingWeights =
   MkNetworkState
     0
     (MkSW inputWeight 0)
     (MkSW candidateWeight 0)
     (MkSW gateWeight 0)
-    (streamFromValues actorWeights)
-    (streamFromValues criticWeights)
+    (MkActionHeads
+      (MkActionHead (MkSW firstActorWeight 0) (MkSW firstCriticWeight 0))
+      (pairedActionHeads remainingWeights))
 
 networkStep : Int32 -> Int32 -> NetworkState -> NetworkOutput
 networkStep observation draw state =
@@ -366,10 +416,10 @@ networkStep observation draw state =
           (streamWeight (networkGateWeight state))
       hidden = cellHiddenAfter cache
       logits = mapList (λ weight -> qMul weight hidden)
-                  (streamValues (networkActorWeights state))
+                  (streamValues (actionActorWeights (networkActionHeads state)))
       probabilities = policyProbabilities logits
       actionValues = mapList (λ weight -> qMul weight hidden)
-                       (streamValues (networkCriticWeights state))
+                       (streamValues (actionCriticWeights (networkActionHeads state)))
       action = sampleAction draw probabilities
       nextState =
         MkNetworkState
@@ -377,8 +427,7 @@ networkStep observation draw state =
           (networkInputWeight state)
           (networkCandidateWeight state)
           (networkGateWeight state)
-          (networkActorWeights state)
-          (networkCriticWeights state)
+          (networkActionHeads state)
   in MkNetworkOutput nextState action probabilities actionValues
 
 ------------------------------------------------------------------------
@@ -401,14 +450,16 @@ networkTrainStepSARSA observation currentDraw reward nextObservation nextDraw te
       hiddenCurrent = networkHidden (outputState current)
       actorLogits =
         mapList (λ weight -> qMul weight hiddenCurrent)
-          (streamValues (networkActorWeights state))
+          (streamValues (actionActorWeights (networkActionHeads state)))
       actorPreferences = mapList qPreference actorLogits
       preferenceTotal = sumQ64 actorPreferences
       actorScores = policyScoreFactors action preferenceTotal actorLogits actorPreferences
       actorDeltas = mapList (qMul td) actorScores
       actorHiddenSlope =
-        sumQ (zipWithList qMul (streamValues (networkActorWeights state)) actorScores)
-      criticCurrentWeight = streamWeight (nthStream action (networkCriticWeights state))
+        sumQ (zipWithList qMul
+          (streamValues (actionActorWeights (networkActionHeads state))) actorScores)
+      criticCurrentWeight =
+        streamWeight (actionCriticWeight (nthActionHead action (networkActionHeads state)))
       hiddenCotangent =
         qAdd (qMul td criticCurrentWeight) (qMul td actorHiddenSlope)
 
@@ -433,10 +484,9 @@ networkTrainStepSARSA observation currentDraw reward nextObservation nextDraw te
       gateWeightNext =
         streamStep (networkGateWeight state)
           (cellGateWeightCotangent pullback) qOne learningRate
-      actorWeightsNext =
-        updateActorWeights (networkActorWeights state) actorDeltas hiddenCurrent learningRate
-      criticWeightsNext =
-        updateCriticWeights action (networkCriticWeights state) td hiddenCurrent learningRate
+      actionHeadsNext =
+        updateAllActionHeads action actorDeltas td hiddenCurrent learningRate
+          (networkActionHeads state)
       finalHidden =
         if terminal then 0 else networkHidden (outputState next)
       nextState =
@@ -445,8 +495,7 @@ networkTrainStepSARSA observation currentDraw reward nextObservation nextDraw te
           inputWeightNext
           candidateWeightNext
           gateWeightNext
-          actorWeightsNext
-          criticWeightsNext
+          actionHeadsNext
   in MkTrainingResult nextState action target td
 
 ------------------------------------------------------------------------
@@ -549,8 +598,7 @@ networkApplySequenceGradient learningRate state gradient =
       (qFrom64 (candidateWeightGradient64 gradient)) qOne learningRate)
     (streamStep (networkGateWeight state)
       (qFrom64 (gateWeightGradient64 gradient)) qOne learningRate)
-    (networkActorWeights state)
-    (networkCriticWeights state)
+    (networkActionHeads state)
 
 ------------------------------------------------------------------------
 -- Small executable checks for Q8.24 scaling and SARSA terminal behavior
@@ -600,7 +648,6 @@ sarsaTerminalDoesNotBootstrap =
 {-# COMPILE AGDA2HS sumQ #-}
 {-# COMPILE AGDA2HS sumQ64 #-}
 {-# COMPILE AGDA2HS nthQ #-}
-{-# COMPILE AGDA2HS nthStream #-}
 {-# COMPILE AGDA2HS natEqual #-}
 {-# COMPILE AGDA2HS streamValues #-}
 {-# COMPILE AGDA2HS streamFromValues #-}
@@ -608,8 +655,16 @@ sarsaTerminalDoesNotBootstrap =
 {-# COMPILE AGDA2HS policyProbabilities #-}
 {-# COMPILE AGDA2HS sampleAction #-}
 {-# COMPILE AGDA2HS policyScoreFactors #-}
-{-# COMPILE AGDA2HS updateActorWeights #-}
-{-# COMPILE AGDA2HS updateCriticWeights #-}
+{-# COMPILE AGDA2HS ActionHead #-}
+{-# COMPILE AGDA2HS NonEmptyActionHeads #-}
+{-# COMPILE AGDA2HS actionActorWeights #-}
+{-# COMPILE AGDA2HS actionCriticWeights #-}
+{-# COMPILE AGDA2HS nthActionHead #-}
+{-# COMPILE AGDA2HS pairedActionHeads #-}
+{-# COMPILE AGDA2HS dropOne #-}
+{-# COMPILE AGDA2HS updateOneActionHead #-}
+{-# COMPILE AGDA2HS updateRemainingActionHeads #-}
+{-# COMPILE AGDA2HS updateAllActionHeads #-}
 {-# COMPILE AGDA2HS NetworkState #-}
 {-# COMPILE AGDA2HS NetworkOutput #-}
 {-# COMPILE AGDA2HS NetworkTrainingResult #-}
