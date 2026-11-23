@@ -87,6 +87,26 @@
           '';
         };
 
+      # Install pure-Lua iterators and the threaded Lua runtime into a project-local
+      # LuaRocks tree. Both interactive shells use the same LuaJIT/ABI and paths.
+      luaRocksShellHook = pkgs: ''
+        export AGDA_COMMAND="agda2hs-agda"
+        export NIX_BUILD_CORES=2
+        export MAKEFLAGS="-j2"
+        export LUAROCKS_TREE="$PWD/.luarocks"
+        export LUA_PATH="$LUAROCKS_TREE/share/lua/5.1/?.lua;$LUAROCKS_TREE/share/lua/5.1/?/init.lua;;"
+        export LUA_CPATH="$LUAROCKS_TREE/lib/lua/5.1/?.so;;"
+        export PTHREAD_DIR="${pkgs.glibc.dev}"
+        export PTHREAD_LIBDIR="${pkgs.glibc}/lib"
+        mkdir -p "$LUAROCKS_TREE"
+        if ! luarocks --tree "$LUAROCKS_TREE" show lanes >/dev/null 2>&1; then
+          luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.2-0 PTHREAD_DIR="$PTHREAD_DIR" PTHREAD_LIBDIR="$PTHREAD_LIBDIR"
+        fi
+        if ! luarocks --tree "$LUAROCKS_TREE" show fun >/dev/null 2>&1; then
+          luarocks --tree "$LUAROCKS_TREE" install fun 0.1.3-1
+        fi
+      '';
+
       agdaCli = system:
         let
           pkgs = pkgsFor system;
@@ -292,29 +312,13 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
+              pkgs.luajit
               pkgs.luajitPackages.luarocks-nix
               pkgs.stdenv.cc
               pkgs.gnumake
               (optimizedGhc system)
             ];
-            shellHook = ''
-              export AGDA_COMMAND="agda2hs-agda"
-              export NIX_BUILD_CORES=2
-              export MAKEFLAGS="-j2"
-              export LUAROCKS_TREE="$PWD/.luarocks"
-              export LUA_PATH="$LUAROCKS_TREE/share/lua/5.1/?.lua;$LUAROCKS_TREE/share/lua/5.1/?/init.lua;;"
-              export LUA_CPATH="$LUAROCKS_TREE/lib/lua/5.1/?.so;;"
-              # LuaRocks probes system paths unless given Nix pthread headers/libs.
-              export PTHREAD_DIR="${pkgs.glibc.dev}"
-              export PTHREAD_LIBDIR="${pkgs.glibc}/lib"
-              mkdir -p "$LUAROCKS_TREE"
-              if ! luarocks --tree "$LUAROCKS_TREE" show lanes >/dev/null 2>&1; then
-                luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.2-0 PTHREAD_DIR="$PTHREAD_DIR" PTHREAD_LIBDIR="$PTHREAD_LIBDIR"
-              fi
-              if ! luarocks --tree "$LUAROCKS_TREE" show fun >/dev/null 2>&1; then
-                luarocks --tree "$LUAROCKS_TREE" install fun 0.1.3-1
-              fi
-            '';
+            shellHook = luaRocksShellHook pkgs;
           };
 
           presentation = pkgs.mkShellNoCC {
@@ -336,7 +340,7 @@
             '';
           };
 
-          default = pkgs.mkShellNoCC {
+          default = pkgs.mkShell {
             packages = [
               (agdaCommand system)
               (agda2hsCommand system)
@@ -344,11 +348,13 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
+              pkgs.luajit
+              pkgs.luajitPackages.luarocks-nix
+              pkgs.stdenv.cc
+              pkgs.gnumake
               (optimizedGhc system)
             ];
-            shellHook = ''
-              export AGDA_COMMAND="agda2hs-agda"
-            '';
+            shellHook = luaRocksShellHook pkgs;
           };
         });
     };
