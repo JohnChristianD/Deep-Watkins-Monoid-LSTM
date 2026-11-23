@@ -45,7 +45,7 @@
 
 (local check-agda-theorem (fn []
   (run! "parallel typecheck of both Agda monoliths"
-    "fennel .ci/fennel/parallel-agda.fnl")
+    "luajit .ci/lua/parallel-agda.lua")
   (run! "create agda2hs output directory" "mkdir -p build/agda2hs")
   (run! "extract canonical CHAD RNN module"
     (.. "agda2hs "
