@@ -1,0 +1,108 @@
+-- Generate the CAT02-LMS maximin palette as ordinary CSS at build time.
+fun = require("fun")
+
+readFile = (path) ->
+  file = assert(io.open(path, "r"), "cannot read " .. path)
+  content = file:read("*a")
+  file:close()
+  content
+
+stylesheet = readFile("site/site.less")
+roleSource = assert(
+  string.match(stylesheet, "%-%-palette%-role%-names:%s*([^;]+);"),
+  "site/site.less must declare the semantic palette role registry"
+)
+
+roles = {}
+for role in string.gmatch(roleSource, "%-%-[%w%-]+")
+  table.insert(roles, role)
+
+assert(#roles > 0, "palette role registry is empty")
+
+MAX_CANDIDATES = 4096
+TAU = 6.283185307179586
+SQRT3 = 1.7320508075688772
+SQRT2 = 1.4142135623730951
+SQRT6 = 2.449489742783178
+DEG120 = 2.0943951023931953
+
+clamp01 = (value) ->
+  math.max(0.0, math.min(1.0, value))
+
+makeColour = (index) ->
+  extra = index - 90
+  hue = if index < 90
+    then TAU * (index % 18) / 18.0
+    else TAU * (extra % 720) / 720.0
+  light = if index < 90
+    then 0.28 + 0.045 * (index % 5)
+    else 0.18 + 0.0005 * (extra % 100)
+  red = clamp01(light + 0.34 * math.cos(hue))
+  green = clamp01(light + 0.34 * math.cos(hue - DEG120))
+  blue = clamp01(light + 0.34 * math.cos(hue + DEG120))
+  l = 0.7328 * red + 0.4296 * green - 0.1624 * blue
+  m = -0.7036 * red + 1.6975 * green + 0.0061 * blue
+  ss = 0.0030 * red + 0.0136 * green + 0.9834 * blue
+  {
+    r: red
+    g: green
+    b: blue
+    L: (l + m + ss) / SQRT3
+    A: (l - m) / SQRT2
+    B: (l + m - 2.0 * ss) / SQRT6
+  }
+
+distanceSquared = (left, right) ->
+  dL = left.L - right.L
+  dA = left.A - right.A
+  dB = left.B - right.B
+  dL * dL + dA * dA + dB * dB
+
+minimumDistance = (chosen, candidate) ->
+  return math.huge if #chosen == 0
+  best = math.huge
+  for colour in *chosen
+    best = math.min(best, distanceSquared(colour, candidate))
+  best
+
+roleCount = #roles
+candidateCount = math.min(MAX_CANDIDATES, roleCount * roleCount)
+candidates = fun.totable(fun.map(makeColour, fun.range(0, candidateCount - 1)))
+chosen = {}
+
+while #candidates > 0 and #chosen < roleCount
+  nextColour = candidates[1]
+  if #chosen > 0
+    best = minimumDistance(chosen, nextColour)
+    for index = 2, #candidates
+      candidate = candidates[index]
+      distance = minimumDistance(chosen, candidate)
+      -- Strict greater-than preserves candidate-order ties.
+      if distance > best
+        best = distance
+        nextColour = candidate
+  table.insert(chosen, nextColour)
+  remaining = {}
+  for candidate in *candidates
+    if distanceSquared(candidate, nextColour) > 0.0
+      table.insert(remaining, candidate)
+  candidates = remaining
+
+assert(#chosen == roleCount,
+  "palette generated " .. tostring(#chosen) .. " roles, expected " .. tostring(roleCount))
+
+rgbHex = (colour) ->
+  string.format("#%02X%02X%02X",
+    math.floor(255.0 * clamp01(colour.r) + 0.5),
+    math.floor(255.0 * clamp01(colour.g) + 0.5),
+    math.floor(255.0 * clamp01(colour.b) + 0.5))
+
+outputPath = arg[1] or "build/pages/palette.css"
+output = assert(io.open(outputPath, "w"), "cannot write " .. outputPath)
+output:write(":root {\n")
+for index, role in ipairs(roles)
+  output:write(string.format("  %s: %s;\n", role, rgbHex(chosen[index])))
+output:write("}\n")
+output:close()
+
+print("cat02lms-palette-css=pass roles=" .. tostring(roleCount))
