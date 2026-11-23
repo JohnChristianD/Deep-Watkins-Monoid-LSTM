@@ -1,6 +1,5 @@
 {-# OPTIONS
 --cubical=erased
---erased-propext
 --erased-quotient
 --lossy-unification
 --syntactic-equality=1
@@ -30,16 +29,24 @@ postulate
   rewG : (A : Set → Set) (X Y : Set) → G A X Y ≡ F (A X) (A Y)
 {-# REWRITE rewF rewG #-}
 
--- Runtime contract: Q12.20 values use Int32; widened products use Int64.
 
 qShift : Int
-qShift = 20
+qShift = 24
 
 qOne : Int32
-qOne = 1048576
+qOne = 16777216
+
+qBeta099 : Int32
+qBeta099 = 16609443
+
+qEpsStream : Int32
+qEpsStream = 65536
+
+qGamma : Int32
+qGamma = 16609443
 
 abs32 : Int32 -> Int32
-abs32 x = let m = shiftR x 31 in (xor x m) - m
+abs32 x = if x < 0 then 0 - x else x
 
 qmul : Int32 -> Int32 -> Int32
 qmul a b =
@@ -52,86 +59,111 @@ qdivSafe num den =
   if den <= 0
     then 0
     else
-      let num64 : Int64
-          num64 = shiftL (fromIntegral num) qShift
-          den64 : Int64
-          den64 = fromIntegral den
-      in fromIntegral (quot num64 den64)
+      let n64 : Int64
+          n64 = shiftL (fromIntegral num) qShift
+          d64 : Int64
+          d64 = fromIntegral den
+      in fromIntegral (quot n64 d64)
 
-softsignQ20 : Int32 -> Int32
-softsignQ20 x = qdivSafe x (qOne + abs32 x)
+qdivSq64 : Int32 -> Int32 -> Int32
+qdivSq64 num z =
+  let den64 : Int64
+      den64 = fromIntegral qOne + fromIntegral (abs32 z)
+      denSq : Int64
+      denSq = shiftR (den64 * den64) qShift
+      num64 : Int64
+      num64 = shiftL (fromIntegral num) qShift
+  in if denSq <= 0 then 0 else fromIntegral (quot num64 denSq)
 
-quantmoid4Q20 : Int32 -> Int32
-quantmoid4Q20 x =
+relu32 : Int32 -> Int32
+relu32 x = if 0 < x then x else 0
+
+softsignQ24 : Int32 -> Int32
+softsignQ24 x = qdivSafe x (qOne + abs32 x)
+
+quantmoid4Q24 : Int32 -> Int32
+quantmoid4Q24 x =
   let ax = abs32 x
       cl = if ax < qOne then ax else qOne
-      v  = cl - qOne
       v64 : Int64
-      v64 = fromIntegral v
+      v64 = fromIntegral (cl - qOne)
       vv : Int32
       vv = fromIntegral (shiftR (v64 * v64) (qShift + 1))
   in if 0 < x then qOne - vv else vv
 
--- Strict tail-recursive fold (Csimma rule: avoid lazy thunk buildup in extracted Haskell)
-foldlStrict : {a b : Set} -> (b -> a -> b) -> b -> List a -> b
-foldlStrict f acc []       = acc
-foldlStrict f acc (x ∷ xs) =
-  let acc' = f acc x
-  in seq acc' (foldlStrict f acc' xs)
+quanttanhQ24 : Int32 -> Int32
+quanttanhQ24 x = shiftL (quantmoid4Q24 x) 1 - qOne
 
-sum32 : List Int32 -> Int32
-sum32 = foldlStrict _+_ 0
+maeCotanQ24 : Int32 -> Int32
+maeCotanQ24 x = if 0 < x then qOne else if x < 0 then 0 - qOne else 0
 
-max32List : Int32 -> List Int32 -> Int32
-max32List = foldlStrict (\a b -> if b > a then b else a)
+qm4NoisyQ24 : Int32 -> Int32 -> Int32 -> Int32
+qm4NoisyQ24 wSig epsIn epsOut = qmul wSig (qmul epsIn epsOut)
 
--- Permutation-Equivariant DeepSets (DS: Mean || Max Softsign) + Iterative-CHAD dW_ent
-deepSetsStepChad : Int32 -> List Int32 -> Int32 -> Int32 × Int32
-deepSetsStepChad w es dAgg =
-  let n     = length es
-      k     = if 0 < n then fromIntegral n else 1
-      zs    = map (qmul w) es
-      phis  = map softsignQ20 zs
-      meanP = quot (sum32 phis) k
-      maxP  = max32List (- qOne) phis
-      agg   = shiftR meanP 1 + shiftR maxP 1
-      dMean = quot (shiftR dAgg 1) k
-      dPhi e phi z =
-        let dMax = if phi == maxP then shiftR dAgg 1 else 0
-            den  = qOne + abs32 z
-        in qmul (qdivSafe (dMean + dMax) (qmul den den)) e
-      dW    = sum32 (zipWith3 dPhi es phis zs)
-  in (agg , dW)
+data IsTrue : Bool -> Set where
+  IsOk : IsTrue true
 
--- State-Dependent GRU (Softsign state act, QuantMoid4 gate) + Iterative-CHAD (#1 Nash Anchor)
-gruChadStep : Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> Int32 × Int32 × Int32 × Int32
-gruChadStep x h wRec uGate dH lr =
-  let uIn  = x + qmul uGate h
-      g    = quantmoid4Q20 uIn
-      omg  = qOne - g
-      hLin = qmul g x + qmul (qmul omg wRec) h
-      hNxt = softsignQ20 hLin
-      den  = qOne + abs32 hLin
-      dLin = qdivSafe dH (qmul den den)
-      axu  = abs32 uIn
-      dgW  = if axu < qOne then qOne - axu else 0
-      dG   = qmul (qmul dLin (x - qmul wRec h)) dgW
-      dh0  = qmul dLin (qmul omg wRec) + qmul dG uGate
-      dwR  = qmul dLin (qmul omg h)
-      duG  = qmul dG h
-      wNew = wRec  + qmul lr dwR - shiftR wRec  16
-      uNew = uGate + qmul lr duG - shiftR uGate 16
-  in (hNxt , dh0 , wNew , uNew)
+@0 bornIntNonNeg : (re im : Integer) -> IsTrue (0 <= (re * re + im * im)) -> Int
+bornIntNonNeg _ _ _ = 0
+
+data StreamW : Set where
+  MkSW : Int32 -> Int32 -> StreamW
+
+data GRUReLUState : Set where
+  MkGRU : Int32 -> StreamW -> StreamW -> StreamW -> StreamW -> GRUReLUState
+
+streamStep : StreamW -> Int32 -> Int32 -> Int32 -> StreamW
+streamStep (MkSW w v) delta xin lr =
+  let u    = qmul delta xin
+      au   = abs32 u
+      vb   = qmul qBeta099 v
+      vnew = if vb < au then au else vb
+      upd  = qmul lr (qdivSafe u (vnew + qEpsStream))
+  in MkSW (w + upd - shiftR w 18) vnew
+
+stepIterativeChadAgda : Int32 -> GRUReLUState -> Int32 -> Int32 -> Int32 -> Int32 -> GRUReLUState
+stepIterativeChadAgda raw (MkGRU h (MkSW kW vk) (MkSW rW vr) (MkSW uW vu) (MkSW oW vo)) logPi rew qNxt lr =
+  let zCnn  = qmul kW raw
+      feat  = softsignQ24 zCnn
+      uIn   = feat + qmul uW h
+      g     = quantmoid4Q24 uIn
+      omg   = qOne - g
+      hLin  = qmul g feat + qmul (qmul omg rW) h
+      hRaw  = relu32 hLin
+      hNxt  = softsignQ24 hRaw
+      qCur  = qmul oW hNxt
+      rTot  = rew + shiftR logPi 7
+      delta = rTot + qmul qGamma qNxt - qCur
+      dk    = quanttanhQ24 delta
+      dLin  = if 0 < hLin then qdivSq64 (qmul dk oW) hRaw else 0
+      axu   = abs32 uIn
+      dgW   = if axu < qOne then qOne - axu else 0
+      dG    = qmul (qmul dLin (feat - qmul rW h)) dgW
+      dFeat = qmul dLin g + dG
+      dCnn  = qdivSq64 dFeat zCnn
+      lr2   = shiftR lr 1
+  in MkGRU hNxt
+       (streamStep (MkSW kW vk) dCnn raw lr2)
+       (streamStep (MkSW rW vr) (qmul dLin omg) h lr2)
+       (streamStep (MkSW uW vu) dG h lr2)
+       (streamStep (MkSW oW vo) dk hNxt lr)
 
 {-# COMPILE AGDA2HS qShift #-}
 {-# COMPILE AGDA2HS qOne #-}
+{-# COMPILE AGDA2HS qBeta099 #-}
+{-# COMPILE AGDA2HS qEpsStream #-}
+{-# COMPILE AGDA2HS qGamma #-}
 {-# COMPILE AGDA2HS abs32 #-}
 {-# COMPILE AGDA2HS qmul #-}
 {-# COMPILE AGDA2HS qdivSafe #-}
-{-# COMPILE AGDA2HS softsignQ20 #-}
-{-# COMPILE AGDA2HS quantmoid4Q20 #-}
-{-# COMPILE AGDA2HS foldlStrict #-}
-{-# COMPILE AGDA2HS sum32 #-}
-{-# COMPILE AGDA2HS max32List #-}
-{-# COMPILE AGDA2HS deepSetsStepChad #-}
-{-# COMPILE AGDA2HS gruChadStep #-}
+{-# COMPILE AGDA2HS qdivSq64 #-}
+{-# COMPILE AGDA2HS relu32 #-}
+{-# COMPILE AGDA2HS softsignQ24 #-}
+{-# COMPILE AGDA2HS quantmoid4Q24 #-}
+{-# COMPILE AGDA2HS quanttanhQ24 #-}
+{-# COMPILE AGDA2HS maeCotanQ24 #-}
+{-# COMPILE AGDA2HS qm4NoisyQ24 #-}
+{-# COMPILE AGDA2HS StreamW #-}
+{-# COMPILE AGDA2HS GRUReLUState #-}
+{-# COMPILE AGDA2HS streamStep #-}
+{-# COMPILE AGDA2HS stepIterativeChadAgda #-}
