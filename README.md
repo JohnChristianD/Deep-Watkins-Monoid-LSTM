@@ -1,141 +1,171 @@
-# Deep Watkins Monoid RNN
+# Deep Watkins RNN
 
-An Agda-first, Agda2HS-extracted recurrent actor-critic learner. The single canonical learner source is `FullCoupled/CanonicalLearnerMonolith.agda`; fixed-width vector kernels live behind its narrow Haskell FFI boundary.
+An Agda-first recurrent actor-critic prototype. The canonical learner is
+`FullCoupled/CanonicalLearnerMonolith.agda`. Agda checks the source;
+Agda2HS extracts the Haskell-compatible declarations; GHC checks the extracted
+module. The learner's numeric interface uses Q8.24 values stored in Int32 and
+widened Int64 intermediates.
 
-## Network architecture
+## Current learner
 
-The canonical module contains an actual composed recurrent neural network, not just disconnected layer sketches:
+The current implementation is intentionally a small scalar recurrent model.
+It has one recurrent hidden feature, one actor weight per action, and one
+critic weight per action. It is not a full-width vector GRU.
+
+For observation (x_t) and previous hidden state (h_{t-1}):
 
 ```text
-observation + previous hidden
-          │
-          ▼
-state-independent-candidate affine GRU
-          │
-          ▼
- MAD-LayerNorm → softsign
-          │
-          ├── concatenate observation + new hidden
-          │
-          ├──────────────────────────────────┐
-          ▼                                  ▼
-actor-only factorized NoisyNet       deterministic FQF critic
-          │                                  │
-Quantmoid4 policy probabilities       16 quantiles, learned fractions
-          │                                  │
-quantized-log Gumbel-Max action ─────► sampled-action evaluation
-          │
-persistent quantized noise duration
+z_t = softsign(w_x * x_t)
+g_t = hard_sigmoid(z_t + u_g * h_(t-1))
+c_t = ReLU(z_t + u_c * h_(t-1))
+h_t = ReLU((1 - g_t) * h_(t-1) + g_t * c_t)
 ```
 
-The candidate branch is affine in the current observation only. It has no previous-hidden-state term and no candidate activation. The gate is a shifted/rescaled softsign; the hidden-state update is a convex mix followed by MAD-LayerNorm and softsign.
+The gate is state-dependent: it reads the previous recurrent state. ReLU is
+applied to the candidate and final recurrent state. Softsign is used only in
+the input feature transform. The output policy is a categorical distribution
+formed from normalized positive linear preferences; the critic has one scalar
+Q estimate per action.
 
-The critic is deterministic. Factorized NoisyNet parameters and noise state belong exclusively to the actor. The selected action is sampled by Gumbel-Max using the same Quantmoid4-normalized policy probabilities returned in `NetworkStep`. The Gumbel score uses a range-reduced integer logarithm of those probabilities; the reward-shaping path separately clamps probabilities below `2^-16`. This keeps sampling and reported policy probability aligned up to Q20 and quantized-Gumbel error.
+Training uses one-step on-policy SARSA:
 
-There is **no LSTM** and **no epsilon-greedy selector** in the canonical learner source. The CI source audit rejects either strategy name in this file.
+```text
+a_t     ~ pi(. | s_t)
+a_(t+1) ~ pi(. | s_(t+1))
+target  = r_t                                      terminal
+        = r_t + gamma * Q(s_(t+1), a_(t+1))        otherwise
+```
 
-## Fixed-width types: explicit Agda declarations
+The terminal branch does not bootstrap. The same sampled next action is used
+for the SARSA target. The action-head dimensions are represented as ordinary
+lists at this stage; callers must supply matching non-empty actor and critic
+weight lists.
 
-Viktor Csimma's Agda2HS work does not mandate these widths as a universal numerical recommendation. Its relevant point is that Haskell machine integers are not native Agda builtin types; an Agda2HS project must establish the representation bridge. This repository now declares the machine types in Agda and maps them explicitly:
+FQF is postponed. DeepSets has been removed. There is no LSTM, epsilon-greedy
+selector, Munchausen return, or multi-step target in this version.
 
-| Agda type | Extracted Haskell type | Project role |
-| --- | --- | --- |
-| `Int32` | `Data.Int.Int32` | Q12.20 parameters, activations, rewards, quantile values and gradients |
-| `Int64` | `Data.Int.Int64` | widened products, reductions and CHAD cotangent accumulation |
-| `Word32` | `Data.Word.Word32` | PRNG output word and bit operations |
-| `Word64` | `Data.Word.Word64` | PRNG state and deterministic sampling seed |
-| `Int8` | `Data.Int.Int8` | optional packed Q1.6 inference weights; project-specific, not a Csimma requirement |
+## Fixed-point arithmetic
 
-The corresponding Agda declarations are opaque postulates with `COMPILE AGDA2HS ... existing` mappings. Q12.20 uses scale `2^20 = 1,048,576`. Int32 arithmetic widens to Int64 for products and reductions, rounds ties to even, then saturates on narrowing. Division-by-zero has an explicit result constructor. The vector-length index is erased; Agda's builtin `Nat` is a type-level length witness, not the runtime numeric representation.
+The Q8.24 scale is (2^{24} = 16,777,216). The current arithmetic layer
+includes saturating narrowing, widened products, signed division, ReLU,
+softsign, and a hard-sigmoid gate. Products use Int64 intermediates before
+shifting back into Q8.24 Int32 values.
 
-No floating-point values or floating-point operations occur in the learner's fixed-point kernels. The optional Int8 path is a storage/inference choice; master parameters and training directions remain Int32.
+The learner imports `Haskell.Prelude`, `Haskell.Data.Int`, and
+`Haskell.Data.Bits`. No Agda rewrite postulates or C FFI shims are required
+for the current scalar kernel.
 
-References: [Csimma, “Reasonable Agda Is Correct Haskell” (Haskell '22)](https://csimmaviktor.web.elte.hu/ReasonableAgdaIsCorrectHaskell.pdf), [Agda2HS documentation](https://agda.github.io/agda2hs/).
+MicroHs is a separate optional C-backend route; it is not yet wired into this
+flake. For a bootstrap MicroHs compiler, the relevant upstream files are:
 
-## Integrated policy and target construction
+| MicroHs source | Role |
+| --- | --- |
+| `generated/mhs.c` | Embedded combinator program for the compiler |
+| `src/runtime/main.c` | Runtime executable entry point |
+| `src/runtime/eval.c` | Combinator evaluator |
+| `src/runtime/bfile.c` | Included from `eval.c`; do not compile separately |
+| `src/runtime/mhsffi.h` | Runtime declarations and configuration include |
+| `src/runtime/unix/config.h` | Unix runtime configuration |
+| `src/runtime/*.h`, `src/runtime/unix/*.h` | Runtime headers |
+| `mhs.conf.in`, `Makefile` | Build configuration and targets |
 
-The canonical network exports these composed operations:
+For the learner executable, MicroHs generates its own C file. That learner C
+file is linked with the runtime; `generated/mhs.c` is needed to bootstrap the
+compiler, not to link every learner. The upstream Makefile and
+`eval.c` are authoritative about included runtime C files.
+See [MicroHs](https://github.com/augustss/MicroHs),
+[its Makefile](https://github.com/augustss/MicroHs/blob/master/Makefile),
+[the evaluator](https://github.com/augustss/MicroHs/blob/master/src/runtime/eval.c),
+and [BFILE](https://github.com/augustss/MicroHs/blob/master/src/runtime/bfile.c).
 
-- `networkStep`: causal GRU transition, actor probabilities, Gumbel-Max sampled action, deterministic selected-action FQF distribution, value and next state.
-- `networkStepForAction`: same causal transition and critic evaluation for a supplied behavior action; useful when the collector supplies the action.
-- `networkMunchausenReward`: signed log-policy shaping for the action actually taken.
-- `networkSarsa3DistributionalTarget`: three-step sampled SARSA target; preserves the bootstrap FQF widths while shifting/scaling its quantile values.
-- `networkMunchausenSarsa3Target`: composes Munchausen shaping for all three behavior rewards with the sampled distributional SARSA target.
-- `networkTrainSampleFromTarget`: packages target widths and target quantiles for the learner.
+MicroHs exposes `Data.Int.Int32` and `Data.Int.Int64`; the Int32
+implementation and generated C boundary still need boundary/parity tests
+before treating MicroHs output as interchangeable with Agda2HS/GHC output.
 
-The three-step backup uses the behavior action at the bootstrap state, never an action maximum. Terminal flags shorten the return at the first terminal transition. Munchausen shaping uses `r + alpha * tau * log(pi(a|s))`, with `alpha = 1/16` and `tau = 1/8`. The logarithm uses a range-reduced fixed-point series; the reward-shaping path clamps probabilities below `2^-16`. A numerical error bound and cross-check against a high-precision reference still need to be added.
+## Iterative CHAD status
 
-## FQF and quantile-Huber learner
+The recurrent cell has a local VJP for the smooth shadow of the Q8.24
+operations. It differentiates the ReLU branch indicators and hard-sigmoid
+piecewise slope, then propagates through the input softsign transform.
 
-The critic fixes the fraction/value count at 16. The fraction head is normalized into positive widths, cumulative widths give quantile midpoints, and the value head gives action-specific quantile estimates. The pairwise quantile-Huber loss and descent direction are implemented in the integer kernel. Each target atom's contribution is weighted by its FQF fraction width; the loss averages over predicted quantiles and integrates over the target distribution.
+`iterativeCHAD` stores the finite primal trace, then scans it from newest to
+oldest. The scan threads the recurrent-state cotangent and Int64 parameter
+accumulators; it returns per-input cotangents in chronological order.
+`networkSequenceVJP` connects the scan to the current recurrent weights.
+`networkApplySequenceGradient` applies the resulting recurrent parameter
+directions.
 
-The FQF fraction-proposal direction follows the structure of Proposition 1 in the FQF paper: each interior boundary uses the difference between twice the quantile value at the boundary and its neighboring midpoint quantile values. Since this project has discrete learned quantile samples rather than an exact inverse-CDF oracle, the boundary value is obtained by piecewise-linear interpolation between adjacent midpoint estimates. That is an explicit numerical surrogate, not an exact symbolic inverse-CDF gradient. [Fully Parameterized Quantile Function](https://proceedings.neurips.cc/paper_files/paper/2019/hash/f471223d1a1614b58a7dc45c9d01df19-Abstract.html).
+This is a learner-specific recurrent reverse scan, not a general CHAD
+compiler. Its local cotangents are supplied by the caller; the module does
+not yet derive a full sequence loss and automatically feed all actor/critic
+losses into the scan. The VJP describes the smooth shadow while holding
+piecewise branches fixed. It does not differentiate integer rounding,
+saturation, or categorical action sampling. There is no machine-checked
+derivative-correctness theorem yet.
 
-## Iterative CHAD integration
+The one-step update uses the local cell pullback directly. Sequence-level
+recurrent gradients use `networkSequenceVJP` and are applied separately.
+Numerical and gradient parity tests are still required.
 
-The canonical learner now connects the network's GRU, actor and FQF pullbacks through one state-passing reverse scan:
+## LuaFun, YueScript, and Lanes
 
-- `linearRowsVJP`, `noisyLinearVJP`, `gruStepVJP`, `actorLogProbabilityVJP`, and `fqfActionVJP` provide local smooth-shadow pullbacks.
-- `networkStepVJP` joins the policy, value/fraction and recurrent cotangents at the shared feature vector and returns the previous-hidden and observation directions.
-- `networkParameterVector` and `networkWithParameterVector` define one canonical parameter order across all three components.
-- `iterativeCHADForward` stores the finite primal trace; one chronological pass then pairs each frame with its output cotangent and conses it into a newest-to-oldest frame spine.
-- `iterativeCHADBackwardAcc` is a tail-position scan over that reverse spine. It threads three explicit accumulators: recurrent-state cotangent, parameter cotangent, and input cotangents. Parameter directions are summed as they arrive instead of recursively returning nested partial parameter vectors.
-- Parameter cotangents are lifted to Int64 vectors during the reverse scan and narrowed once after the complete unroll. This avoids repeated saturating Int32 addition at every time step. Input cotangents are reassembled in chronological order.
+The build and CI tools are YueScript compiled for Lua 5.1 and run by LuaJIT.
+YueScript is installed with LuaRocks into the project-local `.luarocks` tree.
+Fennel is no longer part of the build.
 
-The Agda work-count model proves that an unroll of length `n` has exactly `n` forward-cell frames, `n` reverse-cell applications and `n` parameter-accumulator updates. The reverse pass uses an explicit growing accumulator, following the state-passing principle in Efficient CHAD. With dense parameter dimension `P`, those vector accumulations cost `O(nP)`; the saved primal trace is linear in horizon and per-step state/input/output storage. This is a bound for the explicit scan and dense vector representation here, not a theorem about every CHAD program.
+LuaFun represents iterators as generator/parameter/state triples. Its
+`map`, `filter`, `zip`, `chain`, and `foldl` operations compose
+iterators. An iterator is pure only when its generator is deterministic for a
+given parameter/state pair and does not mutate them. LuaFun does not enforce
+purity.
 
-The implementation is an iterative, state-passed CHAD-style scan for this learner. It is not a general source-to-source CHAD compiler, and the FFI kernels' smooth-shadow VJPs do not yet have a machine-checked derivative-correctness theorem. Integer rounding, saturation, quantized noise tables, factorized noise samples and Gumbel-Max selection are discrete boundaries; pullbacks differentiate the declared smooth Q20 shadow while holding those sampled/discrete choices fixed.
+This is a compositional iterator style, not Joy/Factor's native concatenative
+stack language. Joy/Factor words compose stack transformations through
+juxtaposition; LuaFun composes iterator values through function calls. A
+stack-effect layer could be built on LuaFun, but would be an additional
+convention.
 
-Research context: [Unraveling the Iterative CHAD](https://arxiv.org/abs/2505.15002), [Efficient CHAD](https://arxiv.org/abs/2307.05738).
+YueScript and Teal can both target Lua 5.1 output; generated module/runtime
+compatibility matters more than a blanket language ranking. YueScript is the
+project's source syntax. Teal can be added later for static declarations.
+LuaFun transformations stay in the LuaJIT process; Lua Lanes runs the two
+Agda checks concurrently using separate Lua states and OS threads, not
+separate processes.
 
-## ObGD and sequential UTD=2 updates
+The CI caches `.luarocks` and `.cache`, so installed rocks and Agda
+interfaces can be reused between runs. `.ci/yue/parallel_agda.yue` builds
+two isolated persistent Agda workspaces. `AGDA_PROFILE=modules` can be set
+to collect Agda's module profile.
 
-The learner includes:
+## Verification
 
-- `qTraceAdvance`: decayed eligibility/update-direction trace.
-- `l2Gradient`: an update direction with coefficient `16 / 2^20 = 1/2^16`, pointing toward zero.
-- `qObgdEffectiveStep` and `qObgdUpdate`: a conservative Q20 step bound based on the configured curvature factor, residual magnitude and L1 trace norm.
-- `networkTrainSequenceVJP`: full finite-horizon reverse-mode pass over chronological training samples.
-- `networkTrainSequenceUTD2`: two updates per sample with one-step truncated BPTT; recurrent and noise time advance once per environment sample.
-- `networkTrainChunkUTD2`: two parameter updates per non-empty chronological chunk, using full-unroll CHAD/BPTT; recurrent/noise state advances once per chunk.
+The CI workflow compiles every `.yue` file to Lua 5.1, runs the LuaJIT CI
+driver, typechecks the two Agda modules concurrently, extracts the learner
+with Agda2HS, and checks the generated Haskell with an unoptimized
+`ghc-check -fno-code` wrapper. The optimized GHC wrapper remains available
+for actual executable builds.
 
-The ObGD step is applied to the combined policy/value/fraction update direction, with unit scalar residual because each component direction already contains its own actor advantage or quantile-Huber residual. This is a gradient-direction adaptation of the ObGD bound, not a proof that the paper's scalar-TD convergence theorem transfers unchanged to this mixed objective. The two UTD=2 entry points have different horizons as stated above; choose the full-unroll chunk operation when recurrent credit assignment across the chunk is required.
+A green typecheck/extraction run does not establish numerical parity or
+correctness of the smooth-shadow VJPs. Still needed:
 
-Training samples and target distributions are supplied by the caller. The module does not yet supply an environment, data loader, replay store, or behavior collector. It is therefore a connected learner/update core, not a turnkey RL application.
+- property tests for saturating Q8.24 arithmetic, signed division, and
+  boundary behavior;
+- finite-difference/reference tests for the recurrent, actor, and critic
+  pullbacks;
+- categorical policy probability and action-sampling tests;
+- SARSA terminal/bootstrap alignment tests;
+- Agda2HS/GHC and MicroHs/C runtime parity tests;
+- a documented end-to-end training run.
 
-## Verification and trust boundary
-
-CI typechecks the Agda modules, extracts the canonical module with Agda2HS, typechecks the generated Haskell module with GHC, audits for forbidden LSTM/epsilon-greedy paths, floating-point runtime types, explicit fixed-width type bridges and the composed network/CHAD/UTD2 entry points. A green extraction/typecheck verifies the declared Agda and Haskell interfaces; it does not establish numerical parity or the mathematical correctness of every foreign kernel.
-
-Still needed for a verified training claim:
-
-- property tests for saturating arithmetic, ties-to-even rounding, fixed-point division and Quantmoid4 reference vectors;
-- finite-difference/reference tests for GRU, MAD-LayerNorm, actor, quantile-value and FQF fraction pullbacks;
-- actor-noise isolation, selected-action probability and Gumbel sampling distribution checks;
-- terminal/bootstrap alignment and integer-log approximation error bounds;
-- ObGD step-bound tests and extracted-Haskell runtime parity tests;
-- an end-to-end chronological training run on a documented data set.
-
-Run locally:
+## Local commands
 
 ```sh
-nix develop --quiet .#agda-ci -c fennel .ci/fennel/parallel-agda.fnl
-nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All
+nix develop --quiet .#agda-ci
+yue --target 5.1 -o build/yue/ci.lua .ci/yue/ci.yue
+yue --target 5.1 -o build/yue/parallel_agda.lua .ci/yue/parallel_agda.yue
+yue --target 5.1 -o build/yue/pages.lua .ci/yue/pages.yue
+yue --target 5.1 -o build/yue/palette_css.lua .ci/yue/palette_css.yue
+yue --target 5.1 -o build/yue/russ_audit.lua .ci/yue/russ_audit.yue
+luajit build/yue/ci.lua All
 ```
 
-## Repository layout
-
-```text
-.
-├── .ci/
-│   ├── agda/
-│   └── fennel/
-├── .github/workflows/github-pages.yml
-├── FullCoupled/
-│   ├── CanonicalLearnerMonolith.agda
-│   └── TheoremsMonolith.agda
-├── flake.nix
-├── README.md
-├── index.html
-└── site.css
-```
