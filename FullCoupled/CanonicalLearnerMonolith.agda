@@ -1,169 +1,587 @@
 {-# OPTIONS
---cubical=erased
---erased-quotient
 --lossy-unification
 --syntactic-equality=1
---no-eta-equality
---no-projection-like
---no-fast-reduce
 --exact-split
---rewriting
---confluence-check
 #-}
 
+module FullCoupled.CanonicalLearnerMonolith where
+
 ------------------------------------------------------------------------
--- Pure fixed-point learner kernel.
--- Recurrent state is explicit input/output; Lua owns orchestration only.
+-- Q8.24 scalar recurrent actor-critic.
+--
+-- One recurrent feature unit, a categorical actor head, and per-action
+-- scalar Q values. The policy is a normalized positive linear preference
+-- model. FQF and DeepSets are deliberately outside this version.
 ------------------------------------------------------------------------
 
 open import Haskell.Prelude public
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
-open import Agda.Builtin.Equality.Rewrite public
-
-postulate
-  S : Set
-  F : Set → Set → Set
-  G : (Set → Set) → Set → Set → Set
-  rewF : (A : Set) → F A A ≡ S
-  rewG : (A : Set → Set) (X Y : Set) → G A X Y ≡ F (A X) (A Y)
-{-# REWRITE rewF rewG #-}
-
 
 qShift : Int
 qShift = 24
 
-qOne : Int32
-qOne = 16777216
+qOne qHalf qQuarter qTwo : Int32
+qOne     = 16777216
+qHalf    = 8388608
+qQuarter = 4194304
+qTwo     = 33554432
 
-qBeta099 : Int32
-qBeta099 = 16609443
+qMax64 qMin64 : Int64
+qMax64 = 2147483647
+qMin64 = -2147483648
 
-qEpsStream : Int32
-qEpsStream = 65536
+qBeta qEpsilon qGamma : Int32
+qBeta    = 16609444
+qEpsilon = 65536
+qGamma   = 16609444
 
-qGamma : Int32
-qGamma = 16609443
+qFrom64 : Int64 -> Int32
+qFrom64 x =
+  fromIntegral
+    (if qMax64 < x then qMax64
+     else if x < qMin64 then qMin64
+     else x)
 
-abs32 : Int32 -> Int32
-abs32 x = if x < 0 then 0 - x else x
+qAdd : Int32 -> Int32 -> Int32
+qAdd x y = qFrom64 (fromIntegral x + fromIntegral y)
 
-qmul : Int32 -> Int32 -> Int32
-qmul a b =
-  let prod : Int64
-      prod = (fromIntegral a) * (fromIntegral b)
-  in fromIntegral (shiftR prod qShift)
+qSub : Int32 -> Int32 -> Int32
+qSub x y = qFrom64 (fromIntegral x - fromIntegral y)
 
-qdivSafe : Int32 -> Int32 -> Int32
-qdivSafe num den =
-  if den <= 0
-    then 0
-    else
-      let n64 : Int64
-          n64 = shiftL (fromIntegral num) qShift
-          d64 : Int64
-          d64 = fromIntegral den
-      in fromIntegral (quot n64 d64)
+qNeg : Int32 -> Int32
+qNeg x = qFrom64 (0 - fromIntegral x)
 
-qdivSq64 : Int32 -> Int32 -> Int32
-qdivSq64 num z =
-  let den64 : Int64
-      den64 = fromIntegral qOne + fromIntegral (abs32 z)
-      denSq : Int64
-      denSq = shiftR (den64 * den64) qShift
-      num64 : Int64
-      num64 = shiftL (fromIntegral num) qShift
-  in if denSq <= 0 then 0 else fromIntegral (quot num64 denSq)
+qClamp : Int32 -> Int32 -> Int32 -> Int32
+qClamp x lo hi = if x < lo then lo else if hi < x then hi else x
 
-relu32 : Int32 -> Int32
-relu32 x = if 0 < x then x else 0
+qAbs : Int32 -> Int32
+qAbs x = if x < 0 then qFrom64 (0 - fromIntegral x) else x
 
-softsignQ24 : Int32 -> Int32
-softsignQ24 x = qdivSafe x (qOne + abs32 x)
+qMul : Int32 -> Int32 -> Int32
+qMul x y =
+  qFrom64
+    (shiftR (fromIntegral x * fromIntegral y) qShift)
 
-quantmoid4Q24 : Int32 -> Int32
-quantmoid4Q24 x =
-  let ax = abs32 x
-      cl = if ax < qOne then ax else qOne
-      v64 : Int64
-      v64 = fromIntegral (cl - qOne)
-      vv : Int32
-      vv = fromIntegral (shiftR (v64 * v64) (qShift + 1))
-  in if 0 < x then qOne - vv else vv
+qDiv64 : Int32 -> Int64 -> Int32
+qDiv64 numerator denominator =
+  if denominator <= 0 then 0
+  else
+    qFrom64
+      (quot (shiftL (fromIntegral numerator) qShift) denominator)
 
-quanttanhQ24 : Int32 -> Int32
-quanttanhQ24 x = shiftL (quantmoid4Q24 x) 1 - qOne
+qDiv : Int32 -> Int32 -> Int32
+qDiv numerator denominator =
+  if denominator == 0 then 0
+  else
+    qFrom64
+      (quot
+        (shiftL (fromIntegral numerator) qShift)
+        (fromIntegral denominator))
 
-maeCotanQ24 : Int32 -> Int32
-maeCotanQ24 x = if 0 < x then qOne else if x < 0 then 0 - qOne else 0
+-- Q8.24 derivative of x / (1 + |x|).
+qSoftsignGrad : Int32 -> Int32
+qSoftsignGrad x =
+  let denominator = fromIntegral qOne + fromIntegral (qAbs x)
+      denominatorSquared = shiftR (denominator * denominator) qShift
+  in qDiv64 qOne denominatorSquared
 
-qm4NoisyQ24 : Int32 -> Int32 -> Int32 -> Int32
-qm4NoisyQ24 wSig epsIn epsOut = qmul wSig (qmul epsIn epsOut)
+qSoftsign : Int32 -> Int32
+qSoftsign x = qDiv x (qAdd qOne (qAbs x))
 
-data IsTrue : Bool -> Set where
-  IsOk : IsTrue true
+qRelu : Int32 -> Int32
+qRelu x = if 0 < x then x else 0
 
-@0 bornIntNonNeg : (re im : Integer) -> IsTrue (0 <= (re * re + im * im)) -> Int
-bornIntNonNeg _ _ _ = 0
+-- Hard-sigmoid update gate: clamp(1/2 + x/4, 0, 1).
+qHardSigmoid : Int32 -> Int32
+qHardSigmoid x = qClamp (qAdd qHalf (qMul x qQuarter)) 0 qOne
 
-data StreamW : Set where
-  MkSW : Int32 -> Int32 -> StreamW
+qHardSigmoidGrad : Int32 -> Int32
+qHardSigmoidGrad x =
+  if qNeg qTwo < x && x < qTwo then qQuarter else 0
 
-data GRUReLUState : Set where
-  MkGRU : Int32 -> StreamW -> StreamW -> StreamW -> StreamW -> GRUReLUState
+qSarsaOneStepTarget : Int32 -> Int32 -> Bool -> Int32
+qSarsaOneStepTarget reward nextActionValue terminal =
+  if terminal then reward
+  else qAdd reward (qMul qGamma nextActionValue)
+
+------------------------------------------------------------------------
+-- Optimizer state and recurrent cell
+------------------------------------------------------------------------
+
+record StreamW : Set where
+  constructor MkSW
+  field
+    streamWeight : Int32
+    streamMaxGrad : Int32
+open StreamW public
 
 streamStep : StreamW -> Int32 -> Int32 -> Int32 -> StreamW
-streamStep (MkSW w v) delta xin lr =
-  let u    = qmul delta xin
-      au   = abs32 u
-      vb   = qmul qBeta099 v
-      vnew = if vb < au then au else vb
-      upd  = qmul lr (qdivSafe u (vnew + qEpsStream))
-  in MkSW (w + upd - shiftR w 18) vnew
+streamStep (MkSW weight maxGrad) delta input learningRate =
+  let gradient = qMul delta input
+      magnitude = qAbs gradient
+      decayedMax = qMul qBeta maxGrad
+      nextMax = if decayedMax < magnitude then magnitude else decayedMax
+      denominator = qAdd nextMax qEpsilon
+      update = qMul learningRate (qDiv gradient denominator)
+      decay = shiftR weight 18
+  in MkSW (qSub (qAdd weight update) decay) nextMax
 
-stepIterativeChadAgda : Int32 -> GRUReLUState -> Int32 -> Int32 -> Int32 -> Int32 -> GRUReLUState
-stepIterativeChadAgda raw (MkGRU h (MkSW kW vk) (MkSW rW vr) (MkSW uW vu) (MkSW oW vo)) logPi rew qNxt lr =
-  let zCnn  = qmul kW raw
-      feat  = softsignQ24 zCnn
-      uIn   = feat + qmul uW h
-      g     = quantmoid4Q24 uIn
-      omg   = qOne - g
-      hLin  = qmul g feat + qmul (qmul omg rW) h
-      hRaw  = relu32 hLin
-      hNxt  = softsignQ24 hRaw
-      qCur  = qmul oW hNxt
-      rTot  = rew + shiftR logPi 7
-      delta = rTot + qmul qGamma qNxt - qCur
-      dk    = quanttanhQ24 delta
-      dLin  = if 0 < hLin then qdivSq64 (qmul dk oW) hRaw else 0
-      axu   = abs32 uIn
-      dgW   = if axu < qOne then qOne - axu else 0
-      dG    = qmul (qmul dLin (feat - qmul rW h)) dgW
-      dFeat = qmul dLin g + dG
-      dCnn  = qdivSq64 dFeat zCnn
-      lr2   = shiftR lr 1
-  in MkGRU hNxt
-       (streamStep (MkSW kW vk) dCnn raw lr2)
-       (streamStep (MkSW rW vr) (qmul dLin omg) h lr2)
-       (streamStep (MkSW uW vu) dG h lr2)
-       (streamStep (MkSW oW vo) dk hNxt lr)
+record CellCache : Set where
+  constructor MkCellCache
+  field
+    cellRaw : Int32
+    cellHiddenBefore : Int32
+    cellPreFeature : Int32
+    cellFeature : Int32
+    cellGateInput : Int32
+    cellGate : Int32
+    cellCandidateInput : Int32
+    cellCandidate : Int32
+    cellHiddenAfter : Int32
+open CellCache public
+
+cellForward : Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> CellCache
+cellForward raw hidden inputWeight candidateWeight gateWeight =
+  let preFeature = qMul inputWeight raw
+      feature = qSoftsign preFeature
+      gateInput = qAdd feature (qMul gateWeight hidden)
+      gate = qHardSigmoid gateInput
+      candidateInput = qAdd feature (qMul candidateWeight hidden)
+      candidate = qRelu candidateInput
+      hiddenAfter =
+        qAdd
+          (qMul (qSub qOne gate) hidden)
+          (qMul gate candidate)
+  in MkCellCache
+       raw hidden preFeature feature gateInput gate
+       candidateInput candidate hiddenAfter
+
+record CellPullback : Set where
+  constructor MkCellPullback
+  field
+    cellHiddenCotangent : Int32
+    cellInputWeightCotangent : Int32
+    cellCandidateWeightCotangent : Int32
+    cellGateWeightCotangent : Int32
+open CellPullback public
+
+-- VJP of the smooth shadow of the quantized recurrent cell.
+-- ReLU contributes its indicator derivative; Softsign is used only by
+-- the input feature map and has its own derivative.
+cellPullback :
+  Int32 -> Int32 -> CellCache -> Int32 -> CellPullback
+cellPullback inputWeight candidateWeight cache hiddenCotangent =
+  let gate = cellGate cache
+      hidden = cellHiddenBefore cache
+      candidate = cellCandidate cache
+      candidateCotangent = qMul hiddenCotangent gate
+      candidateInputCotangent =
+        if 0 < cellCandidateInput cache then candidateCotangent else 0
+      gateCotangent = qMul hiddenCotangent (qSub candidate hidden)
+      gateInputCotangent =
+        qMul gateCotangent (qHardSigmoidGrad (cellGateInput cache))
+      featureCotangent = qAdd candidateInputCotangent gateInputCotangent
+      preFeatureCotangent =
+        qMul featureCotangent (qSoftsignGrad (cellPreFeature cache))
+      inputWeightCotangent = qMul preFeatureCotangent (cellRaw cache)
+      candidateWeightCotangent = qMul candidateInputCotangent hidden
+      gateWeightCotangent = qMul gateInputCotangent hidden
+      hiddenCotangentBefore =
+        qAdd
+          (qMul hiddenCotangent (qSub qOne gate))
+          (qAdd
+            (qMul candidateInputCotangent candidateWeight)
+            (qMul gateInputCotangent inputWeight))
+  in MkCellPullback
+       hiddenCotangentBefore
+       inputWeightCotangent
+       candidateWeightCotangent
+       gateWeightCotangent
+
+------------------------------------------------------------------------
+-- Functional lists used by action heads
+------------------------------------------------------------------------
+
+mapList : {A B : Set} -> (A -> B) -> List A -> List B
+mapList f [] = []
+mapList f (x ∷ xs) = f x ∷ mapList f xs
+
+zipWithList : {A B C : Set} -> (A -> B -> C) -> List A -> List B -> List C
+zipWithList f [] ys = []
+zipWithList f xs [] = []
+zipWithList f (x ∷ xs) (y ∷ ys) = f x y ∷ zipWithList f xs ys
+
+sumQ : List Int32 -> Int32
+sumQ = go 0
+  where
+    go : Int32 -> List Int32 -> Int32
+    go total [] = total
+    go total (x ∷ xs) = go (qAdd total x) xs
+
+sumQ64 : List Int32 -> Int64
+sumQ64 = go 0
+  where
+    go : Int64 -> List Int32 -> Int64
+    go total [] = total
+    go total (x ∷ xs) = go (total + fromIntegral x) xs
+
+nthQ : Nat -> List Int32 -> Int32
+nthQ zero (x ∷ xs) = x
+nthQ (suc n) (x ∷ xs) = nthQ n xs
+nthQ n [] = 0
+
+nthStream : Nat -> List StreamW -> StreamW
+nthStream zero (x ∷ xs) = x
+nthStream (suc n) (x ∷ xs) = nthStream n xs
+nthStream n [] = MkSW 0 0
+
+natEqual : Nat -> Nat -> Bool
+natEqual zero zero = true
+natEqual zero (suc n) = false
+natEqual (suc n) zero = false
+natEqual (suc m) (suc n) = natEqual m n
+
+streamValues : List StreamW -> List Int32
+streamValues = mapList streamWeight
+
+streamFromValues : List Int32 -> List StreamW
+streamFromValues [] = []
+streamFromValues (w ∷ ws) = MkSW w 0 ∷ streamFromValues ws
+
+------------------------------------------------------------------------
+-- Categorical policy: normalized positive linear preferences
+------------------------------------------------------------------------
+
+qPreference : Int32 -> Int32
+qPreference logit =
+  qAdd qQuarter (qAdd qOne (qClamp logit (qNeg qOne) qOne))
+
+policyProbabilities : List Int32 -> List Int32
+policyProbabilities logits =
+  let preferences = mapList qPreference logits
+      total = sumQ64 preferences
+  in mapList (λ preference -> qDiv64 preference total) preferences
+
+sampleAction : Int32 -> List Int32 -> Nat
+sampleAction draw probabilities = go zero 0 zero probabilities
+  where
+    go : Nat -> Int32 -> Nat -> List Int32 -> Nat
+    go index cumulative lastIndex [] = lastIndex
+    go index cumulative lastIndex (probability ∷ rest) =
+      let nextCumulative = qAdd cumulative probability
+      in if qClamp draw 0 (qSub qOne 1) < nextCumulative
+         then index
+         else go (suc index) nextCumulative index rest
+
+-- d log pi(action | h) / d logit(j), including preference-clamp derivative.
+policyScoreFactors :
+  Nat -> Int64 -> List Int32 -> List Int32 -> List Int32
+policyScoreFactors action total = go zero
+  where
+    go : Nat -> List Int32 -> List Int32 -> List Int32
+    go index [] prefs = []
+    go index logits [] = []
+    go index (logit ∷ logits) (preference ∷ preferences) =
+      let active = qNeg qOne < logit && logit < qOne
+          selected = if natEqual index action then qDiv64 qOne (fromIntegral preference) else 0
+          normalizer = qDiv64 qOne total
+          score = if active then qSub selected normalizer else 0
+      in score ∷ go (suc index) logits preferences
+
+updateActorWeights :
+  List StreamW -> List Int32 -> Int32 -> Int32 -> List StreamW
+updateActorWeights [] factors hidden learningRate = []
+updateActorWeights (weight ∷ weights) [] hidden learningRate =
+  weight ∷ updateActorWeights weights [] hidden learningRate
+updateActorWeights (weight ∷ weights) (factor ∷ factors) hidden learningRate =
+  streamStep weight factor hidden learningRate
+    ∷ updateActorWeights weights factors hidden learningRate
+
+updateCriticWeights :
+  Nat -> List StreamW -> Int32 -> Int32 -> Int32 -> List StreamW
+updateCriticWeights action [] td hidden learningRate = []
+updateCriticWeights action (weight ∷ weights) td hidden learningRate =
+  if natEqual action zero
+  then streamStep weight td hidden learningRate
+       ∷ mapList (λ w -> w) weights
+  else weight ∷ updateCriticWeights (pred action) weights td hidden learningRate
+
+------------------------------------------------------------------------
+-- Recurrent actor-critic state and forward step
+------------------------------------------------------------------------
+
+record NetworkState : Set where
+  constructor MkNetworkState
+  field
+    networkHidden : Int32
+    networkInputWeight : StreamW
+    networkCandidateWeight : StreamW
+    networkGateWeight : StreamW
+    networkActorWeights : List StreamW
+    networkCriticWeights : List StreamW
+open NetworkState public
+
+record NetworkOutput : Set where
+  constructor MkNetworkOutput
+  field
+    outputState : NetworkState
+    outputAction : Nat
+    outputPolicy : List Int32
+    outputActionValues : List Int32
+open NetworkOutput public
+
+record NetworkTrainingResult : Set where
+  constructor MkTrainingResult
+  field
+    trainedState : NetworkState
+    trainedAction : Nat
+    trainedTarget : Int32
+    trainedTDError : Int32
+open NetworkTrainingResult public
+
+networkInitialState :
+  Int32 -> Int32 -> Int32 -> List Int32 -> List Int32 -> NetworkState
+networkInitialState inputWeight candidateWeight gateWeight actorWeights criticWeights =
+  MkNetworkState
+    0
+    (MkSW inputWeight 0)
+    (MkSW candidateWeight 0)
+    (MkSW gateWeight 0)
+    (streamFromValues actorWeights)
+    (streamFromValues criticWeights)
+
+networkStep : Int32 -> Int32 -> NetworkState -> NetworkOutput
+networkStep observation draw state =
+  let cache =
+        cellForward observation (networkHidden state)
+          (streamWeight (networkInputWeight state))
+          (streamWeight (networkCandidateWeight state))
+          (streamWeight (networkGateWeight state))
+      hidden = cellHiddenAfter cache
+      logits = mapList (λ weight -> qMul weight hidden)
+                  (streamValues (networkActorWeights state))
+      probabilities = policyProbabilities logits
+      actionValues = mapList (λ weight -> qMul weight hidden)
+                       (streamValues (networkCriticWeights state))
+      action = sampleAction draw probabilities
+      nextState =
+        MkNetworkState
+          hidden
+          (networkInputWeight state)
+          (networkCandidateWeight state)
+          (networkGateWeight state)
+          (networkActorWeights state)
+          (networkCriticWeights state)
+  in MkNetworkOutput nextState action probabilities actionValues
+
+------------------------------------------------------------------------
+-- On-policy one-step SARSA actor-critic update
+------------------------------------------------------------------------
+
+networkTrainStepSARSA :
+  Int32 -> Int32 -> Int32 -> Int32 -> Int32 -> Bool -> Int32 ->
+  NetworkState -> NetworkTrainingResult
+networkTrainStepSARSA observation currentDraw reward nextObservation nextDraw terminal learningRate state =
+  let current = networkStep observation currentDraw state
+      next = networkStep nextObservation nextDraw (outputState current)
+      action = outputAction current
+      nextAction = outputAction next
+      qCurrent = nthQ action (outputActionValues current)
+      qNext = nthQ nextAction (outputActionValues next)
+      target = qSarsaOneStepTarget reward qNext terminal
+      td = qSub target qCurrent
+
+      hiddenCurrent = networkHidden (outputState current)
+      actorLogits =
+        mapList (λ weight -> qMul weight hiddenCurrent)
+          (streamValues (networkActorWeights state))
+      actorPreferences = mapList qPreference actorLogits
+      preferenceTotal = sumQ64 actorPreferences
+      actorScores = policyScoreFactors action preferenceTotal actorLogits actorPreferences
+      actorDeltas = mapList (qMul td) actorScores
+      actorHiddenSlope =
+        sumQ (zipWithList qMul (streamValues (networkActorWeights state)) actorScores)
+      criticCurrentWeight = streamWeight (nthStream action (networkCriticWeights state))
+      hiddenCotangent =
+        qAdd (qMul td criticCurrentWeight) (qMul td actorHiddenSlope)
+
+      cache =
+        cellForward observation (networkHidden state)
+          (streamWeight (networkInputWeight state))
+          (streamWeight (networkCandidateWeight state))
+          (streamWeight (networkGateWeight state))
+      pullback =
+        cellPullback
+          (streamWeight (networkCandidateWeight state))
+          (streamWeight (networkGateWeight state))
+          cache hiddenCotangent
+
+      inputWeightNext =
+        streamStep (networkInputWeight state)
+          (cellInputWeightCotangent pullback) qOne learningRate
+      candidateWeightNext =
+        streamStep (networkCandidateWeight state)
+          (cellCandidateWeightCotangent pullback) qOne learningRate
+      gateWeightNext =
+        streamStep (networkGateWeight state)
+          (cellGateWeightCotangent pullback) qOne learningRate
+      actorWeightsNext =
+        updateActorWeights (networkActorWeights state) actorDeltas hiddenCurrent learningRate
+      criticWeightsNext =
+        updateCriticWeights action (networkCriticWeights state) td hiddenCurrent learningRate
+      finalHidden =
+        if terminal then 0 else networkHidden (outputState next)
+      nextState =
+        MkNetworkState
+          finalHidden
+          inputWeightNext
+          candidateWeightNext
+          gateWeightNext
+          actorWeightsNext
+          criticWeightsNext
+  in MkTrainingResult nextState action target td
+
+------------------------------------------------------------------------
+-- Iterative CHAD-style reverse scan for the recurrent cell.
+--
+-- Each input pair contains an observation and its local cotangent with
+-- respect to the new hidden state. Forward consing stores frames newest
+-- first. The reverse pass threads the future hidden cotangent and widened
+-- Int64 parameter accumulators. Cotangents are for the smooth shadow of
+-- Q8.24 operations, not derivatives of integer rounding itself.
+------------------------------------------------------------------------
+
+data CHADFrame : Set where
+  MkCHADFrame : CellCache -> Int32 -> CHADFrame
+
+record CHADGradient : Set where
+  constructor MkCHADGradient
+  field
+    initialHiddenCotangent : Int32
+    inputWeightGradient64 : Int64
+    candidateWeightGradient64 : Int64
+    gateWeightGradient64 : Int64
+open CHADGradient public
+
+record CHADResult : Set where
+  constructor MkCHADResult
+  field
+    chadFinalHidden : Int32
+    chadGradient : CHADGradient
+open CHADResult public
+
+chadForward :
+  List (Int32 × Int32) -> Int32 -> Int32 -> Int32 -> Int32 ->
+  (Int32 × List CHADFrame)
+chadForward [] hidden inputWeight candidateWeight gateWeight =
+  (hidden , [])
+chadForward ((observation , localCotangent) ∷ rest)
+    hidden inputWeight candidateWeight gateWeight =
+  let cache = cellForward observation hidden inputWeight candidateWeight gateWeight
+      (finalHidden , reverseFrames) =
+        chadForward rest (cellHiddenAfter cache) inputWeight candidateWeight gateWeight
+  in (finalHidden , MkCHADFrame cache localCotangent ∷ reverseFrames)
+
+chadBackward :
+  Int32 -> Int32 -> Int32 -> List CHADFrame -> Int32 -> CHADGradient
+chadBackward inputWeight candidateWeight gateWeight frames finalCotangent =
+  go frames finalCotangent 0 0 0
+  where
+    go :
+      List CHADFrame -> Int32 -> Int64 -> Int64 -> Int64 -> CHADGradient
+    go [] future inputAcc candidateAcc gateAcc =
+      MkCHADGradient future inputAcc candidateAcc gateAcc
+    go (MkCHADFrame cache localCotangent ∷ rest)
+        future inputAcc candidateAcc gateAcc =
+      let totalCotangent = qAdd future localCotangent
+          pullback =
+            cellPullback candidateWeight gateWeight cache totalCotangent
+      in go rest
+           (cellHiddenCotangent pullback)
+           (inputAcc + fromIntegral (cellInputWeightCotangent pullback))
+           (candidateAcc + fromIntegral (cellCandidateWeightCotangent pullback))
+           (gateAcc + fromIntegral (cellGateWeightCotangent pullback))
+
+iterativeCHAD :
+  List (Int32 × Int32) -> Int32 -> Int32 -> Int32 -> Int32 -> CHADResult
+iterativeCHAD frames initialHidden inputWeight candidateWeight gateWeight =
+  let (finalHidden , reverseFrames) =
+        chadForward frames initialHidden inputWeight candidateWeight gateWeight
+      gradient =
+        chadBackward inputWeight candidateWeight gateWeight reverseFrames 0
+  in MkCHADResult finalHidden gradient
+
+------------------------------------------------------------------------
+-- Small executable checks for Q8.24 scaling and SARSA terminal behavior
+------------------------------------------------------------------------
+
+q24OneTimesOne : Bool
+q24OneTimesOne = qMul qOne qOne == qOne
+
+q24HalfTimesHalf : Bool
+q24HalfTimesHalf = qMul qHalf qHalf == 4194304
+
+sarsaTerminalDoesNotBootstrap : Bool
+sarsaTerminalDoesNotBootstrap =
+  qSarsaOneStepTarget 123456 987654 true == 123456
 
 {-# COMPILE AGDA2HS qShift #-}
 {-# COMPILE AGDA2HS qOne #-}
-{-# COMPILE AGDA2HS qBeta099 #-}
-{-# COMPILE AGDA2HS qEpsStream #-}
+{-# COMPILE AGDA2HS qHalf #-}
+{-# COMPILE AGDA2HS qQuarter #-}
+{-# COMPILE AGDA2HS qTwo #-}
+{-# COMPILE AGDA2HS qBeta #-}
+{-# COMPILE AGDA2HS qEpsilon #-}
 {-# COMPILE AGDA2HS qGamma #-}
-{-# COMPILE AGDA2HS abs32 #-}
-{-# COMPILE AGDA2HS qmul #-}
-{-# COMPILE AGDA2HS qdivSafe #-}
-{-# COMPILE AGDA2HS qdivSq64 #-}
-{-# COMPILE AGDA2HS relu32 #-}
-{-# COMPILE AGDA2HS softsignQ24 #-}
-{-# COMPILE AGDA2HS quantmoid4Q24 #-}
-{-# COMPILE AGDA2HS quanttanhQ24 #-}
-{-# COMPILE AGDA2HS maeCotanQ24 #-}
-{-# COMPILE AGDA2HS qm4NoisyQ24 #-}
+{-# COMPILE AGDA2HS qFrom64 #-}
+{-# COMPILE AGDA2HS qAdd #-}
+{-# COMPILE AGDA2HS qSub #-}
+{-# COMPILE AGDA2HS qNeg #-}
+{-# COMPILE AGDA2HS qClamp #-}
+{-# COMPILE AGDA2HS qAbs #-}
+{-# COMPILE AGDA2HS qMul #-}
+{-# COMPILE AGDA2HS qDiv64 #-}
+{-# COMPILE AGDA2HS qDiv #-}
+{-# COMPILE AGDA2HS qSoftsignGrad #-}
+{-# COMPILE AGDA2HS qSoftsign #-}
+{-# COMPILE AGDA2HS qRelu #-}
+{-# COMPILE AGDA2HS qHardSigmoid #-}
+{-# COMPILE AGDA2HS qHardSigmoidGrad #-}
+{-# COMPILE AGDA2HS qSarsaOneStepTarget #-}
 {-# COMPILE AGDA2HS StreamW #-}
-{-# COMPILE AGDA2HS GRUReLUState #-}
 {-# COMPILE AGDA2HS streamStep #-}
-{-# COMPILE AGDA2HS stepIterativeChadAgda #-}
+{-# COMPILE AGDA2HS CellCache #-}
+{-# COMPILE AGDA2HS cellForward #-}
+{-# COMPILE AGDA2HS CellPullback #-}
+{-# COMPILE AGDA2HS cellPullback #-}
+{-# COMPILE AGDA2HS mapList #-}
+{-# COMPILE AGDA2HS zipWithList #-}
+{-# COMPILE AGDA2HS sumQ #-}
+{-# COMPILE AGDA2HS sumQ64 #-}
+{-# COMPILE AGDA2HS nthQ #-}
+{-# COMPILE AGDA2HS nthStream #-}
+{-# COMPILE AGDA2HS natEqual #-}
+{-# COMPILE AGDA2HS streamValues #-}
+{-# COMPILE AGDA2HS streamFromValues #-}
+{-# COMPILE AGDA2HS qPreference #-}
+{-# COMPILE AGDA2HS policyProbabilities #-}
+{-# COMPILE AGDA2HS sampleAction #-}
+{-# COMPILE AGDA2HS policyScoreFactors #-}
+{-# COMPILE AGDA2HS updateActorWeights #-}
+{-# COMPILE AGDA2HS updateCriticWeights #-}
+{-# COMPILE AGDA2HS NetworkState #-}
+{-# COMPILE AGDA2HS NetworkOutput #-}
+{-# COMPILE AGDA2HS NetworkTrainingResult #-}
+{-# COMPILE AGDA2HS networkInitialState #-}
+{-# COMPILE AGDA2HS networkStep #-}
+{-# COMPILE AGDA2HS networkTrainStepSARSA #-}
+{-# COMPILE AGDA2HS CHADFrame #-}
+{-# COMPILE AGDA2HS CHADGradient #-}
+{-# COMPILE AGDA2HS CHADResult #-}
+{-# COMPILE AGDA2HS chadForward #-}
+{-# COMPILE AGDA2HS chadBackward #-}
+{-# COMPILE AGDA2HS iterativeCHAD #-}
+{-# COMPILE AGDA2HS q24OneTimesOne #-}
+{-# COMPILE AGDA2HS q24HalfTimesHalf #-}
+{-# COMPILE AGDA2HS sarsaTerminalDoesNotBootstrap #-}
