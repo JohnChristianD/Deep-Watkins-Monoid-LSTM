@@ -1,0 +1,113 @@
+-- Generate the static source index. YueScript compiles this build tool to Lua 5.1.
+fun = require("fun")
+
+readFile = (path) ->
+  file = assert(io.open(path, "r"), "cannot read " .. path)
+  content = file:read("*a")
+  file:close()
+  content
+
+writeFile = (path, content) ->
+  file = assert(io.open(path, "w"), "cannot write " .. path)
+  file:write(content)
+  file:close()
+
+trim = (value) ->
+  (string.gsub(string.gsub(value, "^%s+", ""), "%s+$", ""))
+
+escapeHtml = (value) ->
+  escaped = string.gsub(value, "&", "&amp;")
+  escaped = string.gsub(escaped, "<", "&lt;")
+  escaped = string.gsub(escaped, ">", "&gt;")
+  escaped = string.gsub(escaped, '"', "&quot;")
+  string.gsub(escaped, "'", "&#39;")
+
+sourceFiles = {
+  "FullCoupled/CanonicalLearnerMonolith.agda"
+  "FullCoupled/TheoremsMonolith.agda"
+}
+
+isDeclarationLine = (line) ->
+  type(line) == "string"
+    and #line > 0
+    and string.match(line, "^%S") == string.sub(line, 1, 1)
+    and not string.match(line, "^%-%-")
+    and string.sub(line, 1, 3) ~= "{-#"
+    and not string.match(line, "^module%s+")
+    and not string.match(line, "^open%s+")
+    and not string.match(line, "^infix")
+    and not string.match(line, "^syntax%s+")
+    and not string.match(line, "^pattern%s+")
+    and not string.match(line, "^postulate%s*$")
+    and not string.match(line, "^primitive%s*$")
+    and string.match(line, "^([^:]+)%s*:") ~= nil
+    and string.match(line, "^[^:]+:%s*(.*)$") ~= nil
+
+declarationRow = (path, line) ->
+  cleanName = trim(string.match(line, "^([^:]+)%s*:") or "")
+  cleanSignature = trim(string.match(line, "^[^:]+:%s*(.*)$") or "")
+  "<tr><td><code>" .. escapeHtml(path)
+    .. "</code></td><td><code>" .. escapeHtml(cleanName)
+    .. "</code></td><td><code>"
+    .. escapeHtml(if cleanSignature == "" then "(signature continues)" else cleanSignature)
+    .. "</code></td></tr>"
+
+declarationRows = (path, source) ->
+  lines = string.gmatch(source .. "\n", "(.-)\n")
+  rows = fun.totable(fun.map((line) ->
+    declarationRow(path, line)
+  , fun.filter(isDeclarationLine, lines)))
+  table.concat(rows, "\n")
+
+renderSection = (path, title) ->
+  rows = declarationRows(path, readFile(path))
+  "<section class=\"section\"><h2>" .. escapeHtml(title)
+    .. "</h2><p>Source: <code>" .. escapeHtml(path)
+    .. "</code>. Entries are extracted from source text; extraction is not a proof certificate.</p>"
+    .. "<div class=\"table-wrap\"><table><thead><tr><th>Source</th><th>Declaration</th>"
+    .. "<th>Signature prefix</th></tr></thead><tbody>" .. rows
+    .. "</tbody></table></div></section>"
+
+generatedContent = table.concat({
+  "<main class=\"shell\">"
+  "<header class=\"masthead\"><p class=\"eyebrow\">Agda / RUSS / static Pages</p><p><code>MLTT / Agda2HS</code></p></header>"
+  "<section class=\"intro\"><h1>Q8.24 recurrent learner and theorem monoliths</h1><p>This page is generated at build time by YueScript. The published artifact contains static HTML and CSS only; YueScript and LuaJIT are build-time tools.</p><p class=\"russ-status\"><strong>Global RUSS consistency: not certified.</strong> The object-calculus result is conditional on the explicitly supplied RUSS basis and does not certify Agda's full import closure.</p></section>"
+  "<section class=\"section\"><h2>Recurrent learner</h2><p>The learner uses Q8.24 fixed-point arithmetic, a state-dependent hard-sigmoid gate, ReLU candidate and hidden activation, a categorical policy, and per-action scalar Q values.</p><p>Training uses one-step on-policy SARSA. Terminal transitions use reward alone and do not bootstrap. FQF and DeepSets are absent from this implementation.</p></section>"
+  "<section class=\"section\"><h2>Iterative CHAD boundary</h2><p><code>networkSequenceVJP</code> connects the recurrent cell to a finite forward cache and reverse scan. Local hidden-state cotangents are supplied by the caller. Parameter accumulators are widened to Int64; input cotangents are returned in chronological order.</p><p>This is a learner-specific smooth-shadow recurrent VJP, not a general CHAD compiler or a derivative theorem for rounded and saturated integer arithmetic.</p></section>"
+  "<section class=\"section\"><h2>Computational interpretation of selected RUSS principles</h2><dl>"
+  "<dt>Markov principle for decidable predicates</dt><dd><code>russSearchBounded</code> checks a finite prefix under explicit fuel. Exhaustion is bounded exhaustion, not a proof that no witness exists globally.</dd>"
+  "<dt>Parametric enumerability</dt><dd>The uniform enumeration interface is an explicit premise for the constructive computability results; it is not silently identified with a classical principle.</dd>"
+  "<dt>Richman's countable choice</dt><dd>The choice profile is recorded as an assumption and kept distinct from choosing witnesses already supplied in the data.</dd>"
+  "<dt>Excluded middle</dt><dd>The classical extension remains separate from the intuitionistic basis.</dd>"
+  "<dt>Proof-checking boundary</dt><dd>Agda certifies terms relative to imports, postulates, primitives, compiler behavior, rewrite rules, and options. A lexical inventory is not a consistency certificate.</dd>"
+  "</dl></section>"
+  "<section class=\"section\"><h2>Constructive Rice theorem</h2><p>The abstract extensional undecidability theorem is separate from a concrete register-machine implementation. A checked concrete instance still requires its interpreter and fixed-point construction.</p></section>"
+  renderSection("FullCoupled/CanonicalLearnerMonolith.agda", "Canonical learner source")
+  renderSection("FullCoupled/TheoremsMonolith.agda", "Theorem and proof source")
+  "<footer class=\"footer\"><p>Source-first index. Signatures are prefixes; consult the Agda files for complete terms and proofs.</p></footer>"
+  "</main>"
+}, "\n")
+
+replaceRegion = (source, startMarker, endMarker, replacement) ->
+  start = assert(string.find(source, startMarker, 1, true), "missing template marker: " .. startMarker)
+  contentStart = start + #startMarker
+  finish = assert(string.find(source, endMarker, contentStart, true), "missing template marker: " .. endMarker)
+  string.sub(source, 1, start - 1)
+    .. replacement
+    .. string.sub(source, finish + #endMarker)
+
+template = readFile("index.html")
+outputPath = arg[1] or "build/pages/index.html"
+rendered = replaceRegion(template,
+  "<!-- GENERATED_CONTENT_START -->",
+  "<!-- GENERATED_CONTENT_END -->",
+  generatedContent)
+
+assert(rendered ~= template, "index.html template marker was not replaced")
+assert(not string.find(rendered, "<script", 1, true), "published HTML must not contain script elements")
+assert(string.find(rendered, "Global RUSS consistency: not certified", 1, true), "consistency boundary is missing")
+assert(string.find(rendered, "Q8.24 fixed-point", 1, true), "learner architecture is missing")
+assert(string.find(rendered, "Theorem and proof source", 1, true), "theorem source section is missing")
+
+writeFile(outputPath, rendered)
+print("static-pages=generated source-modules=" .. tostring(#sourceFiles))
