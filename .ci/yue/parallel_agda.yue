@@ -1,0 +1,107 @@
+-- Parallel Agda checks using YueScript, LuaFun iterators, and Lua Lanes.
+-- Each worker owns a persistent interface cache; side effects stay at boundaries.
+
+fun = require("fun")
+lanes = require("lanes").configure()
+
+shellQuote = (value) ->
+  "'" .. string.gsub(tostring(value), "'", "'\\''") .. "'"
+
+succeeded = (status) ->
+  status == 0 or status == true
+
+runChecked = (label, command) ->
+  status = os.execute(command)
+  unless succeeded(status)
+    io.stderr:write("parallel-agda=fail: " .. label .. " (status " .. tostring(status) .. ")\n")
+    os.exit(1)
+
+makeEntry = (root, name, module, sourcePath) ->
+  workRoot = root .. "/" .. name
+  parent = string.match(module, "(.+)/[^/]+$")
+  moduleDir = parent and (workRoot .. "/" .. parent) or workRoot
+  {
+    name: name
+    root: workRoot
+    module: module
+    modulePath: workRoot .. "/" .. module
+    moduleDir: moduleDir
+    sourcePath: sourcePath
+    log: root .. "/" .. name .. ".log"
+  }
+
+copyIfChanged = (source, destination) ->
+  "if ! cmp -s " .. shellQuote(source) .. " " .. shellQuote(destination)
+    .. "; then cp " .. shellQuote(source) .. " " .. shellQuote(destination) .. "; fi"
+
+commandFor = (entry, agdaCommand, profileFlag) ->
+  "cd " .. shellQuote(entry.root)
+    .. " && " .. shellQuote(agdaCommand) .. profileFlag
+    .. " --local-interfaces --trace-imports=0 -i . "
+    .. shellQuote(entry.module)
+    .. " > " .. shellQuote(entry.log) .. " 2>&1"
+
+cacheRoot = os.getenv("AGDA_WORKER_CACHE") or ".cache/agda-workers"
+agdaCommand = os.getenv("AGDA_COMMAND") or "agda2hs-agda"
+profile = os.getenv("AGDA_PROFILE")
+profileFlag = if profile and profile ~= ""
+  then " --profile=" .. shellQuote(profile) .. " +RTS -s -RTS"
+  else ""
+
+entries = {
+  {
+    name: "learner"
+    module: "FullCoupled/CanonicalLearnerMonolith.agda"
+    sourcePath: "FullCoupled/CanonicalLearnerMonolith.agda"
+  }
+  {
+    name: "theorem"
+    module: "TheoremsMonolith.agda"
+    sourcePath: "FullCoupled/TheoremsMonolith.agda"
+  }
+}
+
+jobs = fun.totable(fun.map((entry) ->
+  job = makeEntry(cacheRoot, entry.name, entry.module, entry.sourcePath)
+  job.command = commandFor(job, agdaCommand, profileFlag)
+  job
+, entries))
+
+setupCommands = fun.totable(fun.map((job) ->
+  "mkdir -p " .. shellQuote(job.moduleDir)
+    .. " && " .. copyIfChanged(".agda-lib", job.root .. "/.agda-lib")
+    .. " && " .. copyIfChanged(job.sourcePath, job.modulePath)
+, jobs))
+
+runChecked("prepare persistent isolated workspaces",
+  "mkdir -p " .. shellQuote(cacheRoot) .. " && " .. table.concat(setupCommands, " && "))
+
+launch = lanes.gen("*", (command) ->
+  os.execute(command) or -1
+)
+
+tasks = fun.totable(fun.map((job) ->
+  launch(job.command)
+, jobs))
+
+outcomes = fun.totable(fun.map((index) ->
+  job = jobs[index]
+  status = tasks[index].join(tasks[index])
+  os.execute("cat " .. shellQuote(job.log))
+  {
+    name: job.name
+    status: status
+    failed: not succeeded(status)
+  }
+, fun.range(1, #jobs)))
+
+failed = fun.any((outcome) ->
+  if outcome.failed
+    io.stderr:write("parallel-agda=failed: " .. outcome.name .. " (status " .. tostring(outcome.status) .. ")\n")
+  outcome.failed
+, outcomes)
+
+if failed
+  os.exit(1)
+
+print("parallel-agda=pass; workers=" .. tostring(#jobs) .. "; persistent-local-interface-cache=true")
