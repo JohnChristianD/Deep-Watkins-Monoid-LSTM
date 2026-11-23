@@ -53,11 +53,13 @@ declarationRow = (path, line) ->
     .. "</code></td></tr>"
 
 declarationRows = (path, source) ->
-  lines = string.gmatch(source .. "\n", "(.-)\n")
+  lines = {}
+  for line in string.gmatch(source .. "\\n", "(.-)\\n")
+    table.insert(lines, line)
   rows = fun.totable(fun.map((line) ->
     declarationRow(path, line)
   , fun.filter(isDeclarationLine, lines)))
-  table.concat(rows, "\n")
+  table.concat(rows, "\\n")
 
 renderSection = (path, title) ->
   rows = declarationRows(path, readFile(path))
