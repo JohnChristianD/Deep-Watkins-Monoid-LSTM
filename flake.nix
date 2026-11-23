@@ -1,5 +1,5 @@
 {
-  description = "Canonical Agda learner, intuitionistic RUSS metatheory, and static Fennel Pages";
+  description = "Q8.24 Agda learner, intuitionistic RUSS metatheory, and YueScript Pages";
 
   inputs = {
     # Match the Nixpkgs revision used by the upstream Agda 2.9 agda2hs build.
@@ -36,17 +36,32 @@
       agda2hsBaseLib = system:
         agda2hs-upstream.packages.${system}.base-lib;
 
-      # Build the upstream Haskell package set's GHC wrapper with LLVM enabled.
-      # Keep the requested backend/optimization flags to exactly -O2 -fllvm.
+      # Share one GHC environment. Optimized GHC is for runtime builds;
+      # ghc-check deliberately omits optimization flags for -fno-code checks.
+      ghcEnvironment = system:
+        let
+          pkgs = pkgsFor system;
+        in
+        (pkgs.haskellPackages.ghcWithPackages.override {
+          useLLVM = true;
+        }) (ps: [ ps.ieee754 ps.vector ]);
+
       optimizedGhc = system:
         let
           pkgs = pkgsFor system;
-          ghcEnv = (pkgs.haskellPackages.ghcWithPackages.override {
-            useLLVM = true;
-          }) (ps: [ ps.ieee754 ps.vector ]);
+          ghcEnv = ghcEnvironment system;
         in
         pkgs.writeShellScriptBin "ghc" ''
           exec "${ghcEnv}/bin/ghc" -O2 -fllvm "$@"
+        '';
+
+      checkGhc = system:
+        let
+          pkgs = pkgsFor system;
+          ghcEnv = ghcEnvironment system;
+        in
+        pkgs.writeShellScriptBin "ghc-check" ''
+          exec "${ghcEnv}/bin/ghc" "$@"
         '';
 
       agda2hsTool = system:
@@ -66,27 +81,6 @@
           epkgs.agda2-mode
         ]);
 
-      fennelJitEnv = system:
-        let
-          pkgs = pkgsFor system;
-        in
-        pkgs.luajit.withPackages (ps: [
-          ps.fennel
-        ]);
-
-      fennelRuntime = system:
-        let
-          pkgs = pkgsFor system;
-          luaEnv = fennelJitEnv system;
-        in
-        pkgs.writeShellApplication {
-          name = "fennel";
-          runtimeInputs = [ luaEnv ];
-          text = ''
-            exec ${luaEnv}/bin/fennel "$@"
-          '';
-        };
-
       # Install pure-Lua iterators and the threaded Lua runtime into a project-local
       # LuaRocks tree. Both interactive shells use the same LuaJIT/ABI and paths.
       luaRocksShellHook = pkgs: ''
@@ -94,6 +88,7 @@
         export NIX_BUILD_CORES=2
         export MAKEFLAGS="-j2"
         export LUAROCKS_TREE="$PWD/.luarocks"
+        export PATH="$LUAROCKS_TREE/bin:$PATH"
         export LUA_PATH="$LUAROCKS_TREE/share/lua/5.1/?.lua;$LUAROCKS_TREE/share/lua/5.1/?/init.lua;;"
         export LUA_CPATH="$LUAROCKS_TREE/lib/lua/5.1/?.so;;"
         export PTHREAD_DIR="${pkgs.glibc.dev}"
@@ -104,6 +99,9 @@
         fi
         if ! luarocks --tree "$LUAROCKS_TREE" show fun >/dev/null 2>&1; then
           luarocks --tree "$LUAROCKS_TREE" install fun 0.1.3-1
+        fi
+        if ! luarocks --tree "$LUAROCKS_TREE" show yuescript >/dev/null 2>&1; then
+          luarocks --tree "$LUAROCKS_TREE" install yuescript 0.34.2-1
         fi
       '';
 
@@ -270,34 +268,10 @@
       apps = forAllSystems (system:
         let
           pkgs = pkgsFor system;
-          laneApp = lane:
-            let
-              script = pkgs.writeShellApplication {
-                name = "run-agda-lane";
-                runtimeInputs = [
-                  (agdaCommand system)
-                  (fennelRuntime system)
-                  pkgs.lessc
-                  pkgs.coreutils
-                  pkgs.dhall
-                ];
-                text = ''
-                  set -euo pipefail
-                  exec fennel .ci/fennel/ci.fnl ${lane}
-                '';
-              };
-            in {
-              type = "app";
-              program = "${script}/bin/run-agda-lane";
-            };
         in {
           ci = { type = "app"; program = "${pkgs.dhall}/bin/dhall"; };
           agda = { type = "app"; program = "${agdaCli system}/bin/agda"; };
           agda2hs = { type = "app"; program = "${agda2hsCommand system}/bin/agda2hs"; };
-          agda-learner-check = laneApp "AgdaLearner";
-          agda-theorem-check = laneApp "AgdaTheorem";
-          russ-audit = laneApp "RUSS";
-          pages = laneApp "Pages";
           default = { type = "app"; program = "${agda2hsCommand system}/bin/agda2hs"; };
         });
 
@@ -308,7 +282,6 @@
             packages = [
               (agdaCommand system)
               (agda2hsCommand system)
-              (fennelRuntime system)
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
@@ -317,16 +290,19 @@
               pkgs.stdenv.cc
               pkgs.gnumake
               (optimizedGhc system)
+              (checkGhc system)
             ];
             shellHook = luaRocksShellHook pkgs;
           };
 
-          presentation = pkgs.mkShellNoCC {
+          presentation = pkgs.mkShell {
             packages = [
-              (fennelRuntime system)
               pkgs.lessc
               pkgs.coreutils
+              pkgs.luajit
+              pkgs.luajitPackages.luarocks-nix
             ];
+            shellHook = luaRocksShellHook pkgs;
           };
 
           agda-emacs = pkgs.mkShellNoCC {
@@ -344,7 +320,6 @@
             packages = [
               (agdaCommand system)
               (agda2hsCommand system)
-              (fennelRuntime system)
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
@@ -353,6 +328,7 @@
               pkgs.stdenv.cc
               pkgs.gnumake
               (optimizedGhc system)
+              (checkGhc system)
             ];
             shellHook = luaRocksShellHook pkgs;
           };
