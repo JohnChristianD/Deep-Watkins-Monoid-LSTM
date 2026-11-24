@@ -17,16 +17,20 @@ embedding. These are Monte Carlo samples of the implicit quantile function,
 not 32 fixed output bins.
 
 The learner is fully online: A and B are both current trainable parameter
-sets; neither is a delayed or frozen target copy. At each transition, exactly
-one critic receives one optimizer update. The active side remains fixed during
-an episode and flips at a terminal boundary. The other live critic evaluates
+sets; neither is a delayed or frozen target copy. The active side alternates
+on every environment transition (A, B, A, B, ...), and exactly one critic
+receives one optimizer update per transition. The other live critic evaluates
 the selected next action without selecting a second action. Thus UTD is 1,
-and every environment transition is consumed once. There is no replay, no
-re-sampling of old transitions, and no multi-step return.
+each critic is updated once every two transitions, and every environment
+transition is consumed exactly once. Neither critic is held fixed for an
+episode. There is no replay, no re-sampling of old transitions, and no
+multi-step return.
 
-This alternating-episode schedule preserves the on-policy SARSA action
-identity across adjacent transitions. It is a design choice, not a claim that
-the non-active critic is updated on every individual transition.
+The selected next action is stored in a one-use pending-decision value and is
+consumed as the action of the following transition. Alternating the updater
+does not reselect or resample that carried action. At transition t, the
+active critic selects a(t+1), the peer evaluates that exact a(t+1), and only
+the active critic is updated; at transition t+1, the roles switch.
 
 ## Dueling IQN32 head
 
