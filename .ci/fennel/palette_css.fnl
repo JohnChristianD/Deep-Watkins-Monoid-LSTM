@@ -102,9 +102,9 @@
 
 (local output-path (assert (. arg 1) "usage: palette_css.fnl OUTPUT.css"))
 (local output (assert (io.open output-path "w") (.. "cannot write " output-path)))
-(output:write ":root {\\n")
+(output:write ":root {\n")
 (each [index role (ipairs roles)]
-  (output:write (string.format "  %s: %s;\\n" role (rgb-hex (. chosen index)))))
-(output:write "}\\n")
+  (output:write (string.format "  %s: %s;\n" role (rgb-hex (. chosen index)))))
+(output:write "}\n")
 (output:close)
 (print (.. "cat02lms-palette-css=pass roles=" role-count))
