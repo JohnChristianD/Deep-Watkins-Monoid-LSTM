@@ -108,6 +108,20 @@ The one-step update uses the local cell pullback directly. Sequence-level
 recurrent gradients use `networkSequenceVJP` and are applied separately.
 Numerical and gradient parity tests are still required.
 
+## Proposed learner redesign
+
+The selected next architecture is documented in
+[ADR 0001](docs/decisions/0001-qr64-double-online-sarsa0.md): two fully online
+dueling QR64 critics, Double-SARSA action selection/evaluation, factorized
+NoisyNets on critics, True Online SARSA(0) with its lambda-zero caveat, and
+explicit L2 gradient decay. It specifies UTD = 1, no replay, no target
+network, no actor, and no multi-step return.
+
+This ADR records the target semantics; the current Agda learner below remains
+the earlier scalar actor-critic implementation until the QR64 redesign is
+implemented and checked. The ADR's Quantmoid4-tanh smooth-shadow derivative
+must not be treated as an exact derivative of quantized integer forward code.
+
 ## LuaFun, Fennel, and Lanes
 
 The build and CI tools are written in Fennel and execute on LuaJIT. Fennel
