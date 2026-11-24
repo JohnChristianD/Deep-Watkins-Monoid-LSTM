@@ -2,8 +2,7 @@
 --lossy-unification
 --syntactic-equality=1
 --exact-split
---cubical=no-glue
---with-K
+--guardedness
 #-}
 
 module FullCoupled.CanonicalLearnerMonolith where
