@@ -33,14 +33,14 @@ jobs:
           restore-prefixes-first-match: |
             nix-${{ runner.os }}-
           gc-max-store-size-linux: 8G
-      - name: Cache Agda interfaces and primitive data
+      - name: Cache Agda interfaces, Lua Lanes, and primitive data
         uses: actions/cache@v6
         with:
           path: |
             _build
             .cache
             .luarocks
-          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/yue/*.yue', '**/*.agda') }}
+          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/fennel/*.fnl', '**/*.agda') }}
           restore-keys: |
             agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/yue/*.yue') }}-
       - name: Type-check, audit, and render
@@ -51,12 +51,7 @@ jobs:
         run: |
           set -o pipefail
           nix develop --quiet .#agda-ci -c bash -euo pipefail -c '
-            mkdir -p build/yue
-            for source in .ci/yue/*.yue; do
-              module=$(basename "$source" .yue)
-              yue --target 5.1 -o "build/yue/$module.lua" "$source"
-            done
-            exec luajit build/yue/ci.lua All
+            exec fennel .ci/fennel/ci.fnl All
           ' 2>&1 | sed '/^copying path .* from .*$/d'
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
