@@ -33,7 +33,7 @@
     (run! "reject YueScript toolchain references"
       "if grep -Eiq 'yuescript|\\.ci/yue|\\.yue' flake.nix .github/workflows/github-pages.yml; then echo 'YueScript toolchain reference remains' >&2; exit 1; fi")
     (run! "reject contraction and replaying LuaFun iterators"
-      "if grep -Eni '(^|[^[:alnum:]_])(duplicate|replicate|xrepeat|cycle|is_null|split|split_at|span|partition|tabulate|zeros|ones|rand|rands)([^[:alnum:]_]|$)' .ci/fennel/*.fnl; then echo 'forbidden iterator combinator found' >&2; exit 1; fi")
+      "if grep -Eni '(^|[^[:alnum:]_])(duplicate|replicate|xrepeat|cycle|is_null|split|split_at|span|partition|tabulate|zeros|ones|rand|rands)([^[:alnum:]_]|$)' .ci/fennel/pages.fnl .ci/fennel/palette_css.fnl .ci/fennel/parallel_agda.fnl .ci/fennel/russ_audit.fnl; then echo 'forbidden iterator combinator found' >&2; exit 1; fi")
     (print "build-source-audit=pass; Fennel; basic LuaFun subset")))
 
 (local check-agda-learner
