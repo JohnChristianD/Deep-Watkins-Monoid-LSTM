@@ -54,7 +54,7 @@
 
 (local declaration-rows (fn [path source]
   (local lines [])
-  (each [line (string.gmatch (.. source "\\n") "(.-)\\n")]
+  (each [line (string.gmatch (.. source "\n") "(.-)\n")]
     (table.insert lines line))
   (fun.totable
     (fun.map
