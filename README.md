@@ -108,19 +108,26 @@ The one-step update uses the local cell pullback directly. Sequence-level
 recurrent gradients use `networkSequenceVJP` and are applied separately.
 Numerical and gradient parity tests are still required.
 
-## Proposed learner redesign
+## Selected learner redesign
 
 The selected next architecture is documented in
-[ADR 0001](docs/decisions/0001-qr64-double-online-sarsa0.md): two fully online
-dueling QR64 critics, Double-SARSA action selection/evaluation, factorized
-NoisyNets on critics, True Online SARSA(0) with its lambda-zero caveat, and
-explicit L2 gradient decay. It specifies UTD = 1, no replay, no target
-network, no actor, and no multi-step return.
+[ADR 0001](docs/decisions/0001-qr64-double-online-sarsa0.md): paired live
+dueling IQN32 critics, Double-SARSA action selection/evaluation, factorized
+NoisyNets on critic value and advantage layers, and one-step distributional
+SARSA(0) at the lambda-zero True-Online limit. It specifies UTD = 1, no
+replay, no frozen target network, no actor, and no multi-step return.
 
-This ADR records the target semantics; the current Agda learner below remains
-the earlier scalar actor-critic implementation until the QR64 redesign is
-implemented and checked. The ADR's Quantmoid4-tanh smooth-shadow derivative
-must not be treated as an exact derivative of quantized integer forward code.
+The ADR also specifies a Quantmoid4-tanh forward approximation with a
+separate smooth-shadow derivative, Euclidean Q-projected diagonal IDBD, and
+an independent `l2_gradient_decay` term. The standard IQN cosine quantile
+embedding remains cosine: replacing its periodic basis with monotone
+Quantmoid4-tanh would change IQN's quantile-embedding semantics.
+
+The current Agda module above remains the earlier scalar actor-critic
+implementation with softsign, categorical action selection, scalar Q heads,
+and max-gradient-based updates. It does not yet implement IQN32, the paired
+online critics, NoisyNets, projected IDBD, or the new affine transition
+discipline. The ADR is a selected design, not a completed learner rewrite.
 
 ## LuaFun, Fennel, and Lanes
 
