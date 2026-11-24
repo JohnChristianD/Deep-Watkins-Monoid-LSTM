@@ -26,6 +26,16 @@
       (:write file content)
       (:close file))))
 
+(local check-build-source
+  (fn []
+    (run! "reject YueScript source files"
+      "if find . -path './.git' -prune -o -type f -name '*.yue' -print -quit | grep -q .; then echo 'YueScript source remains' >&2; exit 1; fi")
+    (run! "reject YueScript toolchain references"
+      "if grep -Eiq 'yuescript|\\.ci/yue|\\.yue' flake.nix .github/workflows/github-pages.yml; then echo 'YueScript toolchain reference remains' >&2; exit 1; fi")
+    (run! "reject contraction and replaying LuaFun iterators"
+      "if grep -Eni '(^|[^[:alnum:]_])(duplicate|replicate|xrepeat|cycle|is_null|split|split_at|span|partition|tabulate|zeros|ones|rand|rands)([^[:alnum:]_]|$)' .ci/fennel/*.fnl; then echo 'forbidden iterator combinator found' >&2; exit 1; fi")
+    (print "build-source-audit=pass; Fennel; basic LuaFun subset")))
+
 (local check-agda-learner
   (fn []
     (let [source "FullCoupled/CanonicalLearnerMonolith.agda"]
@@ -51,6 +61,7 @@
 
 (local check-agda-theorem
   (fn []
+    (check-build-source)
     (run! "parallel Agda checks" "fennel .ci/fennel/parallel_agda.fnl")
     (run! "create Agda2HS output directory" "mkdir -p build/agda2hs")
     (run! "Agda2HS extract canonical learner"
@@ -109,8 +120,9 @@
   {:AgdaLearner (fn [] (check-agda-theorem) (check-agda-learner))
    :AgdaTheorem check-agda-theorem
    :RUSS (fn [] (check-agda-theorem) (check-russ-audit))
-   :Pages check-pages
+   :Pages (fn [] (check-build-source) (check-pages))
    :All (fn []
+          (check-build-source)
           (check-agda-theorem)
           (check-agda-learner)
           (check-russ-audit)
