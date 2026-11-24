@@ -108,35 +108,39 @@ The one-step update uses the local cell pullback directly. Sequence-level
 recurrent gradients use `networkSequenceVJP` and are applied separately.
 Numerical and gradient parity tests are still required.
 
-## LuaFun, YueScript, and Lanes
+## LuaFun, Fennel, and Lanes
 
-The build and CI tools are YueScript compiled for Lua 5.1 and run by LuaJIT.
-YueScript is installed with LuaRocks into the project-local `.luarocks` tree.
-Fennel is no longer part of the build.
+The build and CI tools are written in Fennel and execute on LuaJIT. Fennel
+and the pinned LuaFun source are supplied by Nix; Lua Lanes is installed into
+the project-local `.luarocks` tree. YueScript is removed from the toolchain.
 
-LuaFun represents iterators as generator/parameter/state triples. Its
-`map`, `filter`, `zip`, `chain`, and `foldl` operations compose
-iterators. An iterator is pure only when its generator is deterministic for a
-given parameter/state pair and does not mutate them. LuaFun does not enforce
-purity.
+LuaFun represents iterators as generator/parameter/state triples. The build
+uses only basic transformations and folds: `map`, `filter`, `foldl`,
+`range`, `totable`, and `any`. Code in this repository avoids iterator
+cloning, repetition, partitioning, and iterator-state inspection. An iterator
+is pure only when its generator is deterministic for a given parameter/state
+pair and does not mutate them; LuaFun does not enforce purity. Lua's
+`string.gmatch` iterator is materialized before passing its results into
+LuaFun, because its single-function iterator shape differs from LuaFun's
+generator/parameter/state convention.
 
 This is a compositional iterator style, not Joy/Factor's native concatenative
 stack language. Joy/Factor words compose stack transformations through
-juxtaposition; LuaFun composes iterator values through function calls. A
-stack-effect layer could be built on LuaFun, but would be an additional
-convention.
+juxtaposition; LuaFun composes iterator values through function calls.
 
-YueScript and Teal can both target Lua 5.1 output; generated module/runtime
-compatibility matters more than a blanket language ranking. YueScript is the
-project's source syntax. Teal can be added later for static declarations.
-LuaFun transformations stay in the LuaJIT process; Lua Lanes runs the two
-Agda checks concurrently using separate Lua states and OS threads, not
-separate processes.
+Fennel, Teal, and YueScript all target the Lua runtime, so LuaFun compatibility
+is determined by the generated Lua version, module path, and host ABI—not by
+a blanket restriction to one source language. Fennel's own README explicitly
+promises full Lua compatibility, while Teal documents Lua 5.1–5.4 including
+LuaJIT. The project standardizes on Fennel for its source syntax and keeps
+LuaFun and Lanes in the same LuaJIT process. Lua Lanes runs two workers in
+separate Lua states and OS threads; each worker launches its own Agda
+subprocess.
 
-The CI caches `.luarocks` and `.cache`, so installed rocks and Agda
-interfaces can be reused between runs. `.ci/yue/parallel_agda.yue` builds
-two isolated persistent Agda workspaces. `AGDA_PROFILE=modules` can be set
-to collect Agda's module profile.
+The CI caches `.luarocks` and `.cache`, so Lanes and Agda interfaces can
+be reused between runs. `.ci/fennel/parallel_agda.fnl` builds two isolated
+persistent Agda workspaces. `AGDA_PROFILE=modules` can be set to collect
+Agda's module profile.
 
 ## Verification
 
@@ -162,11 +166,6 @@ correctness of the smooth-shadow VJPs. Still needed:
 
 ```sh
 nix develop --quiet .#agda-ci
-yue --target 5.1 -o build/yue/ci.lua .ci/yue/ci.yue
-yue --target 5.1 -o build/yue/parallel_agda.lua .ci/yue/parallel_agda.yue
-yue --target 5.1 -o build/yue/pages.lua .ci/yue/pages.yue
-yue --target 5.1 -o build/yue/palette_css.lua .ci/yue/palette_css.yue
-yue --target 5.1 -o build/yue/russ_audit.lua .ci/yue/russ_audit.yue
-luajit build/yue/ci.lua All
+fennel .ci/fennel/ci.fnl All
 ```
 
