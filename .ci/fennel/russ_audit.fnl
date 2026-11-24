@@ -14,7 +14,7 @@
 (local lines-of
   (fn [source]
     (let [lines []]
-      (each [line (string.gmatch (.. source "\\n") "(.-)\\n")]
+      (each [line (string.gmatch (.. source "\n") "(.-)\n")]
         (table.insert lines line))
       lines)))
 
