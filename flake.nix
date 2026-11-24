@@ -1,5 +1,5 @@
 {
-  description = "Q8.24 Agda learner, intuitionistic RUSS metatheory, and YueScript Pages";
+  description = "Q8.24 Agda learner, intuitionistic RUSS metatheory, and Fennel Pages";
 
   inputs = {
     # Match the Nixpkgs revision used by the upstream Agda 2.9 agda2hs build.
@@ -11,11 +11,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    luafun = {
+      url = "github:luafun/luafun/02960048e4dff4f5fd5b683c4b61f9df42e8339f";
+      flake = false;
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
+    luafun,
     agda2hs-upstream
   }:    let
       systems = [
@@ -81,8 +86,52 @@
           epkgs.agda2-mode
         ]);
 
-      # Install pure-Lua iterators and the threaded Lua runtime into a project-local
-      # LuaRocks tree. Both interactive shells use the same LuaJIT/ABI and paths.
+      luafunModule = system:
+        let
+          pkgs = pkgsFor system;
+          lua = pkgs.luajit;
+        in
+        pkgs.luajitPackages.buildLuaPackage {
+          pname = "luafun";
+          version = "scm-1";
+          src = luafun;
+          dontBuild = true;
+          installPhase = ''
+            runHook preInstall
+            install -Dm0644 fun.lua "$out/share/lua/${lua.luaversion}/fun.lua"
+            runHook postInstall
+          '';
+          meta = {
+            description = "High-performance functional programming library for Lua";
+            homepage = "https://luafun.github.io/";
+            license = pkgs.lib.licenses.mit;
+          };
+        };
+
+      fennelJitEnv = system:
+        let
+          pkgs = pkgsFor system;
+          luafunPkg = luafunModule system;
+        in
+        pkgs.luajit.withPackages (ps: [
+          ps.fennel
+          luafunPkg
+        ]);
+
+      fennelRuntime = system:
+        let
+          pkgs = pkgsFor system;
+          luaEnv = fennelJitEnv system;
+        in
+        pkgs.writeShellApplication {
+          name = "fennel";
+          runtimeInputs = [ luaEnv ];
+          text = ''
+            exec ${luaEnv}/bin/fennel "$@"
+          '';
+        };
+
+      # Install Lua Lanes into a project-local tree; Fennel and LuaFun are pinned by Nix.
       luaRocksShellHook = pkgs: ''
         export AGDA_COMMAND="agda2hs-agda"
         export NIX_BUILD_CORES=2
@@ -100,12 +149,6 @@
           '' else ''
             luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.2-0
           ''}
-        fi
-        if ! luarocks --tree "$LUAROCKS_TREE" show fun >/dev/null 2>&1; then
-          luarocks --tree "$LUAROCKS_TREE" install fun 0.1.3-1
-        fi
-        if ! luarocks --tree "$LUAROCKS_TREE" show yuescript >/dev/null 2>&1; then
-          luarocks --tree "$LUAROCKS_TREE" install yuescript 0.34.2-1
         fi
       '';
 
@@ -289,6 +332,7 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
+              (fennelRuntime system)
               pkgs.luajit
               pkgs.luajitPackages.luarocks-nix
               pkgs.stdenv.cc
@@ -303,6 +347,7 @@
             packages = [
               pkgs.lessc
               pkgs.coreutils
+              (fennelRuntime system)
               pkgs.luajit
               pkgs.luajitPackages.luarocks-nix
             ];
@@ -327,6 +372,7 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
+              (fennelRuntime system)
               pkgs.luajit
               pkgs.luajitPackages.luarocks-nix
               pkgs.stdenv.cc
