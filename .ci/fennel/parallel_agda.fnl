@@ -14,7 +14,7 @@
     (let [status (os.execute command)]
       (when (not (succeeded? status))
         (io.stderr:write
-          (.. "parallel-agda=fail: " label " (status " (tostring status) ")\\n"))
+          (.. "parallel-agda=fail: " label " (status " (tostring status) ")\n"))
         (os.exit 1)))))
 
 (local make-entry
@@ -63,9 +63,18 @@
   (fun.totable
     (fun.map
       (fn [entry]
-        (let [job (make-entry cache-root (. entry :name)
-                              (. entry :module) (. entry :source-path))]
-          (assoc job :command (command-for job agda-command profile-flag)))
+        (let* [name (. entry :name)
+               module (. entry :module)
+               source-path (. entry :source-path)
+               job (make-entry cache-root name module source-path)]
+          {:name name
+           :root (. job :root)
+           :module module
+           :module-path (. job :module-path)
+           :module-dir (. job :module-dir)
+           :source-path source-path
+           :log (. job :log)
+           :command (command-for job agda-command profile-flag)})
       entries)))
 
 (local setup-commands
@@ -108,7 +117,7 @@
       (when (. outcome :failed)
         (io.stderr:write
           (.. "parallel-agda=failed: " (. outcome :name)
-              " (status " (tostring (. outcome :status)) ")\\n")))
+              " (status " (tostring (. outcome :status)) ")\n")))
       (. outcome :failed))
     outcomes))
 
