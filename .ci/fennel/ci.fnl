@@ -10,7 +10,7 @@
     (let [status (os.execute command)]
       (when (not (succeeded? status))
         (io.stderr:write
-          (.. "ci-lane=fail: " label " (status " (tostring status) ")\\n"))
+          (.. "ci-lane=fail: " label " (status " (tostring status) ")\n"))
         (os.exit 1)))))
 
 (local read-file
@@ -86,16 +86,16 @@
         (.. "fennel .ci/fennel/palette_css.fnl " (shell-quote palette)))
       (run! "compile Less stylesheet"
         (.. "lessc site/site.less " (shell-quote base-css)))
-      (write-file css (.. (read-file palette) "\\n" (read-file base-css)))
+      (write-file css (.. (read-file palette) "\n" (read-file base-css)))
       (run! "render static HTML"
         (.. "fennel .ci/fennel/pages.fnl " (shell-quote html)))
       (let [generated-html (read-file html)
             generated-css (read-file css)]
-        (assert (string.find generated-html "href=\\"site.css\\"" 1 true)
+        (assert (string.find generated-html "href=\"site.css\"" 1 true)
           "published HTML is missing its stylesheet link")
-        (assert (string.find generated-html "class=\\"intro\\"" 1 true)
+        (assert (string.find generated-html "class=\"intro\"" 1 true)
           "published HTML is missing the styled intro section")
-        (assert (string.find generated-html "class=\\"russ-status\\"" 1 true)
+        (assert (string.find generated-html "class=\"russ-status\"" 1 true)
           "published HTML is missing the styled RUSS status")
         (assert (string.find generated-css ".russ-status" 1 true)
           "compiled LESS is missing the RUSS status style")
@@ -122,5 +122,5 @@
     (action)
     (do
       (io.stderr:write
-        "usage: fennel .ci/fennel/ci.fnl AgdaLearner|AgdaTheorem|RUSS|Pages|All\\n")
+        "usage: fennel .ci/fennel/ci.fnl AgdaLearner|AgdaTheorem|RUSS|Pages|All\n")
       (os.exit 2)))
