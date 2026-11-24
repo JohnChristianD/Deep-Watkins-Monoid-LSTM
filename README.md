@@ -144,9 +144,9 @@ Agda's module profile.
 
 ## Verification
 
-The CI workflow compiles every `.yue` file to Lua 5.1, runs the LuaJIT CI
-driver, typechecks the two Agda modules concurrently, extracts the learner
-with Agda2HS, and checks the generated Haskell with an unoptimized
+The CI workflow runs the Fennel driver under LuaJIT, typechecks the two
+Agda modules concurrently through Lua Lanes, extracts the learner with
+Agda2HS, and checks the generated Haskell with an unoptimized
 `ghc-check -fno-code` wrapper. The optimized GHC wrapper remains available
 for actual executable builds.
 
