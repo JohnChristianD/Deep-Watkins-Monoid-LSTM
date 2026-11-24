@@ -1,211 +1,282 @@
-# ADR 0001: QR64 Double Online SARSA(0) with Dueling NoisyNets
+# ADR 0001: IQN32 Double Online SARSA(0) with Dueling NoisyNets
 
-- Status: proposed architecture; not yet present in the Agda learner
-- Scope: recurrent distributional critic and online update semantics
-- Supersedes: scalar actor-critic / categorical-policy / scalar-Q design
+- Status: selected architecture; not yet implemented in the Agda learner
+- Scope: recurrent distributional critics, one-step online action/value semantics, affine update ownership
+- Supersedes: scalar actor-critic / categorical-policy / scalar-Q design and the earlier QR64 proposal
 
 ## Decision
 
-Replace the actor-critic with two independently parameterized, fully online
-dueling distributional critics. Each critic predicts 64 return quantiles per
-action and uses factorized NoisyNet parameters. There is no actor, replay
-buffer, frozen target network, multi-step target, or repeated update per
-transition.
+Replace the actor-critic with two independently parameterized, live dueling
+Implicit Quantile Network critics, A and B. There is no actor. Each critic
+predicts a return quantile function for every action and uses factorized
+NoisyNet parameters in its value and advantage layers.
 
-The update invariant is exactly one critic update for each environment
-transition: UTD = 1. A transition is consumed once, then discarded. There is
-no replay or re-sampling of an old transition.
+Here, **IQN32** means 32 sampled current quantile fractions and 32 sampled
+target quantile fractions per transition, with a 32-component cosine quantile
+embedding. These are Monte Carlo samples of the implicit quantile function,
+not 32 fixed output bins.
 
-The two critics are named A and B. They remain live and trainable throughout.
-At an episode boundary, the active critic flips. Within an episode, the active
-critic selects the next action and receives the update; the other live critic
-evaluates that same next action. Holding the active side fixed until terminal
-is intentional: it makes the selected SARSA action at the next observation
-the action consumed by the next transition, instead of changing behavior
-policy between adjacent transitions.
+The learner is fully online: A and B are both current trainable parameter
+sets; neither is a delayed or frozen target copy. At each transition, exactly
+one critic receives one optimizer update. The active side remains fixed during
+an episode and flips at a terminal boundary. The other live critic evaluates
+the selected next action without selecting a second action. Thus UTD is 1,
+and every environment transition is consumed once. There is no replay, no
+re-sampling of old transitions, and no multi-step return.
 
-For an episode whose active critic is A:
+This alternating-episode schedule preserves the on-policy SARSA action
+identity across adjacent transitions. It is a design choice, not a claim that
+the non-active critic is updated on every individual transition.
 
-1. Select current action from A's noisy dueling distribution.
-2. The environment supplies one transition (s, a, r, s', terminal).
-3. For a nonterminal transition, select a' by maximizing A's mean quantile
-   value at s'.
-4. Evaluate that exact a' with B. B performs no second argmax.
-5. Update A once with the 64-quantile QR-Huber loss.
-6. Return a' as the next behavior action. At terminal, bootstrap is zero and
-   the active side flips for the next episode.
+## Dueling IQN32 head
 
-The B-active case is symmetric. Both critics receive updates on alternating
-episodes; every transition still causes one and only one parameter update.
+For quantile fraction \(\tau\in[0,1]\), critic \(C\), observation \(s\),
+and action \(a\), each critic emits value and advantage quantile functions:
 
-## Distributional dueling head
+\[
+Z_C(s,a,\tau)=V_C(s,\tau)+A_C(s,a,\tau)
+-\frac{1}{|\mathcal A|}\sum_{b\in\mathcal A}A_C(s,b,\tau).
+\]
 
-For quantile index i in 0..63, use tau_i = (i + 1/2) / 64.
+Advantage centering is over actions at one fixed quantile fraction. It is not
+an average over quantile samples.
 
-Each critic emits a value quantile V(s, tau_i) and an advantage quantile
-A(s, a, tau_i) for every action. Combine them as:
+For IQN32, sample \(\tau_i\) and \(\hat\tau_j\), for
+\(i,j\in\{1,\ldots,32\}\), from the unit interval. The 32-dimensional
+quantile embedding uses the standard cosine features
+\(\cos(\pi k\tau)\), \(k=0,\ldots,31\), followed by a learned embedding
+network. The host supplies the fractions explicitly; the pure Agda update
+does not draw randomness internally.
 
-    Z(s,a,tau_i) = V(s,tau_i) + A(s,a,tau_i) - mean_b A(s,b,tau_i)
+Action selection uses the sample mean of the quantile values:
 
-The advantage-centering mean is over actions at a fixed quantile index.
-It is not a mean over quantile indices.
-
-Action selection uses the expected value of the predicted return
-distribution:
-
-    a* = argmax_a mean_i Z(s,a,tau_i)
+\[
+a'=\arg\max_{a\in\mathcal A}
+\frac{1}{32}\sum_{i=1}^{32}Z_C(s',a,\tau_i).
+\]
 
 ## Double-online SARSA(0) target
 
-Let C be the active critic and Cbar the other live critic. The next action is
-selected by C and evaluated by Cbar, with one shared action identity:
+Let \(C\) be active and \(\bar C\) the other live critic. For a
+nonterminal transition, the active critic selects one next behavior action
+and the other critic evaluates that exact action:
 
-    a' = argmax_a mean_i Z_C(s', a, tau_i)
-    y_j = r                                      terminal
-    y_j = r + gamma * Z_Cbar(s', a', tau_j)       otherwise
+\[
+a'=\arg\max_a\frac{1}{32}\sum_i Z_C(s',a,\tau_i),
+\qquad
+y_j=r+\gamma Z_{\bar C}(s',a',\hat\tau_j).
+\]
 
-The target consists of exactly one reward and one next-state distribution.
-There is no n-step accumulation. The evaluator receives the selected action;
-it does not select a separate action. No frozen or delayed copy of either
-critic is introduced.
+For a terminal transition, \(y_j=r\) for every \(j\); there is no
+bootstrap. The evaluator receives \(a'\) as input and has no argmax or
+action-selection operation.
 
-This is a Double-Q SARSA(0) design. The term “True Online SARSA(0)” is used
-with a precise caveat: at lambda = 0 the Dutch eligibility-trace correction
-vanishes, so the temporal target reduces to ordinary one-step SARSA(0).
-Any recurrent reverse scan used to differentiate a finite neural sequence is
-a gradient-through-time mechanism, not a multi-step return target.
+The selected \(a'\) is also the action consumed by the next environment
+transition. Carry it in a one-use pending-decision value with the required
+recurrent forward cache and explicit active-critic noise sample. Do not
+re-sample the action or silently evaluate a different noisy network at the
+same decision boundary.
 
-## QR64 regression
+The current critic quantiles are
+\(z_i=Z_C(s,a,\tau_i)\). Use the complete 32-by-32 quantile-Huber
+regression loss:
 
-For current quantile z_i and target quantile y_j, define delta_ij = y_j - z_i.
-The pairwise quantile-Huber loss is:
+\[
+\mathcal L=\frac{1}{32^2}\sum_{i=1}^{32}\sum_{j=1}^{32}
+|\tau_i-\mathbf 1[y_j-z_i<0]|\,
+H_\kappa(y_j-z_i).
+\]
 
-    rho_tau^kappa(delta) = |tau - 1[delta < 0]| * H_kappa(delta)
+Target-side quantiles are stop-gradient values. Only the active critic is
+updated on this transition.
 
-The mean loss is over all 64 x 64 pairs. The Huber derivative is bounded by
-kappa; this is the derivative of the chosen loss, not global gradient
-clipping. The implementation must preserve quantile-index weighting and
-the full pairwise reduction. Tests must cover positive, negative, zero, and
-Huber-boundary deltas.
+At \(\lambda=0\), the Dutch-trace correction in True Online SARSA(\lambda)
+collapses and the return target is ordinary one-step SARSA(0). Quantile
+regression can be used for that one-step distributional target, but it does
+not make the classic scalar True-Online correction non-vacuous. The precise
+name for this learner is **Double distributional SARSA(0), with the
+\(\lambda=0\) True-Online limit**. The recurrent reverse scan differentiates
+the current network computation; it does not create an n-step return.
 
-Terminal targets contain 64 copies of reward, with no bootstrap term.
+## NoisyNet contract
 
-## NoisyNet parameters
+Noise belongs to the critic's value and advantage layers. Every noisy
+parameter has a learned mean and scale. The forward computation accepts an
+explicit factorized-noise sample; it performs no hidden random draw.
 
-Noise belongs to critic value and advantage layers. Every noisy scalar
-parameter has a learned mean and learned scale. The forward pass receives an
-explicit noise sample; it does not draw randomness internally. For a
-factorized layer, transformed input and output factors form weight noise,
-and the output factor forms bias noise. A host-side sampler supplies the
-Gaussian factors. Passing the sample explicitly keeps the Agda transition
-pure and makes tests deterministic.
+The active critic's selected action, noisy sample, and relevant recurrent
+cache are bundled as one pending decision and consumed by the next transition.
+The inactive critic receives its own explicit noise sample for evaluation,
+but never re-selects the action. Tests must verify that zero noise scales
+recover the deterministic mean network and that nonzero noise changes values
+without changing action or quantile dimensions.
 
-No actor noise or actor parameter remains. Tests must establish that setting
-all noise scales to zero recovers the deterministic mean network and that
-nonzero scales alter critic values while leaving action/head dimensions
-unchanged.
+## Recurrent feature and Quantmoid4 derivative contract
 
-## Recurrent feature and derivative contract
+Remove softsign from the recurrent cell and every iterative-CHAD derivative
+path. Use the shifted/rescaled Quantmoid4 approximation for tanh-like bounded
+features:
 
-Remove softsign from every path participating in the recurrent VJP. Use the
-shifted, rescaled Quantmoid4 tanh approximation:
+\[
+q4\_tanh(x)=\frac{2\,Q4(x/2)}{126}-1,
+\]
 
-    q4tanh(x) = 2 * Quantmoid4(x / 2) / 126 - 1
+where \(Q4\) is Stockfish-style Quantmoid4, an integer piecewise-quadratic
+approximation of \(\sigma(4x)\) with output range \([0,126]\). This scaling
+maps the zero point to zero and the output interval to \([-1,1]\), while
+approximating \(\tanh(x)\).
 
-This centering maps the documented Quantmoid4 output range [0, 126] onto
-[-1, 1]; input scaling gives the tanh relation tanh(x) = 2 sigmoid(2x) - 1.
+Keep two separately named definitions:
+- the quantized Quantmoid4 forward function;
+- a smooth-shadow derivative used by iterative CHAD.
 
-The implementation must name two distinct objects:
+For the smooth sigmoid shadow
+\(p=\sigma(2x)\), the corresponding derivative of the transformed smooth
+tanh shadow is \(4p(1-p)\). This is a training surrogate, not the derivative
+of integer Quantmoid4 rounding. The implementation must state its branch
+and saturation conventions and test each piecewise region.
 
-- the quantized Quantmoid4 forward approximation used by the cell;
-- its explicitly documented smooth-shadow derivative used by iterative CHAD.
+**Do not replace the IQN cosine quantile embedding with q4_tanh.** Cosine
+features are periodic and distinguish quantile frequencies; q4_tanh is
+monotone and bounded. Substitution changes the quantile embedding semantics
+and produces a different Q4-embedded implicit quantile model, not the selected
+standard IQN32 design. Likewise, q4_tanh is not a semantics-preserving
+replacement for logarithm or hyperbolic cosine over their domains. Use it
+only where a tanh-like bounded activation is intended. Preserve any other
+function whose domain, range, or algebraic role differs.
 
-The smooth-shadow derivative is a training surrogate. It must not be described
-as the derivative of integer quantization. Test forward symmetry, bounded
-range, zero point, saturation behavior, and derivative behavior on each
-piecewise region. Keep the recurrent reverse scan newest-to-oldest, with the
-future cotangent threaded once per cached frame.
+The recurrent reverse scan remains newest-to-oldest, threading the future
+hidden cotangent exactly once per cached frame. Its surrogate derivative must
+be explicitly separated from the integer forward map.
 
-## Optimizer contract
+## Euclidean Q-projected IDBD
 
-Remove the current max-gradient normalization state and fixed implicit
-weight shrink. Do not substitute gradient clipping.
+Replace the current max-gradient normalization and implicit fixed weight
+shrink with per-parameter Incremental Delta-Bar-Delta (IDBD) state. For each
+parameter \(w_i\), retain a log step-size \(\beta_i\) and IDBD sensitivity
+trace \(h_i\). Set \(\alpha_i=\exp(\beta_i)\).
 
-For data gradient g and parameter w, use a separately named L2 gradient term:
+Let the data gradient of the 32-by-32 quantile-Huber objective be
+\(g_i^{data}=\partial\mathcal L/\partial w_i\). Apply a separately named
+L2 gradient term:
 
-    g_regularized = g + l2_gradient_decay * w
-    w_next = w - learning_rate * g_regularized
+\[
+g_i=g_i^{data}+\texttt{l2\_gradient\_decay}\,w_i.
+\]
 
-The regularization coefficient is independent of learning rate. This is
-coupled L2 gradient regularization, not AdamW-style decoupled weight decay.
-No hidden gradient norm clamp is permitted. Test the data-gradient-only case
-when the coefficient is zero and the exact regularization direction when the
-data gradient is zero.
+Use the diagonal IDBD sensitivity update
 
-## Agda model boundaries
+\[
+w_i'=w_i-\alpha_i g_i,
+\qquad
+h_i'=h_i-\alpha_i(g_i+\widehat H_{ii}h_i),
+\]
 
-The Agda state should make these distinctions explicit:
+where \(\widehat H_{ii}\) is the explicitly documented diagonal curvature
+estimate for the regularized objective. The meta-step is
 
-- ActiveCritic = A | B;
-- two independent online critic parameter values;
-- a non-empty action collection;
-- exactly 64 quantile outputs per value and per action-advantage head;
-- explicit NoisyNet noise input;
-- an environment transition consumed once;
-- terminal and nonterminal target cases;
-- exactly one update result and the next behavior action.
+\[
+\beta'=\Pi_Q^E(\beta-\mu(g\odot h)).
+\]
 
-The update API should accept current observation/action, reward, next
-observation, terminal flag, active side, and explicit noise samples. It should
-return the updated pair of live critics, next action when nonterminal, and
-the next active side only at terminal. A replay API, target-network state,
-actor state, n-step horizon, or update-count loop is outside the model.
+Here \(Q=[\beta_{min},\beta_{max}]^n\) is a declared closed convex
+feasible box, \(\Pi_Q^E\) is Euclidean projection, and the box limits,
+meta-rate \(\mu\), curvature estimate, and fixed-point exponential
+approximation are explicit configuration. The diagonal curvature makes this
+a diagonal IDBD approximation; do not present it as a full Hessian method.
 
-## LuaFun / Fennel build boundary
+\texttt{l2\_gradient\_decay} is distinct from the IDBD meta-rate and from
+the rate projection. It enters the data gradient before the IDBD weight step.
+There is no global gradient-norm clipping, max-gradient normalization, or
+hidden fixed shrink term. The quantile-Huber loss's own bounded derivative is
+part of the chosen objective, not global gradient clipping.
 
-Fennel, Teal, and YueScript all compile or load code for the Lua runtime;
-LuaFun compatibility is determined by generated Lua version, module
-resolution, and ABI. This project standardizes on Fennel.
+Tests must cover: zero L2 coefficient; zero data gradient with nonzero
+regularization; projection at both \(\beta\) bounds; positive step sizes;
+meta-trace sign and curvature branches; and fixed-point approximation error.
 
-Only basic, non-cloning iterator operations are allowed in repository Lua or
-Fennel code: map, filter, foldl, range, totable, any, and simple traversal.
-Do not use iterator cloning, repetition, cycle, partition, split/span,
-iterator emptiness inspection, or S/S-prime contraction-style combinators.
-Standard Lua string.gmatch generators are materialized into a table before
-passing values into LuaFun, because they do not use LuaFun's
-generator/parameter/state triple.
+## Affine resource discipline in the Agda type layer
 
-Fennel and LuaFun are Nix-pinned. Lua Lanes is installed into the project-local
-LuaRocks tree. Lane workers own distinct Agda workspaces and launch separate
-Agda subprocesses.
+Trebor Huang's `agda-linear` gives a useful implementation reference:
+contexts record occurrences, and context splitting combines disjoint
+resources. Adapt that accounting idea in the learner's type layer for:
+- one transition/update token;
+- one pending next-action decision;
+- explicit noise samples;
+- the active-critic update permission.
 
-## Agda-linear connection
+The intended learner boundary is affine: resources may be consumed at most
+once, so replay and accidental duplication are unrepresentable in the
+transition language. Some terminal-only values may be discarded, so a strict
+linear encoding needs an explicit weakening/affine modality at those points.
+Do not describe ordinary Agda function types as affine by themselves; the
+property must be enforced by the encoded syntax/context checker or an
+appropriate linear type discipline.
 
-Trebor Huang's agda-linear is a focused linear type-theory implementation
-with explicit context splitting and occurrence accounting. It is useful as a
-design reference for single-consumption transition tokens, one-shot noise
-samples, and disjoint ownership of A/B update permissions. It is not imported
-as a numerical or CHAD dependency: its type theory and foundation are
-different from this Agda2HS learner module.
+Keep critic A and B parameter ownership disjoint. The active critic receives
+the unique update permission; the other critic receives a read/evaluation
+permission for the target calculation. A terminal branch consumes the
+transition and clears the pending decision without producing a bootstrap
+action.
 
-The concrete learner should encode one-update-per-transition structurally
-where practical. A transition token must not be duplicated or retained for a
-later replay update.
+Bend is a separate, relevant reference: the current `bendlang/bend`
+documentation describes affine values. It is not Trebor Huang's
+`agda-linear` project, and it is not a substitute for the Agda-side
+transition/context proof. No Bend runtime dependency is introduced.
 
-## Required verification before claiming completion
+## LuaFun / Fennel boundary
 
-1. Agda type-checks new critic records, QR64 operations, target, and update.
-2. Agda2HS extraction and generated Haskell typecheck pass.
-3. Small tests cover terminal/no-bootstrap and both A/B select-evaluate cases.
-4. A test confirms evaluator receives selected action without a second argmax.
-5. QR64 pairwise loss tests cover all sign/Huber branches and exact atom count.
-6. NoisyNet zero-noise parity and noise-shape tests pass.
-7. Quantmoid4 forward/smooth-shadow derivative tests pass.
-8. L2-gradient-decay direction tests pass and no gradient-clipping path exists.
-9. Static audit finds no actor, categorical policy, scalar-Q target,
-   softsign derivative, replay state, target-network state, multi-step target,
-   or forbidden LuaFun iterator.
-10. CI verifies Fennel parsing, Pages generation, Agda, Agda2HS, and GHC.
+Fennel is the selected source language and YueScript is removed from the
+toolchain. Teal, Fennel, and YueScript can all interoperate with Lua libraries
+when generated code targets the same Lua version and the module path/runtime
+ABI matches. Fennel is a project standard, not a unique LuaFun compatibility
+requirement. The current shell uses LuaJIT's Lua 5.1 compatibility target.
 
-Until these checks pass, this ADR is a design decision, not evidence that the
-learner implementation already has this architecture.
+LuaFun iterator values use the generator/parameter/state triple. The allowed
+project subset is restricted to single-pass basic transformations and
+reductions already used by the build: `map`, `filter`, `foldl`,
+`range`, `totable`, `any`, and straightforward one-pass traversal.
+Materialize foreign iterator forms such as `string.gmatch` before adapting
+them to LuaFun.
+
+A static audit must reject iterator cloning, replay, repetition, branching,
+partitioning, splitting, state inspection, and explicit contraction helpers,
+including `duplicate`, `replicate`, `xrepeat`, `cycle`, `is_null`,
+`split`, `split_at`, `span`, `partition`, `tabulate`, `zeros`,
+`ones`, `rand`, and `rands`. Extend the audit when an alias or equivalent
+operation appears. Do not claim LuaFun itself supplies a BCK combinator API:
+its pinned `fun.lua` exports iterator functions, not a named B/C/K basis.
+Any BCK-only helper layer would be a separate local abstraction, not an
+upstream LuaFun feature.
+
+The Fennel build scripts remain orchestration code. Their file I/O, logging,
+and process launches are effects at the build boundary; using pure callbacks
+inside `map` or `foldl` does not make the whole CI driver pure. Lua Lanes
+workers own isolated Agda workspaces and each launches its own Agda process.
+
+## Verification required before claiming implementation
+
+1. Agda type-checks the paired critic parameters, dueling value/advantage
+   heads, IQN32 quantile fractions, and one-step target.
+2. Agda2HS extraction and generated Haskell type-check pass.
+3. Both A-active and B-active paths select once and evaluate the same action.
+4. Terminal targets contain reward only; no bootstrap or pending action remains.
+5. A selected next action is consumed as the following transition's action.
+6. Tests verify exactly one critic update per transition, UTD = 1, and no replay.
+7. IQN32 tests cover fraction bounds, 32-by-32 quantile-Huber weighting,
+   action-centering per quantile, and target stop-gradient.
+8. NoisyNet zero-noise parity, explicit noise flow, and action-cache alignment
+   pass.
+9. Quantmoid4 forward symmetry, zero point, range, saturation, and every
+   smooth-shadow derivative region pass; no softsign derivative remains.
+10. IDBD tests cover Q projection, meta-trace/curvature behavior, L2 direction,
+    and absence of gradient clipping or hidden max-gradient state.
+11. Type-layer tests demonstrate affine single-consumption and disjoint A/B
+    ownership.
+12. Static Lua/Fennel audit rejects every prohibited iterator/helper.
+13. CI verifies Fennel parsing, Pages, Agda, Agda2HS, and GHC on the current
+    head.
+
+Until these implementation and verification checks pass, this ADR is a
+selected architecture, not evidence that the current learner has been
+converted. Keep PR #335 Draft and do not merge.
