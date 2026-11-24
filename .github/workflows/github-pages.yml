@@ -42,7 +42,7 @@ jobs:
             .luarocks
           key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/fennel/*.fnl', '**/*.agda') }}
           restore-keys: |
-            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/yue/*.yue') }}-
+            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/fennel/*.fnl') }}-
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
