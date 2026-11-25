@@ -1,192 +1,137 @@
 # Deep Watkins RNN
 
-An Agda-first recurrent actor-critic prototype. The canonical learner is
-`FullCoupled/CanonicalLearnerMonolith.agda`. Agda checks the source;
-Agda2HS extracts the Haskell-compatible declarations; GHC checks the extracted
-module. The learner's numeric interface uses Q8.24 values stored in Int32 and
-widened Int64 intermediates.
+Agda-first Q8.24 recurrent, distributional reinforcement-learning prototype.
+The canonical implementation is
+`FullCoupled/CanonicalLearnerMonolith.agda`. Its existing import surface is
+preserved:
 
-## Current learner
+```agda
+open import Haskell.Prelude public
+open import Haskell.Data.Int public
+open import Haskell.Data.Bits public
+open import Agda.Builtin.Equality.Rewrite public
+open import Agda.Builtin.Strict public
+```
 
-The current implementation is intentionally a small scalar recurrent model.
-It has one recurrent hidden feature, one actor weight per action, and one
-critic weight per action. It is not a full-width vector GRU.
+The learner uses Int32 Q8.24 values, widened Int64 intermediates, saturating
+narrowing, and explicit fixed-point approximations. Agda2HS extracts the
+Haskell-compatible declarations; GHC checks the extracted module in CI.
 
-For observation (x_t) and previous hidden state (h_{t-1}):
+## Learner
+
+The recurrent feature cell has one scalar hidden feature. Its bounded input
+feature uses shifted/rescaled Quantmoid4:
 
 ```text
-z_t = softsign(w_x * x_t)
-g_t = hard_sigmoid(z_t + u_g * h_(t-1))
-c_t = ReLU(z_t + u_c * h_(t-1))
-h_t = ReLU((1 - g_t) * h_(t-1) + g_t * c_t)
+feature_t = 2 * Quantmoid4(x_t / 2) / 126 - 1
+gate_t    = hard_sigmoid(feature_t + w_g * hidden_(t-1))
+candidate = ReLU(feature_t + w_c * hidden_(t-1))
+hidden_t  = ReLU((1 - gate_t) * hidden_(t-1) + gate_t * candidate)
 ```
 
-The gate is state-dependent: it reads the previous recurrent state. ReLU is
-applied to the candidate and final recurrent state. Softsign is used only in
-the input feature transform. The output policy is a categorical distribution
-formed from normalized positive linear preferences; the critic has one scalar
-Q estimate per action.
+The Quantmoid4 integer forward map and smooth-shadow CHAD derivative are
+separate functions. The shadow derivative is a training surrogate for the
+smooth tanh-like approximation, not the derivative of integer rounding.
+Standard IQN cosine features remain cosine; they are not replaced by
+Quantmoid4.
 
-Training uses one-step on-policy SARSA:
+Two independently parameterized, live dueling IQN32 critics (A and B) replace
+the actor-critic. Each critic has a noisy value head and non-empty per-action
+noisy advantage heads. Each quantile uses a 32-component cosine embedding.
+Dueling advantage centering is performed across actions at each quantile.
 
-```text
-a_t     ~ pi(. | s_t)
-a_(t+1) ~ pi(. | s_(t+1))
-target  = r_t                                      terminal
-        = r_t + gamma * Q(s_(t+1), a_(t+1))        otherwise
-```
+The host supplies all quantile fractions and factorized NoisyNet noise. The
+pure Agda learner performs no hidden random draws. The 32 current quantiles
+and 32 target quantiles form a 32-by-32 quantile-Huber objective.
 
-The terminal branch does not bootstrap. The same sampled next action is used
-for the SARSA target. Action heads use a non-empty paired structure: the first
-action has one actor weight and one critic weight, and remaining actions are
-supplied as pairs. The Agda type prevents empty heads and actor/critic length
-mismatches.
+## Online action/value update
 
-FQF is postponed. DeepSets has been removed. There is no LSTM, epsilon-greedy
-selector, Munchausen return, or multi-step target in this version.
+The update is Double distributional SARSA(0):
 
-## Fixed-point arithmetic
+1. The active live critic selects one next action.
+2. The other live critic evaluates that exact action; it does not select a
+   second action.
+3. The active critic receives the sole critic update for this transition.
+4. The selected action and its required recurrent/noise state are carried
+   into the following transition.
 
-The Q8.24 scale is (2^{24} = 16,777,216). The current arithmetic layer
-includes saturating narrowing, widened products, signed division, ReLU,
-softsign, and a hard-sigmoid gate. Products use Int64 intermediates before
-shifting back into Q8.24 Int32 values.
+A and B alternate on each transition. Exactly one critic update occurs per
+environment transition, so UTD is 1. Both critics remain live trainable
+parameter sets; there is no delayed target copy, replay, actor, or multi-step
+return. Terminal targets contain reward only; nonterminal targets bootstrap
+once from the peer critic's quantiles for the selected action.
 
-The learner imports `Haskell.Prelude`, `Haskell.Data.Int`, and
-`Haskell.Data.Bits`. No Agda rewrite postulates or C FFI shims are required
-for the current scalar kernel.
+At `lambda = 0`, True Online SARSA(lambda)'s Dutch-trace correction and
+history-dependent correction terms vanish. The resulting temporal update is
+ordinary SARSA(0). Quantile regression makes the target distributional; it
+does not restore a nontrivial eligibility trace. The recurrent CHAD reverse
+scan is a gradient calculation through the current recurrent computation,
+not a multi-step return.
 
-MicroHs is a separate optional C-backend route; it is not yet wired into this
-flake. For a bootstrap MicroHs compiler, the relevant upstream files are:
+## Optimizer
 
-| MicroHs source | Role |
-| --- | --- |
-| `generated/mhs.c` | Embedded combinator program for the compiler |
-| `src/runtime/main.c` | Runtime executable entry point |
-| `src/runtime/eval.c` | Combinator evaluator |
-| `src/runtime/bfile.c` | Included from `eval.c`; do not compile separately |
-| `src/runtime/mhsffi.h` | Runtime declarations and configuration include |
-| `src/runtime/unix/config.h` | Unix runtime configuration |
-| `src/runtime/*.h`, `src/runtime/unix/*.h` | Runtime headers |
-| `mhs.conf.in`, `Makefile` | Build configuration and targets |
+Every learned parameter carries IDBD state: weight, log step size, sensitivity,
+and a diagonal curvature estimate. The log step size is projected in Euclidean
+distance onto the declared Q8.24 interval `[-8, 0]`. A separate
+`l2GradientDecay` coefficient adds the L2 term to the data gradient before
+the parameter update. The learner has no global gradient clipping,
+max-gradient normalization, or implicit fixed weight shrink.
 
-For the learner executable, MicroHs generates its own C file. That learner C
-file is linked with the runtime; `generated/mhs.c` is needed to bootstrap the
-compiler, not to link every learner. The upstream Makefile and
-`eval.c` are authoritative about included runtime C files.
-See [MicroHs](https://github.com/augustss/MicroHs),
-[its Makefile](https://github.com/augustss/MicroHs/blob/master/Makefile),
-[the evaluator](https://github.com/augustss/MicroHs/blob/master/src/runtime/eval.c),
-and [BFILE](https://github.com/augustss/MicroHs/blob/master/src/runtime/bfile.c).
+The diagonal curvature field makes this a diagonal IDBD approximation, not a
+full-Hessian optimizer. The exponential used for the step size is an explicit
+bounded Q8.24 approximation.
 
-MicroHs exposes `Data.Int.Int32` and `Data.Int.Int64`; the Int32
-implementation and generated C boundary still need boundary/parity tests
-before treating MicroHs output as interchangeable with Agda2HS/GHC output.
+## Recurrent differentiation and resource ownership
 
-## Iterative CHAD status
+`iterativeCHAD` stores recurrent primal frames and scans them newest-to-oldest,
+threading the future hidden cotangent and accumulating recurrent parameter
+cotangents. Its local VJP uses the Quantmoid4 smooth-shadow derivative and the
+piecewise derivatives of the hard-sigmoid and ReLU operations.
 
-The recurrent cell has a local VJP for the smooth shadow of the Q8.24
-operations. It differentiates the ReLU branch indicators and hard-sigmoid
-piecewise slope, then propagates through the input softsign transform.
+`PendingDecision` packages the selected action, recurrent cache, current
+quantile fractions, and peer-noise sample. The transition function threads
+that package into the following update. This packages the intended
+single-consumption boundary, but ordinary Agda function types are unrestricted:
+the current network API does not yet prove affine use by a linear context
+checker. Trebor Huang's `agda-linear` is a useful reference for encoding
+resource occurrences and disjoint context splitting; Bend is a separate
+affine language, not an Agda dependency.
 
-`iterativeCHAD` stores the finite primal trace, then scans it from newest to
-oldest. The scan threads the recurrent-state cotangent and Int64 parameter
-accumulators; it returns per-input cotangents in chronological order.
-`networkSequenceVJP` connects the scan to the current recurrent weights.
-`networkApplySequenceGradient` applies the resulting recurrent parameter
-directions.
+## Lua build tools
 
-This is a learner-specific recurrent reverse scan, not a general CHAD
-compiler. Its local cotangents are supplied by the caller; the module does
-not yet derive a full sequence loss and automatically feed all actor/critic
-losses into the scan. The VJP describes the smooth shadow while holding
-piecewise branches fixed. It does not differentiate integer rounding,
-saturation, or categorical action sampling. There is no machine-checked
-derivative-correctness theorem yet.
+CI and static Pages generation use Fennel on LuaJIT. Fennel and the pinned
+LuaFun source are supplied by Nix; Lua Lanes is installed into the project
+local `.luarocks` tree. YueScript has been removed.
 
-The one-step update uses the local cell pullback directly. Sequence-level
-recurrent gradients use `networkSequenceVJP` and are applied separately.
-Numerical and gradient parity tests are still required.
+LuaFun's project audit forbids only the contraction/replay iterator family:
+`duplicate`, `replicate`, `xrepeat`, `cycle`, `zeros`, and `ones`.
+Operations such as `split`, `span`, `partition`, `tabulate`, and random
+generators are not banned by this rule. This source-level audit is a
+convention check, not a type-system proof of affine use or iterator purity.
 
-## Selected learner redesign
+No Streamly package, import, or build reference is used by this repository.
+The Fennel CI drivers use LuaFun for their one-pass transformations and
+reductions; Lanes workers own isolated Agda workspaces and launch independent
+Agda processes.
 
-The selected next architecture is documented in
-[ADR 0001](docs/decisions/0001-qr64-double-online-sarsa0.md): paired live
-dueling IQN32 critics, Double-SARSA action selection/evaluation, factorized
-NoisyNets on critic value and advantage layers, and one-step distributional
-SARSA(0) at the lambda-zero True-Online limit. It specifies UTD = 1, no
-replay, no frozen target network, no actor, and no multi-step return.
+## Verification boundary
 
-The ADR also specifies a Quantmoid4-tanh forward approximation with a
-separate smooth-shadow derivative, Euclidean Q-projected diagonal IDBD, and
-an independent `l2_gradient_decay` term. The standard IQN cosine quantile
-embedding remains cosine: replacing its periodic basis with monotone
-Quantmoid4-tanh would change IQN's quantile-embedding semantics.
+CI checks Agda, Agda2HS extraction, GHC typechecking, the Fennel/LuaFun source
+audit, the RUSS inventory, and the static Pages artifact. The small Bool
+definitions in the Agda source are executable sanity checks, not a substitute
+for a comprehensive test suite.
 
-The current Agda module above remains the earlier scalar actor-critic
-implementation with softsign, categorical action selection, scalar Q heads,
-and max-gradient-based updates. It does not yet implement IQN32, the paired
-online critics, NoisyNets, projected IDBD, or the new affine transition
-discipline. The ADR is a selected design, not a completed learner rewrite.
+Still required before treating the learner as validated:
 
-## LuaFun, Fennel, and Lanes
+- numeric reference tests for Q8.24 arithmetic, Quantmoid4 pieces, cosine
+  approximation, IDBD projection, and NoisyNet zero-noise parity;
+- tests for current/target quantile sample separation, 32-by-32 loss
+  weighting, action alignment, alternating critic ownership, and terminal
+  targets;
+- finite-difference or high-precision reference checks for the recurrent
+  smooth-shadow VJP and the complete critic gradient;
+- a type-level affine transition proof and end-to-end environment training
+  evaluation.
 
-The build and CI tools are written in Fennel and execute on LuaJIT. Fennel
-and the pinned LuaFun source are supplied by Nix; Lua Lanes is installed into
-the project-local `.luarocks` tree. YueScript is removed from the toolchain.
-
-LuaFun represents iterators as generator/parameter/state triples. The build
-uses only basic transformations and folds: `map`, `filter`, `foldl`,
-`range`, `totable`, and `any`. Code in this repository avoids iterator
-cloning, repetition, partitioning, and iterator-state inspection. An iterator
-is pure only when its generator is deterministic for a given parameter/state
-pair and does not mutate them; LuaFun does not enforce purity. Lua's
-`string.gmatch` iterator is materialized before passing its results into
-LuaFun, because its single-function iterator shape differs from LuaFun's
-generator/parameter/state convention.
-
-This is a compositional iterator style, not Joy/Factor's native concatenative
-stack language. Joy/Factor words compose stack transformations through
-juxtaposition; LuaFun composes iterator values through function calls.
-
-Fennel, Teal, and YueScript all target the Lua runtime, so LuaFun compatibility
-is determined by the generated Lua version, module path, and host ABI—not by
-a blanket restriction to one source language. Fennel's own README explicitly
-promises full Lua compatibility, while Teal documents Lua 5.1–5.4 including
-LuaJIT. The project standardizes on Fennel for its source syntax and keeps
-LuaFun and Lanes in the same LuaJIT process. Lua Lanes runs two workers in
-separate Lua states and OS threads; each worker launches its own Agda
-subprocess.
-
-The CI caches `.luarocks` and `.cache`, so Lanes and Agda interfaces can
-be reused between runs. `.ci/fennel/parallel_agda.fnl` builds two isolated
-persistent Agda workspaces. `AGDA_PROFILE=modules` can be set to collect
-Agda's module profile.
-
-## Verification
-
-The CI workflow runs the Fennel driver under LuaJIT, typechecks the two
-Agda modules concurrently through Lua Lanes, extracts the learner with
-Agda2HS, and checks the generated Haskell with an unoptimized
-`ghc-check -fno-code` wrapper. The optimized GHC wrapper remains available
-for actual executable builds.
-
-A green typecheck/extraction run does not establish numerical parity or
-correctness of the smooth-shadow VJPs. Still needed:
-
-- property tests for saturating Q8.24 arithmetic, signed division, and
-  boundary behavior;
-- finite-difference/reference tests for the recurrent, actor, and critic
-  pullbacks;
-- categorical policy probability and action-sampling tests;
-- SARSA terminal/bootstrap alignment tests;
-- Agda2HS/GHC and MicroHs/C runtime parity tests;
-- a documented end-to-end training run.
-
-## Local commands
-
-```sh
-nix develop --quiet .#agda-ci
-fennel .ci/fennel/ci.fnl All
-```
-
+The implementation is a prototype until those checks pass. The Agda source
+is authoritative; this README is the repository's sole documentation file.
