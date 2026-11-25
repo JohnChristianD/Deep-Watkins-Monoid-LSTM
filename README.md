@@ -70,11 +70,13 @@ bootstrap once from the peer critic's quantiles for the selected action.
 
 At `lambda = 0`, True Online SARSA(lambda)'s Dutch eligibility trace reduces
 to the current feature, `e_t = x_t`. Its historical trace component and the
-extra true-online correction cancel out, leaving the ordinary SARSA(0) weight
-update. Quantile regression makes the target distributional; it does not
-restore a nontrivial eligibility history. The recurrent CHAD reverse
-scan is a gradient calculation through the current recurrent computation,
-not a multi-step return.
+extra true-online correction cancel algebraically, leaving the ordinary
+SARSA(0) semi-gradient update. The Agda source makes this limit explicit with
+`trueOnlineEligibilityTraceLambdaZero` and
+`trueOnlineSarsaLambdaZeroUpdate`, plus executable Bool sanity checks.
+Quantile regression makes the target distributional; it does not restore a
+nontrivial eligibility history. The recurrent CHAD reverse scan is a gradient
+calculation through the current recurrent computation, not a multi-step return.
 
 ## Optimizer
 
