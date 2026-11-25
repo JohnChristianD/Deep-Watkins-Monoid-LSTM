@@ -9,7 +9,10 @@ local function succeeded(status: any): boolean
 end
 
 local function run_checked(label: string, command: string)
+   local started = os.time()
    local status: any = os.execute(command)
+   local elapsed = os.difftime(os.time(), started)
+   print("ci-timing=" .. label .. " seconds=" .. tostring(elapsed))
    if not succeeded(status) then
       io.stderr:write("ci-lane=fail: " .. label .. " (status " .. tostring(status) .. ")\n")
       os.exit(1)
@@ -128,8 +131,8 @@ local function check_agda_theorem()
    )
    run_checked("create GHC check output directory", "mkdir -p build/ghc")
    run_checked(
-      "GHC typecheck extracted learner",
-      "ghc-check -fno-code -fforce-recomp -i./build/agda2hs -odir build/ghc -hidir build/ghc build/agda2hs/FullCoupled/CanonicalLearnerMonolith.hs"
+      "GHC typecheck extracted learner with phase and RTS timings",
+      "ghc-check -ddump-timings -fno-code -fforce-recomp -i./build/agda2hs -odir build/ghc -hidir build/ghc build/agda2hs/FullCoupled/CanonicalLearnerMonolith.hs +RTS -s -RTS"
    )
    print("agda2hs-and-ghc-check=pass-relative-to-declared-imports-and-primitives")
 end

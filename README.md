@@ -127,6 +127,21 @@ source audit, the RUSS inventory, and the static Pages artifact. The small
 Bool definitions in Agda are executable sanity checks, not a substitute for
 a comprehensive test suite.
 
+
+## Build performance diagnosis
+
+The GitHub Actions run [#45549279892](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45549279892) provides a concrete failure trace. The Nix development-shell command began at 04:49:09 UTC on 25 November 2026 and failed at 05:03:15 UTC, after about 14 minutes. Both the Nix-store cache and the Agda/interface cache missed. Nix then attempted to build the `Agda-2.9.0` Haskell derivation from source. Its log reached modules 408 through 431 of 491 before the `Setup build` process was killed; Nix reported exit status 137. That status indicates SIGKILL. Runner memory pressure is the leading explanation, although the log contains no kernel OOM record proving the killer's reason.
+
+The failure happened while Nix was building the Agda compiler itself. The downstream `agda2hs-1.5` derivations failed because their Agda dependency failed. That run never reached the learner's Agda checks, Agda2HS extraction, or the separate `ghc-check -fno-code` invocation. The available evidence therefore identifies a cold Nix/Haskell toolchain build as the measured bottleneck; it does not establish that typechecking the generated learner module is slow.
+
+The earlier workflow used the combined Nix cache action, whose save phase runs after the job. The failed job skipped that phase, so successful store paths from the attempt were not persisted. The workflow now restores and saves the Nix store in separate steps, with the save step running even after a failed build. The Agda interface cache also uses `save-always`. A committed `flake.lock` keeps the dependency graph and Nix cache key stable. Saving the store preserves completed dependencies, although Nix cannot resume the failed Agda derivation's deleted temporary build directory.
+
+The CI driver now reports wall time for each checked stage and each isolated Agda worker. The generated-Haskell check also emits GHC phase timings and RTS allocation/residency statistics. The Nix shell runs with build logs enabled and reports its overall wall time. These measurements will separate the cost of building the toolchain, checking the Agda modules, extracting Haskell, and checking the extracted learner.
+
+A MAlonzo reset is not part of this repair. The canonical CI path invokes the `agda2hs-agda` wrapper with `--disable-backend`, then runs Agda2HS extraction; it does not invoke Agda's `--compile`/MAlonzo backend. Deleting `MAlonzo/` therefore cannot fix the observed Nix derivation failure. Deleting cached `.agdai` interfaces would instead force more Agda work.
+
+A reinstall or blind Agda2HS/Agda upgrade is also not indicated. The current flake pins Agda2HS to `2f89c9adc5018aa34bf4ed715750d30c088fdcb7` and its Agda 2.9.0 source dependency. The current build failure is a source-build resource/cache problem, not evidence of a broken installation or an incompatible Agda2HS release. Keep those pins until the new timings show a problem in the generated-module check or a tested upstream release offers a concrete fix.
+
 Still required before treating the learner as validated:
 
 - numeric reference tests for Q8.24 arithmetic, Quantmoid4 pieces, cosine

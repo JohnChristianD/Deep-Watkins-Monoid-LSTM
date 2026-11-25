@@ -106,7 +106,12 @@ run_checked(
 )
 
 local launch: any = lanes.gen("*", function(command: string): any
-   return os.execute(command)
+   local started = os.time()
+   local status = os.execute(command)
+   return {
+      status = status,
+      seconds = os.difftime(os.time(), started)
+   }
 end)
 
 local tasks: {any} = {}
@@ -117,7 +122,9 @@ end
 local failed = false
 for index, task in ipairs(tasks) do
    local job = jobs[index]
-   local status: any = task:join()
+   local outcome: any = task:join()
+   local status: any = outcome.status
+   print("parallel-agda-worker=" .. job.name .. " seconds=" .. tostring(outcome.seconds))
    os.execute("cat " .. shell_quote(job.log))
    if not succeeded(status) then
       io.stderr:write("parallel-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\n")
