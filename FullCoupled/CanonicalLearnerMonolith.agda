@@ -1,8 +1,11 @@
 {-# OPTIONS
---lossy-unification
+--no-projection-like
 --syntactic-equality=1
 --exact-split
---omega-in-omega
+--auto-inline
+--erasure
+--no-fast-reduce
+--no-eta-equality
 --rewriting
 --confluence-check
 --erased-quotient
@@ -22,7 +25,6 @@ open import Haskell.Prelude public
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
 open import Agda.Builtin.Equality.Rewrite public
-open import Agda.Builtin.Strict public
 
 postulate
   Domain  : Set₁
