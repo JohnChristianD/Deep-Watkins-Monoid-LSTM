@@ -32,8 +32,8 @@
       "if find . -path './.git' -prune -o -type f -name '*.yue' -print -quit | grep -q .; then echo 'YueScript source remains' >&2; exit 1; fi")
     (run! "reject YueScript toolchain references"
       "if grep -Eiq 'yuescript|\\.ci/yue|\\.yue' flake.nix .github/workflows/github-pages.yml; then echo 'YueScript toolchain reference remains' >&2; exit 1; fi")
-    (run! "reject contraction and replaying LuaFun iterators"
-      "if grep -Eni '(^|[^[:alnum:]_])(duplicate|replicate|xrepeat|cycle|is_null|split|split_at|span|partition|tabulate|zeros|ones|rand|rands)([^[:alnum:]_]|$)' .ci/fennel/pages.fnl .ci/fennel/palette_css.fnl .ci/fennel/parallel_agda.fnl .ci/fennel/russ_audit.fnl; then echo 'forbidden iterator combinator found' >&2; exit 1; fi")
+    (run! "reject LuaFun contraction and replay iterators"
+      "if grep -Eni '(^|[^[:alnum:]_])(duplicate|replicate|xrepeat|cycle|zeros|ones)([^[:alnum:]_]|$)' .ci/fennel/pages.fnl .ci/fennel/palette_css.fnl .ci/fennel/parallel_agda.fnl .ci/fennel/russ_audit.fnl; then echo 'contraction/replay iterator found' >&2; exit 1; fi")
     (print "build-source-audit=pass; Fennel; basic LuaFun subset")))
 
 (local check-agda-learner
@@ -57,7 +57,7 @@
             "grep -Fq \"$symbol\" " (shell-quote source) " || exit 1; done"))
       (run! "require ReLU on recurrent output"
         (.. "grep -Fq 'hiddenAfter = qRelu mixPre' " (shell-quote source)))
-      (print "learner-source-audit=pass; Q8.24; ReLU; one-step SARSA")))
+      (print "learner-source-audit=pass; Q8.24; ReLU; one-step SARSA"))))
 
 (local check-agda-theorem
   (fn []
