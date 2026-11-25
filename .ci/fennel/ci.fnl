@@ -129,22 +129,22 @@
       (os.remove base-css)
       (print "static-pages=generated; less-css=validated; browser-JavaScript=none"))))
 
-(local stages
-  {:AgdaLearner (fn [] (check-agda-theorem) (check-agda-learner))
-   :AgdaTheorem check-agda-theorem
-   :RUSS (fn [] (check-agda-theorem) (check-russ-audit))
-   :Pages (fn [] (check-build-source) (check-pages))
-   :All (fn []
-          (check-build-source)
-          (check-agda-theorem)
-          (check-agda-learner)
-          (check-russ-audit)
-          (check-pages))})
-
 (local lane (or (. arg 1) ""))
-(local action (. stages lane))
-(if action
-    (action)
+(if (= lane "AgdaLearner")
+    (do (check-agda-theorem) (check-agda-learner))
+    (= lane "AgdaTheorem")
+    (check-agda-theorem)
+    (= lane "RUSS")
+    (do (check-agda-theorem) (check-russ-audit))
+    (= lane "Pages")
+    (do (check-build-source) (check-pages))
+    (= lane "All")
+    (do
+      (check-build-source)
+      (check-agda-theorem)
+      (check-agda-learner)
+      (check-russ-audit)
+      (check-pages))
     (do
       (io.stderr:write
         "usage: fennel .ci/fennel/ci.fnl AgdaLearner|AgdaTheorem|RUSS|Pages|All\n")
