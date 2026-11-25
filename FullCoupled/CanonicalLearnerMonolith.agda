@@ -566,6 +566,23 @@ qSarsaOneStepTarget reward nextActionValue terminal =
   else qAdd reward (qMul qGamma nextActionValue)
 
 ------------------------------------------------------------------------
+-- At lambda = 0, the Dutch trace has no historical component: e_t = x_t.
+-- The true-online correction cancels algebraically, leaving the ordinary
+-- one-step SARSA semi-gradient update.
+------------------------------------------------------------------------
+
+trueOnlineEligibilityTraceLambdaZero : Int32 -> Int32
+trueOnlineEligibilityTraceLambdaZero currentFeature = currentFeature
+
+trueOnlineSarsaLambdaZeroUpdate :
+  Int32 -> Int32 -> Int32 -> Int32 -> Int32
+trueOnlineSarsaLambdaZeroUpdate alpha tdError currentFeature weight =
+  qAdd weight
+    (qMul alpha
+      (qMul tdError
+        (trueOnlineEligibilityTraceLambdaZero currentFeature)))
+
+------------------------------------------------------------------------
 -- Fixed-size vectors. A 32-entry vector is the IQN32 sample/embedding
 -- dimension; it cannot silently become a shorter or longer sample batch.
 ------------------------------------------------------------------------
@@ -1586,6 +1603,15 @@ sarsaNonterminalBootstrapsOnce : Bool
 sarsaNonterminalBootstrapsOnce =
   qSarsaOneStepTarget 0 qOne false == qGamma
 
+trueOnlineLambdaZeroTraceIsCurrentFeature : Bool
+trueOnlineLambdaZeroTraceIsCurrentFeature =
+  trueOnlineEligibilityTraceLambdaZero qHalf == qHalf
+
+trueOnlineLambdaZeroUpdateIsOneStep : Bool
+trueOnlineLambdaZeroUpdateIsOneStep =
+  trueOnlineSarsaLambdaZeroUpdate qHalf qHalf qOne qOne
+    == qAdd qOne qQuarter
+
 {-# COMPILE AGDA2HS qShift #-}
 {-# COMPILE AGDA2HS qOne #-}
 {-# COMPILE AGDA2HS qHalf #-}
@@ -1620,6 +1646,8 @@ sarsaNonterminalBootstrapsOnce =
 {-# COMPILE AGDA2HS qHardSigmoid #-}
 {-# COMPILE AGDA2HS qHardSigmoidGrad #-}
 {-# COMPILE AGDA2HS qSarsaOneStepTarget #-}
+{-# COMPILE AGDA2HS trueOnlineEligibilityTraceLambdaZero #-}
+{-# COMPILE AGDA2HS trueOnlineSarsaLambdaZeroUpdate #-}
 {-# COMPILE AGDA2HS Vec #-}
 {-# COMPILE AGDA2HS mapVec #-}
 {-# COMPILE AGDA2HS zipVecWith #-}
@@ -1719,3 +1747,5 @@ sarsaNonterminalBootstrapsOnce =
 {-# COMPILE AGDA2HS q4TanhAtZero #-}
 {-# COMPILE AGDA2HS sarsaTerminalDoesNotBootstrap #-}
 {-# COMPILE AGDA2HS sarsaNonterminalBootstrapsOnce #-}
+{-# COMPILE AGDA2HS trueOnlineLambdaZeroTraceIsCurrentFeature #-}
+{-# COMPILE AGDA2HS trueOnlineLambdaZeroUpdateIsOneStep #-}
