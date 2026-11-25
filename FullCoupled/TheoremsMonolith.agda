@@ -1,17 +1,9 @@
 {-# OPTIONS
---experimental-lazy-instances
 --safe
 --lossy-unification
 --syntactic-equality=1
 --no-eta-equality
---prop
 --with-K
---no-fast-reduce
---no-projection-like
---erased-quotients
---erased-funext
---erased-propext
---auto-inline
 --exact-split
 #-}
 
@@ -25,9 +17,6 @@ open import Agda.Builtin.List public
 open import Agda.Builtin.Maybe public
 open import Agda.Builtin.Sigma public
 open import Agda.Builtin.Equality public
-open import Agda.Builtin.Erased.Funext public
-open import Agda.Builtin.Erased.Propext public
-open import Agda.Builtin.Erased.Quotient public
 -- No standard library dependency: define the empty type locally.
 data ⊥ : Set where
 

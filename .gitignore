@@ -1,0 +1,6 @@
+/_build/
+/.cache/
+/build/
+/MAlonzo/
+*.agdai
+/.luarocks/

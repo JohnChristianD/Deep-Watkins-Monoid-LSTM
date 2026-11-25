@@ -1,8 +1,11 @@
 --erasure
---no-projection-like
---two-level
---confluence-check
 --no-postfix-projections
---experimental-lazy-instances
 --exact-split
---guardedness
+--auto-inline
+--no-fast-reduce
+--lossy-unification
+--syntactic-equality=1
+--no-eta-equality
+--type-in-type
+--rewriting
+--confluence-check

@@ -1,4 +1,4 @@
-name: Agda RUSS and static Pages
+name: Agda, Teal, RUSS, and static Pages
 
 on:
   push:
@@ -24,14 +24,42 @@ jobs:
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
+      - name: Lock Nix inputs
+        run: nix flake lock
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
+          restore-prefixes-first-match: |
+            nix-${{ runner.os }}-
+          gc-max-store-size-linux: 8G
+      - name: Cache Agda interfaces, Teal, Lua Lanes, and primitive data
+        uses: actions/cache@v6
+        with:
+          path: |
+            _build
+            .cache
+            .luarocks
+          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl', '**/*.agda') }}
+          restore-keys: |
+            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl') }}-
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
+          XDG_CACHE_HOME: ${{ github.workspace }}/.cache
+          NIX_CONFIG: |
+            max-jobs = 1
+            cores = 1
         shell: bash
         run: |
           set -o pipefail
-          nix develop --quiet .#agda-ci -c fennel .ci/fennel/ci.fnl All 2>&1 \
-            | sed '/^copying path .* from .*$/d'
+          nix develop --quiet .#agda-ci -c bash -euo pipefail -c '
+            tl check .ci/teal/ci.tl
+            mkdir -p build/teal
+            cp .ci/teal/ci.tl build/teal/ci.tl
+            tl gen build/teal/ci.tl
+            exec luajit build/teal/ci.lua All
+          ' 2>&1 | sed '/^copying path .* from .*$/d'
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
