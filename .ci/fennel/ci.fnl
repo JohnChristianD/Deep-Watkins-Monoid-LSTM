@@ -46,8 +46,8 @@
       (run! "reject DeepSets and postponed FQF code"
         (.. "if grep -Eiq 'DeepSets|FQF' " (shell-quote source)
             "; then echo 'postponed architecture found in learner source' >&2; exit 1; fi"))
-      (run! "reject Streamly dependencies and imports"
-        "if grep -Eiq 'streamly|Streamly\\.' flake.nix FullCoupled/CanonicalLearnerMonolith.agda; then echo 'Streamly reference remains' >&2; exit 1; fi")
+      (run! "reject Streamly references in tracked sources"
+        "if git grep -Eni 'streamly|Streamly\\.' -- ':!.ci/fennel/ci.fnl'; then echo 'Streamly reference remains' >&2; exit 1; fi")
       (run! "reject retired actor and max-gradient learner"
         (.. "if grep -Eiq 'softsign|Softsign|policyProbabilities|sampleAction|ActionHead|StreamW|streamMaxGrad|networkTrainStepSARSA([^0-9]|$)|maxGrad' "
             (shell-quote source)
