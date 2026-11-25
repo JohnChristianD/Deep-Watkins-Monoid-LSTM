@@ -55,16 +55,18 @@ The update is Double distributional SARSA(0):
 4. The selected action and its required recurrent/noise state are carried
    into the following transition.
 
-The active side remains fixed within an episode and flips at a terminal
-boundary. This preserves the SARSA action identity: the same critic selects
-the behavior actions and receives the current-state updates throughout that
-episode. Each call performs exactly one critic update (UTD = 1 under the
-caller's one-call-per-transition contract). There is no replay buffer or
-replay path in the learner. Both critics are independent, live trainable
-parameter sets; there is no delayed target copy, actor, or multi-step return.
-The caller must advance the state and pending decision exactly once; the
-current Agda API does not statically enforce that affine usage discipline. Terminal targets contain reward only; nonterminal targets bootstrap
-once from the peer critic's quantiles for the selected action.
+The active critic alternates A/B after every environment transition. At
+each transition, the active critic selects the next action and the other live
+critic evaluates that exact action. Exactly one critic is updated; the
+selected action and the peer's noise sample are carried into the next call.
+After the alternation, that peer becomes the active critic and consumes the
+carried action/noise pair for its current-state update. Each call performs
+exactly one critic update (UTD = 1 under the caller's one-call-per-transition
+contract). There is no replay buffer or replay path, no delayed target copy,
+no actor, and no multi-step return. The caller must advance the state and
+pending decision exactly once; ordinary Agda function types do not statically
+enforce affine use. Terminal targets contain reward only; nonterminal targets
+bootstrap once from the peer critic's quantiles for the selected action.
 
 At `lambda = 0`, True Online SARSA(lambda)'s Dutch eligibility trace reduces
 to the current feature, `e_t = x_t`. Its historical trace component and the
@@ -110,12 +112,11 @@ LuaFun source are supplied by Nix; Lua Lanes is installed into the project
 local `.luarocks` tree. YueScript has been removed.
 
 LuaFun's project audit forbids only the contraction/replay iterator family:
-`duplicate`, `replicate`, `xrepeat`, `cycle`, `zeros`, and `ones`.
-Operations such as `split`, `span`, `partition`, `tabulate`, and random
-generators are not banned by this rule. This source-level audit is a
+`duplicate`, `replicate`, `xrepeat`, and `cycle`. These are the
+iterator-level repetition/duplication operations. `zeros`, `ones`, `tabulate`,
+`split`, `span`, `partition`, and random generators are not contraction bans. This source-level audit is a
 convention check, not a type-system proof of affine use or iterator purity.
 
-No Streamly package, import, or build reference is used by this repository.
 The Fennel CI drivers use LuaFun for their one-pass transformations and
 reductions; Lanes workers own isolated Agda workspaces and launch independent
 Agda processes.
