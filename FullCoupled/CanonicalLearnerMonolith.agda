@@ -534,15 +534,17 @@ qSigmoid2 x =
 
 qQuantmoid4 : Int32 -> Int32
 qQuantmoid4 x =
-  let scaled = qClamp (qMul (qAbs x) q127) 0 q127
-      v = qSub scaled q127
-      squareQuarter = qFrom64
-        (shiftR (fromIntegral v * fromIntegral v) 32)
-  in if 0 < x then qSub q126 squareQuarter else squareQuarter
+  if x == 0 then q63
+  else
+    let scaled = qClamp (qMul (qAbs x) q127) 0 q127
+        v = qSub scaled q127
+        squareQuarter = qFrom64
+          (shiftR (fromIntegral v * fromIntegral v) 32)
+    in if 0 < x then qSub q126 squareQuarter else squareQuarter
 
 q4Tanh : Int32 -> Int32
 q4Tanh x =
-  qSub (qDiv (qQuantmoid4 (qMul x qHalf)) 1056964608) qOne
+  qSub (qDiv (qQuantmoid4 (qMul x qHalf)) q63) qOne
 
 -- Derivative of the smooth tanh shadow, tanh(x) ~= 2 sigmoid(2x)-1.
 -- It is a surrogate for the integer forward function, not its derivative.
@@ -1593,6 +1595,9 @@ q24OneTimesOne = qMul qOne qOne == qOne
 q24HalfTimesHalf : Bool
 q24HalfTimesHalf = qMul qHalf qHalf == qQuarter
 
+qQuantmoid4AtZero : Bool
+qQuantmoid4AtZero = qQuantmoid4 0 == q63
+
 q4TanhAtZero : Bool
 q4TanhAtZero = q4Tanh 0 == 0
 
@@ -1746,6 +1751,7 @@ trueOnlineLambdaZeroUpdateIsOneStep =
 {-# COMPILE AGDA2HS networkApplyCHADGradient #-}
 {-# COMPILE AGDA2HS q24OneTimesOne #-}
 {-# COMPILE AGDA2HS q24HalfTimesHalf #-}
+{-# COMPILE AGDA2HS qQuantmoid4AtZero #-}
 {-# COMPILE AGDA2HS q4TanhAtZero #-}
 {-# COMPILE AGDA2HS sarsaTerminalDoesNotBootstrap #-}
 {-# COMPILE AGDA2HS sarsaNonterminalBootstrapsOnce #-}
