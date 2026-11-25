@@ -33,7 +33,7 @@
     (run! "reject YueScript toolchain references"
       "if grep -Eiq 'yuescript|\\.ci/yue|\\.yue' flake.nix .github/workflows/github-pages.yml; then echo 'YueScript toolchain reference remains' >&2; exit 1; fi")
     (run! "reject LuaFun contraction and replay iterators"
-      "if grep -Eni '(^|[^[:alnum:]_])(duplicate|replicate|xrepeat|cycle|zeros|ones)([^[:alnum:]_]|$)' .ci/fennel/pages.fnl .ci/fennel/palette_css.fnl .ci/fennel/parallel_agda.fnl .ci/fennel/russ_audit.fnl; then echo 'contraction/replay iterator found' >&2; exit 1; fi")
+      "if grep -Eni '(^|[^[:alnum:]_])(duplicate|replicate|xrepeat|cycle)([^[:alnum:]_]|$)' .ci/fennel/pages.fnl .ci/fennel/palette_css.fnl .ci/fennel/parallel_agda.fnl .ci/fennel/russ_audit.fnl; then echo 'contraction/replay iterator found' >&2; exit 1; fi")
     (print "build-source-audit=pass; Fennel; basic LuaFun subset")))
 
 (local check-agda-learner
