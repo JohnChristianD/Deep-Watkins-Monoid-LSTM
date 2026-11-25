@@ -1219,12 +1219,12 @@ criticHiddenCotangent :
   Vec IQNQuantile 32 -> Vec Int32 32 -> Int32
 criticHiddenCotangent critic noise action hidden quantiles gradients =
   qSumVec
-    (zipVecWith3
-      (λ quantile gradient _ ->
+    (zipVecWith
+      (λ quantile gradient ->
         qMul gradient
           (criticHiddenSlope critic noise action
             (cosineEmbedding quantile)))
-      quantiles gradients (mapVec (λ _ -> 0) indices32))
+      quantiles gradients)
 
 ------------------------------------------------------------------------
 -- Recurrent scalar feature unit. Quantmoid4's integer forward path is paired
@@ -1504,7 +1504,7 @@ record CHADResult : Set where
 open CHADResult public
 
 chadForward :
-  List (Int32 × Int32) -> Int32 -> Int32 -> Int32 -> Int32 -> Int32 ->
+  List (Int32 × Int32) -> Int32 -> Int32 -> Int32 -> Int32 ->
   (Int32 × List CHADFrame)
 chadForward frames hidden inputWeight candidateWeight gateWeight =
   go frames hidden []
