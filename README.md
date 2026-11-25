@@ -55,16 +55,20 @@ The update is Double distributional SARSA(0):
 4. The selected action and its required recurrent/noise state are carried
    into the following transition.
 
-A and B alternate on each transition. Exactly one critic update occurs per
-environment transition, so UTD is 1. Both critics remain live trainable
-parameter sets; there is no delayed target copy, replay, actor, or multi-step
-return. Terminal targets contain reward only; nonterminal targets bootstrap
+A and B alternate on each transition. Each call performs exactly one critic
+update (UTD = 1 under the caller's one-call-per-transition contract). There is
+no replay buffer or replay path in the learner. Both critics remain live
+trainable parameter sets; there is no delayed target copy, actor, or
+multi-step return. The caller must advance the state and pending decision
+exactly once; the current Agda API does not statically enforce that affine
+usage discipline. Terminal targets contain reward only; nonterminal targets bootstrap
 once from the peer critic's quantiles for the selected action.
 
-At `lambda = 0`, True Online SARSA(lambda)'s Dutch-trace correction and
-history-dependent correction terms vanish. The resulting temporal update is
-ordinary SARSA(0). Quantile regression makes the target distributional; it
-does not restore a nontrivial eligibility trace. The recurrent CHAD reverse
+At `lambda = 0`, True Online SARSA(lambda)'s Dutch eligibility trace reduces
+to the current feature, `e_t = x_t`. Its historical trace component and the
+extra true-online correction cancel out, leaving the ordinary SARSA(0) weight
+update. Quantile regression makes the target distributional; it does not
+restore a nontrivial eligibility history. The recurrent CHAD reverse
 scan is a gradient calculation through the current recurrent computation,
 not a multi-step return.
 
