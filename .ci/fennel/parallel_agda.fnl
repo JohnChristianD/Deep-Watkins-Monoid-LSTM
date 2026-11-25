@@ -75,7 +75,7 @@
            :source-path source-path
            :log (. job :log)
            :command (command-for job agda-command profile-flag)})
-      entries)))
+      entries))))
 
 (local setup-commands
   (fun.totable
@@ -84,7 +84,7 @@
         (.. "mkdir -p " (shell-quote (. job :module-dir))
             " && " (copy-if-changed ".agda-lib" (.. (. job :root) "/.agda-lib"))
             " && " (copy-if-changed (. job :source-path) (. job :module-path)))
-      jobs)))
+      jobs))))
 
 (run-checked
   "prepare persistent isolated workspaces"
