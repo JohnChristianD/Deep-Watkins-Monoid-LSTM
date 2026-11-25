@@ -53,7 +53,7 @@ local function compile_teal(path: string): string
       "stage Teal runtime source " .. path,
       "cp " .. shell_quote(path) .. " " .. shell_quote(copied_source)
    )
-   run_checked("generate isolated Lua runtime " .. path, "tl gen " .. shell_quote(copied_source))
+   run_checked("generate isolated Lua runtime " .. path, "tl gen --output " .. shell_quote(generated_lua) .. " " .. shell_quote(copied_source))
    return generated_lua
 end
 

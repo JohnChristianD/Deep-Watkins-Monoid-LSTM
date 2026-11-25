@@ -57,7 +57,7 @@ jobs:
             tl check .ci/teal/ci.tl
             mkdir -p build/teal
             cp .ci/teal/ci.tl build/teal/ci.tl
-            tl gen build/teal/ci.tl
+            tl gen --output build/teal/ci.lua build/teal/ci.tl
             exec luajit build/teal/ci.lua All
           ' 2>&1 | sed '/^copying path .* from .*$/d'
       - name: Upload Pages artifact
