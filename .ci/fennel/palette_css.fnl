@@ -30,7 +30,7 @@
 
 (local make-colour
   (fn [index]
-    (let* [extra (- index 90)
+    (let [extra (- index 90)
            hue (if (< index 90)
                    (/ (* tau (% index 18)) 18.0)
                    (/ (* tau (% extra 720)) 720.0))
