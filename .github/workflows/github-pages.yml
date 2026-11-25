@@ -28,7 +28,7 @@ jobs:
         id: nix-store-cache
         uses: nix-community/cache-nix-action/restore@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
+          primary-key: nix-${{ runner.os }}-gcroot-v2-${{ hashFiles('flake.nix', 'flake.lock') }}
           restore-prefixes-first-match: |
             nix-${{ runner.os }}-
       - name: Cache Agda interfaces, Teal, Lua Lanes, and primitive data
@@ -42,6 +42,11 @@ jobs:
           key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl', '**/*.agda') }}
           restore-keys: |
             agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl') }}-
+      - name: Root the Nix devShell for cache retention
+        run: |
+          mkdir -p .cache/nix-roots
+          time -p nix build .#devShells.x86_64-linux.agda-ci \
+            --out-link .cache/nix-roots/agda-ci
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
@@ -63,8 +68,8 @@ jobs:
         if: always() && steps.nix-store-cache.outcome == 'success' && steps.nix-store-cache.outputs.hit-primary-key != 'true'
         uses: nix-community/cache-nix-action/save@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
-          gc-max-store-size-linux: 8G
+          primary-key: nix-${{ runner.os }}-gcroot-v2-${{ hashFiles('flake.nix', 'flake.lock') }}
+          gc-max-store-size-linux: 12G
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:

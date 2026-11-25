@@ -1,4 +1,4 @@
-local fun: any = require("fun")
+local fun = require("fun")
 
 local record Colour
    r: number
