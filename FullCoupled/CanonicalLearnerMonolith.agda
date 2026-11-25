@@ -1437,18 +1437,18 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
           nextHidden nextTargetBatch
       quantileGradients =
         quantileHuberGradients32
-          (pendingQuantiles pending) currentPredictions targets
+          (pendingCurrentQuantiles pending) currentPredictions targets
       loss =
         quantileHuberLoss32
-          (pendingQuantiles pending) currentPredictions targets
+          (pendingCurrentQuantiles pending) currentPredictions targets
       updatedActive =
         criticUpdateFromQuantileGradients config active
           (pendingCriticNoise pending) (pendingAction pending)
-          currentHidden (pendingQuantiles pending) quantileGradients
+          currentHidden (pendingCurrentQuantiles pending) quantileGradients
       hiddenCotangent =
         criticHiddenCotangent active (pendingCriticNoise pending)
           (pendingAction pending) currentHidden
-          (pendingQuantiles pending) quantileGradients
+          (pendingCurrentQuantiles pending) quantileGradients
       pullback =
         cellPullback
           (idbdWeight (networkInputParameter state))
