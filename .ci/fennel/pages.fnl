@@ -35,4 +35,4 @@
 (assert (not (string.find html "<script" 1 true))
   "static Pages output must not contain scripts")
 (write-file output-path html)
-(print "static-pages=README-only landing page"))
+(print "static-pages=README-only landing page")
