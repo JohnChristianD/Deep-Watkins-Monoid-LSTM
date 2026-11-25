@@ -1304,10 +1304,10 @@ cellPullback inputWeight candidateWeight gateWeight cache hiddenCotangent =
        inputWeightCotangent candidateWeightCotangent gateWeightCotangent
 
 ------------------------------------------------------------------------
--- One-use pending decision boundary and alternating live critics.
--- Each transition updates exactly one critic, then flips the active side.
--- The pending action, peer noise, recurrent cache, and 32 target quantiles
--- travel together into the next step; no action is resampled there.
+-- Pending-decision boundary and episode-stable Double SARSA policy.
+-- The active critic remains fixed for an episode, preserving action identity
+-- for SARSA(0), and flips only after a terminal transition. The peer remains
+-- an independent live critic that evaluates the active critic's selected action.
 ------------------------------------------------------------------------
 
 record NetworkState : Set where
@@ -1362,10 +1362,9 @@ networkInitialState inputWeight candidateWeight gateWeight
 
 networkStart :
   Int32 -> Vec Int32 32 -> Vec Int32 32 ->
-  DuelingIQN32Noise -> DuelingIQN32Noise -> NetworkState ->
-  NetworkStartResult
+  DuelingIQN32Noise -> NetworkState -> NetworkStartResult
 networkStart observation actionFractions currentFractions
-    activeNoise peerNoise state =
+    activeNoise state =
   let cache =
         cellForward observation 0
           (idbdWeight (networkInputParameter state))
@@ -1382,7 +1381,7 @@ networkStart observation actionFractions currentFractions
         MkTwinDuelingCritics
           (onlineCriticA (networkCritics state))
           (onlineCriticB (networkCritics state))
-          (flipBool activeA)
+          activeA
       nextState =
         MkNetworkState
           (networkInputParameter state)
@@ -1390,7 +1389,7 @@ networkStart observation actionFractions currentFractions
           (networkGateParameter state)
           nextCritics
       pending =
-        MkPendingDecision action cache currentBatch peerNoise
+        MkPendingDecision action cache currentBatch activeNoise
   in MkNetworkStartResult nextState pending
 
 makeTargetsForAction :
@@ -1465,17 +1464,18 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
       nextGateParameter =
         idbdStep config (cellGateWeightCotangent pullback)
           (networkGateParameter state)
+      nextActiveA = if terminal then flipBool activeA else activeA
       nextCritics =
         if activeA
-        then MkTwinDuelingCritics updatedActive (onlineCriticB critics) false
-        else MkTwinDuelingCritics (onlineCriticA critics) updatedActive true
+        then MkTwinDuelingCritics updatedActive (onlineCriticB critics) nextActiveA
+        else MkTwinDuelingCritics (onlineCriticA critics) updatedActive nextActiveA
       nextState =
         MkNetworkState nextInputParameter nextCandidateParameter
           nextGateParameter nextCritics
       output =
         if terminal then EpisodeEnded
         else ContinueWith
-          (MkPendingDecision nextAction nextCache nextCurrentBatch peerNextNoise)
+          (MkPendingDecision nextAction nextCache nextCurrentBatch activeNextNoise)
   in MkNetworkTrainingResult nextState targets loss nextAction output
 
 ------------------------------------------------------------------------
