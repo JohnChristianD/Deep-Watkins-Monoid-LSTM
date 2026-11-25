@@ -19,7 +19,7 @@
 
 (local make-entry
   (fn [root name module source-path]
-    (let* [work-root (.. root "/" name)
+    (let [work-root (.. root "/" name)
            parent (string.match module "(.+)/[^/]+$")
            module-dir (if parent (.. work-root "/" parent) work-root)]
       {:name name
@@ -63,7 +63,7 @@
   (fun.totable
     (fun.map
       (fn [entry]
-        (let* [name (. entry :name)
+        (let [name (. entry :name)
                module (. entry :module)
                source-path (. entry :source-path)
                job (make-entry cache-root name module source-path)]
@@ -102,7 +102,7 @@
   (fun.totable
     (fun.map
       (fn [index]
-        (let* [job (. jobs index)
+        (let [job (. jobs index)
                task (. tasks index)
                status ((. task :join) task)]
           (os.execute (.. "cat " (shell-quote (. job :log))))
