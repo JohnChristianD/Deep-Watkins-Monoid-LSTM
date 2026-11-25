@@ -541,7 +541,7 @@ qQuantmoid4 x =
 
 q4Tanh : Int32 -> Int32
 q4Tanh x =
-  qSub (qDiv (qQuantmoid4 x) 1056964608) qOne
+  qSub (qDiv (qQuantmoid4 (qMul x qHalf)) 1056964608) qOne
 
 -- Derivative of the smooth tanh shadow, tanh(x) ~= 2 sigmoid(2x)-1.
 -- It is a surrogate for the integer forward function, not its derivative.
@@ -1324,7 +1324,7 @@ record PendingDecision : Set where
   field
     pendingAction : Nat
     pendingCellCache : CellCache
-    pendingQuantiles : Vec IQNQuantile 32
+    pendingCurrentQuantiles : Vec IQNQuantile 32
     pendingCriticNoise : DuelingIQN32Noise
 open PendingDecision public
 
@@ -1364,7 +1364,7 @@ networkStart :
   Int32 -> Vec Int32 32 -> Vec Int32 32 ->
   DuelingIQN32Noise -> DuelingIQN32Noise -> NetworkState ->
   NetworkStartResult
-networkStart observation actionFractions targetFractions
+networkStart observation actionFractions currentFractions
     activeNoise peerNoise state =
   let cache =
         cellForward observation 0
@@ -1375,7 +1375,7 @@ networkStart observation actionFractions targetFractions
       activeA = activeCriticA (networkCritics state)
       active = selectActiveCritic activeA (networkCritics state)
       actionBatch = makeIQNBatch32 actionFractions
-      targetBatch = makeIQNBatch32 targetFractions
+      currentBatch = makeIQNBatch32 currentFractions
       action =
         criticSelectAction active activeNoise hidden actionBatch
       nextCritics =
@@ -1390,7 +1390,7 @@ networkStart observation actionFractions targetFractions
           (networkGateParameter state)
           nextCritics
       pending =
-        MkPendingDecision action cache targetBatch peerNoise
+        MkPendingDecision action cache currentBatch peerNoise
   in MkNetworkStartResult nextState pending
 
 makeTargetsForAction :
@@ -1407,10 +1407,11 @@ makeTargetsForAction terminal reward action peer peerNoise hidden targetBatch =
 networkTrainStepSARSA0 :
   IDBDConfig -> NetworkState -> PendingDecision ->
   Int32 -> Int32 -> Bool ->
-  Vec Int32 32 -> Vec Int32 32 ->
+  Vec Int32 32 -> Vec Int32 32 -> Vec Int32 32 ->
   DuelingIQN32Noise -> DuelingIQN32Noise -> NetworkTrainingResult
 networkTrainStepSARSA0 config state pending reward nextObservation terminal
-    nextActionFractions nextTargetFractions activeNextNoise peerNextNoise =
+    nextActionFractions nextCurrentFractions nextTargetFractions
+    activeNextNoise peerNextNoise =
   let critics = networkCritics state
       activeA = activeCriticA critics
       active = selectActiveCritic activeA critics
@@ -1419,7 +1420,7 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
       currentPredictions =
         criticQuantilesForAction (pendingAction pending)
           active (pendingCriticNoise pending) currentHidden
-          (pendingQuantiles pending)
+          (pendingCurrentQuantiles pending)
       nextCache =
         cellForward nextObservation currentHidden
           (idbdWeight (networkInputParameter state))
@@ -1427,6 +1428,7 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
           (idbdWeight (networkGateParameter state))
       nextHidden = cellHiddenAfter nextCache
       nextActionBatch = makeIQNBatch32 nextActionFractions
+      nextCurrentBatch = makeIQNBatch32 nextCurrentFractions
       nextTargetBatch = makeIQNBatch32 nextTargetFractions
       nextAction =
         if terminal then 0
@@ -1473,7 +1475,7 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
       output =
         if terminal then EpisodeEnded
         else ContinueWith
-          (MkPendingDecision nextAction nextCache nextTargetBatch peerNextNoise)
+          (MkPendingDecision nextAction nextCache nextCurrentBatch peerNextNoise)
   in MkNetworkTrainingResult nextState targets loss nextAction output
 
 ------------------------------------------------------------------------
