@@ -1324,6 +1324,7 @@ record PendingDecision : Set where
     pendingAction : Nat
     pendingCellCache : CellCache
     pendingCurrentQuantiles : Vec IQNQuantile 32
+    pendingCriticNoise : DuelingIQN32Noise
 open PendingDecision public
 
 data TransitionOutput : Set where
@@ -1387,7 +1388,7 @@ networkStart observation actionFractions currentFractions
           (networkGateParameter state)
           nextCritics
       pending =
-        MkPendingDecision action cache currentBatch
+        MkPendingDecision action cache currentBatch activeNoise
   in MkNetworkStartResult nextState pending
 
 makeTargetsForAction :
@@ -1405,11 +1406,10 @@ networkTrainStepSARSA0 :
   IDBDConfig -> NetworkState -> PendingDecision ->
   Int32 -> Int32 -> Bool ->
   Vec Int32 32 -> Vec Int32 32 -> Vec Int32 32 ->
-  DuelingIQN32Noise -> DuelingIQN32Noise -> DuelingIQN32Noise ->
-  NetworkTrainingResult
+  DuelingIQN32Noise -> DuelingIQN32Noise -> NetworkTrainingResult
 networkTrainStepSARSA0 config state pending reward nextObservation terminal
     nextActionFractions nextCurrentFractions nextTargetFractions
-    currentUpdateNoise activeNextNoise peerNextNoise =
+    activeNextNoise peerNextNoise =
   let critics = networkCritics state
       activeA = activeCriticA critics
       active = selectActiveCritic activeA critics
@@ -1417,7 +1417,7 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
       currentHidden = cellHiddenAfter (pendingCellCache pending)
       currentPredictions =
         criticQuantilesForAction (pendingAction pending)
-          active currentUpdateNoise currentHidden
+          active (pendingCriticNoise pending) currentHidden
           (pendingCurrentQuantiles pending)
       nextCache =
         cellForward nextObservation currentHidden
@@ -1442,10 +1442,10 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
           (pendingCurrentQuantiles pending) currentPredictions targets
       updatedActive =
         criticUpdateFromQuantileGradients config active
-          currentUpdateNoise (pendingAction pending)
+          (pendingCriticNoise pending) (pendingAction pending)
           currentHidden (pendingCurrentQuantiles pending) quantileGradients
       hiddenCotangent =
-        criticHiddenCotangent active currentUpdateNoise
+        criticHiddenCotangent active (pendingCriticNoise pending)
           (pendingAction pending) currentHidden
           (pendingCurrentQuantiles pending) quantileGradients
       pullback =
@@ -1474,7 +1474,7 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
       output =
         if terminal then EpisodeEnded
         else ContinueWith
-          (MkPendingDecision nextAction nextCache nextCurrentBatch)
+          (MkPendingDecision nextAction nextCache nextCurrentBatch peerNextNoise)
   in MkNetworkTrainingResult nextState targets loss nextAction output
 
 ------------------------------------------------------------------------
