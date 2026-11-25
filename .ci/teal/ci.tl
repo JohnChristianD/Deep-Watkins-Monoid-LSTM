@@ -45,7 +45,7 @@ end
 local function check_build_source()
    run_checked(
       "reject legacy script sources",
-      "if find . -path './.git' -prune -o -type f \\( -name '*.fnl' -o -name '*.yue' \\) -print -quit | grep -q .; then echo 'legacy script source remains' >&2; exit 1; fi"
+      "if find . -path './.git' -prune -o -type f \\( -name '*.fnl' -o -name '*.yue' -o -name '*.lua' \\) -print -quit | grep -q .; then echo 'legacy/non-Teal script source remains' >&2; exit 1; fi"
    )
    run_checked(
       "reject legacy toolchain references",
@@ -141,7 +141,10 @@ local function check_pages()
 
    local generated_html = read_file(html)
    local generated_css = read_file(css)
+   local published_readme = out .. "/README.md"
+   write_file(published_readme, read_file("README.md"))
    assert(string.find(generated_html, 'href="site.css"', 1, true) ~= nil, "published HTML is missing its stylesheet link")
+   assert(#read_file(published_readme) > 0, "published README copy is empty")
    assert(string.find(generated_html, 'href="README.md"', 1, true) ~= nil, "published landing page is missing its README link")
    assert(string.find(generated_html, 'class="intro"', 1, true) ~= nil, "published landing page is missing its introduction")
    assert(string.find(generated_html, "<script", 1, true) == nil, "published HTML must remain static")
@@ -153,7 +156,8 @@ local function check_pages()
    print("static-pages=generated; less-css=validated; browser-JavaScript=none")
 end
 
-local lane = arg[1] or ""
+local arguments = {...}
+local lane = arguments[1] or ""
 if lane == "AgdaLearner" then
    check_agda_theorem()
    check_agda_learner()

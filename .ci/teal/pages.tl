@@ -4,7 +4,8 @@ local function write_file(path: string, content: string)
    file:close()
 end
 
-local output_path = assert(arg[1], "usage: pages.tl OUTPUT.html")
+local arguments = {...}
+local output_path = assert(arguments[1], "usage: pages.tl OUTPUT.html")
 local lines: {string} = {
    "<!doctype html>",
    '<html lang="en">',

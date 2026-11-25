@@ -131,7 +131,8 @@ local function rgb_hex(colour: Colour): string
    )
 end
 
-local output_path = assert(arg[1], "usage: palette_css.tl OUTPUT.css")
+local arguments = {...}
+local output_path = assert(arguments[1], "usage: palette_css.tl OUTPUT.css")
 local output = assert(io.open(output_path, "w"), "cannot write " .. output_path)
 output:write(":root {\n")
 for index, role in ipairs(roles) do

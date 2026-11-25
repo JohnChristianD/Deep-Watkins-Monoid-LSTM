@@ -37,7 +37,8 @@ local learner = read_file(source_files[1])
 local theorem = read_file(source_files[2])
 local learner_postulates = count_postulate_blocks(learner)
 local theorem_postulates = count_postulate_blocks(theorem)
-local output_path = arg[1] or "build/russ-audit.dhall"
+local arguments = {...}
+local output_path = arguments[1] or "build/russ-audit.dhall"
 
 local template = [[
 { canonicalModuleCount = %d

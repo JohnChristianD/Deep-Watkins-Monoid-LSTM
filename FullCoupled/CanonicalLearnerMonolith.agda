@@ -439,7 +439,8 @@ qQuarter = 4194304
 qTwo     = 33554432
 qFour    = 67108864
 
-q126 q127 qPi qTwoPi : Int32
+q63 q126 q127 qPi qTwoPi : Int32
+q63    = 1056964608
 q126   = 2113929216
 q127   = 2130706432
 qPi    = 52707179
@@ -566,9 +567,9 @@ qSarsaOneStepTarget reward nextActionValue terminal =
   else qAdd reward (qMul qGamma nextActionValue)
 
 ------------------------------------------------------------------------
--- At lambda = 0, the Dutch trace has no historical component: e_t = x_t.
--- The true-online correction cancels algebraically, leaving the ordinary
--- one-step SARSA semi-gradient update.
+-- At lambda = 0, the Dutch trace is the current feature, e_t = x_t (not 0).
+-- Historical accumulation disappears and the true-online correction
+-- cancels algebraically, leaving the ordinary one-step SARSA semi-gradient.
 ------------------------------------------------------------------------
 
 trueOnlineEligibilityTraceLambdaZero : Int32 -> Int32
@@ -1618,6 +1619,7 @@ trueOnlineLambdaZeroUpdateIsOneStep =
 {-# COMPILE AGDA2HS qQuarter #-}
 {-# COMPILE AGDA2HS qTwo #-}
 {-# COMPILE AGDA2HS qFour #-}
+{-# COMPILE AGDA2HS q63 #-}
 {-# COMPILE AGDA2HS q126 #-}
 {-# COMPILE AGDA2HS q127 #-}
 {-# COMPILE AGDA2HS qPi #-}
