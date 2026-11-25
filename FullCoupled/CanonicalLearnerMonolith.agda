@@ -1304,10 +1304,9 @@ cellPullback inputWeight candidateWeight gateWeight cache hiddenCotangent =
        inputWeightCotangent candidateWeightCotangent gateWeightCotangent
 
 ------------------------------------------------------------------------
--- Pending-decision boundary and episode-stable Double SARSA policy.
--- The active critic remains fixed for an episode, preserving action identity
--- for SARSA(0), and flips only after a terminal transition. The peer remains
--- an independent live critic that evaluates the active critic's selected action.
+-- Pending-decision boundary and transition-alternating Double SARSA policy.
+-- The active critic alternates A/B after every transition. The selected next
+-- action is carried unchanged; the peer evaluates that exact action.
 ------------------------------------------------------------------------
 
 record NetworkState : Set where
@@ -1325,7 +1324,6 @@ record PendingDecision : Set where
     pendingAction : Nat
     pendingCellCache : CellCache
     pendingCurrentQuantiles : Vec IQNQuantile 32
-    pendingCriticNoise : DuelingIQN32Noise
 open PendingDecision public
 
 data TransitionOutput : Set where
@@ -1389,7 +1387,7 @@ networkStart observation actionFractions currentFractions
           (networkGateParameter state)
           nextCritics
       pending =
-        MkPendingDecision action cache currentBatch activeNoise
+        MkPendingDecision action cache currentBatch
   in MkNetworkStartResult nextState pending
 
 makeTargetsForAction :
@@ -1407,10 +1405,11 @@ networkTrainStepSARSA0 :
   IDBDConfig -> NetworkState -> PendingDecision ->
   Int32 -> Int32 -> Bool ->
   Vec Int32 32 -> Vec Int32 32 -> Vec Int32 32 ->
-  DuelingIQN32Noise -> DuelingIQN32Noise -> NetworkTrainingResult
+  DuelingIQN32Noise -> DuelingIQN32Noise -> DuelingIQN32Noise ->
+  NetworkTrainingResult
 networkTrainStepSARSA0 config state pending reward nextObservation terminal
     nextActionFractions nextCurrentFractions nextTargetFractions
-    activeNextNoise peerNextNoise =
+    currentUpdateNoise activeNextNoise peerNextNoise =
   let critics = networkCritics state
       activeA = activeCriticA critics
       active = selectActiveCritic activeA critics
@@ -1418,7 +1417,7 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
       currentHidden = cellHiddenAfter (pendingCellCache pending)
       currentPredictions =
         criticQuantilesForAction (pendingAction pending)
-          active (pendingCriticNoise pending) currentHidden
+          active currentUpdateNoise currentHidden
           (pendingCurrentQuantiles pending)
       nextCache =
         cellForward nextObservation currentHidden
@@ -1443,10 +1442,10 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
           (pendingCurrentQuantiles pending) currentPredictions targets
       updatedActive =
         criticUpdateFromQuantileGradients config active
-          (pendingCriticNoise pending) (pendingAction pending)
+          currentUpdateNoise (pendingAction pending)
           currentHidden (pendingCurrentQuantiles pending) quantileGradients
       hiddenCotangent =
-        criticHiddenCotangent active (pendingCriticNoise pending)
+        criticHiddenCotangent active currentUpdateNoise
           (pendingAction pending) currentHidden
           (pendingCurrentQuantiles pending) quantileGradients
       pullback =
@@ -1464,7 +1463,7 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
       nextGateParameter =
         idbdStep config (cellGateWeightCotangent pullback)
           (networkGateParameter state)
-      nextActiveA = if terminal then flipBool activeA else activeA
+      nextActiveA = flipBool activeA
       nextCritics =
         if activeA
         then MkTwinDuelingCritics updatedActive (onlineCriticB critics) nextActiveA
@@ -1475,7 +1474,7 @@ networkTrainStepSARSA0 config state pending reward nextObservation terminal
       output =
         if terminal then EpisodeEnded
         else ContinueWith
-          (MkPendingDecision nextAction nextCache nextCurrentBatch activeNextNoise)
+          (MkPendingDecision nextAction nextCache nextCurrentBatch)
   in MkNetworkTrainingResult nextState targets loss nextAction output
 
 ------------------------------------------------------------------------
