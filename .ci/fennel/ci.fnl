@@ -46,18 +46,29 @@
       (run! "reject DeepSets and postponed FQF code"
         (.. "if grep -Eiq 'DeepSets|FQF' " (shell-quote source)
             "; then echo 'postponed architecture found in learner source' >&2; exit 1; fi"))
+      (run! "reject Streamly dependencies and imports"
+        "if grep -Eiq 'streamly|Streamly\\.' flake.nix FullCoupled/CanonicalLearnerMonolith.agda; then echo 'Streamly reference remains' >&2; exit 1; fi")
+      (run! "reject retired actor and max-gradient learner"
+        (.. "if grep -Eiq 'softsign|Softsign|policyProbabilities|sampleAction|ActionHead|StreamW|streamMaxGrad|networkTrainStepSARSA([^0-9]|$)|maxGrad' "
+            (shell-quote source)
+            "; then echo 'retired actor-critic or max-gradient path remains' >&2; exit 1; fi"))
       (run! "reject floating-point runtime types"
-        (.. "if grep -Eiq '(^|[^[:alnum:]_])(Float|Double|Float32|Float64)([^[:alnum:]_]|$)' "
+        (.. "if grep -Eiq '(^|[^[:alnum:]_])(Float|Float32|Float64)([^[:alnum:]_]|$)' "
             (shell-quote source)
             "; then echo 'floating-point runtime type found' >&2; exit 1; fi"))
-      (run! "require current Q8.24 learner symbols"
+      (run! "require Q8.24 IQN32 Double-SARSA learner symbols"
         (.. "for symbol in 'qShift = 24' 'qOne     = 16777216' "
-            "qRelu qSarsaOneStepTarget networkTrainStepSARSA networkStep "
-            "networkSequenceVJP networkApplySequenceGradient iterativeCHAD; do "
+            "q4Tanh q4TanhGrad IDBDConfig IDBDParameter idbdStep "
+            "NoisyDense32 DuelingIQN32 TwinDuelingCritics "
+            "doubleSARSA0Target networkStart networkTrainStepSARSA0 "
+            "iterativeCHAD qQuantileHuberPairGradient; do "
             "grep -Fq \"$symbol\" " (shell-quote source) " || exit 1; done"))
-      (run! "require ReLU on recurrent output"
-        (.. "grep -Fq 'hiddenAfter = qRelu mixPre' " (shell-quote source)))
-      (print "learner-source-audit=pass; Q8.24; ReLU; one-step SARSA"))))
+      (run! "require unchanged Agda import surface"
+        "for import in 'open import Haskell.Prelude public' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public' 'open import Agda.Builtin.Strict public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done")
+      (run! "require ReLU on recurrent candidate and output"
+        (.. "grep -Fq 'candidate = qRelu candidateInput' " (shell-quote source)
+            " && grep -Fq 'hiddenAfter = qRelu mixPre' " (shell-quote source)))
+      (print "learner-source-audit=pass; Q8.24; IQN32; Double SARSA(0); IDBD; Quantmoid4"))))
 
 (local check-agda-theorem
   (fn []
