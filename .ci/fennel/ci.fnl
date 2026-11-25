@@ -98,7 +98,7 @@
 
 (local check-pages
   (fn []
-    (let* [out (or (os.getenv "PAGES_OUTPUT_DIR") "build/pages")
+    (let [out (or (os.getenv "PAGES_OUTPUT_DIR") "build/pages")
            palette (.. out "/palette.css")
            base-css (.. out "/base.css")
            css (.. out "/site.css")
@@ -113,11 +113,11 @@
         (.. "fennel .ci/fennel/pages.fnl " (shell-quote html)))
       (let [generated-html (read-file html)
             generated-css (read-file css)]
-        (assert (string.find generated-html "href=\\"site.css\\"" 1 true)
+        (assert (string.find generated-html "href=\"site.css\"" 1 true)
           "published HTML is missing its stylesheet link")
-        (assert (string.find generated-html "href=\\"README.md\\"" 1 true)
+        (assert (string.find generated-html "href=\"README.md\"" 1 true)
           "published landing page is missing its README link")
-        (assert (string.find generated-html "class=\\"intro\\"" 1 true)
+        (assert (string.find generated-html "class=\"intro\"" 1 true)
           "published landing page is missing its introduction")
         (assert (not (string.find generated-html "<script" 1 true))
           "published HTML must remain static")
