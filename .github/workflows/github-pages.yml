@@ -1,4 +1,4 @@
-name: Agda RUSS and static Pages
+name: Agda, Teal, RUSS, and static Pages
 
 on:
   push:
@@ -33,16 +33,16 @@ jobs:
           restore-prefixes-first-match: |
             nix-${{ runner.os }}-
           gc-max-store-size-linux: 8G
-      - name: Cache Agda interfaces, Lua Lanes, and primitive data
+      - name: Cache Agda interfaces, Teal, Lua Lanes, and primitive data
         uses: actions/cache@v6
         with:
           path: |
             _build
             .cache
             .luarocks
-          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/fennel/*.fnl', '**/*.agda') }}
+          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl', '**/*.agda') }}
           restore-keys: |
-            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/fennel/*.fnl') }}-
+            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl') }}-
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
@@ -51,7 +51,7 @@ jobs:
         run: |
           set -o pipefail
           nix develop --quiet .#agda-ci -c bash -euo pipefail -c '
-            exec fennel .ci/fennel/ci.fnl All
+            exec tl run .ci/teal/ci.tl All
           ' 2>&1 | sed '/^copying path .* from .*$/d'
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

@@ -1,9 +1,10 @@
 # Deep Watkins RNN
 
 Agda-first Q8.24 recurrent, distributional reinforcement-learning prototype.
-The canonical implementation is
-`FullCoupled/CanonicalLearnerMonolith.agda`. Its existing import surface is
-preserved:
+The canonical learner is `FullCoupled/CanonicalLearnerMonolith.agda`.
+This README is the repository's only project documentation.
+
+The canonical Agda import surface is intentionally preserved:
 
 ```agda
 open import Haskell.Prelude public
@@ -68,15 +69,14 @@ pending decision exactly once; ordinary Agda function types do not statically
 enforce affine use. Terminal targets contain reward only; nonterminal targets
 bootstrap once from the peer critic's quantiles for the selected action.
 
-At `lambda = 0`, True Online SARSA(lambda)'s Dutch eligibility trace reduces
-to the current feature, `e_t = x_t`. Its historical trace component and the
-extra true-online correction cancel algebraically, leaving the ordinary
-SARSA(0) semi-gradient update. The Agda source makes this limit explicit with
-`trueOnlineEligibilityTraceLambdaZero` and
-`trueOnlineSarsaLambdaZeroUpdate`, plus executable Bool sanity checks.
-Quantile regression makes the target distributional; it does not restore a
-nontrivial eligibility history. The recurrent CHAD reverse scan is a gradient
-calculation through the current recurrent computation, not a multi-step return.
+At `lambda = 0`, the Dutch eligibility trace does not become zero or vanish:
+it collapses to the current feature, `e_t = x_t`. The historical accumulation
+term is absent, and the true-online correction cancels algebraically. The
+resulting parameter update is the ordinary one-step SARSA(0) semi-gradient
+update. Quantile regression makes the target distributional; it does not
+restore a nontrivial eligibility history. The recurrent CHAD reverse scan is
+a gradient calculation through the current recurrent computation, not a
+multi-step return.
 
 ## Optimizer
 
@@ -107,28 +107,20 @@ checker. Trebor Huang's `agda-linear` is a useful reference for encoding
 resource occurrences and disjoint context splitting; Bend is a separate
 affine language, not an Agda dependency.
 
-## Lua build tools
+## Build and verification
 
-CI and static Pages generation use Fennel on LuaJIT. Fennel and the pinned
-LuaFun source are supplied by Nix; Lua Lanes is installed into the project
-local `.luarocks` tree. YueScript has been removed.
+Typed Teal sources under `.ci/teal` drive the CI, parallel Agda checks,
+RUSS inventory, and static Pages generation. Teal type-checks these programs
+and compiles them to Lua; the generated programs run on LuaJIT. LuaFun is pinned
+by Nix, and Lua Lanes runs isolated Agda workers. The LuaFun source audit bans
+only the contraction/repetition family `duplicate`, `replicate`, `xrepeat`,
+and `cycle`. Operations such as `split`, `span`, `partition`, `tabulate`,
+`zeros`, `ones`, and random generators are outside that ban.
 
-LuaFun's project audit forbids only the contraction/replay iterator family:
-`duplicate`, `replicate`, `xrepeat`, and `cycle`. These are the
-iterator-level repetition/duplication operations. `zeros`, `ones`, `tabulate`,
-`split`, `span`, `partition`, and random generators are not contraction bans. This source-level audit is a
-convention check, not a type-system proof of affine use or iterator purity.
-
-The Fennel CI drivers use LuaFun for their one-pass transformations and
-reductions; Lanes workers own isolated Agda workspaces and launch independent
-Agda processes.
-
-## Verification boundary
-
-CI checks Agda, Agda2HS extraction, GHC typechecking, the Fennel/LuaFun source
-audit, the RUSS inventory, and the static Pages artifact. The small Bool
-definitions in the Agda source are executable sanity checks, not a substitute
-for a comprehensive test suite.
+CI checks Teal types, Agda, Agda2HS extraction, GHC typechecking, the LuaFun
+source audit, the RUSS inventory, and the static Pages artifact. The small
+Bool definitions in Agda are executable sanity checks, not a substitute for
+a comprehensive test suite.
 
 Still required before treating the learner as validated:
 
@@ -142,5 +134,4 @@ Still required before treating the learner as validated:
 - a type-level affine transition proof and end-to-end environment training
   evaluation.
 
-The implementation is a prototype until those checks pass. The Agda source
-is authoritative; this README is the repository's sole documentation file.
+The implementation is a prototype until those checks pass.

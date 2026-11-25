@@ -1,5 +1,5 @@
 {
-  description = "Q8.24 Agda learner, intuitionistic RUSS metatheory, and Fennel Pages";
+  description = "Q8.24 Agda learner, intuitionistic RUSS metatheory, and Teal Pages";
 
   inputs = {
     # Match the Nixpkgs revision used by the upstream Agda 2.9 agda2hs build.
@@ -108,30 +108,14 @@
           };
         };
 
-      fennelJitEnv = system:
+      tealLuaEnv = system:
         let
           pkgs = pkgsFor system;
           luafunPkg = luafunModule system;
         in
-        pkgs.luajit.withPackages (ps: [
-          ps.fennel
-          luafunPkg
-        ]);
+        pkgs.luajit.withPackages (_: [ luafunPkg ]);
 
-      fennelRuntime = system:
-        let
-          pkgs = pkgsFor system;
-          luaEnv = fennelJitEnv system;
-        in
-        pkgs.writeShellApplication {
-          name = "fennel";
-          runtimeInputs = [ luaEnv ];
-          text = ''
-            exec ${luaEnv}/bin/fennel "$@"
-          '';
-        };
-
-      # Install Lua Lanes into a project-local tree; Fennel and LuaFun are pinned by Nix.
+      # Install pinned Teal and Lua Lanes into a project-local tree; LuaFun is pinned by Nix.
       luaRocksShellHook = pkgs: ''
         export AGDA_COMMAND="agda2hs-agda"
         export NIX_BUILD_CORES=2
@@ -149,6 +133,9 @@
           '' else ''
             luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.2-0
           ''}
+        fi
+        if ! luarocks --tree "$LUAROCKS_TREE" show tl >/dev/null 2>&1; then
+          luarocks --tree "$LUAROCKS_TREE" install tl 0.24.8-1
         fi
       '';
 
@@ -332,7 +319,7 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
-              (fennelRuntime system)
+              (tealLuaEnv system)
               pkgs.luajit
               pkgs.luajitPackages.luarocks-nix
               pkgs.stdenv.cc
@@ -347,7 +334,7 @@
             packages = [
               pkgs.lessc
               pkgs.coreutils
-              (fennelRuntime system)
+              (tealLuaEnv system)
               pkgs.luajit
               pkgs.luajitPackages.luarocks-nix
             ];
@@ -372,7 +359,7 @@
               pkgs.dhall
               pkgs.lessc
               pkgs.coreutils
-              (fennelRuntime system)
+              (tealLuaEnv system)
               pkgs.luajit
               pkgs.luajitPackages.luarocks-nix
               pkgs.stdenv.cc
