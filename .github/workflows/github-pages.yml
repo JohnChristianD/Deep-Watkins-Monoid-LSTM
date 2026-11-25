@@ -47,11 +47,18 @@ jobs:
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
           XDG_CACHE_HOME: ${{ github.workspace }}/.cache
+          NIX_CONFIG: |
+            max-jobs = 1
+            cores = 1
         shell: bash
         run: |
           set -o pipefail
           nix develop --quiet .#agda-ci -c bash -euo pipefail -c '
-            exec tl run .ci/teal/ci.tl All
+            tl check .ci/teal/ci.tl
+            mkdir -p build/teal
+            cp .ci/teal/ci.tl build/teal/ci.tl
+            tl gen build/teal/ci.tl
+            exec luajit build/teal/ci.lua All
           ' 2>&1 | sed '/^copying path .* from .*$/d'
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

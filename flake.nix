@@ -118,8 +118,8 @@
       # Install pinned Teal and Lua Lanes into a project-local tree; LuaFun is pinned by Nix.
       luaRocksShellHook = pkgs: ''
         export AGDA_COMMAND="agda2hs-agda"
-        export NIX_BUILD_CORES=2
-        export MAKEFLAGS="-j2"
+        export NIX_BUILD_CORES=1
+        export MAKEFLAGS="-j1"
         export LUAROCKS_TREE="$PWD/.luarocks"
         export PATH="$LUAROCKS_TREE/bin:$PATH"
         export LUA_PATH="$LUAROCKS_TREE/share/lua/5.1/?.lua;$LUAROCKS_TREE/share/lua/5.1/?/init.lua;;"

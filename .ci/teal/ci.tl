@@ -42,10 +42,25 @@ local function check_teal_sources()
    end
 end
 
+local function compile_teal(path: string): string
+   local name = assert(string.match(path, "([^/]+)%.tl$"), "expected a .tl source path")
+   local directory = "build/teal"
+   local copied_source = directory .. "/" .. name .. ".tl"
+   local generated_lua = directory .. "/" .. name .. ".lua"
+
+   run_checked("create Teal runtime directory", "mkdir -p " .. shell_quote(directory))
+   run_checked(
+      "stage Teal runtime source " .. path,
+      "cp " .. shell_quote(path) .. " " .. shell_quote(copied_source)
+   )
+   run_checked("generate isolated Lua runtime " .. path, "tl gen " .. shell_quote(copied_source))
+   return generated_lua
+end
+
 local function check_build_source()
    run_checked(
       "reject legacy script sources",
-      "if find . -path './.git' -prune -o -type f \\( -name '*.fnl' -o -name '*.yue' -o -name '*.lua' \\) -print -quit | grep -q .; then echo 'legacy/non-Teal script source remains' >&2; exit 1; fi"
+      "if git ls-files -z -- '*.fnl' '*.yue' '*.lua' | grep -q .; then echo 'legacy/non-Teal script source remains in tracked files' >&2; exit 1; fi"
    )
    run_checked(
       "reject legacy toolchain references",
@@ -98,7 +113,10 @@ end
 local function check_agda_theorem()
    check_build_source()
    check_teal_sources()
-   run_checked("parallel Agda checks", "tl run .ci/teal/parallel_agda.tl")
+   run_checked(
+      "parallel Agda checks in a clean LuaJIT process",
+      "luajit " .. shell_quote(compile_teal(".ci/teal/parallel_agda.tl"))
+   )
    run_checked("create Agda2HS output directory", "mkdir -p build/agda2hs")
    run_checked(
       "Agda2HS extract canonical learner",
@@ -120,7 +138,7 @@ local function check_russ_audit()
    run_checked("create RUSS audit directory", "mkdir -p build")
    run_checked(
       "generate RUSS trust inventory",
-      "tl run .ci/teal/russ_audit.tl build/russ-audit.dhall"
+      "luajit " .. shell_quote(compile_teal(".ci/teal/russ_audit.tl")) .. " build/russ-audit.dhall"
    )
    run_checked("typecheck RUSS inventory", "dhall type --file build/russ-audit.dhall")
    print("russ-audit=generated; lexical inventory is not a proof certificate")
@@ -134,10 +152,10 @@ local function check_pages()
    local html = out .. "/index.html"
 
    run_checked("create static Pages output", "mkdir -p " .. shell_quote(out))
-   run_checked("generate palette CSS", "tl run .ci/teal/palette_css.tl " .. shell_quote(palette))
+   run_checked("generate palette CSS", "luajit " .. shell_quote(compile_teal(".ci/teal/palette_css.tl")) .. " " .. shell_quote(palette))
    run_checked("compile Less stylesheet", "lessc site/site.less " .. shell_quote(base_css))
    write_file(css, read_file(palette) .. "\n" .. read_file(base_css))
-   run_checked("render static HTML", "tl run .ci/teal/pages.tl " .. shell_quote(html))
+   run_checked("render static HTML", "luajit " .. shell_quote(compile_teal(".ci/teal/pages.tl")) .. " " .. shell_quote(html))
 
    local generated_html = read_file(html)
    local generated_css = read_file(css)
@@ -178,6 +196,6 @@ elseif lane == "All" then
    check_russ_audit()
    check_pages()
 else
-   io.stderr:write("usage: tl run .ci/teal/ci.tl AgdaLearner|AgdaTheorem|RUSS|Pages|All\n")
+   io.stderr:write("usage: luajit build/teal/ci.lua AgdaLearner|AgdaTheorem|RUSS|Pages|All\n")
    os.exit(2)
 end
