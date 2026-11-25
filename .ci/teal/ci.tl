@@ -101,7 +101,7 @@ local function check_agda_learner()
    )
    run_checked(
       "require unchanged Agda import surface",
-      "for import in 'open import Haskell.Prelude public' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public' 'open import Agda.Builtin.Strict public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
+      "for import in 'open import Haskell.Prelude public' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
    )
    run_checked(
       "require ReLU on recurrent candidate and output",
@@ -164,10 +164,14 @@ local function check_pages()
    assert(string.find(generated_html, 'href="site.css"', 1, true) ~= nil, "published HTML is missing its stylesheet link")
    assert(#read_file(published_readme) > 0, "published README copy is empty")
    assert(string.find(generated_html, 'href="README.md"', 1, true) ~= nil, "published landing page is missing its README link")
-   assert(string.find(generated_html, 'class="intro"', 1, true) ~= nil, "published landing page is missing its introduction")
+   assert(string.find(generated_html, 'class="hero"', 1, true) ~= nil, "published landing page is missing its hero")
+   assert(string.find(generated_html, 'class="model-panel"', 1, true) ~= nil, "published landing page is missing its model specification")
+   assert(string.find(generated_html, 'class="verification"', 1, true) ~= nil, "published landing page is missing its verification boundary")
    assert(string.find(generated_html, "<script", 1, true) == nil, "published HTML must remain static")
    assert(string.find(generated_css, ".shell", 1, true) ~= nil, "compiled LESS is missing the page shell")
-   assert(string.find(generated_css, ".intro", 1, true) ~= nil, "compiled LESS is missing the landing intro")
+   assert(string.find(generated_css, ".hero", 1, true) ~= nil, "compiled LESS is missing the hero layout")
+   assert(string.find(generated_css, ".verification", 1, true) ~= nil, "compiled LESS is missing the verification section")
+   assert(string.find(generated_css, "max-width: 800px", 1, true) ~= nil, "compiled LESS is missing its mobile layout")
 
    os.remove(palette)
    os.remove(base_css)

@@ -3,23 +3,93 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Agda-first Q8.24 recurrent distributional learner.">
-<title>Deep Watkins RNN</title>
+<meta name="description" content="An Agda-first Q8.24 recurrent learner with double distributional SARSA(0).">
+<title>Deep Watkins RNN | Recurrent value learning</title>
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<main class="shell">
-  <header class="masthead">
-    <p class="eyebrow">Agda / Q8.24 / IQN32</p>
-  </header>
-  <section class="intro">
-    <h1>Deep Watkins RNN</h1>
-    <p>The repository README is the sole project documentation. It describes the learner, update semantics, numeric model, and verification boundary.</p>
-    <p><a class="readme-link" href="README.md">Read README.md</a></p>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="masthead shell">
+  <a class="wordmark" href="./">Deep Watkins <span>RNN / Q8.24</span></a>
+  <nav class="primary-nav" aria-label="Primary navigation">
+    <a href="#architecture">Architecture</a>
+    <a href="#transition">Update</a>
+    <a href="#verification">Verification</a>
+    <a class="nav-repository" href="https://github.com/JohnChristianD/Deep-SARSA-GRU">Repository</a>
+  </nav>
+</header>
+<main id="main" class="shell">
+  <section class="hero" aria-labelledby="page-title">
+    <div class="hero-copy">
+      <h1 id="page-title">Recurrent value learning, made explicit.</h1>
+      <p class="lede">Deep Watkins RNN is an Agda-first reinforcement-learning prototype built around a Q8.24 recurrent feature cell and two live dueling IQN32 critics.</p>
+      <div class="hero-actions">
+        <a class="button-link primary-action" href="README.md">Read the implementation notes</a>
+        <a class="button-link secondary-action" href="https://github.com/JohnChristianD/Deep-SARSA-GRU/blob/main/FullCoupled/CanonicalLearnerMonolith.agda">Inspect the Agda source</a>
+      </div>
+      <p class="hero-note"><span class="status-dot" aria-hidden="true"></span><span>Prototype status: numerical and end-to-end validation remain open.</span></p>
+    </div>
+    <aside class="model-panel" aria-labelledby="model-title">
+      <div class="panel-topline"><span>MODEL SPECIFICATION</span><span>Q8.24 / IQN32</span></div>
+      <h2 id="model-title">Network contract</h2>
+      <dl class="spec-list">
+        <div><dt>Recurrent state</dt><dd>One scalar hidden feature</dd></div>
+        <div><dt>Critics</dt><dd>Two live dueling IQN32 networks</dd></div>
+        <div><dt>Randomness</dt><dd>Quantile fractions and noise supplied by the host</dd></div>
+        <div><dt>Update rate</dt><dd>One critic update per transition</dd></div>
+      </dl>
+      <pre class="equation"><code>target = reward + gamma * Q_peer</code></pre>
+      <p class="panel-footnote">Terminal transitions use reward only. The peer evaluates the active critic&#39;s selected action.</p>
+    </aside>
   </section>
-  <footer class="footer">
-    <p>Source: <a href="FullCoupled/CanonicalLearnerMonolith.agda">Canonical Agda learner</a>.</p>
-  </footer>
+  <section class="content-section" id="architecture" aria-labelledby="architecture-title">
+    <div class="section-intro">
+      <h2 id="architecture-title">One state, two critics, one update.</h2>
+      <p>The implementation keeps recurrent differentiation, distributional value estimation, and transition ownership explicit in the Agda source.</p>
+    </div>
+    <dl class="architecture-list">
+      <div><dt>Feature cell</dt><dd>Quantmoid4 bounds the input feature. A hard-sigmoid gate mixes the previous hidden value with a ReLU candidate.</dd></div>
+      <div><dt>Value model</dt><dd>Each critic has a noisy value head and non-empty per-action noisy advantage heads. Cosine embeddings remain the IQN quantile features.</dd></div>
+      <div><dt>Distributional loss</dt><dd>Thirty-two current quantiles and thirty-two target quantiles form a 32-by-32 quantile-Huber objective.</dd></div>
+      <div><dt>Optimizer</dt><dd>Each learned parameter carries diagonal IDBD state, with projected Q8.24 log step sizes and a separately configured L2 gradient term.</dd></div>
+    </dl>
+  </section>
+  <section class="content-section transition-section" id="transition" aria-labelledby="transition-title">
+    <div class="section-intro">
+      <h2 id="transition-title">A single aligned SARSA transition.</h2>
+      <p>The active critic chooses the next action; its peer evaluates that same action. The active critic alone receives the update.</p>
+    </div>
+    <ol class="sequence-list">
+      <li><strong>Select</strong><p>The active critic evaluates the next state and selects one action using host-provided noise and quantile fractions.</p></li>
+      <li><strong>Evaluate</strong><p>The peer critic estimates the selected action&#39;s quantiles. It does not choose a second action.</p></li>
+      <li><strong>Update</strong><p>The active critic receives one quantile-Huber update, then the active side alternates for the next transition.</p></li>
+    </ol>
+    <p class="rule-note"><strong>Transition contract.</strong> The pending decision carries the selected action, recurrent cache, current quantile fractions, and peer-noise sample. Ordinary Agda function types still do not prove affine use.</p>
+  </section>
+  <section class="verification" id="verification" aria-labelledby="verification-title">
+    <div class="verification-heading">
+      <p class="verification-status">Prototype / validation incomplete</p>
+      <h2 id="verification-title">Build checks are not a training result.</h2>
+      <p>CI checks source constraints, Teal programs, both Agda modules, Agda2HS extraction, generated Haskell, the RUSS inventory, and the static Pages output.</p>
+    </div>
+    <div class="verification-grid">
+      <div><h3>Checked by CI</h3><ul>
+        <li>Agda typechecking for learner and theorem sources</li>
+        <li>Agda2HS extraction and GHC typechecking</li>
+        <li>Teal typechecks, RUSS inventory, and static HTML/CSS generation</li>
+      </ul></div>
+      <div><h3>Still required</h3><ul>
+        <li>Numeric reference tests for fixed-point operations and approximations</li>
+        <li>Action alignment, quantile weighting, terminal-target, and critic-ownership tests</li>
+        <li>Finite-difference checks for recurrent and critic gradients</li>
+        <li>An affine transition proof and end-to-end environment evaluation</li>
+      </ul></div>
+    </div>
+  </section>
 </main>
+<footer class="footer shell">
+  <p>Deep Watkins RNN / Agda-first Q8.24 learner prototype.</p>
+  <div><a href="README.md">Project notes</a><a href="https://github.com/JohnChristianD/Deep-SARSA-GRU">Source repository</a></div>
+</footer>
 </body>
 </html>

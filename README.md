@@ -11,12 +11,17 @@ open import Haskell.Prelude public
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
 open import Agda.Builtin.Equality.Rewrite public
-open import Agda.Builtin.Strict public
 ```
 
 The learner uses Int32 Q8.24 values, widened Int64 intermediates, saturating
 narrowing, and explicit fixed-point approximations. Agda2HS extracts the
 Haskell-compatible declarations; GHC checks the extracted module in CI.
+
+The learner has no explicit strict-field annotations. When strict fields are
+needed, Agda2HS provides `Haskell.Prim.Strict`: its `Strict` record maps to
+Haskell's `unboxed-strict` representation. The builtin
+`Agda.Builtin.Strict` forcing primitives are not part of this learner's
+import surface.
 
 ## Learner
 

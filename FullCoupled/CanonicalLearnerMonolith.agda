@@ -25,7 +25,6 @@ open import Haskell.Prelude public
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
 open import Agda.Builtin.Equality.Rewrite public
-open import Agda.Builtin.Strict public
 
 postulate
   Domain  : Set₁
