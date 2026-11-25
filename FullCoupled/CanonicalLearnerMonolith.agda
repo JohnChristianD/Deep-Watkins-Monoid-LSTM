@@ -11,11 +11,11 @@
 module FullCoupled.CanonicalLearnerMonolith where
 
 ------------------------------------------------------------------------
--- Q8.24 scalar recurrent actor-critic.
+-- Q8.24 recurrent Double distributional SARSA(0).
 --
--- One recurrent feature unit, a categorical actor head, and per-action
--- scalar Q values. The policy is a normalized positive linear preference
--- model. The implementation is intentionally small and scalar.
+-- Two live dueling IQN32 critics, factorized NoisyNet value/advantage
+-- layers, a one-use pending action, one critic update per transition,
+-- and a scalar recurrent feature unit. There is no actor or target copy.
 ------------------------------------------------------------------------
 
 open import Haskell.Prelude public
@@ -541,7 +541,7 @@ qQuantmoid4 x =
 
 q4Tanh : Int32 -> Int32
 q4Tanh x =
-  qSub (qDiv (qMul qTwo (qQuantmoid4 x)) q126) qOne
+  qSub (qDiv (qQuantmoid4 x) 1056964608) qOne
 
 -- Derivative of the smooth tanh shadow, tanh(x) ~= 2 sigmoid(2x)-1.
 -- It is a surrogate for the integer forward function, not its derivative.
@@ -1374,12 +1374,10 @@ networkStart observation actionFractions targetFractions
       hidden = cellHiddenAfter cache
       activeA = activeCriticA (networkCritics state)
       active = selectActiveCritic activeA (networkCritics state)
-      activeNoiseForSide =
-        if activeA then activeNoise else activeNoise
       actionBatch = makeIQNBatch32 actionFractions
       targetBatch = makeIQNBatch32 targetFractions
       action =
-        criticSelectAction active activeNoiseForSide hidden actionBatch
+        criticSelectAction active activeNoise hidden actionBatch
       nextCritics =
         MkTwinDuelingCritics
           (onlineCriticA (networkCritics state))
@@ -1394,20 +1392,6 @@ networkStart observation actionFractions targetFractions
       pending =
         MkPendingDecision action cache targetBatch peerNoise
   in MkNetworkStartResult nextState pending
-
-makeDistributionalTargets :
-  Bool -> Int32 -> DuelingIQN32 -> DuelingIQN32Noise -> Int32 ->
-  Vec IQNQuantile 32 -> Vec Int32 32
-makeDistributionalTargets terminal reward peer peerNoise hidden targetBatch =
-  if terminal
-  then mapVec (λ _ -> reward) targetBatch
-  else
-    let selectedAction = 0
-        peerQuantiles =
-          criticQuantilesForAction selectedAction peer peerNoise hidden targetBatch
-    in mapVec
-         (λ value -> qSarsaOneStepTarget reward value false)
-         peerQuantiles
 
 makeTargetsForAction :
   Bool -> Int32 -> Nat -> DuelingIQN32 -> DuelingIQN32Noise -> Int32 ->
@@ -1575,7 +1559,9 @@ networkApplyCHADGradient config state gradient =
       nextCandidate =
         idbdStep config (qFrom64 (candidateWeightGradient64 gradient))
           (networkCandidateParameter state)
-      nextGate = networkGateParameter state
+      nextGate =
+        idbdStep config (qFrom64 (gateWeightGradient64 gradient))
+          (networkGateParameter state)
   in MkNetworkState nextInput nextCandidate nextGate (networkCritics state)
 
 ------------------------------------------------------------------------
