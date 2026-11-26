@@ -1,12 +1,3 @@
-local record WorkerResult
-   status: any
-   seconds: number
-end
-
-local record LaneHandle
-   join: function(self: LaneHandle): WorkerResult | nil, string | nil
-end
-
 local lanes_lib = require("lanes")
 local lanes = lanes_lib.configure()
 
@@ -114,7 +105,7 @@ run_checked(
    "mkdir -p " .. shell_quote(cache_root) .. " && " .. table.concat(setup_commands, " && ")
 )
 
-local launch: function(command: string): LaneHandle = lanes.gen("*", function(command: string): WorkerResult
+local launch: function(command: string): lanes_lib.LaneHandle = lanes.gen("*", function(command: string): lanes_lib.WorkerResult
    local started = os.time()
    local status = os.execute(command)
    return {
@@ -123,7 +114,7 @@ local launch: function(command: string): LaneHandle = lanes.gen("*", function(co
    }
 end)
 
-local tasks: {LaneHandle} = {}
+local tasks: {lanes_lib.LaneHandle} = {}
 for _, job in ipairs(jobs) do
    table.insert(tasks, launch(job.command))
 end
@@ -132,7 +123,7 @@ local failed = false
 for index, task in ipairs(tasks) do
    local job = jobs[index]
    local outcome, lane_error = task:join()
-   if outcome == nil then
+   if outcome is nil then
       io.stderr:write(
          "parallel-agda=failed: " .. job.name .. " (lane error "
             .. tostring(lane_error) .. ")\n"
