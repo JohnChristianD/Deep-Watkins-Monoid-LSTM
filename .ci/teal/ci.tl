@@ -105,6 +105,11 @@ local function check_agda_learner()
          .. " && grep -Fq 'project_options = false' .ci/teal/parallel_agda.tl"
          .. " && grep -Fq 'agda2hsTool system}/bin/agda2hs' flake.nix"
    )
+   local flake_source = read_file("flake.nix")
+   assert(
+      string.find(flake_source, "''${AGDA_NO_GLOBAL_OPTIONS:-0}", 1, true) ~= nil,
+      "Nix shell expansion for AGDA_NO_GLOBAL_OPTIONS must be escaped"
+   )
    run_checked(
       "reject LSTM and epsilon-greedy paths",
       "if grep -Eiq 'lstm|epsilon[ _-]?greedy|e[_-]?z[_-]?greedy' " .. shell_quote(source) .. "; then echo 'forbidden recurrent/action selector found' >&2; exit 1; fi"
