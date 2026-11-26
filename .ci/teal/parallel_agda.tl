@@ -105,6 +105,10 @@ run_checked(
    "mkdir -p " .. shell_quote(cache_root) .. " && " .. table.concat(setup_commands, " && ")
 )
 
+-- Both lanes share XDG_CACHE_HOME. Initialize the base library and primitive
+-- data serially before launching workers, avoiding concurrent first-use copies.
+run_checked("initialize shared Agda caches", shell_quote(agda_command) .. " --setup")
+
 local launch: function(command: string): lanes_lib.LaneHandle = lanes.gen("*", function(command: string): lanes_lib.WorkerResult
    local started = os.time()
    local status = os.execute(command)
