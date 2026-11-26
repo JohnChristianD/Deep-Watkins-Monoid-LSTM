@@ -1,5 +1,14 @@
-local lanes_lib: any = require("lanes")
-local lanes: any = lanes_lib.configure()
+local record WorkerResult
+   status: any
+   seconds: number
+end
+
+local record LaneHandle
+   join: function(self: LaneHandle): WorkerResult | nil, string | nil
+end
+
+local lanes_lib = require("lanes")
+local lanes = lanes_lib.configure()
 
 local record Entry
    name: string
@@ -105,7 +114,7 @@ run_checked(
    "mkdir -p " .. shell_quote(cache_root) .. " && " .. table.concat(setup_commands, " && ")
 )
 
-local launch: any = lanes.gen("*", function(command: string): any
+local launch: function(command: string): LaneHandle = lanes.gen("*", function(command: string): WorkerResult
    local started = os.time()
    local status = os.execute(command)
    return {
@@ -114,7 +123,7 @@ local launch: any = lanes.gen("*", function(command: string): any
    }
 end)
 
-local tasks: {any} = {}
+local tasks: {LaneHandle} = {}
 for _, job in ipairs(jobs) do
    table.insert(tasks, launch(job.command))
 end
@@ -122,13 +131,21 @@ end
 local failed = false
 for index, task in ipairs(tasks) do
    local job = jobs[index]
-   local outcome: any = task:join()
-   local status: any = outcome.status
-   print("parallel-agda-worker=" .. job.name .. " seconds=" .. tostring(outcome.seconds))
-   os.execute("cat " .. shell_quote(job.log))
-   if not succeeded(status) then
-      io.stderr:write("parallel-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\n")
+   local outcome, lane_error = task:join()
+   if outcome == nil then
+      io.stderr:write(
+         "parallel-agda=failed: " .. job.name .. " (lane error "
+            .. tostring(lane_error) .. ")\n"
+      )
       failed = true
+   else
+      local status: any = outcome.status
+      print("parallel-agda-worker=" .. job.name .. " seconds=" .. tostring(outcome.seconds))
+      os.execute("cat " .. shell_quote(job.log))
+      if not succeeded(status) then
+         io.stderr:write("parallel-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\n")
+         failed = true
+      end
    end
 end
 

@@ -116,8 +116,11 @@ affine language, not an Agda dependency.
 
 Typed Teal sources under `.ci/teal` drive the CI, parallel Agda checks,
 RUSS inventory, and static Pages generation. Teal type-checks these programs
-and compiles them to Lua; the generated programs run on LuaJIT. LuaFun is pinned
-by Nix, and Lua Lanes runs isolated Agda workers. The LuaFun source audit bans
+and compiles them to Lua; the generated programs run on LuaJIT. LuaFun and Lua
+Lanes are pinned by Nix, with local Teal declaration files describing the
+external module APIs used by the build. Lua Lanes runs isolated Agda workers,
+and the worker driver handles both failed process exit statuses and lane-level
+errors returned by `:join()`. The LuaFun source audit bans
 only the contraction/repetition family `duplicate`, `replicate`, `xrepeat`,
 and `cycle`. Operations such as `split`, `span`, `partition`, `tabulate`,
 `zeros`, `ones`, and random generators are outside that ban.
@@ -139,6 +142,8 @@ The actual first problem was Teal's module search path: CI invoked `tl check` an
 The next run, [#45749219870](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45749219870), found a syntax error inside that declaration: `.ci/teal/fun.d.tl:4:20: cannot declare type arguments twice in type declaration`. The declaration used `local type Iterator<T> = record<T>`, which declares the same type parameter on both the alias and the generic record constructor. Teal's [generic-record syntax](https://teal-language.org/book/latest/generics.html) puts the parameter on the record constructor, so the declaration is now `local type Iterator = record<T>`. The seven later errors saying `fun` had type `boolean` were cascading errors after Teal rejected the declaration file; they were not seven separate LuaFun API errors.
 
 The regression check is the existing `tl check -I .ci/teal .ci/teal/palette_css.tl`: it loads the real declaration through `require("fun")` and type-checks all five LuaFun operations used by the palette generator. Runtime generation also receives the same include directory. This patch keeps strict type checking enabled and makes no changes to LuaFun runtime behavior.
+
+The next run, [#45751047057](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45751047057), passed the LuaFun declaration and palette-generator checks, then failed at `.ci/teal/parallel_agda.tl`: there was no declaration for the pinned Lua Lanes module, so Teal could not type-check `lanes.gen` or the handle's `:join()`. The new `.ci/teal/lanes.d.tl` models the pinned Lanes 3.17.2 API, including `configure()`, `gen()` returning a callable function, and `:join()` returning worker results or `nil, error`. The declaration is based on the pinned upstream [Lanes source](https://github.com/LuaLanes/lanes/blob/6775bd90b1eac57a27856382f8e7035c2202a08b/src/lanes.lua). The worker driver now handles lane-level errors explicitly instead of indexing a nil result. CI asserts that both external-module declarations exist and type-checks the parallel worker against the Lanes declaration.
 
 The Nix cache save step ran, but its 8 GiB garbage-collection pass removed completed `Agda-2.9.0`, `agda2hs-1.5`, and GHC environment store paths after `nix develop` released its temporary root. The workflow now builds the `agda-ci` devShell with an out-link under `.cache/nix-roots` before entering the shell. That link keeps the shell dependency closure rooted during cache save. The cache key uses a `gcroot-v2` suffix, so the old cache cannot count as an exact hit. The GC ceiling is 12 GiB.
 

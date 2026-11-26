@@ -41,8 +41,9 @@ local function check_teal_sources()
       ".ci/teal/russ_audit.tl"
    }
    run_checked(
-      "require LuaFun Teal declaration",
+      "require LuaFun and Lua Lanes Teal declarations",
       "test -s " .. shell_quote(".ci/teal/fun.d.tl")
+         .. " && test -s " .. shell_quote(".ci/teal/lanes.d.tl")
    )
    for _, path in ipairs(files) do
       run_checked(
