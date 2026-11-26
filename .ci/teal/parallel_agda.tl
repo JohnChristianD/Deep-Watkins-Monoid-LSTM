@@ -41,12 +41,12 @@ local function make_entry(root: string, entry: Entry, agda_command: string, prof
    local parent = string.match(entry.module, "(.+)/[^/]+$")
    local module_dir = parent ~= nil and (work_root .. "/" .. parent) or work_root
    local module_path = work_root .. "/" .. entry.module
-   local log_path = root .. "/" .. entry.name .. ".log"
+   local log_path = work_root .. "/" .. entry.name .. ".log"
    local command = "cd " .. shell_quote(work_root)
       .. " && " .. shell_quote(agda_command) .. profile_flag
       .. " --local-interfaces --trace-imports=0 -i . "
       .. shell_quote(entry.module)
-      .. " > " .. shell_quote(log_path) .. " 2>&1"
+      .. " > " .. shell_quote(entry.name .. ".log") .. " 2>&1"
    return {
       name = entry.name,
       root = work_root,
