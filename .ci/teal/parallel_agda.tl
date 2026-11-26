@@ -44,7 +44,7 @@ local function make_entry(root: string, entry: Entry, agda_command: string, prof
    local log_path = work_root .. "/" .. entry.name .. ".log"
    local command = "cd " .. shell_quote(work_root)
       .. " && " .. shell_quote(agda_command) .. profile_flag
-      .. " --local-interfaces --trace-imports=0 -i . "
+      .. " --trace-imports=0 -i . "
       .. shell_quote(entry.module)
       .. " > " .. shell_quote(entry.name .. ".log") .. " 2>&1"
    return {
@@ -147,4 +147,4 @@ end
 if failed then
    os.exit(1)
 end
-print("parallel-agda=pass; workers=" .. #jobs .. "; persistent-local-interface-cache=true")
+print("parallel-agda=pass; workers=" .. #jobs .. "; isolated-worker-interface-cache=true")
