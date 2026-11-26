@@ -11,7 +11,9 @@ local function read_file(path: string): string
 end
 
 local function trim(value: string): string
-   return string.gsub(string.gsub(value, "^%s+", ""), "%s+$", "")
+   local leading_trimmed = string.gsub(value, "^%s+", "")
+   local result = string.gsub(leading_trimmed, "%s+$", "")
+   return result
 end
 
 local function count_postulate_blocks(source: string): number
@@ -24,6 +26,13 @@ local function count_postulate_blocks(source: string): number
    end
    return count
 end
+
+-- Regression checks for Lua's multi-result string.gsub return contract.
+assert(trim("  postulate \\t") == "postulate", "trim must return one normalized string")
+assert(
+   count_postulate_blocks("postulate\\n  postulate trusted\\n-- postulate\\n") == 2,
+   "postulate counting must trim indentation and ignore commented text"
+)
 
 local function has_token(source: string, token: string): boolean
    return string.find(source, token, 1, true) ~= nil
