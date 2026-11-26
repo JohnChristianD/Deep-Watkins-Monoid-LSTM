@@ -131,36 +131,26 @@ Bool definitions in Agda are executable sanity checks, not a substitute for
 a comprehensive test suite.
 
 
-## Build performance diagnosis
+## CI diagnosis and verification
 
-The first cold-cache run, [#45549279892](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45549279892), failed after 14 minutes while Nix compiled Agda 2.9.0. The build log reached module 431 of 491 before `Setup build` was killed with exit status 137. That is a SIGKILL. Runner memory pressure is the leading explanation, although the log contains no kernel OOM record.
+CI runs quick checks before the expensive Agda/GHC work. The preflight type-checks every Teal source, audits repository constraints and the learner's required symbols, generates and type-checks the RUSS inventory, and renders the static Pages site. Only after those checks pass does CI start the parallel Agda workers, extract Haskell with Agda2HS, and type-check the generated module with GHC. Failures in Teal, RUSS, or Pages therefore return before the long compiler stages.
 
-The follow-up run, [#45575526704](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45575526704), completed the Agda 2.9.0 and Agda2Hs 1.5 toolchain builds, then stopped at `tl check .ci/teal/palette_css.tl`. The initial diagnosis incorrectly said no LuaFun declaration file existed. It does exist at `.ci/teal/fun.d.tl`, and it describes the `foldl`, `totable`, `map`, `range`, and `filter` operations used by the palette generator.
+Recent failures exposed distinct problems:
 
-The actual first problem was Teal's module search path: CI invoked `tl check` and `tl gen` without adding `.ci/teal` as an include directory. Teal therefore could not discover `fun.d.tl` for `require("fun")`. The CI driver now checks that `.ci/teal/fun.d.tl` exists and passes `-I .ci/teal` to every Teal source check and generated-runtime compilation. Teal documents `-I / --include-dir` as the option that prepends a directory to the module search path for both `check` and `gen` ([compiler options](https://teal-language.org/book/latest/compiler_options.html)); its [declaration-file guide](https://teal-language.org/book/latest/declaration_files.html) confirms that `.d.tl` modules supply type information for ordinary `require` calls.
+- Cold-cache run [#45549279892](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45549279892) was killed with exit status 137 while Nix compiled Agda 2.9.0, at module 431 of 491. Runner memory pressure is the leading explanation; the log has no kernel OOM record.
 
-The next run, [#45749219870](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45749219870), found a syntax error inside that declaration: `.ci/teal/fun.d.tl:4:20: cannot declare type arguments twice in type declaration`. The declaration used `local type Iterator<T> = record<T>`, which declares the same type parameter on both the alias and the generic record constructor. Teal's [generic-record syntax](https://teal-language.org/book/latest/generics.html) puts the parameter on the record constructor, so the declaration is now `local type Iterator = record<T>`. The seven later errors saying `fun` had type `boolean` were cascading errors after Teal rejected the declaration file; they were not seven separate LuaFun API errors.
+- Run [#45575526704](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45575526704) built Agda 2.9.0 and Agda2Hs 1.5, then Teal could not resolve require(fun). CI now passes the .ci/teal directory to both tl check and tl gen.
 
-The regression check is the existing `tl check -I .ci/teal .ci/teal/palette_css.tl`: it loads the real declaration through `require("fun")` and type-checks all five LuaFun operations used by the palette generator. Runtime generation also receives the same include directory. This patch keeps strict type checking enabled and makes no changes to LuaFun runtime behavior.
+- Run [#45749219870](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45749219870) exposed a duplicate generic parameter in fun.d.tl. The alias now uses Teal's local type Iterator = record<T> form.
 
-The next run, [#45751047057](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45751047057), passed the LuaFun declaration and palette-generator checks, then failed at `.ci/teal/parallel_agda.tl`: there was no declaration for the pinned Lua Lanes module, so Teal could not type-check `lanes.gen` or the handle's `:join()`. The new `.ci/teal/lanes.d.tl` models the pinned Lanes 3.17.2 API, including `configure()`, `gen()` returning a callable function, and `:join()` returning worker results or `nil, error`. The declaration is based on the pinned upstream [Lanes source](https://github.com/LuaLanes/lanes/blob/6775bd90b1eac57a27856382f8e7035c2202a08b/src/lanes.lua). The worker driver handles lane-level errors explicitly. Teal records are nominal types, so `WorkerResult` and `LaneHandle` are nested in the exported `Lanes` record; the worker uses those exact exported types instead of redeclaring incompatible local records. CI type-checks the parallel worker against that declaration. The next run, [#45760204352](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45760204352), passed the Lanes worker check and exposed a separate Teal error: `string.gsub` returns a replacement count in addition to its string. The RUSS audit's `trim` helper now binds the transformed string before returning it, and includes assertions for whitespace normalization and postulate-block counting.
+- Run [#45751047057](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45751047057) found that the pinned Lua Lanes module had no Teal declaration. lanes.d.tl now describes the pinned configure, gen, and join API.
 
-The Nix cache save step ran, but its 8 GiB garbage-collection pass removed completed `Agda-2.9.0`, `agda2hs-1.5`, and GHC environment store paths after `nix develop` released its temporary root. The workflow now builds the `agda-ci` devShell with an out-link under `.cache/nix-roots` before entering the shell. That link keeps the shell dependency closure rooted during cache save. The cache key uses a `gcroot-v2` suffix, so the old cache cannot count as an exact hit. The GC ceiling is 12 GiB.
+- Run [#45760204352](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45760204352) showed that Teal records are nominal: the worker and declaration had separately defined result and handle types. Both sides now refer to the nested types exported by Lanes. After that correction, the parallel worker type-check passed and the RUSS audit exposed a separate contract error: string.gsub returns a string and a replacement count. The trim helper now binds the string result before returning it. Runtime assertions cover whitespace trimming and postulate-block counting.
 
-A MAlonzo reset has no bearing on this path. CI invokes `agda2hs-agda --disable-backend` for typechecking and calls Agda2HS for extraction. Neither step invokes Agda's `--compile` backend. Removing `MAlonzo/` cannot affect the failing Teal check, and deleting cached `.agdai` interfaces would make later Agda checks slower.
+The Teal declarations describe the pinned LuaFun and Lua Lanes APIs. The Lanes declaration follows the pinned [3.17.2 source](https://github.com/LuaLanes/lanes/blob/6775bd90b1eac57a27856382f8e7035c2202a08b). The LuaFun source audit bans only duplicate, replicate, xrepeat, and cycle; it does not ban operations such as split, span, partition, tabulate, zeros, ones, or random generators.
 
-A reinstall or blind Agda2HS/Agda upgrade has no support in the current evidence. The latest run built the pinned Agda 2.9.0 and Agda2Hs 1.5 toolchain. Keep those pins until the workflow reaches the learner checks and produces evidence of a compiler or compatibility problem.
+The Nix store cache previously garbage-collected completed compiler dependencies after nix develop released its temporary root. CI now builds the agda-ci devShell through an out-link under .cache/nix-roots before entering the shell, keeping the dependency closure reachable during cache save. Store hardlink optimization is disabled for cache compatibility, and the GC ceiling is 12 GiB.
 
-Still required before treating the learner as validated:
+CI invokes agda2hs-agda --disable-backend for Agda checking; it does not invoke Agda's MAlonzo compilation backend. Deleting MAlonzo/ or cached .agdai interfaces cannot fix a Teal failure and would discard useful Agda cache state. Keep the Agda 2.9.0 and Agda2Hs 1.5 pins until a later compiler stage supplies evidence of a compatibility issue.
 
-- numeric reference tests for Q8.24 arithmetic, Quantmoid4 pieces, cosine
-  approximation, IDBD projection, and NoisyNet zero-noise parity;
-- tests for current/target quantile sample separation, 32-by-32 loss
-  weighting, action alignment, alternating critic ownership, and terminal
-  targets;
-- finite-difference or high-precision reference checks for the recurrent
-  smooth-shadow VJP and the complete critic gradient;
-- a type-level affine transition proof and end-to-end environment training
-  evaluation.
-
-The implementation is a prototype until those checks pass.
+A green build verifies source and compiler contracts. It does not establish numerical or learning correctness. The learner still needs reference tests for Q8.24 arithmetic, Quantmoid4 and cosine approximations, IDBD projection, and NoisyNet parity; transition tests for quantile weighting, action alignment, critic alternation, and terminal targets; finite-difference checks for recurrent and critic gradients; an affine-use proof; and end-to-end environment evaluation. The project remains a prototype until those checks pass.

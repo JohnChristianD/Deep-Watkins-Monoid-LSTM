@@ -126,8 +126,6 @@ local function check_agda_learner()
 end
 
 local function check_agda_theorem()
-   check_build_source()
-   check_teal_sources()
    run_checked(
       "parallel Agda checks in a clean LuaJIT process",
       "luajit " .. shell_quote(compile_teal(".ci/teal/parallel_agda.tl"))
@@ -196,13 +194,19 @@ end
 local arguments = {...}
 local lane = arguments[1] or ""
 if lane == "AgdaLearner" then
-   check_agda_theorem()
+   check_build_source()
+   check_teal_sources()
    check_agda_learner()
+   check_agda_theorem()
 elseif lane == "AgdaTheorem" then
+   check_build_source()
+   check_teal_sources()
    check_agda_theorem()
 elseif lane == "RUSS" then
-   check_agda_theorem()
+   check_build_source()
+   check_teal_sources()
    check_russ_audit()
+   check_agda_theorem()
 elseif lane == "Pages" then
    check_build_source()
    check_teal_sources()
@@ -210,11 +214,11 @@ elseif lane == "Pages" then
 elseif lane == "All" then
    check_build_source()
    check_teal_sources()
-   check_agda_theorem()
    check_agda_learner()
    check_russ_audit()
    check_pages()
+   check_agda_theorem()
 else
-   io.stderr:write("usage: luajit build/teal/ci.lua AgdaLearner|AgdaTheorem|RUSS|Pages|All\n")
+   io.stderr:write("usage: luajit build/teal/ci.lua AgdaLearner|AgdaTheorem|RUSS|Pages|All\\n")
    os.exit(2)
 end
