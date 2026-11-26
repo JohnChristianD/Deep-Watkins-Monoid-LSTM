@@ -19,18 +19,24 @@ jobs:
     name: End-to-end Agda, RUSS, and Pages
     runs-on: ubuntu-22.04
     timeout-minutes: 60
+    env:
+      NIX_CONFIG: |
+        max-jobs = 1
+        cores = 1
     steps:
       - uses: actions/checkout@v4
       - uses: NixOS/nix-installer-action@62c1943b776c509394b550f3f983adc14e9212d6
         with:
           installer-version: '2.35.1'
+          extra-conf: |
+            auto-optimise-store = false
       - name: Restore Nix store
         id: nix-store-cache
         uses: nix-community/cache-nix-action/restore@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
         with:
-          primary-key: nix-${{ runner.os }}-gcroot-v2-${{ hashFiles('flake.nix', 'flake.lock') }}
+          primary-key: nix-${{ runner.os }}-no-hardlinks-v1-${{ hashFiles('flake.nix', 'flake.lock') }}
           restore-prefixes-first-match: |
-            nix-${{ runner.os }}-
+            nix-${{ runner.os }}-no-hardlinks-v1-
       - name: Cache Agda interfaces, Teal, Lua Lanes, and primitive data
         uses: actions/cache@v6
         with:
@@ -46,14 +52,11 @@ jobs:
         run: |
           mkdir -p .cache/nix-roots
           time -p nix build .#devShells.x86_64-linux.agda-ci \
-            --out-link .cache/nix-roots/agda-ci
+            --no-write-lock-file --out-link .cache/nix-roots/agda-ci
       - name: Type-check, audit, and render
         env:
           PAGES_OUTPUT_DIR: ${{ runner.temp }}/pages
           XDG_CACHE_HOME: ${{ github.workspace }}/.cache
-          NIX_CONFIG: |
-            max-jobs = 1
-            cores = 1
         shell: bash
         run: |
           set -o pipefail
@@ -64,11 +67,14 @@ jobs:
             tl gen --output build/teal/ci.lua build/teal/ci.tl
             exec luajit build/teal/ci.lua All
           ' 2>&1 | sed '/^copying path .* from .*$/d'
+      - name: Remove transient Nix derivation locks
+        if: always()
+        run: sudo find /nix/store -maxdepth 1 -type f -name '*.drv.lock' -print -delete
       - name: Save Nix store, including successful dependencies from failed builds
         if: always() && steps.nix-store-cache.outcome == 'success' && steps.nix-store-cache.outputs.hit-primary-key != 'true'
         uses: nix-community/cache-nix-action/save@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
         with:
-          primary-key: nix-${{ runner.os }}-gcroot-v2-${{ hashFiles('flake.nix', 'flake.lock') }}
+          primary-key: nix-${{ runner.os }}-no-hardlinks-v1-${{ hashFiles('flake.nix', 'flake.lock') }}
           gc-max-store-size-linux: 12G
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
