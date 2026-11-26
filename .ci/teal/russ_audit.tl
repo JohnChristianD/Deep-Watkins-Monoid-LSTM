@@ -28,9 +28,9 @@ local function count_postulate_blocks(source: string): number
 end
 
 -- Regression checks for Lua's multi-result string.gsub return contract.
-assert(trim("  postulate \\t") == "postulate", "trim must return one normalized string")
+assert(trim("  postulate \t") == "postulate", "trim must return one normalized string")
 assert(
-   count_postulate_blocks("postulate\\n  postulate trusted\\n-- postulate\\n") == 2,
+   count_postulate_blocks("postulate\n  postulate trusted\n-- postulate\n") == 2,
    "postulate counting must trim indentation and ignore commented text"
 )
 
