@@ -1,7 +1,7 @@
 -- Typed LuaFun surface used by palette_css.tl.
 -- LuaFun wraps iterators as callable tables and returns iterator triples.
 
-local type Iterator<T> = record<T>
+local type Iterator = record<T>
    gen: function(any, any): any, T
    param: any
    state: any
