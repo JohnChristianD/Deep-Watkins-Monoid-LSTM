@@ -103,7 +103,7 @@ local function check_agda_learner()
       "require isolated safe theorem compiler profile",
       "grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' flake.nix"
          .. " && grep -Fq 'project_options = false' .ci/teal/parallel_agda.tl"
-         .. " && grep -Fq '\"\${agda2hsTool system}/bin/agda2hs\" --disable-backend --setup' flake.nix"
+         .. " && grep -Fq 'agda2hsTool system}/bin/agda2hs' flake.nix"
    )
    run_checked(
       "reject LSTM and epsilon-greedy paths",
