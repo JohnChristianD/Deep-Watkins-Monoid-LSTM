@@ -8,7 +8,7 @@
 --no-eta-equality
 --rewriting
 --confluence-check
---erased-quotient
+--erased-quotients
 #-}
 
 module FullCoupled.CanonicalLearnerMonolith where

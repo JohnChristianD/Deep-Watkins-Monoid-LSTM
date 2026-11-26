@@ -95,6 +95,17 @@ end
 local function check_agda_learner()
    local source = "FullCoupled/CanonicalLearnerMonolith.agda"
    run_checked(
+      "require Agda 2.9 erased-quotients spelling",
+      "grep -Fxq -- '--erased-quotients' " .. shell_quote(source)
+         .. " && ! grep -Fxq -- '--erased-quotient' " .. shell_quote(source)
+   )
+   run_checked(
+      "require isolated safe theorem compiler profile",
+      "grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' flake.nix"
+         .. " && grep -Fq 'project_options = false' .ci/teal/parallel_agda.tl"
+         .. " && grep -Fq '\"\${agda2hsTool system}/bin/agda2hs\" --disable-backend --setup' flake.nix"
+   )
+   run_checked(
       "reject LSTM and epsilon-greedy paths",
       "if grep -Eiq 'lstm|epsilon[ _-]?greedy|e[_-]?z[_-]?greedy' " .. shell_quote(source) .. "; then echo 'forbidden recurrent/action selector found' >&2; exit 1; fi"
    )

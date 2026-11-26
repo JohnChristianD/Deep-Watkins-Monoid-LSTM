@@ -158,6 +158,9 @@
               exec agda2hs --disable-backend "$@"
             fi
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            if [[ "${AGDA_NO_GLOBAL_OPTIONS:-0}" == "1" ]]; then
+              agda_global_options=()
+            fi
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
               echo "agda2hs-base .agda-lib not found in Nix package" >&2
@@ -180,7 +183,7 @@
             mkdir -p "$agda_data_root"
             export Agda_datadir="$agda_data_root"
             setup_agda_primitive_data() {
-              agda2hs --disable-backend --setup
+              "${agda2hsTool system}/bin/agda2hs" --disable-backend --setup
               local primitive_file="$Agda_datadir/lib/prim/Agda/Primitive.agda"
               if [[ ! -f "$primitive_file" ]]; then
                 echo "Agda setup did not produce $primitive_file" >&2
@@ -228,6 +231,9 @@
               exec agda2hs --disable-backend "$@"
             fi
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            if [[ "${AGDA_NO_GLOBAL_OPTIONS:-0}" == "1" ]]; then
+              agda_global_options=()
+            fi
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
               echo "agda2hs-base .agda-lib not found in Nix package" >&2
@@ -250,7 +256,7 @@
             mkdir -p "$agda_data_root"
             export Agda_datadir="$agda_data_root"
             setup_agda_primitive_data() {
-              agda2hs --disable-backend --setup
+              "${agda2hsTool system}/bin/agda2hs" --disable-backend --setup
               local primitive_file="$Agda_datadir/lib/prim/Agda/Primitive.agda"
               if [[ ! -f "$primitive_file" ]]; then
                 echo "Agda setup did not produce $primitive_file" >&2
@@ -294,6 +300,9 @@
           ];
           text = ''
             mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
+            if [[ "${AGDA_NO_GLOBAL_OPTIONS:-0}" == "1" ]]; then
+              agda_global_options=()
+            fi
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
               echo "agda2hs-base .agda-lib not found in Nix package" >&2
@@ -316,7 +325,7 @@
             mkdir -p "$agda_data_root"
             export Agda_datadir="$agda_data_root"
             setup_agda_primitive_data() {
-              agda2hs --disable-backend --setup
+              "${agda2hsTool system}/bin/agda2hs" --disable-backend --setup
               local primitive_file="$Agda_datadir/lib/prim/Agda/Primitive.agda"
               if [[ ! -f "$primitive_file" ]]; then
                 echo "Agda setup did not produce $primitive_file" >&2
