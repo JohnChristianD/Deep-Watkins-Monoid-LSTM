@@ -40,8 +40,15 @@ local function check_teal_sources()
       ".ci/teal/parallel_agda.tl",
       ".ci/teal/russ_audit.tl"
    }
+   run_checked(
+      "require LuaFun Teal declaration",
+      "test -s " .. shell_quote(".ci/teal/fun.d.tl")
+   )
    for _, path in ipairs(files) do
-      run_checked("Teal typecheck " .. path, "tl check " .. shell_quote(path))
+      run_checked(
+         "Teal typecheck " .. path,
+         "tl check -I " .. shell_quote(".ci/teal") .. " " .. shell_quote(path)
+      )
    end
 end
 
@@ -56,7 +63,11 @@ local function compile_teal(path: string): string
       "stage Teal runtime source " .. path,
       "cp " .. shell_quote(path) .. " " .. shell_quote(copied_source)
    )
-   run_checked("generate isolated Lua runtime " .. path, "tl gen --output " .. shell_quote(generated_lua) .. " " .. shell_quote(copied_source))
+   run_checked(
+      "generate isolated Lua runtime " .. path,
+      "tl gen -I " .. shell_quote(".ci/teal") .. " --output "
+         .. shell_quote(generated_lua) .. " " .. shell_quote(copied_source)
+   )
    return generated_lua
 end
 
