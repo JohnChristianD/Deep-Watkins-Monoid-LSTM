@@ -149,6 +149,7 @@
             (agda2hsTool system)
             pkgs.coreutils
             pkgs.findutils
+            pkgs.gnugrep
             (optimizedGhc system)
           ];
           text = ''
@@ -178,8 +179,26 @@
             agda_data_root="''${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
             mkdir -p "$agda_data_root"
             export Agda_datadir="$agda_data_root"
-            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+            setup_agda_primitive_data() {
               agda2hs --disable-backend --setup
+              local primitive_file="$Agda_datadir/lib/prim/Agda/Primitive.agda"
+              if [[ ! -f "$primitive_file" ]]; then
+                echo "Agda setup did not produce $primitive_file" >&2
+                return 1
+              fi
+              if grep -Eq '(^|[[:space:]])--(rewriting|type-in-type)([[:space:]]|$)' "$primitive_file"; then
+                echo "Agda primitive source contains project-only unsafe global options" >&2
+                return 1
+              fi
+              echo "agda-primitive-setup=pass"
+            }
+
+            if [[ "$#" -eq 1 && "$1" == "--setup" ]]; then
+              setup_agda_primitive_data
+              exit $?
+            fi
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              setup_agda_primitive_data
             fi
             if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
@@ -200,6 +219,7 @@
             (agda2hsTool system)
             pkgs.coreutils
             pkgs.findutils
+            pkgs.gnugrep
             (optimizedGhc system)
           ];
           text = ''
@@ -229,8 +249,26 @@
             agda_data_root="''${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
             mkdir -p "$agda_data_root"
             export Agda_datadir="$agda_data_root"
-            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+            setup_agda_primitive_data() {
               agda2hs --disable-backend --setup
+              local primitive_file="$Agda_datadir/lib/prim/Agda/Primitive.agda"
+              if [[ ! -f "$primitive_file" ]]; then
+                echo "Agda setup did not produce $primitive_file" >&2
+                return 1
+              fi
+              if grep -Eq '(^|[[:space:]])--(rewriting|type-in-type)([[:space:]]|$)' "$primitive_file"; then
+                echo "Agda primitive source contains project-only unsafe global options" >&2
+                return 1
+              fi
+              echo "agda-primitive-setup=pass"
+            }
+
+            if [[ "$#" -eq 1 && "$1" == "--setup" ]]; then
+              setup_agda_primitive_data
+              exit $?
+            fi
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              setup_agda_primitive_data
             fi
             if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
@@ -251,6 +289,7 @@
             (agda2hsTool system)
             pkgs.coreutils
             pkgs.findutils
+            pkgs.gnugrep
             (optimizedGhc system)
           ];
           text = ''
@@ -276,8 +315,26 @@
             agda_data_root="''${XDG_CACHE_HOME:-$HOME/.cache}/agda-data/$agda_version"
             mkdir -p "$agda_data_root"
             export Agda_datadir="$agda_data_root"
-            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+            setup_agda_primitive_data() {
               agda2hs --disable-backend --setup
+              local primitive_file="$Agda_datadir/lib/prim/Agda/Primitive.agda"
+              if [[ ! -f "$primitive_file" ]]; then
+                echo "Agda setup did not produce $primitive_file" >&2
+                return 1
+              fi
+              if grep -Eq '(^|[[:space:]])--(rewriting|type-in-type)([[:space:]]|$)' "$primitive_file"; then
+                echo "Agda primitive source contains project-only unsafe global options" >&2
+                return 1
+              fi
+              echo "agda-primitive-setup=pass"
+            }
+
+            if [[ "$#" -eq 1 && "$1" == "--setup" ]]; then
+              setup_agda_primitive_data
+              exit $?
+            fi
+            if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
+              setup_agda_primitive_data
             fi
             if "${agda2hsTool system}/bin/agda2hs" "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0

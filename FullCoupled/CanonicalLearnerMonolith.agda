@@ -500,19 +500,22 @@ qDiv numerator denominator =
 ------------------------------------------------------------------------
 
 qExpSmall : Int32 -> Int32
-qExpSmall x =
-  qAdd qOne
-    (qMul x
-      (qAdd qOne
-        (qMul x
-          (qAdd qHalf
-            (qMul x
-              (qAdd 2796203
-                (qMul x
-                  (qAdd 699051
-                    (qMul x
-                      (qAdd 139810
-                        (qMul x 23302))))))))))
+qExpSmall x = qAdd qOne (qMul x p1)
+  where
+    p1 : Int32
+    p1 = qAdd qOne (qMul x p2)
+
+    p2 : Int32
+    p2 = qAdd qHalf (qMul x p3)
+
+    p3 : Int32
+    p3 = qAdd 2796203 (qMul x p4)
+
+    p4 : Int32
+    p4 = qAdd 699051 (qMul x p5)
+
+    p5 : Int32
+    p5 = qAdd 139810 (qMul x 23302)
 
 qSquare : Int32 -> Int32
 qSquare x = qMul x x
