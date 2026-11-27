@@ -45,9 +45,9 @@ jobs:
             .cache
             .luarocks
           save-always: true
-          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl', '**/*.agda') }}
+          key: agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl', '**/*.agda') }}
           restore-keys: |
-            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/global-options.txt', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl') }}-
+            agda-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', '.ci/agda/agda2hs.yaml', '.ci/teal/*.tl') }}-
       - name: Root the Nix devShell for cache retention
         run: |
           mkdir -p .cache/nix-roots

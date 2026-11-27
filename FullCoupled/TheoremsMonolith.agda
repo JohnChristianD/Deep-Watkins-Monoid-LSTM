@@ -254,24 +254,22 @@ open FiniteListComputation public
 -- CONATURALS: CONSTRUCTIVE COINDUCTIVE TIME HORIZONS
 ------------------------------------------------------------------------
 
-record Conat : Set where
-  coinductive
-  field
-    observeConat : Maybe Conat
-open Conat public
+open import Agda.Builtin.Coinduction public
 
-zero∞ : Conat
+data Conat : Set where
+  zero∞ : Conat
+  suc∞ : ∞ Conat → Conat
+
+observeConat : Conat → Maybe Conat
 observeConat zero∞ = nothing
-
-suc∞ : Conat → Conat
-observeConat (suc∞ n) = just n
+observeConat (suc∞ predecessor) = just (♭ predecessor)
 
 infinity : Conat
-observeConat infinity = just infinity
+infinity = suc∞ (♯ infinity)
 
 fromNat : Nat → Conat
 fromNat zero = zero∞
-fromNat (suc n) = suc∞ (fromNat n)
+fromNat (suc n) = suc∞ (♯ (fromNat n))
 
 -- A bounded observation: after k observations, an infinite value is
 -- represented by the cutoff k.  This always terminates by recursion on k.
@@ -296,9 +294,8 @@ finiteApproximation-infinity (suc n) =
 -- Addition is productive: the left argument is inspected once, and every
 -- recursive call is guarded under the successor observation constructor.
 _+∞_ : Conat → Conat → Conat
-(a +∞ b) .observeConat with observeConat a
-... | nothing = observeConat b
-... | just predecessor = just (predecessor +∞ b)
+zero∞ +∞ b = b
+suc∞ predecessor +∞ b = suc∞ (♯ (♭ predecessor +∞ b))
 
 ------------------------------------------------------------------------
 -- CONATURAL STREAMS AND A NEGATIVE OBSERVATION VIEW

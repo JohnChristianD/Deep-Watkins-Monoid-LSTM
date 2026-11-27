@@ -100,15 +100,24 @@ local function check_agda_learner()
          .. " && ! grep -Fxq -- '--erased-quotient' " .. shell_quote(source)
    )
    run_checked(
-      "require isolated safe theorem compiler profile",
-      "grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' flake.nix"
-         .. " && grep -Fq 'project_options = false' .ci/teal/parallel_agda.tl"
+      "keep unsafe Agda options local to learner",
+      "test ! -e .ci/agda/global-options.txt"
+         .. " && grep -Fxq -- '--type-in-type' " .. shell_quote(source)
+         .. " && grep -Fxq -- '--rewriting' " .. shell_quote(source)
+         .. " && ! grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' flake.nix"
+         .. " && ! grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' .ci/teal/parallel_agda.tl"
          .. " && grep -Fq 'agda2hsTool system}/bin/agda2hs' flake.nix"
    )
-   local flake_source = read_file("flake.nix")
-   assert(
-      string.find(flake_source, "''${AGDA_NO_GLOBAL_OPTIONS:-0}", 1, true) ~= nil,
-      "Nix shell expansion for AGDA_NO_GLOBAL_OPTIONS must be escaped"
+   local theorem_source = "FullCoupled/TheoremsMonolith.agda"
+   run_checked(
+      "require safe delayed coinduction",
+      "grep -Fq -- '--safe' " .. shell_quote(theorem_source)
+         .. " && ! grep -Fq -- '--guardedness' " .. shell_quote(theorem_source)
+         .. " && ! grep -Fq -- '--type-in-type' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'open import Agda.Builtin.Coinduction public' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'data Conat : Set where' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'infinity = suc∞ (♯ infinity)' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'suc∞ predecessor +∞ b = suc∞ (♯ (♭ predecessor +∞ b))' " .. shell_quote(theorem_source)
    )
    run_checked(
       "reject LSTM and epsilon-greedy paths",

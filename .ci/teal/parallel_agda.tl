@@ -5,7 +5,6 @@ local record Entry
    name: string
    module: string
    source_path: string
-   project_options: boolean
 end
 
 local record Job
@@ -43,8 +42,7 @@ local function make_entry(root: string, entry: Entry, agda_command: string, prof
    local module_dir = parent ~= nil and (work_root .. "/" .. parent) or work_root
    local module_path = work_root .. "/" .. entry.module
    local log_path = work_root .. "/" .. entry.name .. ".log"
-   local profile_environment = entry.project_options and "" or "export AGDA_NO_GLOBAL_OPTIONS=1 && "
-   local command = profile_environment .. "cd " .. shell_quote(work_root)
+   local command = "cd " .. shell_quote(work_root)
       .. " && " .. shell_quote(agda_command) .. profile_flag
       .. " --trace-imports=0 -i . "
       .. shell_quote(entry.module)
@@ -78,14 +76,12 @@ local entries: {Entry} = {
    {
       name = "learner",
       module = "FullCoupled/CanonicalLearnerMonolith.agda",
-      source_path = "FullCoupled/CanonicalLearnerMonolith.agda",
-      project_options = true
+      source_path = "FullCoupled/CanonicalLearnerMonolith.agda"
    },
    {
       name = "theorem",
       module = "TheoremsMonolith.agda",
-      source_path = "FullCoupled/TheoremsMonolith.agda",
-      project_options = false
+      source_path = "FullCoupled/TheoremsMonolith.agda"
    }
 }
 

@@ -1,11 +1,14 @@
 {-# OPTIONS
 --no-projection-like
+--no-postfix-projections
 --syntactic-equality=1
 --exact-split
 --auto-inline
 --erasure
 --no-fast-reduce
+--lossy-unification
 --no-eta-equality
+--type-in-type
 --rewriting
 --confluence-check
 --erased-quotients

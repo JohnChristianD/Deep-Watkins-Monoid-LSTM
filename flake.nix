@@ -157,10 +157,6 @@
             if [[ "$#" -eq 1 && ( "$1" == "--version" || "$1" == "-V" || "$1" == "--help" || "$1" == "-h" ) ]]; then
               exec agda2hs --disable-backend "$@"
             fi
-            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            if [[ "''${AGDA_NO_GLOBAL_OPTIONS:-0}" == "1" ]]; then
-              agda_global_options=()
-            fi
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
               echo "agda2hs-base .agda-lib not found in Nix package" >&2
@@ -230,10 +226,6 @@
             if [[ "$#" -eq 1 && ( "$1" == "--version" || "$1" == "-V" || "$1" == "--help" || "$1" == "-h" ) ]]; then
               exec agda2hs --disable-backend "$@"
             fi
-            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            if [[ "''${AGDA_NO_GLOBAL_OPTIONS:-0}" == "1" ]]; then
-              agda_global_options=()
-            fi
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
               echo "agda2hs-base .agda-lib not found in Nix package" >&2
@@ -299,10 +291,6 @@
             (optimizedGhc system)
           ];
           text = ''
-            mapfile -t agda_global_options < "${./.ci/agda/global-options.txt}"
-            if [[ "''${AGDA_NO_GLOBAL_OPTIONS:-0}" == "1" ]]; then
-              agda_global_options=()
-            fi
             agda2hs_base_lib="$(find "${agda2hsBaseLib system}" -name '*.agda-lib' -print -quit)"
             if [[ -z "$agda2hs_base_lib" ]]; then
               echo "agda2hs-base .agda-lib not found in Nix package" >&2
