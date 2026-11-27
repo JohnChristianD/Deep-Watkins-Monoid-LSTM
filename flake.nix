@@ -199,7 +199,7 @@
             if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
               setup_agda_primitive_data
             fi
-            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_cache" -i . "$@"; then
+            if agda2hs --disable-backend -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
@@ -268,7 +268,7 @@
             if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
               setup_agda_primitive_data
             fi
-            if agda2hs --disable-backend "''${agda_global_options[@]}" -i "$agda2hs_base_cache" -i . "$@"; then
+            if agda2hs --disable-backend -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
@@ -333,7 +333,7 @@
             if [[ ! -d "$Agda_datadir/lib/prim" ]]; then
               setup_agda_primitive_data
             fi
-            if "${agda2hsTool system}/bin/agda2hs" "''${agda_global_options[@]}" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_cache" -i . "$@"; then
+            if "${agda2hsTool system}/bin/agda2hs" --config "${./.ci/agda/agda2hs.yaml}" -i "$agda2hs_base_cache" -i . "$@"; then
               status=0
             else
               status=$?
