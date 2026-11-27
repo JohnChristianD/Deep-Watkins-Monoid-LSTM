@@ -121,7 +121,7 @@ local function check_agda_learner()
          .. " && grep -Fq 'consConatStream : A → ∞ (ConatStream A) → ConatStream A' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'data CodyadicDigitStream : Set where' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'codyadicDigitStep : SignedBinaryDigit → ∞ CodyadicDigitStream → CodyadicDigitStream' " .. shell_quote(theorem_source)
-         .. " && ! grep -Eq '^[[:space:]]+coinductive[[:space:]]*
+         .. " && ! grep -Eq '^[[:space:]]+coinductive[[:space:]]*$' " .. shell_quote(theorem_source)
    )
    run_checked(
       "reject LSTM and epsilon-greedy paths",
