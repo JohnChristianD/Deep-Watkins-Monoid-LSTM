@@ -117,6 +117,141 @@ local function check_agda_learner()
          .. " && grep -Fq 'open import Agda.Builtin.Coinduction public' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'data Conat : Set where' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'infinity = suc∞ (♯ infinity)' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'data ConatStream (A : Set) : Set where' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'consConatStream : A → ∞ (ConatStream A) → ConatStream A' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'data CodyadicDigitStream : Set where' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'codyadicDigitStep : SignedBinaryDigit → ∞ CodyadicDigitStream → CodyadicDigitStream' " .. shell_quote(theorem_source)
+         .. " && ! grep -Eq '^[[:space:]]+coinductive[[:space:]]*
+   )
+   run_checked(
+      "reject LSTM and epsilon-greedy paths",
+      "if grep -Eiq 'lstm|epsilon[ _-]?greedy|e[_-]?z[_-]?greedy' " .. shell_quote(source) .. "; then echo 'forbidden recurrent/action selector found' >&2; exit 1; fi"
+   )
+   run_checked(
+      "reject DeepSets and postponed FQF code",
+      "if grep -Eiq 'DeepSets|FQF' " .. shell_quote(source) .. "; then echo 'postponed architecture found in learner source' >&2; exit 1; fi"
+   )
+   run_checked(
+      "reject retired actor and max-gradient learner",
+      "if grep -Eiq 'softsign|Softsign|policyProbabilities|sampleAction|ActionHead|streamMaxGrad|networkTrainStepSARSA([^0-9]|$)|maxGrad' " .. shell_quote(source) .. "; then echo 'retired actor-critic or max-gradient path remains' >&2; exit 1; fi"
+   )
+   run_checked(
+      "reject floating-point runtime types",
+      "if grep -Eiq '(^|[^[:alnum:]_])(Float|Float32|Float64)([^[:alnum:]_]|$)' " .. shell_quote(source) .. "; then echo 'floating-point runtime type found' >&2; exit 1; fi"
+   )
+   run_checked(
+      "require Q8.24 IQN32 Double-SARSA learner symbols",
+      "for symbol in 'qShift = 24' 'qOne     = 16777216' q4Tanh q4TanhGrad IDBDConfig IDBDParameter idbdStep l2GradientDecay NoisyDense32 DuelingIQN32 TwinDuelingCritics doubleSARSA0Target networkStart networkTrainStepSARSA0 iterativeCHAD qQuantileHuberPairGradient; do grep -Fq \"$symbol\" " .. shell_quote(source) .. " || exit 1; done"
+   )
+   run_checked(
+      "require unchanged Agda import surface",
+      "for import in 'open import Haskell.Prelude public' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
+   )
+   run_checked(
+      "require ReLU on recurrent candidate and output",
+      "grep -Fq 'candidate = qRelu candidateInput' " .. shell_quote(source) .. " && grep -Fq 'hiddenAfter = qRelu mixPre' " .. shell_quote(source)
+   )
+   print("learner-source-audit=pass; Q8.24; IQN32; Double SARSA(0); IDBD; Quantmoid4")
+end
+
+local function check_agda_theorem()
+   run_checked(
+      "parallel Agda checks in a clean LuaJIT process",
+      "luajit " .. shell_quote(compile_teal(".ci/teal/parallel_agda.tl"))
+   )
+   run_checked("create Agda2HS output directory", "mkdir -p build/agda2hs")
+   run_checked(
+      "Agda2HS extract canonical learner",
+      "agda2hs " .. shell_quote("FullCoupled/CanonicalLearnerMonolith.agda") .. " -o " .. shell_quote("build/agda2hs")
+   )
+   run_checked(
+      "verify extracted Haskell module",
+      "test -s build/agda2hs/FullCoupled/CanonicalLearnerMonolith.hs"
+   )
+   run_checked("create GHC check output directory", "mkdir -p build/ghc")
+   run_checked(
+      "GHC typecheck extracted learner with phase and RTS timings",
+      "ghc-check -ddump-timings -fno-code -fforce-recomp -i./build/agda2hs -odir build/ghc -hidir build/ghc build/agda2hs/FullCoupled/CanonicalLearnerMonolith.hs +RTS -s -RTS"
+   )
+   print("agda2hs-and-ghc-check=pass-relative-to-declared-imports-and-primitives")
+end
+
+local function check_russ_audit()
+   run_checked("create RUSS audit directory", "mkdir -p build")
+   run_checked(
+      "generate RUSS trust inventory",
+      "luajit " .. shell_quote(compile_teal(".ci/teal/russ_audit.tl")) .. " build/russ-audit.dhall"
+   )
+   run_checked("typecheck RUSS inventory", "dhall type --file build/russ-audit.dhall")
+   print("russ-audit=generated; lexical inventory is not a proof certificate")
+end
+
+local function check_pages()
+   local out = os.getenv("PAGES_OUTPUT_DIR") or "build/pages"
+   local palette = out .. "/palette.css"
+   local base_css = out .. "/base.css"
+   local css = out .. "/site.css"
+   local html = out .. "/index.html"
+
+   run_checked("create static Pages output", "mkdir -p " .. shell_quote(out))
+   run_checked("generate palette CSS", "luajit " .. shell_quote(compile_teal(".ci/teal/palette_css.tl")) .. " " .. shell_quote(palette))
+   run_checked("compile Less stylesheet", "lessc site/site.less " .. shell_quote(base_css))
+   write_file(css, read_file(palette) .. "\n" .. read_file(base_css))
+   run_checked("render static HTML", "luajit " .. shell_quote(compile_teal(".ci/teal/pages.tl")) .. " " .. shell_quote(html))
+
+   local generated_html = read_file(html)
+   local generated_css = read_file(css)
+   local published_readme = out .. "/README.md"
+   write_file(published_readme, read_file("README.md"))
+   assert(string.find(generated_html, 'href="site.css"', 1, true) ~= nil, "published HTML is missing its stylesheet link")
+   assert(#read_file(published_readme) > 0, "published README copy is empty")
+   assert(string.find(generated_html, 'href="README.md"', 1, true) ~= nil, "published landing page is missing its README link")
+   assert(string.find(generated_html, 'class="hero"', 1, true) ~= nil, "published landing page is missing its hero")
+   assert(string.find(generated_html, 'class="model-panel"', 1, true) ~= nil, "published landing page is missing its model specification")
+   assert(string.find(generated_html, 'class="verification"', 1, true) ~= nil, "published landing page is missing its verification boundary")
+   assert(string.find(generated_html, "<script", 1, true) == nil, "published HTML must remain static")
+   assert(string.find(generated_css, ".shell", 1, true) ~= nil, "compiled LESS is missing the page shell")
+   assert(string.find(generated_css, ".hero", 1, true) ~= nil, "compiled LESS is missing the hero layout")
+   assert(string.find(generated_css, ".verification", 1, true) ~= nil, "compiled LESS is missing the verification section")
+   assert(string.find(generated_css, "max-width: 800px", 1, true) ~= nil, "compiled LESS is missing its mobile layout")
+
+   os.remove(palette)
+   os.remove(base_css)
+   print("static-pages=generated; less-css=validated; browser-JavaScript=none")
+end
+
+local arguments = {...}
+local lane = arguments[1] or ""
+if lane == "AgdaLearner" then
+   check_build_source()
+   check_teal_sources()
+   check_agda_learner()
+   check_agda_theorem()
+elseif lane == "AgdaTheorem" then
+   check_build_source()
+   check_teal_sources()
+   check_agda_theorem()
+elseif lane == "RUSS" then
+   check_build_source()
+   check_teal_sources()
+   check_russ_audit()
+   check_agda_theorem()
+elseif lane == "Pages" then
+   check_build_source()
+   check_teal_sources()
+   check_pages()
+elseif lane == "All" then
+   check_build_source()
+   check_teal_sources()
+   check_agda_learner()
+   check_russ_audit()
+   check_pages()
+   check_agda_theorem()
+else
+   io.stderr:write("usage: luajit build/teal/ci.lua AgdaLearner|AgdaTheorem|RUSS|Pages|All\\n")
+   os.exit(2)
+end
+ " .. shell_quote(theorem_source)
          .. " && grep -Fq 'suc∞ predecessor +∞ b = suc∞ (♯ (♭ predecessor +∞ b))' " .. shell_quote(theorem_source)
    )
    run_checked(

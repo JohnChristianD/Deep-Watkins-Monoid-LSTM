@@ -303,21 +303,24 @@ suc∞ predecessor +∞ b = suc∞ (♯ (♭ predecessor +∞ b))
 
 -- A stream whose length is a conatural.  Its finite prefixes are always
 -- computable; an infinite horizon is observed one constructor at a time.
-record ConatStream (A : Set) : Set where
-  coinductive
-  field
-    observeStream : Maybe (A × ConatStream A)
-open ConatStream public
+data ConatStream (A : Set) : Set where
+  emptyConatStream : ConatStream A
+  consConatStream : A → ∞ (ConatStream A) → ConatStream A
+
+observeStream : {A : Set} → ConatStream A → Maybe (A × ConatStream A)
+observeStream emptyConatStream = nothing
+observeStream (consConatStream value rest) = just (pair value (♭ rest))
 
 iterateConat : {A : Set} → (A → A) → Conat → A → ConatStream A
-observeStream (iterateConat step horizon state) with observeConat horizon
-... | nothing = nothing
-... | just remaining = just (pair state (iterateConat step remaining (step state)))
+iterateConat step horizon state with observeConat horizon
+... | nothing = emptyConatStream
+... | just remaining =
+      consConatStream state (♯ (iterateConat step remaining (step state)))
 
 mapConatStream : {A B : Set} → (A → B) → ConatStream A → ConatStream B
-observeStream (mapConatStream f stream) with observeStream stream
-... | nothing = nothing
-... | just (pair value rest) = just (pair (f value) (mapConatStream f rest))
+mapConatStream f emptyConatStream = emptyConatStream
+mapConatStream f (consConatStream value rest) =
+  consConatStream (f value) (♯ (mapConatStream f (♭ rest)))
 
 -- The bound, rather than the stream, controls recursion.  This evaluator is
 -- total even for an infinite stream and is the executable observation API.
@@ -342,12 +345,14 @@ foldConatPrefix step initial (suc n) stream with observeStream stream
 data SignedBinaryDigit : Set where
   negativeDigit zeroDigit positiveDigit : SignedBinaryDigit
 
-record CodyadicDigitStream : Set where
-  coinductive
-  field
-    codyadicHead : SignedBinaryDigit
-    codyadicTail : CodyadicDigitStream
-open CodyadicDigitStream public
+data CodyadicDigitStream : Set where
+  codyadicDigitStep : SignedBinaryDigit → ∞ CodyadicDigitStream → CodyadicDigitStream
+
+codyadicHead : CodyadicDigitStream → SignedBinaryDigit
+codyadicHead (codyadicDigitStep head tail) = head
+
+codyadicTail : CodyadicDigitStream → CodyadicDigitStream
+codyadicTail (codyadicDigitStep head tail) = ♭ tail
 
 record Codyadic : Set where
   constructor codyadic
@@ -359,24 +364,21 @@ open Codyadic public
 -- The unbounded view is productive at every observation.
 codyadicDigitObservations :
   CodyadicDigitStream → ConatStream SignedBinaryDigit
-observeStream (codyadicDigitObservations digits) =
-  just
-    (pair
-      (codyadicHead digits)
-      (codyadicDigitObservations (codyadicTail digits)))
+codyadicDigitObservations digits =
+  consConatStream
+    (codyadicHead digits)
+    (♯ (codyadicDigitObservations (codyadicTail digits)))
 
 -- A Conat requests a finite or infinite prefix without truncating the
 -- underlying Codyadic value.
 codyadicDigitPrefix :
   Conat → CodyadicDigitStream → ConatStream SignedBinaryDigit
-observeStream (codyadicDigitPrefix horizon digits)
-  with observeConat horizon
-... | nothing = nothing
+codyadicDigitPrefix horizon digits with observeConat horizon
+... | nothing = emptyConatStream
 ... | just rest =
-      just
-        (pair
-          (codyadicHead digits)
-          (codyadicDigitPrefix rest (codyadicTail digits)))
+      consConatStream
+        (codyadicHead digits)
+        (♯ (codyadicDigitPrefix rest (codyadicTail digits)))
 
 codyadicObservations : Codyadic → ConatStream SignedBinaryDigit
 codyadicObservations value =
