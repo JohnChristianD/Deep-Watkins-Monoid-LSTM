@@ -108,6 +108,13 @@ local function check_agda_learner()
          .. " && ! grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' .ci/teal/parallel_agda.tl"
          .. " && grep -Fq 'agda2hsTool system}/bin/agda2hs' flake.nix"
    )
+   run_checked(
+      "disambiguate nested empty judgement constructor",
+      "grep -Fq '    emptyJudgement : J' " .. shell_quote(source)
+         .. " && ! grep -Fq '    # : J' " .. shell_quote(source)
+         .. " && grep -Fq 'Γ ⊨ emptyJudgement' " .. shell_quote(source)
+         .. " && ! grep -Fq 'Γ ⊨ #' " .. shell_quote(source)
+   )
    local theorem_source = "FullCoupled/TheoremsMonolith.agda"
    run_checked(
       "require local integer and bit compatibility modules",
@@ -121,6 +128,13 @@ local function check_agda_learner()
    run_checked(
       "require isolated workers to stage local compatibility modules",
       "grep -Fq 'cp -R Haskell ' .ci/teal/parallel_agda.tl"
+   )
+   run_checked(
+      "construct covariance orbit under an explicit guarded delay",
+      "grep -Fq '  covarianceOrbitFromShift V t u m n e b shift =' " .. shell_quote(theorem_source)
+         .. " && grep -Fq '    consConatStream (covarianceAtShift V t u m n e b shift)' " .. shell_quote(theorem_source)
+         .. " && grep -Fq '(♯ (covarianceOrbitFromShift V t u m n e b' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'advanceCovarianceShift (timeAction V) shift)))' " .. shell_quote(theorem_source)
    )
    run_checked(
       "require safe delayed coinduction with guardedness enabled",
