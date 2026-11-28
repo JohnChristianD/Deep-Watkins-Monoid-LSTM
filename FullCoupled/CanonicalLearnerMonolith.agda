@@ -439,7 +439,7 @@ initializeMinimaxChampion parameters gate0 uniform0 gate1 uniform1 knotInverseQ3
 stepMinimaxChampion :
   MinimaxChampionHyperParameters ->
   MinimaxChampionV73CancelTop1Model ->
-  Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
+  Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
   @0 (Int -> Int -> Int) ->
   MinimaxChampionV73CancelTop1Model
 stepMinimaxChampion parameters
