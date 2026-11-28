@@ -20,6 +20,7 @@ open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Erased.Funext public
 open import Agda.Primitive public
 open import Haskell.Data.Bits public
+open import Haskell.Prim using (pos; negsuc)
 open import Haskell.Prelude public
 
 -- 1. Non-Univalent Definitional UIP (--with-K) + Depth-Bounded Set0 System-F Codes (Zero Impredicative Loops)
@@ -187,41 +188,44 @@ data MicroHaskellHeapNode : Set where
   indirectionNode : MicroHaskellHeapNode -> MicroHaskellHeapNode
 
 mutual
-  unwindHeapSpine : Int -> MicroHaskellHeapNode -> MicroHaskellHeapNode
-  unwindHeapSpine fuel (indirectionNode target) =
-    if fuel <= 0 then indirectionNode target else unwindHeapSpine (fuel - 1) target
-  unwindHeapSpine fuel (applicationNode function argument) =
-    if fuel <= 0 then applicationNode function argument
-    else let reducedFunction = unwindHeapSpine (fuel - 1) function
-         in reduceApplicationHead (fuel - 1) reducedFunction argument
+  unwindHeapSpine : Nat -> MicroHaskellHeapNode -> MicroHaskellHeapNode
+  unwindHeapSpine zero (indirectionNode target) = indirectionNode target
+  unwindHeapSpine (suc fuel) (indirectionNode target) = unwindHeapSpine fuel target
+  unwindHeapSpine zero (applicationNode function argument) = applicationNode function argument
+  unwindHeapSpine (suc fuel) (applicationNode function argument) =
+    let reducedFunction = unwindHeapSpine fuel function
+    in reduceApplicationHead fuel reducedFunction argument
   unwindHeapSpine _ leafNode = leafNode
 
-  reduceApplicationHead : Int -> MicroHaskellHeapNode -> MicroHaskellHeapNode -> MicroHaskellHeapNode
-  reduceApplicationHead fuel (combinatorNode combinatorI) x =
-    if fuel <= 0 then x else unwindHeapSpine (fuel - 1) x
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorK) x) _ =
-    if fuel <= 0 then x else unwindHeapSpine (fuel - 1) x
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorA) _) y =
-    if fuel <= 0 then y else unwindHeapSpine (fuel - 1) y
-  reduceApplicationHead fuel (applicationNode (applicationNode (combinatorNode combinatorB) f) g) x =
-    if fuel <= 0 then applicationNode f (applicationNode g x)
-    else unwindHeapSpine (fuel - 1) (applicationNode f (applicationNode g x))
-  reduceApplicationHead fuel (applicationNode (applicationNode (combinatorNode combinatorC) f) x) y =
-    if fuel <= 0 then applicationNode (applicationNode f y) x
-    else unwindHeapSpine (fuel - 1) (applicationNode (applicationNode f y) x)
-  reduceApplicationHead fuel (applicationNode (applicationNode (combinatorNode combinatorP) x) y) z =
-    if fuel <= 0 then applicationNode (applicationNode z x) y
-    else unwindHeapSpine (fuel - 1) (applicationNode (applicationNode z x) y)
+  reduceApplicationHead : Nat -> MicroHaskellHeapNode -> MicroHaskellHeapNode -> MicroHaskellHeapNode
+  reduceApplicationHead zero (combinatorNode combinatorI) x = x
+  reduceApplicationHead (suc fuel) (combinatorNode combinatorI) x = unwindHeapSpine fuel x
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorK) x) _ = x
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorK) x) _ = unwindHeapSpine fuel x
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorA) _) y = y
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorA) _) y = unwindHeapSpine fuel y
+  reduceApplicationHead zero (applicationNode (applicationNode (combinatorNode combinatorB) f) g) x =
+    applicationNode f (applicationNode g x)
+  reduceApplicationHead (suc fuel) (applicationNode (applicationNode (combinatorNode combinatorB) f) g) x =
+    unwindHeapSpine fuel (applicationNode f (applicationNode g x))
+  reduceApplicationHead zero (applicationNode (applicationNode (combinatorNode combinatorC) f) x) y =
+    applicationNode (applicationNode f y) x
+  reduceApplicationHead (suc fuel) (applicationNode (applicationNode (combinatorNode combinatorC) f) x) y =
+    unwindHeapSpine fuel (applicationNode (applicationNode f y) x)
+  reduceApplicationHead zero (applicationNode (applicationNode (combinatorNode combinatorP) x) y) z =
+    applicationNode (applicationNode z x) y
+  reduceApplicationHead (suc fuel) (applicationNode (applicationNode (combinatorNode combinatorP) x) y) z =
+    unwindHeapSpine fuel (applicationNode (applicationNode z x) y)
   reduceApplicationHead fuel (applicationNode (combinatorNode combinatorAdd) a) b =
-    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \ where
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \\ where
       (integerNode leftValue , integerNode rightValue) -> integerNode (leftValue + rightValue)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorAdd) leftNode) rightNode
   reduceApplicationHead fuel (applicationNode (combinatorNode combinatorMultiply) a) b =
-    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \ where
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \\ where
       (integerNode leftValue , integerNode rightValue) -> integerNode (leftValue * rightValue)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorMultiply) leftNode) rightNode
   reduceApplicationHead fuel (applicationNode (combinatorNode combinatorLessThan) a) b =
-    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \ where
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \\ where
       (integerNode leftValue , integerNode rightValue) -> combinatorNode (if leftValue < rightValue then combinatorK else combinatorA)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorLessThan) leftNode) rightNode
   reduceApplicationHead _ functionNode argumentNode = applicationNode functionNode argumentNode
@@ -236,15 +240,15 @@ record MinimaxChampionHyperParameters : Set where
     implicitQuantileCount           : Int    -- 13 non-scalar quantiles on BOTH Value and Advantage
     doubleEvaluationHeadCount       : Int    -- 2 alternating Common Random Number critics
     multistepHorizon                : Int    -- 3-Step Cancel-Zero-Mean Expected SARSA
-    learningRateShift               : Int    -- 2^-5
+    learningRateShift               : Nat    -- 2^-5
     streamingOptimizerBeta099       : Int    -- 0.99 (66437775)
     weightDecayKeepFactor           : Int    -- 1 - 2^-18 (67108608)
     optimizerEpsilonStabilizer      : Int    -- 2^-8 (262144)
     layerNormEpsilonStabilizer      : Int    -- 2^-6 (1048576)
     tsallisTwoFivePercentThreshold  : Int    -- fixedPointUnitOne / 20 (3355443)
     threeStepDiscountGammaCubed     : Int    -- 0.99^3 (65115644)
-    munchausenScaleTauShift         : Int    -- shiftR 6 (0.125 * 0.125)
-    noisyNetworkScaleShift          : Int    -- shiftR 2 (2^-2)
+    munchausenScaleTauShift         : Nat    -- shiftR 6 (0.125 * 0.125)
+    noisyNetworkScaleShift          : Nat    -- shiftR 2 (2^-2)
 open MinimaxChampionHyperParameters public
 
 {-# COMPILE AGDA2HS MinimaxChampionHyperParameters #-}
@@ -287,13 +291,18 @@ fixedPointMultiply bitShift a b = shiftR (a * b) bitShift
 clampShiftAmount62 : Int -> Int
 clampShiftAmount62 s = if 62 < s then 62 else if s < (0 - 62) then (0 - 62) else s
 
+nonNegativeIntToNat : Int -> Nat
+nonNegativeIntToNat value with intToInteger value
+... | pos amount = amount
+... | negsuc _ = zero
+
 barrettReciprocalShift : Int -> Int -> Int -> Int
 barrettReciprocalShift numerator knotInverseQ30 rightShiftAmount =
   let product = numerator * knotInverseQ30
       clamped = clampShiftAmount62 rightShiftAmount
   in if 0 <= clamped
-       then shiftR product clamped
-       else shiftL product (0 - clamped)
+       then shiftR product (nonNegativeIntToNat clamped)
+       else shiftL product (nonNegativeIntToNat (0 - clamped))
 
 quantmoidFour : Int -> Nat -> Int -> Int
 quantmoidFour unitOne bitShift x =
