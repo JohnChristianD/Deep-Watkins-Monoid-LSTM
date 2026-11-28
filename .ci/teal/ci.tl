@@ -108,6 +108,11 @@ local function check_agda_learner()
          .. " && ! grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' .ci/teal/parallel_agda.tl"
          .. " && grep -Fq 'agda2hsTool system}/bin/agda2hs' flake.nix"
    )
+   run_checked(
+      "avoid Prelude unit-name collision in affine syntax",
+      "grep -Fq 'topFormula : 𝕋 -' " .. shell_quote(source)
+         .. " && ! grep -Fq '    ⊤ : 𝕋 -' " .. shell_quote(source)
+   )
    local theorem_source = "FullCoupled/TheoremsMonolith.agda"
    run_checked(
       "require local integer and bit compatibility modules",
