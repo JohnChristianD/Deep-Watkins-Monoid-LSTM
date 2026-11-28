@@ -2,9 +2,9 @@
 
 module Compat.Data.Int where
 
-open import Haskell.Prim using (monusNat)
+open import Haskell.Prim using (monusNat; div-helper; pos; negsuc)
 open import Haskell.Prelude
-open import Haskell.Prim using (div-helper; pos; negsuc)
+open import Haskell.Prim.Int using (absInt; unsafeIntToNat; integerToInt)
 
 -- Both names use the base library's signed 64-bit carrier. The learner
 -- enforces the narrower Q8.24 range whenever it narrows through qFrom64.
@@ -27,34 +27,20 @@ divideNat numerator denominator =
   else div-helper 0 (monusNat denominator 1) numerator (monusNat denominator 1)
 {-# COMPILE AGDA2HS divideNat #-}
 
-negativeMagnitude : Nat → Integer
-negativeMagnitude magnitude =
-  if magnitude == 0
-  then pos 0
-  else negsuc (monusNat magnitude 1)
-{-# COMPILE AGDA2HS negativeMagnitude #-}
-
-quotientInteger : Integer → Integer → Integer
-quotientInteger (pos numerator) (pos denominator) =
-  if denominator == 0
-  then pos 0
-  else pos (divideNat numerator denominator)
-quotientInteger (pos numerator) (negsuc denominator) =
-  negativeMagnitude (divideNat numerator (denominator + 1))
-quotientInteger (negsuc numerator) (pos denominator) =
-  if denominator == 0
-  then pos 0
-  else negativeMagnitude (divideNat (numerator + 1) denominator)
-quotientInteger (negsuc numerator) (negsuc denominator) =
-  pos (divideNat (numerator + 1) (denominator + 1))
-{-# COMPILE AGDA2HS quotientInteger #-}
-
 quot : Int64 → Int64 → Int64
 quot numerator denominator =
-  integerToInt
-    (quotientInteger
-      (intToInteger numerator)
-      (intToInteger denominator))
+  if denominator == 0
+  then 0
+  else
+    let magnitude =
+          divideNat
+            (unsafeIntToNat (absInt numerator))
+            (unsafeIntToNat (absInt denominator))
+    in if magnitude == 0
+       then 0
+       else if (numerator < 0) == (denominator < 0)
+            then integerToInt (pos magnitude)
+            else integerToInt (negsuc (monusNat magnitude 1))
 {-# COMPILE AGDA2HS quot #-}
 
 private
