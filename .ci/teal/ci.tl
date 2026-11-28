@@ -120,7 +120,7 @@ local function check_agda_learner()
    )
    run_checked(
       "enforce exactly one canonical learner module",
-      "modules=\$(grep -RIl --include='*.agda' '^module .*Learner' . | sort)"
+      "modules=$(grep -RIl --include='*.agda' '^module .*Learner' . | sort)"
          .. " && test \"$modules\" = './FullCoupled/CanonicalLearnerMonolith.agda'"
          .. " && test ! -e SpecSmac3Agda.agda"
    )
