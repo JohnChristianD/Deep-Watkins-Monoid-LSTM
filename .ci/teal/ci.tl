@@ -138,6 +138,11 @@ local function check_agda_learner()
          .. " && grep -Fq 'suc∞ predecessor +∞ b = suc∞ (♯ (♭ predecessor +∞ b))' " .. shell_quote(theorem_source)
    )
    run_checked(
+      "require disjoint domain and numeric addition operators",
+      "grep -Fq '_+ᵈ_   : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
+         .. " && ! grep -Fq '_+_    : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
+   )
+   run_checked(
       "reject LSTM and epsilon-greedy paths",
       "if grep -Eiq 'lstm|epsilon[ _-]?greedy|e[_-]?z[_-]?greedy' " .. shell_quote(source) .. "; then echo 'forbidden recurrent/action selector found' >&2; exit 1; fi"
    )
