@@ -32,6 +32,6 @@ The file also includes small Pathfinder 2e Remaster modifier and degree-of-succe
 
 ## Build and verification
 
-The Nix development shell pins Agda 2.9, Agda2HS, Teal, LuaJIT, LuaFun, and Lua Lanes. Teal programs drive the parallel Agda checks, source guards, RUSS inventory, and static Pages rendering. Agda2HS extracts the canonical module, and GHC type-checks the generated Haskell.
+The Nix development shell pins Agda 2.9, Agda2HS, Teal, LuaJIT, and LuaFun. Teal programs drive isolated Agda checks, source guards, RUSS inventory, and static Pages rendering. Agda2HS extracts the canonical module, and GHC type-checks the generated Haskell.
 
 The RUSS output is a lexical inventory of source markers. It is not a proof certificate. A passing CI run establishes the declared source and compiler checks; it does not establish numerical accuracy, learning performance, or the soundness of the explicitly postulated assumptions.

@@ -19,7 +19,7 @@ open import Agda.Builtin.Equality public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Erased.Funext public
 open import Agda.Primitive public
-open import Haskell.Data.Bits public
+open import Compat.Data.Bits public
 open import Haskell.Prim using (pos; negsuc)
 open import Haskell.Prelude public
 

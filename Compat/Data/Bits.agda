@@ -1,9 +1,9 @@
 {-# OPTIONS --erasure #-}
 
-module Haskell.Data.Bits where
+module Compat.Data.Bits where
 
 open import Haskell.Prelude
-open import Haskell.Data.Int using (quot)
+open import Compat.Data.Int using (quot)
 
 private
   powerOfTwo : Nat → Int

@@ -1,6 +1,6 @@
 {-# OPTIONS --erasure #-}
 
-module Haskell.Data.Int where
+module Compat.Data.Int where
 
 open import Haskell.Prelude
 open import Haskell.Prim using (div-helper; pos; negsuc)

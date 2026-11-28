@@ -41,9 +41,8 @@ local function check_teal_sources()
       ".ci/teal/russ_audit.tl"
    }
    run_checked(
-      "require LuaFun and Lua Lanes Teal declarations",
+      "require LuaFun Teal declaration",
       "test -s " .. shell_quote(".ci/teal/fun.d.tl")
-         .. " && test -s " .. shell_quote(".ci/teal/lanes.d.tl")
    )
    for _, path in ipairs(files) do
       run_checked(
@@ -150,7 +149,7 @@ local function check_agda_learner()
          .. " && grep -Fq 'open import Agda.Builtin.Equality.Rewrite public' " .. shell_quote(source)
          .. " && grep -Fq 'open import Agda.Builtin.Erased.Funext public' " .. shell_quote(source)
          .. " && grep -Fq 'open import Agda.Primitive public' " .. shell_quote(source)
-         .. " && grep -Fq 'open import Haskell.Data.Bits public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Compat.Data.Bits public' " .. shell_quote(source)
          .. " && grep -Fq 'open import Haskell.Prelude public' " .. shell_quote(source)
    )
    run_checked(
@@ -167,10 +166,10 @@ local function check_agda_learner()
    local theorem_source = "FullCoupled/TheoremsMonolith.agda"
    run_checked(
       "require local integer and bit compatibility modules",
-      "test -s Haskell/Data/Int.agda && test -s Haskell/Data/Bits.agda"
-         .. " && grep -Fq 'quotNegativeNumeratorTruncatesTowardZero' Haskell/Data/Int.agda"
-         .. " && grep -Fq 'shiftNegativeRoundsDown' Haskell/Data/Bits.agda"
-         .. " && grep -Fq 'with amount < 64 | value < 0' Haskell/Data/Bits.agda"
+      "test -s Compat/Data/Int.agda && test -s Compat/Data/Bits.agda"
+         .. " && grep -Fq 'quotNegativeNumeratorTruncatesTowardZero' Compat/Data/Int.agda"
+         .. " && grep -Fq 'shiftNegativeRoundsDown' Compat/Data/Bits.agda"
+         .. " && grep -Fq 'with amount < 64 | value < 0' Compat/Data/Bits.agda"
          .. " && grep -Fq 'record Rational4Vector : Set where' " .. shell_quote(theorem_source)
          .. " && grep -Fq '    eta-equality' " .. shell_quote(theorem_source)
    )
@@ -212,7 +211,7 @@ end
 
 local function check_agda_theorem()
    run_checked(
-      "parallel Agda checks in a clean LuaJIT process",
+      "isolated Agda checks in a clean LuaJIT process",
       "luajit " .. shell_quote(compile_teal(".ci/teal/parallel_agda.tl"))
    )
    run_checked("create Agda2HS output directory", "mkdir -p build/agda2hs")

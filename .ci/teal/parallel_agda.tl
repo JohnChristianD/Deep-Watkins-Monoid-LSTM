@@ -38,7 +38,7 @@ end
 local function run_checked(label: string, command: string)
    local status = run_process(command)
    if status ~= 0 then
-      io.stderr:write("parallel-agda=fail: " .. label .. " (status " .. tostring(status) .. ")\\n")
+      io.stderr:write("isolated-agda=fail: " .. label .. " (status " .. tostring(status) .. ")\\n")
       os.exit(1)
    end
 end
@@ -102,8 +102,8 @@ for _, job in ipairs(jobs) do
    table.insert(
       setup_commands,
       "mkdir -p " .. shell_quote(job.module_dir)
-         .. " && rm -rf " .. shell_quote(job.root .. "/Haskell")
-         .. " && cp -R Haskell " .. shell_quote(job.root)
+         .. " && rm -rf " .. shell_quote(job.root .. "/Compat")
+         .. " && cp -R Compat " .. shell_quote(job.root)
          .. " && " .. copy_if_changed(".agda-lib", job.root .. "/.agda-lib")
          .. " && " .. copy_if_changed(job.source_path, job.module_path)
    )
@@ -123,10 +123,10 @@ local failed = false
 for _, job in ipairs(jobs) do
    local started = os.time()
    local status = run_process(job.command)
-   print("parallel-agda-worker=" .. job.name .. " seconds=" .. tostring(os.difftime(os.time(), started)))
+   print("isolated-agda-worker=" .. job.name .. " seconds=" .. tostring(os.difftime(os.time(), started)))
    os.execute("cat " .. shell_quote(job.log))
    if status ~= 0 then
-      io.stderr:write("parallel-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\\n")
+      io.stderr:write("isolated-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\\n")
       failed = true
    end
 end
@@ -134,4 +134,4 @@ end
 if failed then
    os.exit(1)
 end
-print("parallel-agda=pass; workers=" .. #jobs .. "; isolated-worker-interface-cache=true")
+print("isolated-agda=pass; workers=" .. #jobs .. "; isolated-worker-interface-cache=true")
