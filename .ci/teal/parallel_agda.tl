@@ -160,11 +160,20 @@ end)
 -- Exercise both successful and failing child exits through the same lane path
 -- used by Agda workers. waitpid returns zero for exit 0 and a nonzero wait
 -- status for exit 7.
-local success_smoke = launch("exit 0"):join()
-local failure_smoke = launch("exit 7"):join()
-if success_smoke is nil or not succeeded(success_smoke.status)
-   or failure_smoke is nil or succeeded(failure_smoke.status) then
-   io.stderr:write("parallel-agda=fail: posix spawn status smoke test\\n")
+local success_smoke, success_error = launch("exit 0"):join()
+local failure_smoke, failure_error = launch("exit 7"):join()
+if success_smoke is nil or failure_smoke is nil then
+   io.stderr:write(
+      "parallel-agda=fail: posix spawn lane error; success="
+         .. tostring(success_error) .. "; failure=" .. tostring(failure_error) .. "\\n"
+   )
+   os.exit(1)
+end
+if not succeeded(success_smoke.status) or succeeded(failure_smoke.status) then
+   io.stderr:write(
+      "parallel-agda=fail: posix spawn status; success="
+         .. tostring(success_smoke.status) .. "; failure=" .. tostring(failure_smoke.status) .. "\\n"
+   )
    os.exit(1)
 end
 print("parallel-agda-spawn-smoke=pass")
