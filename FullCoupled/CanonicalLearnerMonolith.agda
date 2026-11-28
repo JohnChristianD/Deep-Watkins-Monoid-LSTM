@@ -79,7 +79,7 @@ postulate
 -- Sum domains
 
 postulate
-  _+_    : Domain → Domain → Domain                 -- separated sum
+  _+ᵈ_   : Domain → Domain → Domain                 -- separated sum
   inj₁   : ⟪ D →ᶜ D + E ⟫                            -- injection
   inj₂   : ⟪ E →ᶜ D + E ⟫                            -- injection
   [_,_]  : ⟪ (D →ᶜ F) →ᶜ (E →ᶜ F) →ᶜ (D + E →ᶜ F) ⟫  -- case analysis
