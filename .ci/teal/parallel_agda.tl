@@ -28,6 +28,43 @@ local function succeeded(status: any): boolean
    return status == 0 or status == true
 end
 
+-- posix_spawnp is safe for concurrent worker threads; os.execute forks from
+-- each Lua Lanes worker and can crash the LuaJIT coordinator.
+local function run_process(command: string): number
+   local ffi: any = require("ffi")
+   ffi.cdef[[
+      typedef int pid_t;
+      typedef struct posix_spawn_file_actions_t posix_spawn_file_actions_t;
+      typedef struct posix_spawnattr_t posix_spawnattr_t;
+      int posix_spawnp(
+         pid_t *pid,
+         const char *file,
+         const posix_spawn_file_actions_t *file_actions,
+         const posix_spawnattr_t *attrp,
+         char *const argv[],
+         char *const envp[]
+      );
+      pid_t waitpid(pid_t pid, int *status, int options);
+      extern char **environ;
+   ]]
+   local pid: any = ffi.new("pid_t[1]")
+   local argv: any = ffi.new("char *[4]")
+   argv[0] = "/bin/sh"
+   argv[1] = "-c"
+   argv[2] = command
+   argv[3] = nil
+   local spawn_status: number = ffi.C.posix_spawnp(pid, "/bin/sh", nil, nil, argv, ffi.C.environ)
+   if spawn_status ~= 0 then
+      return spawn_status
+   end
+   local child_status: any = ffi.new("int[1]")
+   local waited: number = ffi.C.waitpid(pid[0], child_status, 0)
+   if waited < 0 then
+      return -1
+   end
+   return tonumber(child_status[0])
+end
+
 local function run_checked(label: string, command: string)
    local status: any = os.execute(command)
    if not succeeded(status) then
@@ -113,12 +150,24 @@ run_checked("initialize shared Agda caches", shell_quote(agda_command) .. " --se
 
 local launch: function(command: string): lanes_lib.LaneHandle = lanes.gen("*", function(command: string): lanes_lib.WorkerResult
    local started = os.time()
-   local status = os.execute(command)
+   local status = run_process(command)
    return {
       status = status,
       seconds = os.difftime(os.time(), started)
    }
 end)
+
+-- Exercise both successful and failing child exits through the same lane path
+-- used by Agda workers. waitpid returns zero for exit 0 and a nonzero wait
+-- status for exit 7.
+local success_smoke = launch("exit 0"):join()
+local failure_smoke = launch("exit 7"):join()
+if success_smoke is nil or not succeeded(success_smoke.status)
+   or failure_smoke is nil or succeeded(failure_smoke.status) then
+   io.stderr:write("parallel-agda=fail: posix spawn status smoke test\\n")
+   os.exit(1)
+end
+print("parallel-agda-spawn-smoke=pass")
 
 local tasks: {lanes_lib.LaneHandle} = {}
 for _, job in ipairs(jobs) do
