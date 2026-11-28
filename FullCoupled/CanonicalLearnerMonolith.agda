@@ -434,7 +434,7 @@ not = case⁺ n
 
 
 
-qShift : Int
+qShift : Nat
 qShift = 24
 
 qOne qHalf qQuarter qTwo qFour : Int32
