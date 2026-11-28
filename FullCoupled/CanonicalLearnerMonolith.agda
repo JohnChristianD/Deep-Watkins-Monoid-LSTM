@@ -24,7 +24,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- and a scalar recurrent feature unit. There is no actor or target copy.
 ------------------------------------------------------------------------
 
-open import Haskell.Prelude public hiding (⊥)
+open import Haskell.Prelude public hiding (⊥; _×_; _,_)
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
 open import Agda.Builtin.Equality.Rewrite public
