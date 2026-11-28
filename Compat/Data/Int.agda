@@ -20,27 +20,32 @@ fromIntegral value = value
 {-# COMPILE AGDA2HS fromIntegral #-}
 
 divideNat : Nat → Nat → Nat
-divideNat _ zero = zero
-divideNat numerator (suc denominator) =
-  div-helper zero denominator numerator denominator
+divideNat numerator denominator =
+  if denominator == 0
+  then 0
+  else div-helper 0 (denominator - 1) numerator (denominator - 1)
 {-# COMPILE AGDA2HS divideNat #-}
 
 negativeMagnitude : Nat → Integer
-negativeMagnitude zero = pos zero
-negativeMagnitude (suc magnitude) = negsuc magnitude
+negativeMagnitude magnitude =
+  if magnitude == 0
+  then pos 0
+  else negsuc (magnitude - 1)
 {-# COMPILE AGDA2HS negativeMagnitude #-}
 
 quotientInteger : Integer → Integer → Integer
-quotientInteger (pos numerator) (pos zero) = pos zero
-quotientInteger (pos numerator) (pos (suc denominator)) =
-  pos (divideNat numerator (suc denominator))
+quotientInteger (pos numerator) (pos denominator) =
+  if denominator == 0
+  then pos 0
+  else pos (divideNat numerator denominator)
 quotientInteger (pos numerator) (negsuc denominator) =
-  negativeMagnitude (divideNat numerator (suc denominator))
-quotientInteger (negsuc numerator) (pos zero) = pos zero
-quotientInteger (negsuc numerator) (pos (suc denominator)) =
-  negativeMagnitude (divideNat (suc numerator) (suc denominator))
+  negativeMagnitude (divideNat numerator (denominator + 1))
+quotientInteger (negsuc numerator) (pos denominator) =
+  if denominator == 0
+  then pos 0
+  else negativeMagnitude (divideNat (numerator + 1) denominator)
 quotientInteger (negsuc numerator) (negsuc denominator) =
-  pos (divideNat (suc numerator) (suc denominator))
+  pos (divideNat (numerator + 1) (denominator + 1))
 {-# COMPILE AGDA2HS quotientInteger #-}
 
 quot : Int64 → Int64 → Int64
