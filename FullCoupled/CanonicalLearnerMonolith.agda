@@ -2,6 +2,7 @@
 --with-K
 --erased-funext
 --erased-quotients
+--erasure
 --rewriting
 --confluence-check
 --no-eta-equality
@@ -69,12 +70,12 @@ postulate
 {-# REWRITE decodeZeroDepthRule decodeIntegerTypeRule decodeArrowTypeRule decodeProductTypeRule decodeVariableTypeRule decodeForallTypeRule #-}
 
 -- 2. Forster (2022) Quantum-Extended Parametric Enumerability Axiom + Erased (@0) Markov Principle
-@0 data EmptyType : Set where
+data @0 EmptyType : Set where
 
 @0 Negation : Set -> Set
 Negation proposition = proposition -> EmptyType
 
-@0 record ExistsWitness (domain : Set) (@0 predicate : domain -> Set) : Set where
+record @0 ExistsWitness (domain : Set) (@0 predicate : domain -> Set) : Set where
   constructor MakeExistsWitness
   field
     @0 witnessValue : domain

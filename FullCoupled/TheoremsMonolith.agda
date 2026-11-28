@@ -2008,25 +2008,16 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
         (advanceCovarianceShift (timeAction V) shift)))
   covarianceOrbitFromShift-head V t u m n e b shift = refl
 
-  covarianceOrbitFromShift-cons :
-    {P : RationalPositivity} {samples times modes : Nat} →
-    (V : FiniteSEDVacuumAxioms P samples times modes) →
-    (t u : Nat) (m n : Nat) (e b : Bool) →
-    (shift : Nat) →
-    covarianceOrbitFromShift V t u m n e b shift ≡
-    consConatStream (covarianceAtShift V t u m n e b shift)
-      (♯ (covarianceOrbitFromShift V t u m n e b
-        (advanceCovarianceShift (timeAction V) shift)))
-  covarianceOrbitFromShift-cons V t u m n e b shift = refl
-
   covarianceOrbitPrefix :
     {P : RationalPositivity} {samples times modes : Nat} →
     (V : FiniteSEDVacuumAxioms P samples times modes) →
     Nat → (t u : Nat) → (m n : Nat) → Bool → Bool →
     Nat → Rational
-  covarianceOrbitPrefix V depth t u m n e b shift =
-    foldConatPrefix _+ℚ_ 0ℚ depth
-      (covarianceOrbitFromShift V t u m n e b shift)
+  covarianceOrbitPrefix V zero t u m n e b shift = 0ℚ
+  covarianceOrbitPrefix V (suc depth) t u m n e b shift =
+    covarianceAtShift V t u m n e b shift +ℚ
+    covarianceOrbitPrefix V depth t u m n e b
+      (advanceCovarianceShift (timeAction V) shift)
 
   repeatRationalSum : Nat → Rational → Rational
   repeatRationalSum zero value = 0ℚ
@@ -2048,14 +2039,10 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
   covarianceOrbitPrefix-stationary V zero t u m n e b shift =
     refl
   covarianceOrbitPrefix-stationary V (suc depth) t u m n e b shift =
-    trans
-      (cong
-        (foldConatPrefix _+ℚ_ 0ℚ (suc depth))
-        (covarianceOrbitFromShift-cons V t u m n e b shift))
-      (cong₂ _+ℚ_
-        (covarianceAtShift-stationary V t u m n e b shift)
-        (covarianceOrbitPrefix-stationary V depth t u m n e b
-          (advanceCovarianceShift (timeAction V) shift)))
+    cong₂ _+ℚ_
+      (covarianceAtShift-stationary V t u m n e b shift)
+      (covarianceOrbitPrefix-stationary V depth t u m n e b
+        (advanceCovarianceShift (timeAction V) shift))
 
   infiniteCovarianceHistory :
     {P : RationalPositivity} {samples times modes : Nat} →

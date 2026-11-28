@@ -111,6 +111,14 @@ local function check_agda_learner()
          .. " && grep -Fq 'agda2hsTool system}/bin/agda2hs' flake.nix"
    )
    run_checked(
+      "use Agda 2.9 erased declaration syntax",
+      "grep -Fxq -- '--erasure' " .. shell_quote(source)
+         .. " && grep -Fq 'data @0 EmptyType : Set where' " .. shell_quote(source)
+         .. " && grep -Fq 'record @0 ExistsWitness' " .. shell_quote(source)
+         .. " && ! grep -Fq '@0 data EmptyType' " .. shell_quote(source)
+         .. " && ! grep -Fq '@0 record ExistsWitness' " .. shell_quote(source)
+   )
+   run_checked(
       "preserve replacement as the canonical learner",
       "grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' " .. shell_quote(source)
          .. " && test ! -e SpecSmac3Agda.agda"
@@ -164,6 +172,13 @@ local function check_agda_learner()
          .. " && grep -Fq '    consConatStream (covarianceAtShift V t u m n e b shift)' " .. shell_quote(theorem_source)
          .. " && grep -Fq '(♯ (covarianceOrbitFromShift V t u m n e b' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'advanceCovarianceShift (timeAction V) shift)))' " .. shell_quote(theorem_source)
+   )
+   run_checked(
+      "sum covariance prefixes by their finite observation bound",
+      "grep -Fq 'covarianceOrbitPrefix V zero t u m n e b shift = 0ℚ' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'covarianceOrbitPrefix V (suc depth) t u m n e b shift =' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'covarianceAtShift V t u m n e b shift +ℚ' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'covarianceOrbitPrefix-stationary V (suc depth)' " .. shell_quote(theorem_source)
    )
    run_checked(
       "require safe delayed coinduction with guardedness enabled",
