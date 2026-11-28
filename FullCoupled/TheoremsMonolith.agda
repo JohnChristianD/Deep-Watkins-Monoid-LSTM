@@ -1,15 +1,11 @@
 {-# OPTIONS
---without-K
---erased-funext
---erased-quotients
 --safe
---confluence-check
---no-eta-equality
---no-projection-like
---exact-split
---no-fast-reduce
---auto-inline
+--guardedness
+--lossy-unification
 --syntactic-equality=1
+--no-eta-equality
+--with-K
+--exact-split
 #-}
 
 module TheoremsMonolith where
@@ -261,6 +257,7 @@ open FiniteListComputation public
 -- CONATURALS: CONSTRUCTIVE COINDUCTIVE TIME HORIZONS
 ------------------------------------------------------------------------
 
+open import Agda.Builtin.Coinduction public
 
 data Conat : Set where
   zero∞ : Conat
