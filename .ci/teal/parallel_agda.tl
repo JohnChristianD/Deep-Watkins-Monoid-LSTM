@@ -95,6 +95,8 @@ for _, job in ipairs(jobs) do
    table.insert(
       setup_commands,
       "mkdir -p " .. shell_quote(job.module_dir)
+         .. " && rm -rf " .. shell_quote(job.root .. "/Haskell")
+         .. " && cp -R Haskell " .. shell_quote(job.root)
          .. " && " .. copy_if_changed(".agda-lib", job.root .. "/.agda-lib")
          .. " && " .. copy_if_changed(job.source_path, job.module_path)
    )
