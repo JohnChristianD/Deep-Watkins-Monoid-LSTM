@@ -35,6 +35,14 @@ local function run_process(command: string): number
    return 1
 end
 
+local function run_checked(label: string, command: string)
+   local status = run_process(command)
+   if status ~= 0 then
+      io.stderr:write("parallel-agda=fail: " .. label .. " (status " .. tostring(status) .. ")\\n")
+      os.exit(1)
+   end
+end
+
 local function make_entry(root: string, entry: Entry, agda_command: string, profile_flag: string): Job
    local work_root = root .. "/" .. entry.name
    local parent = string.match(entry.module, "(.+)/[^/]+$")
@@ -106,8 +114,7 @@ run_checked(
    "mkdir -p " .. shell_quote(cache_root) .. " && " .. table.concat(setup_commands, " && ")
 )
 
--- Both lanes share XDG_CACHE_HOME. Initialize the base library and primitive
--- data serially before running isolated checks, avoiding concurrent first-use copies.
+-- Initialize the base library and primitive data serially before running isolated checks.
 run_checked("initialize shared Agda caches", shell_quote(agda_command) .. " --setup")
 
 -- Execute isolated Agda workspaces serially.  This keeps the worker
