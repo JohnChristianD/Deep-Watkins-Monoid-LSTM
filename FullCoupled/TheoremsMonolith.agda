@@ -2048,9 +2048,12 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
       (stochasticCovariance (ensemble V) t u m n e b)
   covarianceOrbitPrefix-stationary V zero t u m n e b shift =
     refl
-  covarianceOrbitPrefix-stationary V (suc depth) t u m n e b shift
-    rewrite covarianceOrbitFromShift-cons V t u m n e b shift =
-      cong₂ _+ℚ_
+  covarianceOrbitPrefix-stationary V (suc depth) t u m n e b shift =
+    trans
+      (cong
+        (foldConatPrefix _+ℚ_ 0ℚ (suc depth))
+        (covarianceOrbitFromShift-cons V t u m n e b shift))
+      (cong₂ _+ℚ_
         (covarianceAtShift-stationary V t u m n e b shift)
         (covarianceOrbitPrefix-stationary V depth t u m n e b
           (advanceCovarianceShift (timeAction V) shift))
