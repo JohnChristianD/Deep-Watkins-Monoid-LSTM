@@ -119,7 +119,13 @@ local function check_agda_learner()
          .. " && ! grep -Fq '@0 record ExistsWitness' " .. shell_quote(source)
    )
    run_checked(
-      "preserve replacement as the canonical learner",
+      "enforce exactly one canonical learner module",
+      "modules=\$(grep -RIl --include='*.agda' '^module .*Learner' . | sort)"
+         .. " && test \"$modules\" = './FullCoupled/CanonicalLearnerMonolith.agda'"
+         .. " && test ! -e SpecSmac3Agda.agda"
+   )
+   run_checked(
+      "preserve canonical source as the only learner",
       "grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' " .. shell_quote(source)
          .. " && test ! -e SpecSmac3Agda.agda"
          .. " && grep -Fq 'data LinearPolarity : Set where' " .. shell_quote(source)
@@ -138,7 +144,7 @@ local function check_agda_learner()
          .. " && grep -Fq 'nethackPathfinderDegreeOfSuccess : Int -> Int -> Int -> Int' " .. shell_quote(source)
    )
    run_checked(
-      "require replacement Agda import surface",
+      "require canonical Agda import surface",
       "grep -Fq 'open import Agda.Builtin.Equality public' " .. shell_quote(source)
          .. " && grep -Fq 'open import Agda.Builtin.Equality.Rewrite public' " .. shell_quote(source)
          .. " && grep -Fq 'open import Agda.Builtin.Erased.Funext public' " .. shell_quote(source)
