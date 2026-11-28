@@ -5,22 +5,15 @@ module Compat.Data.Bits where
 open import Haskell.Prelude
 open import Compat.Data.Int using (quot)
 
-{-# FOREIGN AGDA2HS
-import qualified Data.Bits as Bits
-import Data.Word (Word64)
-import Numeric.Natural (Natural)
-import qualified Haskell.Prim.Int as PrimInt
-import qualified Prelude as P
-
-powerOfTwoHaskell :: Natural -> PrimInt.Int
-powerOfTwoHaskell amount =
-  PrimInt.int64 (Bits.shiftL (1 :: Word64) (P.fromIntegral amount))
-#-}
+open import Haskell.Prim using (eqNat; monusNat)
 
 powerOfTwo : Nat → Int
-powerOfTwo zero = 1
-powerOfTwo (suc amount) = 2 * powerOfTwo amount
-{-# COMPILE AGDA2HS powerOfTwo to powerOfTwoHaskell #-}
+{-# TERMINATING #-}
+powerOfTwo amount =
+  if eqNat amount 0
+  then 1
+  else 2 * powerOfTwo (monusNat amount 1)
+{-# COMPILE AGDA2HS powerOfTwo #-}
 
 shiftL : Int → Nat → Int
 shiftL value amount =
