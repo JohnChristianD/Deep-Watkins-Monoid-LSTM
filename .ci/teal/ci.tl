@@ -121,13 +121,22 @@ local function check_agda_learner()
    )
    run_checked(
       "require fixed-point champion and rules evaluators",
-      "for symbol in 'fixedPointMultiply : Int -> Int -> Int -> Int' 'quantmoidFour : Int -> Int -> Int -> Int' 'MinimaxChampionV73CancelTop1Model' 'initializeMinimaxChampion' 'stepMinimaxChampion' 'pathfinderRemasterMaximumBonus : Int -> Int -> Int' 'nethackPathfinderDegreeOfSuccess : Int -> Int -> Int -> Int'; do grep -Fq \\"$symbol\\" "
-         .. shell_quote(source) .. " || exit 1; done"
+      "grep -Fq 'fixedPointMultiply : Int -> Int -> Int -> Int' " .. shell_quote(source)
+         .. " && grep -Fq 'quantmoidFour : Int -> Int -> Int -> Int' " .. shell_quote(source)
+         .. " && grep -Fq 'MinimaxChampionV73CancelTop1Model' " .. shell_quote(source)
+         .. " && grep -Fq 'initializeMinimaxChampion' " .. shell_quote(source)
+         .. " && grep -Fq 'stepMinimaxChampion' " .. shell_quote(source)
+         .. " && grep -Fq 'pathfinderRemasterMaximumBonus : Int -> Int -> Int' " .. shell_quote(source)
+         .. " && grep -Fq 'nethackPathfinderDegreeOfSuccess : Int -> Int -> Int -> Int' " .. shell_quote(source)
    )
    run_checked(
       "require replacement Agda import surface",
-      "for import in 'open import Agda.Builtin.Equality public' 'open import Agda.Builtin.Equality.Rewrite public' 'open import Agda.Builtin.Erased.Funext public' 'open import Agda.Primitive public' 'open import Haskell.Data.Bits public' 'open import Haskell.Prelude public'; do grep -Fq \\"$import\\" "
-         .. shell_quote(source) .. " || exit 1; done"
+      "grep -Fq 'open import Agda.Builtin.Equality public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Agda.Builtin.Equality.Rewrite public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Agda.Builtin.Erased.Funext public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Agda.Primitive public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Haskell.Data.Bits public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Haskell.Prelude public' " .. shell_quote(source)
    )
    run_checked(
       "require Agda2HS exports for champion computation",
