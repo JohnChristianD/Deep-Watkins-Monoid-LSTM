@@ -529,8 +529,7 @@ module RationalSED (Q : RationalRingInterface) where
   ----------------------------------------------------------------------
 
   record Rational4Vector : Set where
-    no-eta-equality
-    pattern
+    eta-equality
     constructor r4
     field
       ct x y z : Rational
