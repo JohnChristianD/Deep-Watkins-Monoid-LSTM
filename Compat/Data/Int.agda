@@ -19,8 +19,7 @@ fromIntegral : Int32 → Int64
 fromIntegral value = value
 {-# COMPILE AGDA2HS fromIntegral #-}
 
-private
-  divideNat : Nat → Nat → Nat
+divideNat : Nat → Nat → Nat
   divideNat _ zero = zero
   divideNat numerator (suc denominator) =
     div-helper zero denominator numerator denominator
