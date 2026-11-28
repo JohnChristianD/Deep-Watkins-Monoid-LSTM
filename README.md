@@ -7,7 +7,7 @@ This README is the repository's only project documentation.
 The public Agda imports preserve the Prelude, integer, bit-shift, and rewrite APIs. The Prelude bottom type is hidden so the learner can declare its own domain-bottom element:
 
 ```agda
-open import Haskell.Prelude public
+open import Haskell.Prelude public hiding (⊥)
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
 open import Agda.Builtin.Equality.Rewrite public
