@@ -2056,7 +2056,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
       (cong₂ _+ℚ_
         (covarianceAtShift-stationary V t u m n e b shift)
         (covarianceOrbitPrefix-stationary V depth t u m n e b
-          (advanceCovarianceShift (timeAction V) shift))
+          (advanceCovarianceShift (timeAction V) shift)))
 
   infiniteCovarianceHistory :
     {P : RationalPositivity} {samples times modes : Nat} →
