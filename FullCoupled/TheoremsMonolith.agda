@@ -1998,6 +1998,17 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
       (iterateConat (advanceCovarianceShift (timeAction V))
         infinity initialShift)
 
+  covarianceOrbitFromShift-head :
+    {P : RationalPositivity} {samples times modes : Nat} →
+    (V : FiniteSEDVacuumAxioms P samples times modes) →
+    (t u : Nat) (m n : Nat) (e b : Bool) →
+    (shift : Nat) →
+    observeStream (covarianceOrbitFromShift V t u m n e b shift) ≡
+    just (pair (covarianceAtShift V t u m n e b shift)
+      (covarianceOrbitFromShift V t u m n e b
+        (advanceCovarianceShift (timeAction V) shift)))
+  covarianceOrbitFromShift-head V t u m n e b shift = refl
+
   covarianceOrbitFromShift-cons :
     {P : RationalPositivity} {samples times modes : Nat} →
     (V : FiniteSEDVacuumAxioms P samples times modes) →
