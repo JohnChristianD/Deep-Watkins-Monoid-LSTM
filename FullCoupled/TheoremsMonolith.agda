@@ -1998,16 +1998,16 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
       (iterateConat (advanceCovarianceShift (timeAction V))
         infinity initialShift)
 
-  covarianceOrbitFromShift-head :
+  covarianceOrbitFromShift-cons :
     {P : RationalPositivity} {samples times modes : Nat} →
     (V : FiniteSEDVacuumAxioms P samples times modes) →
     (t u : Nat) (m n : Nat) (e b : Bool) →
     (shift : Nat) →
-    observeStream (covarianceOrbitFromShift V t u m n e b shift) ≡
-    just (pair (covarianceAtShift V t u m n e b shift)
-      (covarianceOrbitFromShift V t u m n e b
+    covarianceOrbitFromShift V t u m n e b shift ≡
+    consConatStream (covarianceAtShift V t u m n e b shift)
+      (♯ (covarianceOrbitFromShift V t u m n e b
         (advanceCovarianceShift (timeAction V) shift)))
-  covarianceOrbitFromShift-head V t u m n e b shift = refl
+  covarianceOrbitFromShift-cons V t u m n e b shift = refl
 
   covarianceOrbitPrefix :
     {P : RationalPositivity} {samples times modes : Nat} →
@@ -2038,7 +2038,7 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
   covarianceOrbitPrefix-stationary V zero t u m n e b shift =
     refl
   covarianceOrbitPrefix-stationary V (suc depth) t u m n e b shift
-    rewrite covarianceOrbitFromShift-head V t u m n e b shift =
+    rewrite covarianceOrbitFromShift-cons V t u m n e b shift =
       cong₂ _+ℚ_
         (covarianceAtShift-stationary V t u m n e b shift)
         (covarianceOrbitPrefix-stationary V depth t u m n e b
