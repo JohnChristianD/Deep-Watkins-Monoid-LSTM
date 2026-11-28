@@ -195,7 +195,8 @@ mutual
   unwindHeapSpine (suc fuel) (applicationNode function argument) =
     let reducedFunction = unwindHeapSpine fuel function
     in reduceApplicationHead fuel reducedFunction argument
-  unwindHeapSpine _ leafNode = leafNode
+  unwindHeapSpine zero leafNode = leafNode
+  unwindHeapSpine (suc fuel) leafNode = leafNode
 
   reduceApplicationHead : Nat -> MicroHaskellHeapNode -> MicroHaskellHeapNode -> MicroHaskellHeapNode
   reduceApplicationHead zero (combinatorNode combinatorI) x = x
@@ -218,27 +219,24 @@ mutual
     unwindHeapSpine fuel (applicationNode (applicationNode z x) y)
   reduceApplicationHead zero (applicationNode (combinatorNode combinatorAdd) a) b =
     applicationNode (applicationNode (combinatorNode combinatorAdd) a) b
-  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorAdd) a) b
-    with unwindHeapSpine fuel a | unwindHeapSpine fuel b
-  ... | integerNode leftValue | integerNode rightValue = integerNode (leftValue + rightValue)
-  ... | leftNode | rightNode =
-    applicationNode (applicationNode (combinatorNode combinatorAdd) leftNode) rightNode
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorAdd) a) b =
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of λ where
+      (integerNode leftValue , integerNode rightValue) -> integerNode (leftValue + rightValue)
+      (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorAdd) leftNode) rightNode
   reduceApplicationHead zero (applicationNode (combinatorNode combinatorMultiply) a) b =
     applicationNode (applicationNode (combinatorNode combinatorMultiply) a) b
-  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorMultiply) a) b
-    with unwindHeapSpine fuel a | unwindHeapSpine fuel b
-  ... | integerNode leftValue | integerNode rightValue = integerNode (leftValue * rightValue)
-  ... | leftNode | rightNode =
-    applicationNode (applicationNode (combinatorNode combinatorMultiply) leftNode) rightNode
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorMultiply) a) b =
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of λ where
+      (integerNode leftValue , integerNode rightValue) -> integerNode (leftValue * rightValue)
+      (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorMultiply) leftNode) rightNode
   reduceApplicationHead zero (applicationNode (combinatorNode combinatorLessThan) a) b =
     applicationNode (applicationNode (combinatorNode combinatorLessThan) a) b
-  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorLessThan) a) b
-    with unwindHeapSpine fuel a | unwindHeapSpine fuel b
-  ... | integerNode leftValue | integerNode rightValue =
-    combinatorNode (if leftValue < rightValue then combinatorK else combinatorA)
-  ... | leftNode | rightNode =
-    applicationNode (applicationNode (combinatorNode combinatorLessThan) leftNode) rightNode
-  reduceApplicationHead _ functionNode argumentNode = applicationNode functionNode argumentNode
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorLessThan) a) b =
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of λ where
+      (integerNode leftValue , integerNode rightValue) -> combinatorNode (if leftValue < rightValue then combinatorK else combinatorA)
+      (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorLessThan) leftNode) rightNode
+  reduceApplicationHead zero functionNode argumentNode = applicationNode functionNode argumentNode
+  reduceApplicationHead (suc fuel) functionNode argumentNode = applicationNode functionNode argumentNode
 
 -- 5. V73 #01 Champion HyperParameters (04_MagStream_DoubleEval_CancelZeroMeanTop1_IQN13, SavReg=0.6011)
 record MinimaxChampionHyperParameters : Set where
