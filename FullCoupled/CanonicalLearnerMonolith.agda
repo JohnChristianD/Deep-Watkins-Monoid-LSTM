@@ -121,7 +121,7 @@ postulate
 
 infixr 0  _→ᶜ_
 infixr 0  _→ˢ_
-infixr 1   _+_
+infixr 1   _+ᵈ_
 infixr 2   _×_
 infixr 4   _,_
 infix  8   _^_
