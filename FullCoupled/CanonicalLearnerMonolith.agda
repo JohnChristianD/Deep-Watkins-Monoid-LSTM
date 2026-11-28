@@ -149,7 +149,7 @@ data 𝕋 : ± -> Set where
     𝟙 : 𝕋 +
     𝟘 : 𝕋 +
     topLinear : 𝕋 -
-    ⊥ : 𝕋 -
+    bottomLinear : 𝕋 -
     ↑_ : 𝕋 + -> 𝕋 -
     ↓_ : 𝕋 - -> 𝕋 +
     ¬⁺_ : 𝕋 + -> 𝕋 +
@@ -181,7 +181,7 @@ data Pattern : ∀ p -> 𝕋 p -> Set where
     π₁ : ∀ {A B} -> Pattern - A -> Pattern - (A & B)
     π₂ : ∀ {A B} -> Pattern - B -> Pattern - (A & B)
     *̂ : Pattern + 𝟙
-    *̬ : Pattern - ⊥
+    *̬ : Pattern - bottomLinear
     ⇑ : ∀ { A : 𝕋 + } -> Pattern - (↑ A)
     ⇓ : ∀ { A : 𝕋 - } -> Pattern + (↓ A)
     ●⁺ : ∀ { A : 𝕋 + } -> Pattern + (¬⁺ A)
