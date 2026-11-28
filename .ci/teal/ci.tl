@@ -169,7 +169,9 @@ local function check_agda_learner()
       "test -s Compat/Data/Int.agda && test -s Compat/Data/Bits.agda"
          .. " && grep -Fq 'quotNegativeNumeratorTruncatesTowardZero' Compat/Data/Int.agda"
          .. " && grep -Fq 'shiftNegativeRoundsDown' Compat/Data/Bits.agda"
-         .. " && grep -Fq 'with amount < 64 | value < 0' Compat/Data/Bits.agda"
+          .. " && grep -Fq 'shiftR value amount =' Compat/Data/Bits.agda"
+          .. " && grep -Fq 'if amount < 64' Compat/Data/Bits.agda"
+          .. " && grep -Fq 'if value < 0' Compat/Data/Bits.agda"
          .. " && grep -Fq 'record Rational4Vector : Set where' " .. shell_quote(theorem_source)
          .. " && grep -Fq '    eta-equality' " .. shell_quote(theorem_source)
    )
