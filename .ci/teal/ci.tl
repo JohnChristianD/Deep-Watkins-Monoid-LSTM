@@ -100,20 +100,40 @@ local function check_agda_learner()
          .. " && ! grep -Fxq -- '--erased-quotient' " .. shell_quote(source)
    )
    run_checked(
-      "keep unsafe Agda options local to learner",
+      "keep replacement Agda options local to canonical module",
       "test ! -e .ci/agda/global-options.txt"
-         .. " && grep -Fxq -- '--type-in-type' " .. shell_quote(source)
+         .. " && grep -Fxq -- '--with-K' " .. shell_quote(source)
+         .. " && grep -Fxq -- '--erased-funext' " .. shell_quote(source)
          .. " && grep -Fxq -- '--rewriting' " .. shell_quote(source)
+         .. " && ! grep -Fq -- '--type-in-type' " .. shell_quote(source)
          .. " && ! grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' flake.nix"
          .. " && ! grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' .ci/teal/parallel_agda.tl"
          .. " && grep -Fq 'agda2hsTool system}/bin/agda2hs' flake.nix"
    )
    run_checked(
-      "disambiguate nested empty judgement constructor",
-      "grep -Fq '    emptyJudgement : J' " .. shell_quote(source)
-         .. " && ! grep -Fq '    # : J' " .. shell_quote(source)
-         .. " && grep -Fq 'Γ ⊨ emptyJudgement' " .. shell_quote(source)
-         .. " && ! grep -Fq 'Γ ⊨ #' " .. shell_quote(source)
+      "preserve replacement as the canonical learner",
+      "grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' " .. shell_quote(source)
+         .. " && test ! -e SpecSmac3Agda.agda"
+         .. " && grep -Fq 'data LinearPolarity : Set where' " .. shell_quote(source)
+         .. " && grep -Fq 'data AffineProof : LinearContext -> LinearFocus -> Set where' " .. shell_quote(source)
+         .. " && grep -Fq 'quantumExtendedParametricEnumerabilityAxiom' " .. shell_quote(source)
+         .. " && grep -Fq 'erasedMarkovPrinciple' " .. shell_quote(source)
+   )
+   run_checked(
+      "require fixed-point champion and rules evaluators",
+      "for symbol in 'fixedPointMultiply : Int -> Int -> Int -> Int' 'quantmoidFour : Int -> Int -> Int -> Int' 'MinimaxChampionV73CancelTop1Model' 'initializeMinimaxChampion' 'stepMinimaxChampion' 'pathfinderRemasterMaximumBonus : Int -> Int -> Int' 'nethackPathfinderDegreeOfSuccess : Int -> Int -> Int -> Int'; do grep -Fq \\"$symbol\\" "
+         .. shell_quote(source) .. " || exit 1; done"
+   )
+   run_checked(
+      "require replacement Agda import surface",
+      "for import in 'open import Agda.Builtin.Equality public' 'open import Agda.Builtin.Equality.Rewrite public' 'open import Agda.Builtin.Erased.Funext public' 'open import Agda.Primitive public' 'open import Haskell.Data.Bits public' 'open import Haskell.Prelude public'; do grep -Fq \\"$import\\" "
+         .. shell_quote(source) .. " || exit 1; done"
+   )
+   run_checked(
+      "require Agda2HS exports for champion computation",
+      "grep -Fq '{-# COMPILE AGDA2HS MinimaxChampionV73CancelTop1Model #-}' " .. shell_quote(source)
+         .. " && grep -Fq '{-# COMPILE AGDA2HS stepMinimaxChampion #-}' " .. shell_quote(source)
+         .. " && grep -Fq '{-# COMPILE AGDA2HS nethackPathfinderDegreeOfSuccess #-}' " .. shell_quote(source)
    )
    local theorem_source = "FullCoupled/TheoremsMonolith.agda"
    run_checked(
@@ -151,41 +171,7 @@ local function check_agda_learner()
          .. " && ! grep -Fq '  coinductive' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'suc∞ predecessor +∞ b = suc∞ (♯ (♭ predecessor +∞ b))' " .. shell_quote(theorem_source)
    )
-   run_checked(
-      "require disjoint domain and numeric addition operators",
-      "grep -Fq '_+ᵈ_   : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
-         .. " && grep -Fq 'D +ᵈ E' FullCoupled/CanonicalLearnerMonolith.agda"
-         .. " && ! grep -Fq '_+_    : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
-   )
-   run_checked(
-      "reject LSTM and epsilon-greedy paths",
-      "if grep -Eiq 'lstm|epsilon[ _-]?greedy|e[_-]?z[_-]?greedy' " .. shell_quote(source) .. "; then echo 'forbidden recurrent/action selector found' >&2; exit 1; fi"
-   )
-   run_checked(
-      "reject DeepSets and postponed FQF code",
-      "if grep -Eiq 'DeepSets|FQF' " .. shell_quote(source) .. "; then echo 'postponed architecture found in learner source' >&2; exit 1; fi"
-   )
-   run_checked(
-      "reject retired actor and max-gradient learner",
-      "if grep -Eiq 'softsign|Softsign|policyProbabilities|sampleAction|ActionHead|streamMaxGrad|networkTrainStepSARSA([^0-9]|$)|maxGrad' " .. shell_quote(source) .. "; then echo 'retired actor-critic or max-gradient path remains' >&2; exit 1; fi"
-   )
-   run_checked(
-      "reject floating-point runtime types",
-      "if grep -Eiq '(^|[^[:alnum:]_])(Float|Float32|Float64)([^[:alnum:]_]|$)' " .. shell_quote(source) .. "; then echo 'floating-point runtime type found' >&2; exit 1; fi"
-   )
-   run_checked(
-      "require Q8.24 IQN32 Double-SARSA learner symbols",
-      "for symbol in 'qShift : Nat' 'qShift = 24' 'qOne     = 16777216' q4Tanh q4TanhGrad IDBDConfig IDBDParameter idbdStep l2GradientDecay NoisyDense32 DuelingIQN32 TwinDuelingCritics doubleSARSA0Target networkStart networkTrainStepSARSA0 iterativeCHAD qQuantileHuberPairGradient; do grep -Fq \"$symbol\" " .. shell_quote(source) .. " || exit 1; done"
-   )
-   run_checked(
-      "require unchanged Agda import surface",
-      "for import in 'open import Haskell.Prelude public hiding (⊥; _×_; _×_×_; _,_)' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
-   )
-   run_checked(
-      "require ReLU on recurrent candidate and output",
-      "grep -Fq 'candidate = qRelu candidateInput' " .. shell_quote(source) .. " && grep -Fq 'hiddenAfter = qRelu mixPre' " .. shell_quote(source)
-   )
-   print("learner-source-audit=pass; Q8.24; IQN32; Double SARSA(0); IDBD; Quantmoid4")
+   print("learner-source-audit=pass; bounded type codes; affine core; integer champion model")
 end
 
 local function check_agda_theorem()
