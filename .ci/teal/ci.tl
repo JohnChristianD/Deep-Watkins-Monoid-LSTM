@@ -140,6 +140,7 @@ local function check_agda_learner()
    run_checked(
       "require disjoint domain and numeric addition operators",
       "grep -Fq '_+ᵈ_   : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
+         .. " && grep -Fq 'D +ᵈ E' FullCoupled/CanonicalLearnerMonolith.agda"
          .. " && ! grep -Fq '_+_    : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
    )
    run_checked(

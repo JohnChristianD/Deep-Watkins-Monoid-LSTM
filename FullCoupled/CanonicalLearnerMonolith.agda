@@ -80,9 +80,9 @@ postulate
 
 postulate
   _+ᵈ_   : Domain → Domain → Domain                 -- separated sum
-  inj₁   : ⟪ D →ᶜ D + E ⟫                            -- injection
-  inj₂   : ⟪ E →ᶜ D + E ⟫                            -- injection
-  [_,_]  : ⟪ (D →ᶜ F) →ᶜ (E →ᶜ F) →ᶜ (D + E →ᶜ F) ⟫  -- case analysis
+  inj₁   : ⟪ D →ᶜ D +ᵈ E ⟫                            -- injection
+  inj₂   : ⟪ E →ᶜ D +ᵈ E ⟫                            -- injection
+  [_,_]  : ⟪ (D →ᶜ F) →ᶜ (E →ᶜ F) →ᶜ (D +ᵈ E →ᶜ F) ⟫  -- case analysis
 
 ------------------------------------------------------------------------
 -- Product domains
