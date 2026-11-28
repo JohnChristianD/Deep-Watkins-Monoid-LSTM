@@ -1,6 +1,7 @@
 module Haskell.Data.Int where
 
 open import Haskell.Prelude
+open import Haskell.Prim using (div-helper; pos; negsuc)
 
 -- Both names use the base library's signed 64-bit carrier. The learner
 -- enforces the narrower Q8.24 range whenever it narrows through qFrom64.
