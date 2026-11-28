@@ -1,6 +1,3 @@
-local lanes_lib = require("lanes")
-local lanes = lanes_lib.configure()
-
 local record Entry
    name: string
    module: string
@@ -28,49 +25,14 @@ local function succeeded(status: any): boolean
    return status == 0 or status == true
 end
 
--- posix_spawnp is safe for concurrent worker threads; os.execute forks from
--- each Lua Lanes worker and can crash the LuaJIT coordinator.
+-- Run subprocesses on the coordinator thread.  LuaJIT's os.execute
+-- forks safely here; worker-thread fork/FFI interactions are avoided.
 local function run_process(command: string): number
-   local ffi: any = require("ffi")
-   ffi.cdef[[
-      typedef int pid_t;
-      typedef struct posix_spawn_file_actions_t posix_spawn_file_actions_t;
-      typedef struct posix_spawnattr_t posix_spawnattr_t;
-      int posix_spawnp(
-         pid_t *pid,
-         const char *file,
-         const posix_spawn_file_actions_t *file_actions,
-         const posix_spawnattr_t *attrp,
-         char *const argv[],
-         char *const envp[]
-      );
-      pid_t waitpid(pid_t pid, int *status, int options);
-      extern char **environ;
-   ]]
-   local pid: any = ffi.new("pid_t[1]")
-   local argv: any = ffi.new("char *[4]")
-   argv[0] = "/bin/sh"
-   argv[1] = "-c"
-   argv[2] = command
-   argv[3] = nil
-   local spawn_status: number = ffi.C.posix_spawnp(pid, "/bin/sh", nil, nil, argv, ffi.C.environ)
-   if spawn_status ~= 0 then
-      return spawn_status
-   end
-   local child_status: any = ffi.new("int[1]")
-   local waited: number = ffi.C.waitpid(pid[0], child_status, 0)
-   if waited < 0 then
-      return -1
-   end
-   return tonumber(child_status[0])
-end
-
-local function run_checked(label: string, command: string)
    local status: any = os.execute(command)
-   if not succeeded(status) then
-      io.stderr:write("parallel-agda=fail: " .. label .. " (status " .. tostring(status) .. ")\n")
-      os.exit(1)
+   if succeeded(status) then
+      return 0
    end
+   return 1
 end
 
 local function make_entry(root: string, entry: Entry, agda_command: string, profile_flag: string): Job
@@ -157,50 +119,17 @@ local launch: function(command: string): lanes_lib.LaneHandle = lanes.gen("*", f
    }
 end)
 
--- Exercise both successful and failing child exits through the same lane path
--- used by Agda workers. waitpid returns zero for exit 0 and a nonzero wait
--- status for exit 7.
-local success_smoke, success_error = launch("exit 0"):join()
-local failure_smoke, failure_error = launch("exit 7"):join()
-if success_smoke is nil or failure_smoke is nil then
-   io.stderr:write(
-      "parallel-agda=fail: posix spawn lane error; success="
-         .. tostring(success_error) .. "; failure=" .. tostring(failure_error) .. "\\n"
-   )
-   os.exit(1)
-end
-if not succeeded(success_smoke.status) or succeeded(failure_smoke.status) then
-   io.stderr:write(
-      "parallel-agda=fail: posix spawn status; success="
-         .. tostring(success_smoke.status) .. "; failure=" .. tostring(failure_smoke.status) .. "\\n"
-   )
-   os.exit(1)
-end
-print("parallel-agda-spawn-smoke=pass")
-
-local tasks: {lanes_lib.LaneHandle} = {}
-for _, job in ipairs(jobs) do
-   table.insert(tasks, launch(job.command))
-end
-
+-- Execute isolated Agda workspaces serially.  This keeps the worker
+-- interface cache isolated while avoiding unsafe fork calls from Lua lanes.
 local failed = false
-for index, task in ipairs(tasks) do
-   local job = jobs[index]
-   local outcome, lane_error = task:join()
-   if outcome is nil then
-      io.stderr:write(
-         "parallel-agda=failed: " .. job.name .. " (lane error "
-            .. tostring(lane_error) .. ")\n"
-      )
+for _, job in ipairs(jobs) do
+   local started = os.time()
+   local status = run_process(job.command)
+   print("parallel-agda-worker=" .. job.name .. " seconds=" .. tostring(os.difftime(os.time(), started)))
+   os.execute("cat " .. shell_quote(job.log))
+   if status ~= 0 then
+      io.stderr:write("parallel-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\\n")
       failed = true
-   else
-      local status: any = outcome.status
-      print("parallel-agda-worker=" .. job.name .. " seconds=" .. tostring(outcome.seconds))
-      os.execute("cat " .. shell_quote(job.log))
-      if not succeeded(status) then
-         io.stderr:write("parallel-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\n")
-         failed = true
-      end
    end
 end
 
