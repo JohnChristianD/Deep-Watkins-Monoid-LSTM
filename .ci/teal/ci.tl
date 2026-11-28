@@ -110,9 +110,19 @@ local function check_agda_learner()
    )
    local theorem_source = "FullCoupled/TheoremsMonolith.agda"
    run_checked(
-      "require safe delayed coinduction",
+      "require local integer and bit compatibility modules",
+      "test -s Haskell/Data/Int.agda && test -s Haskell/Data/Bits.agda"
+         .. " && grep -Fq 'quotNegativeNumeratorTruncatesTowardZero' Haskell/Data/Int.agda"
+         .. " && grep -Fq 'shiftNegativeRoundsDown' Haskell/Data/Bits.agda"
+   )
+   run_checked(
+      "require isolated workers to stage local compatibility modules",
+      "grep -Fq 'cp -R Haskell ' .ci/teal/parallel_agda.tl"
+   )
+   run_checked(
+      "require safe delayed coinduction with guardedness enabled",
       "grep -Fq -- '--safe' " .. shell_quote(theorem_source)
-         .. " && ! grep -Fq -- '--guardedness' " .. shell_quote(theorem_source)
+         .. " && grep -Fq -- '--guardedness' " .. shell_quote(theorem_source)
          .. " && ! grep -Fq -- '--type-in-type' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'open import Agda.Builtin.Coinduction public' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'data Conat : Set where' " .. shell_quote(theorem_source)
@@ -142,7 +152,7 @@ local function check_agda_learner()
    )
    run_checked(
       "require Q8.24 IQN32 Double-SARSA learner symbols",
-      "for symbol in 'qShift = 24' 'qOne     = 16777216' q4Tanh q4TanhGrad IDBDConfig IDBDParameter idbdStep l2GradientDecay NoisyDense32 DuelingIQN32 TwinDuelingCritics doubleSARSA0Target networkStart networkTrainStepSARSA0 iterativeCHAD qQuantileHuberPairGradient; do grep -Fq \"$symbol\" " .. shell_quote(source) .. " || exit 1; done"
+      "for symbol in 'qShift : Nat' 'qShift = 24' 'qOne     = 16777216' q4Tanh q4TanhGrad IDBDConfig IDBDParameter idbdStep l2GradientDecay NoisyDense32 DuelingIQN32 TwinDuelingCritics doubleSARSA0Target networkStart networkTrainStepSARSA0 iterativeCHAD qQuantileHuberPairGradient; do grep -Fq \"$symbol\" " .. shell_quote(source) .. " || exit 1; done"
    )
    run_checked(
       "require unchanged Agda import surface",
