@@ -171,7 +171,7 @@ data T : Set where
 
 data J : Set where
     :- : T -> J
-    # : J
+    emptyJudgement : J
 
 data Pattern : ∀ p -> 𝕋 p -> Set where
     ⟨_,_⟩ : ∀ {A B} -> Pattern + A -> Pattern + B -> Pattern + (A ⊗ B)
@@ -366,10 +366,10 @@ data _⊨_ where
         -> Γ ⊨⊨ Δ
         -> Γ ⊨ :- (◃ A)
     case⁺ : ∀ {Σ} {Γ : Context Σ} { A : 𝕋 + }
-        -> ((Δ : Pattern + A) -> (Γ ∷ ■ Δ) ⊨ #)
+        -> ((Δ : Pattern + A) -> (Γ ∷ ■ Δ) ⊨ emptyJudgement)
         -> Γ ⊨ :- (◃ A)
     case⁻ : ∀ {Σ} {Γ : Context Σ} { A : 𝕋 - }
-        -> ((Δ : Pattern - A) -> (Γ ∷ ■ Δ) ⊨ #)
+        -> ((Δ : Pattern - A) -> (Γ ∷ ■ Δ) ⊨ emptyJudgement)
         -> Γ ⊨ :- (▹ A)
     var : ∀ {Σ} {Γ : Context Σ} { A : T }
         -> Γ ∋ A -> Γ ⊨ :- A
@@ -377,12 +377,12 @@ data _⊨_ where
         -> {σ : Γ ⊎⊎ Γ* ≅≅ Γ'}
         -> (v⁺ : Γ* ∋ ◃ A)
         -> Γ ⊨ :- (▹ A)
-        -> Γ' ⊨ #
+        -> Γ' ⊨ emptyJudgement
     _#⁻_ : ∀ {Σ} {Γ Γ* Γ' : Context Σ} { A : 𝕋 - }
         -> {σ : Γ ⊎⊎ Γ* ≅≅ Γ'}
         -> (v⁻ : Γ* ∋ ▹ A)
         -> Γ ⊨ :- (◃ A)
-        -> Γ' ⊨ #
+        -> Γ' ⊨ emptyJudgement
 
 infix 6 _#⁺_ _#⁻_
 infix 7 _⟦_⟧⁺ _⟦_⟧⁻
@@ -424,7 +424,7 @@ ff = 𝕗 ⟦ ⊨⊨ϖ₁ ⊨⊨*̂ ⟧⁺
 not : ε ∷ (■ (●⁺ {A = 𝔹})) ⊨ :- (◃ 𝔹)
 not = case⁺ n
     where
-        n : (b : Pattern + 𝔹) → ε ∷ ■●⁺ ∷ ■ b ⊨ #
+        n : (b : Pattern + 𝔹) → ε ∷ ■●⁺ ∷ ■ b ⊨ emptyJudgement
         n (ϖ₁ *̂) = _#⁺_
             {σ = ⊎⊎∷ (⊎⊎∷ ⊎⊎ε ⊎●⁺R) (⊎ϖ₁ ⊎*̂)}
             (ŝ ẑ ~●⁺) (𝕥 ⟦ ⊨⊨ϖ₂ ⊨⊨*̂ ⟧⁺)
