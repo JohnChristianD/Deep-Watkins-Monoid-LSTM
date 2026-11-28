@@ -1,7 +1,5 @@
 -- Minimal typed LuaJIT FFI surface used by the POSIX worker launcher.
-local record CData
-   [integer]: any
-end
+local type CData = {any}
 
 local record FFI_C
    posix_spawnp: function(
