@@ -3,6 +3,7 @@
 --erased-funext
 --erased-quotients
 --safe
+--guardedness
 --confluence-check
 --no-eta-equality
 --no-projection-like
@@ -22,6 +23,7 @@ open import Agda.Builtin.List public
 open import Agda.Builtin.Maybe public
 open import Agda.Builtin.Sigma public
 open import Agda.Builtin.Equality public
+open import Agda.Builtin.Coinduction public
 -- No standard library dependency: define the empty type locally.
 data ⊥ : Set where
 
