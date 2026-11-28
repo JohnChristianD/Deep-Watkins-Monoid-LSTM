@@ -4,7 +4,7 @@ Agda-first Q8.24 recurrent, distributional reinforcement-learning prototype.
 The canonical learner is `FullCoupled/CanonicalLearnerMonolith.agda`.
 This README is the repository's only project documentation.
 
-The canonical Agda import surface is intentionally preserved:
+The public Agda imports preserve the Prelude, integer, bit-shift, and rewrite APIs. The Prelude bottom type is hidden so the learner can declare its own domain-bottom element:
 
 ```agda
 open import Haskell.Prelude public
