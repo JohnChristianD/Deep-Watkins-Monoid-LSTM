@@ -326,7 +326,7 @@ quantmoidFourGeLUDerivative unitOne bitShift x =
   in quantmoidFour unitOne bitShift shifted + fixedPointMultiply bitShift x (derivZ + shiftR derivZ 1)
 
 tsallisTwoFivePercentInitialization :
-  MinimaxChampionHyperParameters -> Int -> Int -> Int -> Int -> Int -> Int
+  MinimaxChampionHyperParameters -> Int -> Int -> Int -> Int -> Nat -> Int
 tsallisTwoFivePercentInitialization parameters gateUniform randomUniform knotInverseQ30 rightShift scaleShift =
   let unitOne   = fixedPointUnitOne parameters
       symmetric = (randomUniform + randomUniform) - unitOne
