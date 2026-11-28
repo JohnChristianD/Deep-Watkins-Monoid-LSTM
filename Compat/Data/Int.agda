@@ -2,6 +2,7 @@
 
 module Compat.Data.Int where
 
+open import Agda.Builtin.Nat using (_∸_)
 open import Haskell.Prelude
 open import Haskell.Prim using (div-helper; pos; negsuc)
 
@@ -23,14 +24,14 @@ divideNat : Nat → Nat → Nat
 divideNat numerator denominator =
   if denominator == 0
   then 0
-  else div-helper 0 (denominator - 1) numerator (denominator - 1)
+  else div-helper 0 (denominator ∸ 1) numerator (denominator ∸ 1)
 {-# COMPILE AGDA2HS divideNat #-}
 
 negativeMagnitude : Nat → Integer
 negativeMagnitude magnitude =
   if magnitude == 0
   then pos 0
-  else negsuc (magnitude - 1)
+  else negsuc (magnitude ∸ 1)
 {-# COMPILE AGDA2HS negativeMagnitude #-}
 
 quotientInteger : Integer → Integer → Integer
