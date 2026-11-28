@@ -1,5 +1,6 @@
 {-# OPTIONS
 --safe
+--guardedness
 --lossy-unification
 --syntactic-equality=1
 --no-eta-equality
