@@ -114,6 +114,9 @@ local function check_agda_learner()
       "test -s Haskell/Data/Int.agda && test -s Haskell/Data/Bits.agda"
          .. " && grep -Fq 'quotNegativeNumeratorTruncatesTowardZero' Haskell/Data/Int.agda"
          .. " && grep -Fq 'shiftNegativeRoundsDown' Haskell/Data/Bits.agda"
+         .. " && grep -Fq 'with amount < 64 | value < 0' Haskell/Data/Bits.agda"
+         .. " && grep -Fq 'record Rational4Vector : Set where' " .. shell_quote(theorem_source)
+         .. " && grep -Fq '    pattern' " .. shell_quote(theorem_source)
    )
    run_checked(
       "require isolated workers to stage local compatibility modules",
