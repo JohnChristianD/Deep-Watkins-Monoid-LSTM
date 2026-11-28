@@ -21,6 +21,7 @@ open import Agda.Builtin.Erased.Funext public
 open import Agda.Primitive public
 open import Compat.Data.Bits public
 open import Haskell.Prim using (pos; negsuc)
+open import Haskell.Prim.Int using (isNegativeInt; unsafeIntToNat)
 open import Haskell.Prelude public
 
 -- 1. Non-Univalent Definitional UIP (--with-K) + Depth-Bounded Set0 System-F Codes (Zero Impredicative Loops)
@@ -300,9 +301,9 @@ clampShiftAmount62 : Int -> Int
 clampShiftAmount62 s = if 62 < s then 62 else if s < (0 - 62) then (0 - 62) else s
 
 nonNegativeIntToNat : Int -> Nat
-nonNegativeIntToNat value with intToInteger value
-... | pos amount = amount
-... | negsuc _ = zero
+nonNegativeIntToNat value =
+  if isNegativeInt value then 0 else unsafeIntToNat value
+{-# COMPILE AGDA2HS nonNegativeIntToNat #-}
 
 barrettReciprocalShift : Int -> Int -> Int -> Int
 barrettReciprocalShift numerator knotInverseQ30 rightShiftAmount =
