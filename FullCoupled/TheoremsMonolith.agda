@@ -1,10 +1,15 @@
 {-# OPTIONS
---safe
---lossy-unification
---syntactic-equality=1
---no-eta-equality
 --with-K
+--erased-funext
+--erased-quotients
+--safe
+--confluence-check
+--no-eta-equality
+--no-projection-like
 --exact-split
+--no-fast-reduce
+--auto-inline
+--syntactic-equality=1
 #-}
 
 module TheoremsMonolith where
