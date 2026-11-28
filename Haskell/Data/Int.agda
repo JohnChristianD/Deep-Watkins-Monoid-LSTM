@@ -1,3 +1,5 @@
+{-# OPTIONS --erasure #-}
+
 module Haskell.Data.Int where
 
 open import Haskell.Prelude
