@@ -1,5 +1,7 @@
 # SpecSmac3Agda
 
+`FullCoupled/CanonicalLearnerMonolith.agda` is the repository's sole learner module and the only canonical learner implementation. There is no parallel, legacy, or secondary learner source. The theorem module and the local integer/bit modules support verification and compilation; none defines another learner.
+
 Agda 2.9 source for a bounded type-code calculus, an affine combinator core, a micro-Haskell heap-spine evaluator, and a fixed-point V73 champion model.
 
 The canonical module is `FullCoupled/CanonicalLearnerMonolith.agda`. Its module name matches that path. The replacement's declarations and computational definitions are kept intact; the module header is the only source-level adjustment made for the canonical path.
