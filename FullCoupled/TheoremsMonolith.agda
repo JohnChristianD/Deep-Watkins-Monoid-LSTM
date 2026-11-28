@@ -32,6 +32,8 @@ infixr 9 _∘ᶠ_
 ¬ P = P → ⊥
 
 record _×_ (A B : Set) : Set where
+  no-eta-equality
+  pattern
   constructor pair
   field
     fst : A
