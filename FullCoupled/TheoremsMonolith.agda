@@ -1,5 +1,5 @@
 {-# OPTIONS
---with-K
+--without-K
 --erased-funext
 --erased-quotients
 --safe
