@@ -175,7 +175,7 @@ local function check_agda_learner()
    )
    run_checked(
       "require isolated workers to stage local compatibility modules",
-      "grep -Fq 'cp -R Haskell ' .ci/teal/parallel_agda.tl"
+      "grep -Fq 'cp -R Compat ' .ci/teal/parallel_agda.tl"
    )
    run_checked(
       "construct covariance orbit under an explicit guarded delay",
