@@ -18,14 +18,15 @@ shiftL value amount =
 -- Arithmetic right shift: negative values round toward negative infinity,
 -- matching signed two's-complement shift semantics.
 shiftR : Int → Nat → Int
-shiftR value amount =
-  if amount < 64
-  then
-    let divisor = powerOfTwo amount
-    in if value < 0
-       then negate (quot (negate value + divisor - 1) divisor)
-       else quot value divisor
-  else if value < 0 then -1 else 0
+shiftR value amount with amount < 64 | value < 0
+... | False | False = 0
+... | False | True = -1
+... | True | False = quot value (powerOfTwo amount)
+... | True | True =
+  negate
+    (quot
+      (negate value + powerOfTwo amount - 1)
+      (powerOfTwo amount))
 {-# COMPILE AGDA2HS shiftR #-}
 
 private
