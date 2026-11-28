@@ -1,13 +1,24 @@
--- Typed subset of LuaJIT FFI used by the POSIX worker launcher.
+-- Minimal typed LuaJIT FFI surface used by the POSIX worker launcher.
+local record CData
+   [integer]: any
+end
+
 local record FFI_C
-   posix_spawnp: function(pid: {any}, file: string, file_actions: any, attrp: any, argv: {any}, envp: any): number
-   waitpid: function(pid: any, status: {any}, options: number): number
-   environ: any
+   posix_spawnp: function(
+      pid: CData,
+      file: string,
+      file_actions: CData | nil,
+      attrp: CData | nil,
+      argv: CData,
+      envp: CData
+   ): number
+   waitpid: function(pid: any, status: CData, options: number): number
+   environ: CData
 end
 
 local record FFI
    cdef: function(declarations: string)
-   new: function(ctype: string): {any}
+   new: function(ctype: string): CData
    C: FFI_C
 end
 
