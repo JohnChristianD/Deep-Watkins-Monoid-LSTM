@@ -1,6 +1,5 @@
 {-# OPTIONS
 --safe
---guardedness
 --lossy-unification
 --syntactic-equality=1
 --no-eta-equality
@@ -257,7 +256,6 @@ open FiniteListComputation public
 -- CONATURALS: CONSTRUCTIVE COINDUCTIVE TIME HORIZONS
 ------------------------------------------------------------------------
 
-open import Agda.Builtin.Coinduction public
 
 data Conat : Set where
   zero∞ : Conat
