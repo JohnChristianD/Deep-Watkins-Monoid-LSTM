@@ -20,28 +20,28 @@ fromIntegral value = value
 {-# COMPILE AGDA2HS fromIntegral #-}
 
 divideNat : Nat → Nat → Nat
-  divideNat _ zero = zero
-  divideNat numerator (suc denominator) =
-    div-helper zero denominator numerator denominator
-  {-# COMPILE AGDA2HS divideNat #-}
+divideNat _ zero = zero
+divideNat numerator (suc denominator) =
+  div-helper zero denominator numerator denominator
+{-# COMPILE AGDA2HS divideNat #-}
 
-  negativeMagnitude : Nat → Integer
-  negativeMagnitude zero = pos zero
-  negativeMagnitude (suc magnitude) = negsuc magnitude
-  {-# COMPILE AGDA2HS negativeMagnitude #-}
+negativeMagnitude : Nat → Integer
+negativeMagnitude zero = pos zero
+negativeMagnitude (suc magnitude) = negsuc magnitude
+{-# COMPILE AGDA2HS negativeMagnitude #-}
 
-  quotientInteger : Integer → Integer → Integer
-  quotientInteger (pos numerator) (pos zero) = pos zero
-  quotientInteger (pos numerator) (pos (suc denominator)) =
-    pos (divideNat numerator (suc denominator))
-  quotientInteger (pos numerator) (negsuc denominator) =
-    negativeMagnitude (divideNat numerator (suc denominator))
-  quotientInteger (negsuc numerator) (pos zero) = pos zero
-  quotientInteger (negsuc numerator) (pos (suc denominator)) =
-    negativeMagnitude (divideNat (suc numerator) (suc denominator))
-  quotientInteger (negsuc numerator) (negsuc denominator) =
-    pos (divideNat (suc numerator) (suc denominator))
-  {-# COMPILE AGDA2HS quotientInteger #-}
+quotientInteger : Integer → Integer → Integer
+quotientInteger (pos numerator) (pos zero) = pos zero
+quotientInteger (pos numerator) (pos (suc denominator)) =
+  pos (divideNat numerator (suc denominator))
+quotientInteger (pos numerator) (negsuc denominator) =
+  negativeMagnitude (divideNat numerator (suc denominator))
+quotientInteger (negsuc numerator) (pos zero) = pos zero
+quotientInteger (negsuc numerator) (pos (suc denominator)) =
+  negativeMagnitude (divideNat (suc numerator) (suc denominator))
+quotientInteger (negsuc numerator) (negsuc denominator) =
+  pos (divideNat (suc numerator) (suc denominator))
+{-# COMPILE AGDA2HS quotientInteger #-}
 
 quot : Int64 → Int64 → Int64
 quot numerator denominator =
