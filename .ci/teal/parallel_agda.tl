@@ -107,17 +107,8 @@ run_checked(
 )
 
 -- Both lanes share XDG_CACHE_HOME. Initialize the base library and primitive
--- data serially before launching workers, avoiding concurrent first-use copies.
+-- data serially before running isolated checks, avoiding concurrent first-use copies.
 run_checked("initialize shared Agda caches", shell_quote(agda_command) .. " --setup")
-
-local launch: function(command: string): lanes_lib.LaneHandle = lanes.gen("*", function(command: string): lanes_lib.WorkerResult
-   local started = os.time()
-   local status = run_process(command)
-   return {
-      status = status,
-      seconds = os.difftime(os.time(), started)
-   }
-end)
 
 -- Execute isolated Agda workspaces serially.  This keeps the worker
 -- interface cache isolated while avoiding unsafe fork calls from Lua lanes.
