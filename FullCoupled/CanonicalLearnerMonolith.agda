@@ -216,15 +216,21 @@ mutual
     applicationNode (applicationNode z x) y
   reduceApplicationHead (suc fuel) (applicationNode (applicationNode (combinatorNode combinatorP) x) y) z =
     unwindHeapSpine fuel (applicationNode (applicationNode z x) y)
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorAdd) a) b =
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorAdd) a) b =
+    applicationNode (applicationNode (combinatorNode combinatorAdd) a) b
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorAdd) a) b =
     case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \\ where
       (integerNode leftValue , integerNode rightValue) -> integerNode (leftValue + rightValue)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorAdd) leftNode) rightNode
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorMultiply) a) b =
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorMultiply) a) b =
+    applicationNode (applicationNode (combinatorNode combinatorMultiply) a) b
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorMultiply) a) b =
     case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \\ where
       (integerNode leftValue , integerNode rightValue) -> integerNode (leftValue * rightValue)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorMultiply) leftNode) rightNode
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorLessThan) a) b =
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorLessThan) a) b =
+    applicationNode (applicationNode (combinatorNode combinatorLessThan) a) b
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorLessThan) a) b =
     case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \\ where
       (integerNode leftValue , integerNode rightValue) -> combinatorNode (if leftValue < rightValue then combinatorK else combinatorA)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorLessThan) leftNode) rightNode
