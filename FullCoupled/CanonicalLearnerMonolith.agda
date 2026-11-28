@@ -231,7 +231,7 @@ record MinimaxChampionHyperParameters : Set where
   constructor MakeMinimaxChampionHyperParameters
   field
     fixedPointUnitOne               : Int    -- 2^26 = 67108864 (6 integer bits, 26 fractional bits)
-    fixedPointBitShift              : Int    -- 26
+    fixedPointBitShift              : Nat    -- 26-bit fractional shift count
     recurrentHiddenWidth            : Int    -- 24 hidden units
     implicitQuantileCount           : Int    -- 13 non-scalar quantiles on BOTH Value and Advantage
     doubleEvaluationHeadCount       : Int    -- 2 alternating Common Random Number critics
@@ -256,6 +256,11 @@ championHyperParameters =
 
 {-# COMPILE AGDA2HS championHyperParameters #-}
 
+private
+  -- Regression guard: the bit-shift field is a natural count, not a signed value.
+  fixedPointBitShiftIsNatural : Nat
+  fixedPointBitShiftIsNatural = fixedPointBitShift championHyperParameters
+
 -- 6. Bug-Fixed MicroHS-Verified Arithmetic, StandardCNN2D, & FoundryVTT PF2e Remaster Rules
 absoluteValue : Int -> Int
 absoluteValue x = if x < 0 then 0 - x else x
@@ -276,7 +281,7 @@ monusSubtraction a b = if b < a then a - b else 0
 rectifiedLinearUnit : Int -> Int
 rectifiedLinearUnit x = monusSubtraction x 0
 
-fixedPointMultiply : Int -> Int -> Int -> Int
+fixedPointMultiply : Nat -> Int -> Int -> Int
 fixedPointMultiply bitShift a b = shiftR (a * b) bitShift
 
 clampShiftAmount62 : Int -> Int
@@ -290,7 +295,7 @@ barrettReciprocalShift numerator knotInverseQ30 rightShiftAmount =
        then shiftR product clamped
        else shiftL product (0 - clamped)
 
-quantmoidFour : Int -> Int -> Int -> Int
+quantmoidFour : Int -> Nat -> Int -> Int
 quantmoidFour unitOne bitShift x =
   let absX    = absoluteValue x
       clamped = if absX < unitOne then absX else unitOne
@@ -301,11 +306,11 @@ quantmoidFour unitOne bitShift x =
 quantmoidFourDerivative : Int -> Int -> Int
 quantmoidFourDerivative unitOne x = monusSubtraction unitOne (absoluteValue x)
 
-quantmoidFourGaussianErrorLinearUnit : Int -> Int -> Int -> Int
+quantmoidFourGaussianErrorLinearUnit : Int -> Nat -> Int -> Int
 quantmoidFourGaussianErrorLinearUnit unitOne bitShift x =
   fixedPointMultiply bitShift x (quantmoidFour unitOne bitShift (x + shiftR x 1))
 
-quantmoidFourGeLUDerivative : Int -> Int -> Int -> Int
+quantmoidFourGeLUDerivative : Int -> Nat -> Int -> Int
 quantmoidFourGeLUDerivative unitOne bitShift x =
   let shifted = x + shiftR x 1
       derivZ  = quantmoidFourDerivative unitOne shifted
@@ -320,7 +325,7 @@ tsallisTwoFivePercentInitialization parameters gateUniform randomUniform knotInv
        then shiftR (barrettReciprocalShift symmetric knotInverseQ30 rightShift) scaleShift
        else 0
 
-cleanrlStandardNatureConvolution2DStep : Int -> Int -> Int -> Int -> Int -> Int
+cleanrlStandardNatureConvolution2DStep : Int -> Nat -> Int -> Int -> Int -> Int
 cleanrlStandardNatureConvolution2DStep unitOne bitShift kernelLayer0 kernelLayer1 spatialObservation =
   let convStage0 = quantmoidFourGaussianErrorLinearUnit unitOne bitShift (fixedPointMultiply bitShift kernelLayer0 spatialObservation)
   in quantmoidFourGaussianErrorLinearUnit unitOne bitShift (fixedPointMultiply bitShift kernelLayer1 convStage0)
