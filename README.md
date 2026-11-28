@@ -7,7 +7,7 @@ This README is the repository's only project documentation.
 The public Agda imports retain the Prelude, integer, bit-shift, and rewrite APIs while hiding Prelude's bottom and tuple/product names so the learner's domain operators remain distinct:
 
 ```agda
-open import Haskell.Prelude public hiding (⊥; _×_; _,_)
+open import Haskell.Prelude public hiding (⊥; _×_; _×_×_; _,_)
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
 open import Agda.Builtin.Equality.Rewrite public

@@ -165,7 +165,7 @@ local function check_agda_learner()
    )
    run_checked(
       "require unchanged Agda import surface",
-      "for import in 'open import Haskell.Prelude public hiding (⊥; _×_; _,_)' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
+      "for import in 'open import Haskell.Prelude public hiding (⊥; _×_; _×_×_; _,_)' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
    )
    run_checked(
       "require ReLU on recurrent candidate and output",
