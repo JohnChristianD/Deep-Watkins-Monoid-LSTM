@@ -1,3 +1,5 @@
+{-# OPTIONS --erasure #-}
+
 module Haskell.Data.Bits where
 
 open import Haskell.Prelude
