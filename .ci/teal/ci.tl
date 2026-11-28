@@ -135,8 +135,9 @@ local function check_agda_learner()
    )
    run_checked(
       "require fixed-point champion and rules evaluators",
-      "grep -Fq 'fixedPointMultiply : Int -> Int -> Int -> Int' " .. shell_quote(source)
-         .. " && grep -Fq 'quantmoidFour : Int -> Int -> Int -> Int' " .. shell_quote(source)
+      "grep -Fq 'fixedPointBitShift              : Nat' " .. shell_quote(source)
+         .. " && grep -Fq 'fixedPointMultiply : Nat -> Int -> Int -> Int' " .. shell_quote(source)
+         .. " && grep -Fq 'quantmoidFour : Int -> Nat -> Int -> Int' " .. shell_quote(source)
          .. " && grep -Fq 'MinimaxChampionV73CancelTop1Model' " .. shell_quote(source)
          .. " && grep -Fq 'initializeMinimaxChampion' " .. shell_quote(source)
          .. " && grep -Fq 'stepMinimaxChampion' " .. shell_quote(source)
