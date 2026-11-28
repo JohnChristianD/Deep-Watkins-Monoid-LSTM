@@ -41,9 +41,8 @@ local function check_teal_sources()
       ".ci/teal/russ_audit.tl"
    }
    run_checked(
-      "require LuaFun and Lua Lanes Teal declarations",
+      "require LuaFun Teal declaration",
       "test -s " .. shell_quote(".ci/teal/fun.d.tl")
-         .. " && test -s " .. shell_quote(".ci/teal/lanes.d.tl")
    )
    for _, path in ipairs(files) do
       run_checked(
@@ -100,27 +99,99 @@ local function check_agda_learner()
          .. " && ! grep -Fxq -- '--erased-quotient' " .. shell_quote(source)
    )
    run_checked(
-      "keep unsafe Agda options local to learner",
+      "keep replacement Agda options local to canonical module",
       "test ! -e .ci/agda/global-options.txt"
-         .. " && grep -Fxq -- '--type-in-type' " .. shell_quote(source)
+         .. " && grep -Fxq -- '--with-K' " .. shell_quote(source)
+         .. " && grep -Fxq -- '--erased-funext' " .. shell_quote(source)
          .. " && grep -Fxq -- '--rewriting' " .. shell_quote(source)
+         .. " && ! grep -Fq -- '--type-in-type' " .. shell_quote(source)
          .. " && ! grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' flake.nix"
          .. " && ! grep -Fq 'AGDA_NO_GLOBAL_OPTIONS' .ci/teal/parallel_agda.tl"
          .. " && grep -Fq 'agda2hsTool system}/bin/agda2hs' flake.nix"
    )
+   run_checked(
+      "use Agda 2.9 erased declaration syntax",
+      "grep -Fxq -- '--erasure' " .. shell_quote(source)
+         .. " && grep -Fq 'data @0 EmptyType : Set where' " .. shell_quote(source)
+         .. " && grep -Fq 'record @0 ExistsWitness' " .. shell_quote(source)
+         .. " && ! grep -Fq '@0 data EmptyType' " .. shell_quote(source)
+         .. " && ! grep -Fq '@0 record ExistsWitness' " .. shell_quote(source)
+   )
+   run_checked(
+      "enforce exactly one canonical learner module",
+      "modules=$(grep -RIl --include='*.agda' '^module .*Learner' . | sort)"
+         .. " && test \"$modules\" = './FullCoupled/CanonicalLearnerMonolith.agda'"
+         .. " && test ! -e SpecSmac3Agda.agda"
+   )
+   run_checked(
+      "preserve canonical source as the only learner",
+      "grep -Fq 'module FullCoupled.CanonicalLearnerMonolith where' " .. shell_quote(source)
+         .. " && test ! -e SpecSmac3Agda.agda"
+         .. " && grep -Fq 'data LinearPolarity : Set where' " .. shell_quote(source)
+         .. " && grep -Fq 'data AffineProof : LinearContext -> LinearFocus -> Set where' " .. shell_quote(source)
+         .. " && grep -Fq 'quantumExtendedParametricEnumerabilityAxiom' " .. shell_quote(source)
+         .. " && grep -Fq 'erasedMarkovPrinciple' " .. shell_quote(source)
+   )
+   run_checked(
+      "require fixed-point champion and rules evaluators",
+      "grep -Fq 'fixedPointBitShift              : Nat' " .. shell_quote(source)
+         .. " && grep -Fq 'fixedPointMultiply : Nat -> Int -> Int -> Int' " .. shell_quote(source)
+         .. " && grep -Fq 'quantmoidFour : Int -> Nat -> Int -> Int' " .. shell_quote(source)
+         .. " && grep -Fq 'MinimaxChampionV73CancelTop1Model' " .. shell_quote(source)
+         .. " && grep -Fq 'initializeMinimaxChampion' " .. shell_quote(source)
+         .. " && grep -Fq 'stepMinimaxChampion' " .. shell_quote(source)
+         .. " && grep -Fq 'pathfinderRemasterMaximumBonus : Int -> Int -> Int' " .. shell_quote(source)
+         .. " && grep -Fq 'nethackPathfinderDegreeOfSuccess : Int -> Int -> Int -> Int' " .. shell_quote(source)
+   )
+   run_checked(
+      "require canonical Agda import surface",
+      "grep -Fq 'open import Agda.Builtin.Equality public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Agda.Builtin.Equality.Rewrite public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Agda.Builtin.Erased.Funext public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Agda.Primitive public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Compat.Data.Bits public' " .. shell_quote(source)
+         .. " && grep -Fq 'open import Haskell.Prelude public' " .. shell_quote(source)
+   )
+   run_checked(
+      "use signed shifts for champion parity",
+      "grep -Fq 'updateHeadOne              = shiftR stepParity 1 * 2 == stepParity' " .. shell_quote(source)
+         .. " && ! grep -Fq 'rem stepParity 2' " .. shell_quote(source)
+   )
+   run_checked(
+      "require Agda2HS exports for champion computation",
+      "grep -Fq '{-# COMPILE AGDA2HS MinimaxChampionV73CancelTop1Model #-}' " .. shell_quote(source)
+         .. " && grep -Fq '{-# COMPILE AGDA2HS stepMinimaxChampion #-}' " .. shell_quote(source)
+         .. " && grep -Fq '{-# COMPILE AGDA2HS nethackPathfinderDegreeOfSuccess #-}' " .. shell_quote(source)
+   )
    local theorem_source = "FullCoupled/TheoremsMonolith.agda"
    run_checked(
       "require local integer and bit compatibility modules",
-      "test -s Haskell/Data/Int.agda && test -s Haskell/Data/Bits.agda"
-         .. " && grep -Fq 'quotNegativeNumeratorTruncatesTowardZero' Haskell/Data/Int.agda"
-         .. " && grep -Fq 'shiftNegativeRoundsDown' Haskell/Data/Bits.agda"
-         .. " && grep -Fq 'with amount < 64 | value < 0' Haskell/Data/Bits.agda"
+      "test -s Compat/Data/Int.agda && test -s Compat/Data/Bits.agda"
+         .. " && grep -Fq 'quotNegativeNumeratorTruncatesTowardZero' Compat/Data/Int.agda"
+         .. " && grep -Fq 'shiftNegativeRoundsDown' Compat/Data/Bits.agda"
+          .. " && grep -Fq 'shiftR value amount =' Compat/Data/Bits.agda"
+          .. " && grep -Fq 'if amount < 64' Compat/Data/Bits.agda"
+          .. " && grep -Fq 'if value < 0' Compat/Data/Bits.agda"
          .. " && grep -Fq 'record Rational4Vector : Set where' " .. shell_quote(theorem_source)
          .. " && grep -Fq '    eta-equality' " .. shell_quote(theorem_source)
    )
    run_checked(
       "require isolated workers to stage local compatibility modules",
-      "grep -Fq 'cp -R Haskell ' .ci/teal/parallel_agda.tl"
+      "grep -Fq 'cp -R Compat ' .ci/teal/parallel_agda.tl"
+   )
+   run_checked(
+      "construct covariance orbit under an explicit guarded delay",
+      "grep -Fq '  covarianceOrbitFromShift V t u m n e b shift =' " .. shell_quote(theorem_source)
+         .. " && grep -Fq '    consConatStream (covarianceAtShift V t u m n e b shift)' " .. shell_quote(theorem_source)
+         .. " && grep -Fq '(♯ (covarianceOrbitFromShift V t u m n e b' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'advanceCovarianceShift (timeAction V) shift)))' " .. shell_quote(theorem_source)
+   )
+   run_checked(
+      "sum covariance prefixes by their finite observation bound",
+      "grep -Fq 'covarianceOrbitPrefix V zero t u m n e b shift = 0ℚ' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'covarianceOrbitPrefix V (suc depth) t u m n e b shift =' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'covarianceAtShift V t u m n e b shift +ℚ' " .. shell_quote(theorem_source)
+         .. " && grep -Fq 'covarianceOrbitPrefix-stationary V (suc depth)' " .. shell_quote(theorem_source)
    )
    run_checked(
       "require safe delayed coinduction with guardedness enabled",
@@ -137,46 +208,12 @@ local function check_agda_learner()
          .. " && ! grep -Fq '  coinductive' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'suc∞ predecessor +∞ b = suc∞ (♯ (♭ predecessor +∞ b))' " .. shell_quote(theorem_source)
    )
-   run_checked(
-      "require disjoint domain and numeric addition operators",
-      "grep -Fq '_+ᵈ_   : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
-         .. " && grep -Fq 'D +ᵈ E' FullCoupled/CanonicalLearnerMonolith.agda"
-         .. " && ! grep -Fq '_+_    : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
-   )
-   run_checked(
-      "reject LSTM and epsilon-greedy paths",
-      "if grep -Eiq 'lstm|epsilon[ _-]?greedy|e[_-]?z[_-]?greedy' " .. shell_quote(source) .. "; then echo 'forbidden recurrent/action selector found' >&2; exit 1; fi"
-   )
-   run_checked(
-      "reject DeepSets and postponed FQF code",
-      "if grep -Eiq 'DeepSets|FQF' " .. shell_quote(source) .. "; then echo 'postponed architecture found in learner source' >&2; exit 1; fi"
-   )
-   run_checked(
-      "reject retired actor and max-gradient learner",
-      "if grep -Eiq 'softsign|Softsign|policyProbabilities|sampleAction|ActionHead|streamMaxGrad|networkTrainStepSARSA([^0-9]|$)|maxGrad' " .. shell_quote(source) .. "; then echo 'retired actor-critic or max-gradient path remains' >&2; exit 1; fi"
-   )
-   run_checked(
-      "reject floating-point runtime types",
-      "if grep -Eiq '(^|[^[:alnum:]_])(Float|Float32|Float64)([^[:alnum:]_]|$)' " .. shell_quote(source) .. "; then echo 'floating-point runtime type found' >&2; exit 1; fi"
-   )
-   run_checked(
-      "require Q8.24 IQN32 Double-SARSA learner symbols",
-      "for symbol in 'qShift : Nat' 'qShift = 24' 'qOne     = 16777216' q4Tanh q4TanhGrad IDBDConfig IDBDParameter idbdStep l2GradientDecay NoisyDense32 DuelingIQN32 TwinDuelingCritics doubleSARSA0Target networkStart networkTrainStepSARSA0 iterativeCHAD qQuantileHuberPairGradient; do grep -Fq \"$symbol\" " .. shell_quote(source) .. " || exit 1; done"
-   )
-   run_checked(
-      "require unchanged Agda import surface",
-      "for import in 'open import Haskell.Prelude public hiding (⊥; _×_; _×_×_; _,_)' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
-   )
-   run_checked(
-      "require ReLU on recurrent candidate and output",
-      "grep -Fq 'candidate = qRelu candidateInput' " .. shell_quote(source) .. " && grep -Fq 'hiddenAfter = qRelu mixPre' " .. shell_quote(source)
-   )
-   print("learner-source-audit=pass; Q8.24; IQN32; Double SARSA(0); IDBD; Quantmoid4")
+   print("learner-source-audit=pass; bounded type codes; affine core; integer champion model")
 end
 
 local function check_agda_theorem()
    run_checked(
-      "parallel Agda checks in a clean LuaJIT process",
+      "isolated Agda checks in a clean LuaJIT process",
       "luajit " .. shell_quote(compile_teal(".ci/teal/parallel_agda.tl"))
    )
    run_checked("create Agda2HS output directory", "mkdir -p build/agda2hs")

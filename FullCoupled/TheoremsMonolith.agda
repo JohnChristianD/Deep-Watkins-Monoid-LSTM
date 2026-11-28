@@ -3,6 +3,7 @@
 --erased-funext
 --erased-quotients
 --safe
+--guardedness
 --confluence-check
 --no-eta-equality
 --no-projection-like
@@ -22,6 +23,7 @@ open import Agda.Builtin.List public
 open import Agda.Builtin.Maybe public
 open import Agda.Builtin.Sigma public
 open import Agda.Builtin.Equality public
+open import Agda.Builtin.Coinduction public
 -- No standard library dependency: define the empty type locally.
 data ⊥ : Set where
 
@@ -1990,11 +1992,10 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
     (V : FiniteSEDVacuumAxioms P samples times modes) →
     (t u : Nat) (m n : Nat) (e b : Bool) →
     Nat → ConatStream Rational
-  covarianceOrbitFromShift V t u m n e b initialShift =
-    mapConatStream
-      (covarianceAtShift V t u m n e b)
-      (iterateConat (advanceCovarianceShift (timeAction V))
-        infinity initialShift)
+  covarianceOrbitFromShift V t u m n e b shift =
+    consConatStream (covarianceAtShift V t u m n e b shift)
+      (♯ (covarianceOrbitFromShift V t u m n e b
+        (advanceCovarianceShift (timeAction V) shift)))
 
   covarianceOrbitFromShift-head :
     {P : RationalPositivity} {samples times modes : Nat} →
@@ -2012,9 +2013,11 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
     (V : FiniteSEDVacuumAxioms P samples times modes) →
     Nat → (t u : Nat) → (m n : Nat) → Bool → Bool →
     Nat → Rational
-  covarianceOrbitPrefix V depth t u m n e b shift =
-    foldConatPrefix _+ℚ_ 0ℚ depth
-      (covarianceOrbitFromShift V t u m n e b shift)
+  covarianceOrbitPrefix V zero t u m n e b shift = 0ℚ
+  covarianceOrbitPrefix V (suc depth) t u m n e b shift =
+    covarianceAtShift V t u m n e b shift +ℚ
+    covarianceOrbitPrefix V depth t u m n e b
+      (advanceCovarianceShift (timeAction V) shift)
 
   repeatRationalSum : Nat → Rational → Rational
   repeatRationalSum zero value = 0ℚ
@@ -2035,12 +2038,11 @@ module RSEDPhysicalFoundations (Q : RationalRingInterface) where
       (stochasticCovariance (ensemble V) t u m n e b)
   covarianceOrbitPrefix-stationary V zero t u m n e b shift =
     refl
-  covarianceOrbitPrefix-stationary V (suc depth) t u m n e b shift
-    rewrite covarianceOrbitFromShift-head V t u m n e b shift =
-      cong₂ _+ℚ_
-        (covarianceAtShift-stationary V t u m n e b shift)
-        (covarianceOrbitPrefix-stationary V depth t u m n e b
-          (advanceCovarianceShift (timeAction V) shift))
+  covarianceOrbitPrefix-stationary V (suc depth) t u m n e b shift =
+    cong₂ _+ℚ_
+      (covarianceAtShift-stationary V t u m n e b shift)
+      (covarianceOrbitPrefix-stationary V depth t u m n e b
+        (advanceCovarianceShift (timeAction V) shift))
 
   infiniteCovarianceHistory :
     {P : RationalPositivity} {samples times modes : Nat} →

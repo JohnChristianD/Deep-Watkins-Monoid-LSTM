@@ -1,6 +1,3 @@
-local lanes_lib = require("lanes")
-local lanes = lanes_lib.configure()
-
 local record Entry
    name: string
    module: string
@@ -28,10 +25,20 @@ local function succeeded(status: any): boolean
    return status == 0 or status == true
 end
 
-local function run_checked(label: string, command: string)
+-- Run subprocesses on the coordinator thread.  LuaJIT's os.execute
+-- forks safely here; worker-thread fork/FFI interactions are avoided.
+local function run_process(command: string): number
    local status: any = os.execute(command)
-   if not succeeded(status) then
-      io.stderr:write("parallel-agda=fail: " .. label .. " (status " .. tostring(status) .. ")\n")
+   if succeeded(status) then
+      return 0
+   end
+   return 1
+end
+
+local function run_checked(label: string, command: string)
+   local status = run_process(command)
+   if status ~= 0 then
+      io.stderr:write("isolated-agda=fail: " .. label .. " (status " .. tostring(status) .. ")\\n")
       os.exit(1)
    end
 end
@@ -95,8 +102,8 @@ for _, job in ipairs(jobs) do
    table.insert(
       setup_commands,
       "mkdir -p " .. shell_quote(job.module_dir)
-         .. " && rm -rf " .. shell_quote(job.root .. "/Haskell")
-         .. " && cp -R Haskell " .. shell_quote(job.root)
+         .. " && rm -rf " .. shell_quote(job.root .. "/Compat")
+         .. " && cp -R Compat " .. shell_quote(job.root)
          .. " && " .. copy_if_changed(".agda-lib", job.root .. "/.agda-lib")
          .. " && " .. copy_if_changed(job.source_path, job.module_path)
    )
@@ -107,46 +114,24 @@ run_checked(
    "mkdir -p " .. shell_quote(cache_root) .. " && " .. table.concat(setup_commands, " && ")
 )
 
--- Both lanes share XDG_CACHE_HOME. Initialize the base library and primitive
--- data serially before launching workers, avoiding concurrent first-use copies.
+-- Initialize the base library and primitive data serially before running isolated checks.
 run_checked("initialize shared Agda caches", shell_quote(agda_command) .. " --setup")
 
-local launch: function(command: string): lanes_lib.LaneHandle = lanes.gen("*", function(command: string): lanes_lib.WorkerResult
-   local started = os.time()
-   local status = os.execute(command)
-   return {
-      status = status,
-      seconds = os.difftime(os.time(), started)
-   }
-end)
-
-local tasks: {lanes_lib.LaneHandle} = {}
-for _, job in ipairs(jobs) do
-   table.insert(tasks, launch(job.command))
-end
-
+-- Execute isolated Agda workspaces serially.  This keeps the worker
+-- interface cache isolated while avoiding unsafe fork calls from Lua lanes.
 local failed = false
-for index, task in ipairs(tasks) do
-   local job = jobs[index]
-   local outcome, lane_error = task:join()
-   if outcome is nil then
-      io.stderr:write(
-         "parallel-agda=failed: " .. job.name .. " (lane error "
-            .. tostring(lane_error) .. ")\n"
-      )
+for _, job in ipairs(jobs) do
+   local started = os.time()
+   local status = run_process(job.command)
+   print("isolated-agda-worker=" .. job.name .. " seconds=" .. tostring(os.difftime(os.time(), started)))
+   os.execute("cat " .. shell_quote(job.log))
+   if status ~= 0 then
+      io.stderr:write("isolated-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\\n")
       failed = true
-   else
-      local status: any = outcome.status
-      print("parallel-agda-worker=" .. job.name .. " seconds=" .. tostring(outcome.seconds))
-      os.execute("cat " .. shell_quote(job.log))
-      if not succeeded(status) then
-         io.stderr:write("parallel-agda=failed: " .. job.name .. " (status " .. tostring(status) .. ")\n")
-         failed = true
-      end
    end
 end
 
 if failed then
    os.exit(1)
 end
-print("parallel-agda=pass; workers=" .. #jobs .. "; isolated-worker-interface-cache=true")
+print("isolated-agda=pass; workers=" .. #jobs .. "; isolated-worker-interface-cache=true")

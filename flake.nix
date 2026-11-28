@@ -115,7 +115,7 @@
         in
         pkgs.luajit.withPackages (_: [ luafunPkg ]);
 
-      # Install pinned Teal and Lua Lanes into a project-local tree; LuaFun is pinned by Nix.
+      # Install pinned Teal into a project-local tree; LuaFun is pinned by Nix.
       luaRocksShellHook = pkgs: ''
         export AGDA_COMMAND="agda2hs-agda"
         export NIX_BUILD_CORES=1
@@ -125,15 +125,6 @@
         export LUA_PATH="$LUAROCKS_TREE/share/lua/5.1/?.lua;$LUAROCKS_TREE/share/lua/5.1/?/init.lua;;"
         export LUA_CPATH="$LUAROCKS_TREE/lib/lua/5.1/?.so;;"
         mkdir -p "$LUAROCKS_TREE"
-        if ! luarocks --tree "$LUAROCKS_TREE" show lanes >/dev/null 2>&1; then
-          ${if pkgs.stdenv.isLinux then ''
-            export PTHREAD_DIR="${pkgs.glibc.dev}"
-            export PTHREAD_LIBDIR="${pkgs.glibc}/lib"
-            luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.2-0 PTHREAD_DIR="$PTHREAD_DIR" PTHREAD_LIBDIR="$PTHREAD_LIBDIR"
-          '' else ''
-            luarocks --tree "$LUAROCKS_TREE" install lanes 3.17.2-0
-          ''}
-        fi
         if ! luarocks --tree "$LUAROCKS_TREE" show tl >/dev/null 2>&1; then
           luarocks --tree "$LUAROCKS_TREE" install tl 0.24.8-1
         fi

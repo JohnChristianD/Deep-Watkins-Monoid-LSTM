@@ -2,6 +2,7 @@
 --with-K
 --erased-funext
 --erased-quotients
+--erasure
 --rewriting
 --confluence-check
 --no-eta-equality
@@ -12,13 +13,15 @@
 --syntactic-equality=1
 #-}
 
-module SpecSmac3Agda where
+module FullCoupled.CanonicalLearnerMonolith where
 
 open import Agda.Builtin.Equality public
 open import Agda.Builtin.Equality.Rewrite public
 open import Agda.Builtin.Erased.Funext public
 open import Agda.Primitive public
-open import Haskell.Data.Bits public
+open import Compat.Data.Bits public
+open import Haskell.Prim using (pos; negsuc)
+open import Haskell.Prim.Int using (isNegativeInt; unsafeIntToNat)
 open import Haskell.Prelude public
 
 -- 1. Non-Univalent Definitional UIP (--with-K) + Depth-Bounded Set0 System-F Codes (Zero Impredicative Loops)
@@ -69,12 +72,12 @@ postulate
 {-# REWRITE decodeZeroDepthRule decodeIntegerTypeRule decodeArrowTypeRule decodeProductTypeRule decodeVariableTypeRule decodeForallTypeRule #-}
 
 -- 2. Forster (2022) Quantum-Extended Parametric Enumerability Axiom + Erased (@0) Markov Principle
-@0 data EmptyType : Set where
+data @0 EmptyType : Set where
 
 @0 Negation : Set -> Set
 Negation proposition = proposition -> EmptyType
 
-@0 record ExistsWitness (domain : Set) (@0 predicate : domain -> Set) : Set where
+record @0 ExistsWitness (domain : Set) (@0 predicate : domain -> Set) : Set where
   constructor MakeExistsWitness
   field
     @0 witnessValue : domain
@@ -186,64 +189,75 @@ data MicroHaskellHeapNode : Set where
   indirectionNode : MicroHaskellHeapNode -> MicroHaskellHeapNode
 
 mutual
-  unwindHeapSpine : Int -> MicroHaskellHeapNode -> MicroHaskellHeapNode
-  unwindHeapSpine fuel (indirectionNode target) =
-    if fuel <= 0 then indirectionNode target else unwindHeapSpine (fuel - 1) target
-  unwindHeapSpine fuel (applicationNode function argument) =
-    if fuel <= 0 then applicationNode function argument
-    else let reducedFunction = unwindHeapSpine (fuel - 1) function
-         in reduceApplicationHead (fuel - 1) reducedFunction argument
-  unwindHeapSpine _ leafNode = leafNode
+  unwindHeapSpine : Nat -> MicroHaskellHeapNode -> MicroHaskellHeapNode
+  unwindHeapSpine zero (indirectionNode target) = indirectionNode target
+  unwindHeapSpine (suc fuel) (indirectionNode target) = unwindHeapSpine fuel target
+  unwindHeapSpine zero (applicationNode function argument) = applicationNode function argument
+  unwindHeapSpine (suc fuel) (applicationNode function argument) =
+    let reducedFunction = unwindHeapSpine fuel function
+    in reduceApplicationHead fuel reducedFunction argument
+  unwindHeapSpine zero leafNode = leafNode
+  unwindHeapSpine (suc fuel) leafNode = leafNode
 
-  reduceApplicationHead : Int -> MicroHaskellHeapNode -> MicroHaskellHeapNode -> MicroHaskellHeapNode
-  reduceApplicationHead fuel (combinatorNode combinatorI) x =
-    if fuel <= 0 then x else unwindHeapSpine (fuel - 1) x
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorK) x) _ =
-    if fuel <= 0 then x else unwindHeapSpine (fuel - 1) x
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorA) _) y =
-    if fuel <= 0 then y else unwindHeapSpine (fuel - 1) y
-  reduceApplicationHead fuel (applicationNode (applicationNode (combinatorNode combinatorB) f) g) x =
-    if fuel <= 0 then applicationNode f (applicationNode g x)
-    else unwindHeapSpine (fuel - 1) (applicationNode f (applicationNode g x))
-  reduceApplicationHead fuel (applicationNode (applicationNode (combinatorNode combinatorC) f) x) y =
-    if fuel <= 0 then applicationNode (applicationNode f y) x
-    else unwindHeapSpine (fuel - 1) (applicationNode (applicationNode f y) x)
-  reduceApplicationHead fuel (applicationNode (applicationNode (combinatorNode combinatorP) x) y) z =
-    if fuel <= 0 then applicationNode (applicationNode z x) y
-    else unwindHeapSpine (fuel - 1) (applicationNode (applicationNode z x) y)
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorAdd) a) b =
-    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \ where
+  reduceApplicationHead : Nat -> MicroHaskellHeapNode -> MicroHaskellHeapNode -> MicroHaskellHeapNode
+  reduceApplicationHead zero (combinatorNode combinatorI) x = x
+  reduceApplicationHead (suc fuel) (combinatorNode combinatorI) x = unwindHeapSpine fuel x
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorK) x) _ = x
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorK) x) _ = unwindHeapSpine fuel x
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorA) _) y = y
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorA) _) y = unwindHeapSpine fuel y
+  reduceApplicationHead zero (applicationNode (applicationNode (combinatorNode combinatorB) f) g) x =
+    applicationNode f (applicationNode g x)
+  reduceApplicationHead (suc fuel) (applicationNode (applicationNode (combinatorNode combinatorB) f) g) x =
+    unwindHeapSpine fuel (applicationNode f (applicationNode g x))
+  reduceApplicationHead zero (applicationNode (applicationNode (combinatorNode combinatorC) f) x) y =
+    applicationNode (applicationNode f y) x
+  reduceApplicationHead (suc fuel) (applicationNode (applicationNode (combinatorNode combinatorC) f) x) y =
+    unwindHeapSpine fuel (applicationNode (applicationNode f y) x)
+  reduceApplicationHead zero (applicationNode (applicationNode (combinatorNode combinatorP) x) y) z =
+    applicationNode (applicationNode z x) y
+  reduceApplicationHead (suc fuel) (applicationNode (applicationNode (combinatorNode combinatorP) x) y) z =
+    unwindHeapSpine fuel (applicationNode (applicationNode z x) y)
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorAdd) a) b =
+    applicationNode (applicationNode (combinatorNode combinatorAdd) a) b
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorAdd) a) b =
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of λ where
       (integerNode leftValue , integerNode rightValue) -> integerNode (leftValue + rightValue)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorAdd) leftNode) rightNode
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorMultiply) a) b =
-    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \ where
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorMultiply) a) b =
+    applicationNode (applicationNode (combinatorNode combinatorMultiply) a) b
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorMultiply) a) b =
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of λ where
       (integerNode leftValue , integerNode rightValue) -> integerNode (leftValue * rightValue)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorMultiply) leftNode) rightNode
-  reduceApplicationHead fuel (applicationNode (combinatorNode combinatorLessThan) a) b =
-    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of \ where
+  reduceApplicationHead zero (applicationNode (combinatorNode combinatorLessThan) a) b =
+    applicationNode (applicationNode (combinatorNode combinatorLessThan) a) b
+  reduceApplicationHead (suc fuel) (applicationNode (combinatorNode combinatorLessThan) a) b =
+    case (unwindHeapSpine fuel a , unwindHeapSpine fuel b) of λ where
       (integerNode leftValue , integerNode rightValue) -> combinatorNode (if leftValue < rightValue then combinatorK else combinatorA)
       (leftNode              , rightNode)              -> applicationNode (applicationNode (combinatorNode combinatorLessThan) leftNode) rightNode
-  reduceApplicationHead _ functionNode argumentNode = applicationNode functionNode argumentNode
+  reduceApplicationHead zero functionNode argumentNode = applicationNode functionNode argumentNode
+  reduceApplicationHead (suc fuel) functionNode argumentNode = applicationNode functionNode argumentNode
 
 -- 5. V73 #01 Champion HyperParameters (04_MagStream_DoubleEval_CancelZeroMeanTop1_IQN13, SavReg=0.6011)
 record MinimaxChampionHyperParameters : Set where
   constructor MakeMinimaxChampionHyperParameters
   field
     fixedPointUnitOne               : Int    -- 2^26 = 67108864 (6 integer bits, 26 fractional bits)
-    fixedPointBitShift              : Int    -- 26
+    fixedPointBitShift              : Nat    -- 26-bit fractional shift count
     recurrentHiddenWidth            : Int    -- 24 hidden units
     implicitQuantileCount           : Int    -- 13 non-scalar quantiles on BOTH Value and Advantage
     doubleEvaluationHeadCount       : Int    -- 2 alternating Common Random Number critics
     multistepHorizon                : Int    -- 3-Step Cancel-Zero-Mean Expected SARSA
-    learningRateShift               : Int    -- 2^-5
+    learningRateShift               : Nat    -- 2^-5
     streamingOptimizerBeta099       : Int    -- 0.99 (66437775)
     weightDecayKeepFactor           : Int    -- 1 - 2^-18 (67108608)
     optimizerEpsilonStabilizer      : Int    -- 2^-8 (262144)
     layerNormEpsilonStabilizer      : Int    -- 2^-6 (1048576)
     tsallisTwoFivePercentThreshold  : Int    -- fixedPointUnitOne / 20 (3355443)
     threeStepDiscountGammaCubed     : Int    -- 0.99^3 (65115644)
-    munchausenScaleTauShift         : Int    -- shiftR 6 (0.125 * 0.125)
-    noisyNetworkScaleShift          : Int    -- shiftR 2 (2^-2)
+    munchausenScaleTauShift         : Nat    -- shiftR 6 (0.125 * 0.125)
+    noisyNetworkScaleShift          : Nat    -- shiftR 2 (2^-2)
 open MinimaxChampionHyperParameters public
 
 {-# COMPILE AGDA2HS MinimaxChampionHyperParameters #-}
@@ -254,6 +268,11 @@ championHyperParameters =
     67108864 26 24 13 2 3 5 66437775 67108608 262144 1048576 3355443 65115644 6 2
 
 {-# COMPILE AGDA2HS championHyperParameters #-}
+
+private
+  -- Regression guard: the bit-shift field is a natural count, not a signed value.
+  fixedPointBitShiftIsNatural : Nat
+  fixedPointBitShiftIsNatural = fixedPointBitShift championHyperParameters
 
 -- 6. Bug-Fixed MicroHS-Verified Arithmetic, StandardCNN2D, & FoundryVTT PF2e Remaster Rules
 absoluteValue : Int -> Int
@@ -275,21 +294,26 @@ monusSubtraction a b = if b < a then a - b else 0
 rectifiedLinearUnit : Int -> Int
 rectifiedLinearUnit x = monusSubtraction x 0
 
-fixedPointMultiply : Int -> Int -> Int -> Int
+fixedPointMultiply : Nat -> Int -> Int -> Int
 fixedPointMultiply bitShift a b = shiftR (a * b) bitShift
 
 clampShiftAmount62 : Int -> Int
 clampShiftAmount62 s = if 62 < s then 62 else if s < (0 - 62) then (0 - 62) else s
+
+nonNegativeIntToNat : Int -> Nat
+nonNegativeIntToNat value =
+  if isNegativeInt value then 0 else unsafeIntToNat value
+{-# COMPILE AGDA2HS nonNegativeIntToNat #-}
 
 barrettReciprocalShift : Int -> Int -> Int -> Int
 barrettReciprocalShift numerator knotInverseQ30 rightShiftAmount =
   let product = numerator * knotInverseQ30
       clamped = clampShiftAmount62 rightShiftAmount
   in if 0 <= clamped
-       then shiftR product clamped
-       else shiftL product (0 - clamped)
+       then shiftR product (nonNegativeIntToNat clamped)
+       else shiftL product (nonNegativeIntToNat (0 - clamped))
 
-quantmoidFour : Int -> Int -> Int -> Int
+quantmoidFour : Int -> Nat -> Int -> Int
 quantmoidFour unitOne bitShift x =
   let absX    = absoluteValue x
       clamped = if absX < unitOne then absX else unitOne
@@ -300,18 +324,18 @@ quantmoidFour unitOne bitShift x =
 quantmoidFourDerivative : Int -> Int -> Int
 quantmoidFourDerivative unitOne x = monusSubtraction unitOne (absoluteValue x)
 
-quantmoidFourGaussianErrorLinearUnit : Int -> Int -> Int -> Int
+quantmoidFourGaussianErrorLinearUnit : Int -> Nat -> Int -> Int
 quantmoidFourGaussianErrorLinearUnit unitOne bitShift x =
   fixedPointMultiply bitShift x (quantmoidFour unitOne bitShift (x + shiftR x 1))
 
-quantmoidFourGeLUDerivative : Int -> Int -> Int -> Int
+quantmoidFourGeLUDerivative : Int -> Nat -> Int -> Int
 quantmoidFourGeLUDerivative unitOne bitShift x =
   let shifted = x + shiftR x 1
       derivZ  = quantmoidFourDerivative unitOne shifted
   in quantmoidFour unitOne bitShift shifted + fixedPointMultiply bitShift x (derivZ + shiftR derivZ 1)
 
 tsallisTwoFivePercentInitialization :
-  MinimaxChampionHyperParameters -> Int -> Int -> Int -> Int -> Int -> Int
+  MinimaxChampionHyperParameters -> Int -> Int -> Int -> Int -> Nat -> Int
 tsallisTwoFivePercentInitialization parameters gateUniform randomUniform knotInverseQ30 rightShift scaleShift =
   let unitOne   = fixedPointUnitOne parameters
       symmetric = (randomUniform + randomUniform) - unitOne
@@ -319,7 +343,7 @@ tsallisTwoFivePercentInitialization parameters gateUniform randomUniform knotInv
        then shiftR (barrettReciprocalShift symmetric knotInverseQ30 rightShift) scaleShift
        else 0
 
-cleanrlStandardNatureConvolution2DStep : Int -> Int -> Int -> Int -> Int -> Int
+cleanrlStandardNatureConvolution2DStep : Int -> Nat -> Int -> Int -> Int -> Int
 cleanrlStandardNatureConvolution2DStep unitOne bitShift kernelLayer0 kernelLayer1 spatialObservation =
   let convStage0 = quantmoidFourGaussianErrorLinearUnit unitOne bitShift (fixedPointMultiply bitShift kernelLayer0 spatialObservation)
   in quantmoidFourGaussianErrorLinearUnit unitOne bitShift (fixedPointMultiply bitShift kernelLayer1 convStage0)
@@ -414,7 +438,7 @@ initializeMinimaxChampion parameters gate0 uniform0 gate1 uniform1 knotInverseQ3
 stepMinimaxChampion :
   MinimaxChampionHyperParameters ->
   MinimaxChampionV73CancelTop1Model ->
-  Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
+  Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int ->
   @0 (Int -> Int -> Int) ->
   MinimaxChampionV73CancelTop1Model
 stepMinimaxChampion parameters
@@ -444,7 +468,7 @@ stepMinimaxChampion parameters
       quantileModulation         = saturatingAdd unitOne (monusSubtraction (fixedPointMultiply bitShift quantileWeight quantileCosine) 0)
       iqnModulatedHidden         = fixedPointMultiply bitShift outsideActivatedHidden quantileModulation
       noisyExploration           = shiftR (fixedPointMultiply bitShift outsideActivatedHidden (fixedPointMultiply bitShift noisyInputEpsilon noisyOutputEpsilon)) (noisyNetworkScaleShift parameters)
-      updateHeadOne              = rem stepParity 2 == 0
+      updateHeadOne              = shiftR stepParity 1 * 2 == stepParity
       activeValWeight            = if updateHeadOne then valueHeadOne else valueHeadTwo
       activeAdvWeight            = if updateHeadOne then advantageOne else advantageTwo
       duelingQValueOnline        = saturatingAdd (fixedPointMultiply bitShift activeValWeight iqnModulatedHidden) (saturatingAdd (fixedPointMultiply bitShift activeAdvWeight iqnModulatedHidden - advantageMeanNext) noisyExploration)
