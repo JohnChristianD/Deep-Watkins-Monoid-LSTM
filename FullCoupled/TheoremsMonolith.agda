@@ -1,5 +1,6 @@
 {-# OPTIONS
 --safe
+--guardedness
 --lossy-unification
 --syntactic-equality=1
 --no-eta-equality
@@ -31,6 +32,8 @@ infixr 9 _∘ᶠ_
 ¬ P = P → ⊥
 
 record _×_ (A B : Set) : Set where
+  no-eta-equality
+  pattern
   constructor pair
   field
     fst : A
@@ -526,6 +529,7 @@ module RationalSED (Q : RationalRingInterface) where
   ----------------------------------------------------------------------
 
   record Rational4Vector : Set where
+    eta-equality
     constructor r4
     field
       ct x y z : Rational

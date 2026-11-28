@@ -24,7 +24,7 @@ module FullCoupled.CanonicalLearnerMonolith where
 -- and a scalar recurrent feature unit. There is no actor or target copy.
 ------------------------------------------------------------------------
 
-open import Haskell.Prelude public
+open import Haskell.Prelude public hiding (⊥; _×_; _×_×_; _,_)
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
 open import Agda.Builtin.Equality.Rewrite public
@@ -79,10 +79,10 @@ postulate
 -- Sum domains
 
 postulate
-  _+_    : Domain → Domain → Domain                 -- separated sum
-  inj₁   : ⟪ D →ᶜ D + E ⟫                            -- injection
-  inj₂   : ⟪ E →ᶜ D + E ⟫                            -- injection
-  [_,_]  : ⟪ (D →ᶜ F) →ᶜ (E →ᶜ F) →ᶜ (D + E →ᶜ F) ⟫  -- case analysis
+  _+ᵈ_   : Domain → Domain → Domain                 -- separated sum
+  inj₁   : ⟪ D →ᶜ D +ᵈ E ⟫                            -- injection
+  inj₂   : ⟪ E →ᶜ D +ᵈ E ⟫                            -- injection
+  [_,_]  : ⟪ (D →ᶜ F) →ᶜ (E →ᶜ F) →ᶜ (D +ᵈ E →ᶜ F) ⟫  -- case analysis
 
 ------------------------------------------------------------------------
 -- Product domains
@@ -121,7 +121,7 @@ postulate
 
 infixr 0  _→ᶜ_
 infixr 0  _→ˢ_
-infixr 1   _+_
+infixr 1   _+ᵈ_
 infixr 2   _×_
 infixr 4   _,_
 infix  8   _^_
@@ -434,7 +434,7 @@ not = case⁺ n
 
 
 
-qShift : Int
+qShift : Nat
 qShift = 24
 
 qOne qHalf qQuarter qTwo qFour : Int32

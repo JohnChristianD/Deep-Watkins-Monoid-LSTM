@@ -4,18 +4,23 @@ Agda-first Q8.24 recurrent, distributional reinforcement-learning prototype.
 The canonical learner is `FullCoupled/CanonicalLearnerMonolith.agda`.
 This README is the repository's only project documentation.
 
-The canonical Agda import surface is intentionally preserved:
+The public Agda imports retain the Prelude, integer, bit-shift, and rewrite APIs while hiding Prelude's bottom and tuple/product names so the learner's domain operators remain distinct:
 
 ```agda
-open import Haskell.Prelude public
+open import Haskell.Prelude public hiding (⊥; _×_; _×_×_; _,_)
 open import Haskell.Data.Int public
 open import Haskell.Data.Bits public
 open import Agda.Builtin.Equality.Rewrite public
 ```
 
-The learner uses Int32 Q8.24 values, widened Int64 intermediates, saturating
-narrowing, and explicit fixed-point approximations. Agda2HS extracts the
-Haskell-compatible declarations; GHC checks the extracted module in CI.
+Q8.24 values use the base library's signed 64-bit `Int` carrier. `qFrom64`
+saturates narrowed results to the signed 32-bit Q8.24 range, while intermediate
+arithmetic remains in the 64-bit carrier. The local `Haskell.Data.Int` module
+provides signed quotient with truncation toward zero; `Haskell.Data.Bits`
+provides left and arithmetic-right shifts with natural-number shift counts.
+Proof checks cover quotient signs and shifts at and beyond the carrier width.
+Agda2HS extracts the Haskell-compatible declarations; GHC checks the extracted
+module in CI.
 
 The learner has no explicit strict-field annotations. When strict fields are
 needed, Agda2HS provides `Haskell.Prim.Strict`: its `Strict` record maps to
@@ -151,7 +156,7 @@ The Teal declarations describe the pinned LuaFun and Lua Lanes APIs. The Lanes d
 
 Runs [#45898705172](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45898705172) and [#45899659770](https://github.com/JohnChristianD/Deep-SARSA-GRU/actions/runs/45899659770) exposed a compiler-boundary problem: command-wide `--rewriting` and `--type-in-type` options leaked into imported modules that carry Agda's `--safe` contract. Both options are now declared only in the learner module's `OPTIONS` pragma. The global options file and wrapper-level option injection have been removed, so each module is checked under its own declared profile.
 
-The theorem module remains `--safe`. Its conaturals, conatural streams, and Codyadic digit streams use Agda's built-in delayed coinduction, with `∞`, `♯`, and `♭`, so recursive tails are represented explicitly and checked by the productivity checker without the unsafe `--guardedness` option. Finite approximation and prefix folds remain structurally recursive on their explicit bounds. CI preflight rejects coinductive-record declarations in this module and checks the delayed-tail definitions before starting Agda.
+The theorem module remains `--safe` and enables `--guardedness` locally because Agda's built-in delayed-coinduction module requires that option at the import boundary. Its conaturals, conatural streams, and Codyadic digit streams use `∞`, `♯`, and `♭`, so recursive tails are explicit and checked for productivity. The option stays confined to this theorem module; it is not injected into the learner's compiler profile. Finite approximation and prefix folds remain structurally recursive on their explicit bounds. CI preflight checks the option boundary and delayed-tail definitions before starting Agda.
 
 The Nix store cache previously garbage-collected completed compiler dependencies after nix develop released its temporary root. CI now builds the agda-ci devShell through an out-link under .cache/nix-roots before entering the shell, keeping the dependency closure reachable during cache save. Store hardlink optimization is disabled for cache compatibility, and the GC ceiling is 12 GiB.
 

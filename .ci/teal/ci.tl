@@ -110,9 +110,22 @@ local function check_agda_learner()
    )
    local theorem_source = "FullCoupled/TheoremsMonolith.agda"
    run_checked(
-      "require safe delayed coinduction",
+      "require local integer and bit compatibility modules",
+      "test -s Haskell/Data/Int.agda && test -s Haskell/Data/Bits.agda"
+         .. " && grep -Fq 'quotNegativeNumeratorTruncatesTowardZero' Haskell/Data/Int.agda"
+         .. " && grep -Fq 'shiftNegativeRoundsDown' Haskell/Data/Bits.agda"
+         .. " && grep -Fq 'with amount < 64 | value < 0' Haskell/Data/Bits.agda"
+         .. " && grep -Fq 'record Rational4Vector : Set where' " .. shell_quote(theorem_source)
+         .. " && grep -Fq '    eta-equality' " .. shell_quote(theorem_source)
+   )
+   run_checked(
+      "require isolated workers to stage local compatibility modules",
+      "grep -Fq 'cp -R Haskell ' .ci/teal/parallel_agda.tl"
+   )
+   run_checked(
+      "require safe delayed coinduction with guardedness enabled",
       "grep -Fq -- '--safe' " .. shell_quote(theorem_source)
-         .. " && ! grep -Fq -- '--guardedness' " .. shell_quote(theorem_source)
+         .. " && grep -Fq -- '--guardedness' " .. shell_quote(theorem_source)
          .. " && ! grep -Fq -- '--type-in-type' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'open import Agda.Builtin.Coinduction public' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'data Conat : Set where' " .. shell_quote(theorem_source)
@@ -123,6 +136,12 @@ local function check_agda_learner()
          .. " && grep -Fq 'codyadicDigitStep : SignedBinaryDigit → ∞ CodyadicDigitStream → CodyadicDigitStream' " .. shell_quote(theorem_source)
          .. " && ! grep -Fq '  coinductive' " .. shell_quote(theorem_source)
          .. " && grep -Fq 'suc∞ predecessor +∞ b = suc∞ (♯ (♭ predecessor +∞ b))' " .. shell_quote(theorem_source)
+   )
+   run_checked(
+      "require disjoint domain and numeric addition operators",
+      "grep -Fq '_+ᵈ_   : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
+         .. " && grep -Fq 'D +ᵈ E' FullCoupled/CanonicalLearnerMonolith.agda"
+         .. " && ! grep -Fq '_+_    : Domain → Domain → Domain' FullCoupled/CanonicalLearnerMonolith.agda"
    )
    run_checked(
       "reject LSTM and epsilon-greedy paths",
@@ -142,11 +161,11 @@ local function check_agda_learner()
    )
    run_checked(
       "require Q8.24 IQN32 Double-SARSA learner symbols",
-      "for symbol in 'qShift = 24' 'qOne     = 16777216' q4Tanh q4TanhGrad IDBDConfig IDBDParameter idbdStep l2GradientDecay NoisyDense32 DuelingIQN32 TwinDuelingCritics doubleSARSA0Target networkStart networkTrainStepSARSA0 iterativeCHAD qQuantileHuberPairGradient; do grep -Fq \"$symbol\" " .. shell_quote(source) .. " || exit 1; done"
+      "for symbol in 'qShift : Nat' 'qShift = 24' 'qOne     = 16777216' q4Tanh q4TanhGrad IDBDConfig IDBDParameter idbdStep l2GradientDecay NoisyDense32 DuelingIQN32 TwinDuelingCritics doubleSARSA0Target networkStart networkTrainStepSARSA0 iterativeCHAD qQuantileHuberPairGradient; do grep -Fq \"$symbol\" " .. shell_quote(source) .. " || exit 1; done"
    )
    run_checked(
       "require unchanged Agda import surface",
-      "for import in 'open import Haskell.Prelude public' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
+      "for import in 'open import Haskell.Prelude public hiding (⊥; _×_; _×_×_; _,_)' 'open import Haskell.Data.Int public' 'open import Haskell.Data.Bits public' 'open import Agda.Builtin.Equality.Rewrite public'; do grep -Fq \"$import\" FullCoupled/CanonicalLearnerMonolith.agda || exit 1; done"
    )
    run_checked(
       "require ReLU on recurrent candidate and output",
