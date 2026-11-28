@@ -445,7 +445,7 @@ stepMinimaxChampion parameters
       quantileModulation         = saturatingAdd unitOne (monusSubtraction (fixedPointMultiply bitShift quantileWeight quantileCosine) 0)
       iqnModulatedHidden         = fixedPointMultiply bitShift outsideActivatedHidden quantileModulation
       noisyExploration           = shiftR (fixedPointMultiply bitShift outsideActivatedHidden (fixedPointMultiply bitShift noisyInputEpsilon noisyOutputEpsilon)) (noisyNetworkScaleShift parameters)
-      updateHeadOne              = rem stepParity 2 == 0
+      updateHeadOne              = shiftR stepParity 1 * 2 == stepParity
       activeValWeight            = if updateHeadOne then valueHeadOne else valueHeadTwo
       activeAdvWeight            = if updateHeadOne then advantageOne else advantageTwo
       duelingQValueOnline        = saturatingAdd (fixedPointMultiply bitShift activeValWeight iqnModulatedHidden) (saturatingAdd (fixedPointMultiply bitShift activeAdvWeight iqnModulatedHidden - advantageMeanNext) noisyExploration)

@@ -147,6 +147,11 @@ local function check_agda_learner()
          .. " && grep -Fq 'open import Haskell.Prelude public' " .. shell_quote(source)
    )
    run_checked(
+      "use signed shifts for champion parity",
+      "grep -Fq 'updateHeadOne              = shiftR stepParity 1 * 2 == stepParity' " .. shell_quote(source)
+         .. " && ! grep -Fq 'rem stepParity 2' " .. shell_quote(source)
+   )
+   run_checked(
       "require Agda2HS exports for champion computation",
       "grep -Fq '{-# COMPILE AGDA2HS MinimaxChampionV73CancelTop1Model #-}' " .. shell_quote(source)
          .. " && grep -Fq '{-# COMPILE AGDA2HS stepMinimaxChampion #-}' " .. shell_quote(source)
